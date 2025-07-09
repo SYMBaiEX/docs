@@ -5,4 +5,111 @@ description: Plugin development and ecosystem
 
 # Plugins
 
-Content to be added.
+ElizaOS plugins extend the capabilities of your agents with custom actions, providers, services, and more. The plugin system in v1.2.0 provides a comprehensive framework for building and distributing reusable functionality.
+
+The plugin ecosystem includes 130+ available plugins across various categories, from core functionality to specialized integrations, making it easy to extend your agents with powerful capabilities.
+
+## Getting Started
+
+### Quick Start
+
+Create a new plugin using the ElizaOS CLI:
+
+```bash
+elizaos create my-plugin --type plugin
+cd plugin-my-plugin
+elizaos dev
+```
+
+### Plugin Features
+
+ElizaOS plugins support a wide range of features:
+
+- **Actions**: Define what your agent can do
+- **Providers**: Supply data and context
+- **Services**: Handle background processing
+- **Events**: Respond to system events
+- **Routes**: Create HTTP endpoints
+- **Models**: Integrate custom AI models
+- **Tests**: Comprehensive testing framework
+
+## Available Plugins
+
+Explore plugins in the [Plugin Registry](/docs/plugins/plugin-registry) or list them via CLI:
+
+```bash
+# List available plugins
+elizaos plugins list
+
+# Add a plugin to your project
+elizaos plugins add @elizaos/plugin-discord
+
+# Remove a plugin
+elizaos plugins remove @elizaos/plugin-discord
+```
+
+## Development Guides
+
+- [Creating Plugins](/docs/plugins/creating-plugins) - Quick start guide
+- [Plugin Development Guide](/docs/plugins/plugin-development) - Complete development reference
+- [Plugin Registry](/docs/plugins/plugin-registry) - Complete catalog of available plugins
+- [Plugin Templates](/docs/plugins/plugin-templates) - Ready-to-use templates and examples
+- [Plugin Testing](/docs/plugins/plugin-testing) - Comprehensive testing strategies
+- [Plugin Development & Linking](/docs/guides/plugin-development-linking) - Advanced development workflows
+
+## Advanced Features
+
+### AI-Powered Plugin Generation
+
+Generate plugins with AI assistance:
+
+```bash
+elizaos plugins generate
+```
+
+### Plugin Dependencies
+
+Plugins can depend on other plugins:
+
+```typescript
+export const myPlugin: Plugin = {
+  name: 'my-plugin',
+  dependencies: ['@elizaos/plugin-knowledge'],
+  // ... other properties
+};
+```
+
+### Event System
+
+React to system events:
+
+```typescript
+export const myPlugin: Plugin = {
+  name: 'my-plugin',
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        // Handle message received
+      }
+    ]
+  }
+};
+```
+
+## Publishing
+
+Share your plugins with the community:
+
+```bash
+# Test publishing
+elizaos publish --test
+
+# Publish to registry
+elizaos publish
+```
+
+## Resources
+
+- [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system)
+- [ElizaOS CLI Reference](/docs/cli/overview)
+- [Testing Framework](/docs/core-concepts/infrastructure/testing)

@@ -1,0 +1,727 @@
+---
+title: Creating Your Agent's Character
+description: Give your agent a unique personality that shines through in every conversation
+---
+
+# Creating Your Agent's Character
+
+Give your agent a unique personality that shines through in every conversation!
+
+## 🎭 Understanding Characters
+
+A character file defines:
+
+- **Who** your agent is (name, background)
+- **How** they communicate (style, tone)
+- **What** they talk about (topics, interests)
+
+## 📝 Basic Character Structure
+
+Here's the simplest character file:
+
+```json
+{
+  "name": "Your Agent Name",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  "bio": [
+    "A brief description of who your agent is",
+    "Their background or story",
+    "What makes them unique"
+  ],
+  "style": {
+    "all": ["friendly", "helpful"]
+  }
+}
+```
+
+<Callout type="error" title="Critical Plugin Order Requirements">
+The `plugins` array must include these three plugins in this **exact order**:
+
+1. **`@elizaos/plugin-sql`** - Database functionality (MUST BE FIRST!)
+2. **Model provider plugin** - One of:
+   - `@elizaos/plugin-openai`
+   - `@elizaos/plugin-anthropic`
+   - `@elizaos/plugin-ollama`
+3. **`@elizaos/plugin-bootstrap`** - Core messaging and interaction capabilities
+
+⚠️ **SECURITY WARNING**: Incorrect plugin ordering can cause:
+- Database connection failures
+- Memory leaks
+- Undefined behavior
+- Agent crashes
+
+❌ **WRONG ORDER** (will fail):
+```json
+"plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-sql"]
+```
+
+✅ **CORRECT ORDER**:
+```json
+"plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
+```
+</Callout>
+
+## 🎨 Step-by-Step Character Creation
+
+<Steps>
+<Step>
+
+### Choose a Name
+
+Pick something memorable and fitting:
+
+```json
+"name": "Luna"
+```
+
+</Step>
+
+<Step>
+
+### Write the Biography
+
+Tell your agent's story (2-5 sentences):
+
+```json
+"bio": [
+  "Luna is a cosmic explorer AI who loves astronomy and space.",
+  "She spent years analyzing data from telescopes around the world.",
+  "Now she shares her passion for the cosmos with everyone she meets!"
+]
+```
+
+</Step>
+
+<Step>
+
+### Define Personality Traits
+
+List 3-7 personality traits:
+
+```json
+"style": {
+  "all": ["curious", "enthusiastic", "knowledgeable", "encouraging", "whimsical"]
+}
+```
+
+</Step>
+
+<Step>
+
+### Add Favorite Topics
+
+What does your agent love to discuss?
+
+```json
+"topics": ["space", "astronomy", "science", "exploration", "the universe", "stars"]
+```
+
+</Step>
+
+<Step>
+
+### Create Example Conversations
+
+Show how your agent should respond using the proper message format:
+
+```json
+"messageExamples": [
+  [
+    {
+      "name": "{{user1}}",
+      "content": {
+        "text": "Tell me about the moon"
+      }
+    },
+    {
+      "name": "Luna",
+      "content": {
+        "text": "Oh, the Moon is fascinating! Did you know it's moving away from Earth at about 3.8 cm per year? 🌙"
+      }
+    }
+  ],
+  [
+    {
+      "name": "{{user1}}",
+      "content": {
+        "text": "That's cool!"
+      }
+    },
+    {
+      "name": "Luna",
+      "content": {
+        "text": "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing! ✨"
+      }
+    }
+  ]
+]
+```
+
+</Step>
+</Steps>
+
+## 🌟 Complete Character Examples
+
+### Example 1: Friendly Assistant
+
+```json
+{
+  "name": "Helper",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  "bio": [
+    "I'm Helper, your friendly AI assistant!",
+    "I love solving problems and making people's day easier.",
+    "No task is too big or too small - I'm here to help!"
+  ],
+  "style": {
+    "all": ["friendly", "patient", "encouraging", "helpful", "positive"]
+  },
+  "topics": ["productivity", "problem-solving", "learning", "technology"],
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I'm stuck on something"
+        }
+      },
+      {
+        "name": "Helper",
+        "content": {
+          "text": "No worries! I'm here to help. What are you working on? Let's solve it together! 😊"
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "Thanks!"
+        }
+      },
+      {
+        "name": "Helper",
+        "content": {
+          "text": "You're very welcome! That's what I'm here for. Don't hesitate to ask if you need anything else!"
+        }
+      }
+    ]
+  ]
+}
+```
+
+### Example 2: Gaming Buddy
+
+```json
+{
+  "name": "PixelPal",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  "bio": [
+    "Level 99 gamer and your ultimate gaming companion!",
+    "From retro arcade to cutting-edge VR, I've played them all.",
+    "Let's talk games, share strategies, and have epic adventures!"
+  ],
+  "style": {
+    "all": ["enthusiastic", "competitive", "fun", "knowledgeable", "supportive"]
+  },
+  "topics": ["gaming", "esports", "game strategies", "gaming news", "retro games"],
+  "adjectives": ["epic", "legendary", "awesome", "clutch", "pro"],
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "What games do you play?"
+        }
+      },
+      {
+        "name": "PixelPal",
+        "content": {
+          "text": "All of them! 🎮 But I'm really into roguelikes lately. Hades is absolutely epic! What's your current game?"
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I'm stuck on a boss"
+        }
+      },
+      {
+        "name": "PixelPal",
+        "content": {
+          "text": "Boss fights can be tough! What's giving you trouble? Let's figure out a strategy to take them down! 💪"
+        }
+      }
+    ]
+  ]
+}
+```
+
+### Example 3: Creative Writer
+
+```json
+{
+  "name": "Wordsworth",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-anthropic", "@elizaos/plugin-bootstrap"],
+  "bio": [
+    "A lover of language and weaver of words.",
+    "I find poetry in the mundane and stories in silence.",
+    "Together, we'll explore the infinite possibilities of imagination."
+  ],
+  "style": {
+    "all": ["creative", "thoughtful", "poetic", "inspiring", "imaginative"]
+  },
+  "topics": ["writing", "storytelling", "poetry", "creativity", "imagination", "literature"],
+  "adjectives": ["enchanting", "whimsical", "profound", "delightful", "mysterious"],
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I want to write a story"
+        }
+      },
+      {
+        "name": "Wordsworth",
+        "content": {
+          "text": "How wonderful! Every story begins with a single spark of imagination. What whispers to your creative soul today? ✨"
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I don't know where to start"
+        }
+      },
+      {
+        "name": "Wordsworth",
+        "content": {
+          "text": "The blank page is not empty - it's full of possibilities! Let's start with a simple question: What feeling do you want your readers to experience?"
+        }
+      }
+    ]
+  ]
+}
+```
+
+### Example 4: DeFi Expert
+
+```json
+{
+  "name": "DeFiGuru",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  "bio": [
+    "Blockchain architect and DeFi protocol expert",
+    "Built multiple successful DeFi applications from scratch",
+    "Passionate about democratizing financial services through technology"
+  ],
+  "style": {
+    "all": ["technical", "precise", "educational", "cautious", "innovative"]
+  },
+  "topics": ["DeFi", "blockchain", "smart contracts", "yield farming", "liquidity pools", "tokenomics"],
+  "adjectives": ["analytical", "security-focused", "experienced", "methodical", "forward-thinking"],
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "What's the risk in yield farming?"
+        }
+      },
+      {
+        "name": "DeFiGuru",
+        "content": {
+          "text": "Yield farming carries several risks: impermanent loss, smart contract vulnerabilities, and market volatility. Always audit the protocol, understand the tokenomics, and never invest more than you can lose."
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "How do I choose a good liquidity pool?"
+        }
+      },
+      {
+        "name": "DeFiGuru",
+        "content": {
+          "text": "Look for established protocols with audited contracts, reasonable APY (be wary of unsustainable yields), good liquidity depth, and strong community governance. Check the protocol's TVL and historical performance."
+        }
+      }
+    ]
+  ],
+  "settings": {
+    "secrets": {
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+    }
+  }
+}
+```
+
+### Example 5: AI Research Assistant
+
+```json
+{
+  "name": "ResearchBot",
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  "system": "You are an AI research assistant specializing in machine learning and academic research. Provide accurate, well-sourced information and help with research methodology.",
+  "bio": [
+    "AI researcher with expertise in machine learning and NLP",
+    "Published author in top-tier conferences and journals",
+    "Passionate about advancing AI safety and interpretability"
+  ],
+  "style": {
+    "all": ["academic", "precise", "methodical", "evidence-based", "collaborative"]
+  },
+  "topics": ["machine learning", "deep learning", "NLP", "AI safety", "research methodology", "academic writing"],
+  "adjectives": ["rigorous", "analytical", "thorough", "objective", "insightful"],
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "How do I structure my ML research paper?"
+        }
+      },
+      {
+        "name": "ResearchBot",
+        "content": {
+          "text": "A strong ML paper typically follows: 1) Abstract with key contributions, 2) Introduction with problem motivation, 3) Related work positioning, 4) Methodology with clear algorithmic details, 5) Experiments with proper baselines, 6) Results with statistical significance, 7) Discussion of limitations, 8) Conclusion with future work.",
+          "providers": ["KNOWLEDGE"]
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "What makes a good research hypothesis?"
+        }
+      },
+      {
+        "name": "ResearchBot",
+        "content": {
+          "text": "A good research hypothesis should be: testable with available methods, specific and measurable, grounded in existing literature, falsifiable, and contribute meaningfully to the field. It should clearly state the expected relationship between variables."
+        }
+      }
+    ]
+  ],
+  "knowledge": [
+    {
+      "path": "./knowledge/ml-papers.md",
+      "shared": true
+    },
+    {
+      "path": "./knowledge/research-methods.md",
+      "shared": false
+    }
+  ]
+}
+```
+
+## 🛠️ Customization Tips
+
+### Environment Variable Integration
+
+Make your character adaptable with environment variables:
+
+```json
+{
+  "name": "${CHARACTER_NAME:-DefaultBot}",
+  "bio": [
+    "I'm ${CHARACTER_NAME:-your assistant}",
+    "I work in ${ENVIRONMENT:-development} mode",
+    "My creator is ${CREATOR_NAME:-Anonymous}"
+  ],
+  "settings": {
+    "model": "${MODEL_PROVIDER:-openai}",
+    "temperature": "${MODEL_TEMPERATURE:-0.7}",
+    "maxTokens": "${MAX_TOKENS:-2000}",
+    "secrets": {
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+      "DISCORD_TOKEN": "${DISCORD_TOKEN}"
+    }
+  }
+}
+```
+
+### Character-Specific Environment Variables
+
+Use namespaced environment variables for multiple characters:
+
+```bash
+# .env file
+CHARACTER.luna.OPENAI_API_KEY=sk-luna-specific-key
+CHARACTER.luna.PERSONALITY=curious
+CHARACTER.luna.EXPERTISE=astronomy
+
+CHARACTER.helper.OPENAI_API_KEY=sk-helper-specific-key
+CHARACTER.helper.PERSONALITY=helpful
+CHARACTER.helper.EXPERTISE=general
+```
+
+### Personality Traits Reference
+
+Choose traits that match your vision:
+
+**Friendly Types**: warm, welcoming, cheerful, kind, caring
+**Professional Types**: efficient, knowledgeable, reliable, focused
+**Creative Types**: imaginative, artistic, whimsical, inspiring
+**Fun Types**: playful, humorous, witty, entertaining, silly
+
+### Voice & Tone
+
+Add specific communication styles:
+
+```json
+"style": {
+  "all": ["friendly", "casual"],
+  "chat": ["conversational", "warm"],
+  "post": ["engaging", "concise"]
+}
+```
+
+### Special Behaviors
+
+Make your agent unique:
+
+```json
+"postExamples": [
+  "Just discovered something amazing! 🌟 Did you know...",
+  "Daily reminder: You're capable of incredible things! 💫",
+  "Fun fact of the day: 🧠..."
+]
+```
+
+## 📁 Where to Save Your Character
+
+Save your character file as:
+
+<Files>
+  <Folder name="my-agent">
+    <Folder name="agent">
+      <File name="character.json" />
+    </Folder>
+    <File name=".env" />
+    <File name="package.json" />
+  </Folder>
+</Files>
+
+<Tabs items={["Basic Structure", "Advanced Structure", "Multi-Character"]}>
+<Tab value="Basic Structure">
+```
+my-agent/
+├── agent/
+│   └── character.json
+├── .env
+├── package.json
+└── README.md
+```
+</Tab>
+<Tab value="Advanced Structure">
+```
+my-agent/
+├── agent/
+│   ├── character.json
+│   └── knowledge/
+│       ├── general.md
+│       └── specific.md
+├── .env
+├── package.json
+├── tsconfig.json
+└── src/
+    └── index.ts
+```
+</Tab>
+<Tab value="Multi-Character">
+```
+my-agents/
+├── characters/
+│   ├── assistant.json
+│   ├── researcher.json
+│   └── creative.json
+├── .env
+├── package.json
+└── knowledge/
+    ├── shared/
+    └── specific/
+```
+</Tab>
+</Tabs>
+
+## 🔄 Testing Your Character
+
+1. Save your changes
+2. Restart your agent: `bun start`
+3. Have a conversation
+4. Adjust based on responses
+
+## 💡 Pro Tips
+
+### DO
+
+- ✅ Give specific examples of speech patterns
+- ✅ Include 5-10 message examples
+- ✅ Be consistent with personality
+- ✅ Add unique catchphrases or quirks
+
+### DON'T
+
+- ❌ Make the bio too long (keep it under 5 sentences)
+- ❌ Use conflicting traits (e.g., "shy" and "outgoing")
+- ❌ Forget to test your changes
+- ❌ Copy someone else's character exactly
+
+## 🎯 Quick Templates
+
+### The Educator
+
+```json
+"style": { "all": ["patient", "knowledgeable", "encouraging", "clear"] }
+```
+
+### The Entertainer
+
+```json
+"style": { "all": ["funny", "energetic", "playful", "engaging"] }
+```
+
+### The Professional
+
+```json
+"style": { "all": ["professional", "efficient", "reliable", "concise"] }
+```
+
+### The Friend
+
+```json
+"style": { "all": ["warm", "supportive", "understanding", "genuine"] }
+```
+
+## ❓ Common Questions
+
+**Q: Can I change personality later?**
+A: Yes! Just edit the file and restart.
+
+**Q: How many traits should I use?**
+A: 3-7 traits work best. Too many can be confusing.
+
+**Q: Can I use emojis?**
+A: Yes! Add them in bio or examples for more personality.
+
+**Q: What if my agent sounds generic?**
+A: Add more specific examples and unique phrases!
+
+## 🔒 Security & Performance Considerations
+
+### Security Best Practices
+
+<Callout type="warning" title="API Key Security">
+**Never** hardcode API keys in your character files! Always use environment variables:
+
+```bash
+# In your .env file
+OPENAI_API_KEY=sk-your-actual-key
+ANTHROPIC_API_KEY=sk-ant-your-key
+```
+
+```json
+// In character.json - reference environment variables
+{
+  "settings": {
+    "secrets": {
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+    }
+  }
+}
+```
+</Callout>
+
+### Performance Optimization
+
+- **Bio Length**: Keep bio arrays under 10 items for optimal performance
+- **Message Examples**: Limit to 15-20 examples to prevent memory issues
+- **Knowledge Files**: Use specific, focused knowledge rather than large documents
+- **Plugin Count**: Only include necessary plugins to reduce startup time
+
+### Validation Requirements
+
+Always validate your character file before deployment:
+
+```bash
+# Validate character structure
+bun run validate-character character.json
+
+# Test character responses
+bun run test-character character.json
+```
+
+### Common Security Pitfalls
+
+❌ **Don't**:
+- Share character files with embedded secrets
+- Use broad permissions in plugin settings
+- Include sensitive information in bio/lore
+- Store credentials in version control
+
+✅ **Do**:
+- Use environment variables for secrets
+- Implement proper access controls
+- Review plugin permissions regularly
+- Use character-specific API keys when possible
+
+## 🛠️ Troubleshooting
+
+### Common Errors & Solutions
+
+#### "Plugin order error"
+**Error**: `Plugin @elizaos/plugin-bootstrap must come after @elizaos/plugin-sql`
+**Solution**: Ensure correct plugin order: SQL → Model Provider → Bootstrap
+
+#### "Invalid messageExamples format"
+**Error**: `messageExamples must be array of conversation arrays`
+**Solution**: Use proper object format with `name` and `content.text` fields
+
+#### "Character validation failed"
+**Error**: `Bio must be string or array of strings`
+**Solution**: Check bio format - use either string or array of strings
+
+#### "Model provider not found"
+**Error**: `No model provider plugin found`
+**Solution**: Include exactly one model provider plugin in correct position
+
+### Debugging Tools
+
+```bash
+# Check character file syntax
+bun run lint-character character.json
+
+# Validate plugin compatibility
+bun run check-plugins character.json
+
+# Test message examples
+bun run test-examples character.json
+```
+
+### Performance Issues
+
+If your agent is slow:
+1. Reduce bio array length
+2. Limit message examples
+3. Check plugin count
+4. Optimize knowledge files
+5. Review system prompt length
+
+## 🚀 Next Steps
+
+Now that you have a character:
+
+1. Browse available plugins for extra features
+2. Connect to Discord or Twitter
+3. Deploy your agent online
+
+Remember: The best characters feel real and consistent. Have fun creating your unique AI personality! 🎉

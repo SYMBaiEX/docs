@@ -1,0 +1,718 @@
+---
+title: Testing
+description: Comprehensive testing strategies and tools in ElizaOS with actual implementation details
+---
+
+# Testing
+
+ElizaOS provides a comprehensive testing framework that covers unit tests, integration tests, end-to-end tests, and shell script testing. The testing infrastructure ensures code quality, reliability, and maintainability across the entire platform.
+
+## Testing Architecture
+
+### Test Command Implementation
+
+The ElizaOS CLI provides a comprehensive test command:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/test/actions/run-all-tests.ts
+export async function runAllTests(
+  testPath: string | undefined,
+  options: TestCommandOptions
+): Promise<void> {
+  // Run component tests first
+  const projectInfo = getProjectType(testPath);
+  if (!options.skipBuild) {
+    const componentResult = await runComponentTests(testPath, options, projectInfo);
+    if (componentResult.failed) {
+      logger.error('Component tests failed. Continuing to e2e tests...');
+    }
+  }
+
+  // Run e2e tests
+  const e2eResult = await runE2eTests(testPath, options, projectInfo);
+  if (e2eResult.failed) {
+    logger.error('E2E tests failed.');
+    process.exit(1);
+  }
+
+  logger.success('All tests passed successfully!');
+  process.exit(0);
+}
+```
+
+### Test Health Monitor
+
+ElizaOS includes a sophisticated test health monitoring system:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/utils/testing/test-health-monitor.ts
+export class TestHealthMonitor {
+  private static instance: TestHealthMonitor;
+  private healthChecks: Map<string, HealthCheck> = new Map();
+  private monitoringInterval: NodeJS.Timer | null = null;
+
+  static getInstance(): TestHealthMonitor {
+    if (!TestHealthMonitor.instance) {
+      TestHealthMonitor.instance = new TestHealthMonitor();
+    }
+    return TestHealthMonitor.instance;
+  }
+
+  startMonitoring(intervalMs: number = 30000): void {
+    this.monitoringInterval = setInterval(() => {
+      this.runHealthChecks();
+    }, intervalMs);
+  }
+
+  addHealthCheck(name: string, check: HealthCheck): void {
+    this.healthChecks.set(name, check);
+  }
+
+  getHealth(): HealthStatus {
+    const checks = Array.from(this.healthChecks.entries()).map(([name, check]) => ({
+      name,
+      status: check.isHealthy ? 'healthy' : 'unhealthy',
+      lastCheck: check.lastCheck,
+      error: check.error
+    }));
+
+    return {
+      overall: checks.every(c => c.status === 'healthy') ? 'healthy' : 'unhealthy',
+      checks
+    };
+  }
+
+  private runHealthChecks(): void {
+    for (const [name, check] of this.healthChecks) {
+      try {
+        check.isHealthy = check.checkFunction();
+        check.lastCheck = new Date();
+        check.error = null;
+      } catch (error) {
+        check.isHealthy = false;
+        check.error = error instanceof Error ? error.message : 'Unknown error';
+        check.lastCheck = new Date();
+      }
+    }
+  }
+}
+```
+
+### Timeout Management
+
+The testing system includes sophisticated timeout management:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/utils/testing/timeout-manager.ts
+export class TimeoutManager {
+  private timeouts: Map<string, NodeJS.Timeout> = new Map();
+  private defaultTimeout: number = 30000;
+
+  setDefaultTimeout(timeout: number): void {
+    this.defaultTimeout = timeout;
+  }
+
+  async withTimeout<T>(
+    operation: () => Promise<T>,
+    timeout: number = this.defaultTimeout,
+    timeoutMessage: string = 'Operation timed out'
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(timeoutMessage));
+      }, timeout);
+
+      operation()
+        .then(resolve)
+        .catch(reject)
+        .finally(() => {
+          clearTimeout(timeoutId);
+        });
+    });
+  }
+
+  createTimeout(id: string, callback: () => void, delay: number): void {
+    this.clearTimeout(id);
+    const timeout = setTimeout(() => {
+      callback();
+      this.timeouts.delete(id);
+    }, delay);
+    this.timeouts.set(id, timeout);
+  }
+
+  clearTimeout(id: string): void {
+    const timeout = this.timeouts.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.timeouts.delete(id);
+    }
+  }
+
+  clearAllTimeouts(): void {
+    for (const timeout of this.timeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.timeouts.clear();
+  }
+}
+```
+
+## Testing Philosophy
+
+ElizaOS follows these testing principles:
+
+- **Test at Multiple Levels** - Unit, integration, and E2E tests
+- **Fast Feedback** - Quick test execution with parallel support
+- **Isolated Tests** - Each test runs in isolation
+- **Realistic Testing** - Tests simulate real-world scenarios
+- **Continuous Testing** - Integrated into development workflow
+
+## Test Types
+
+### Unit Tests
+
+Test individual components in isolation:
+
+```typescript
+// Example unit test
+import { describe, it, expect } from 'bun:test';
+import { validateProjectName } from '@/src/utils/validation';
+
+describe('validateProjectName', () => {
+  it('should accept valid project names', () => {
+    const result = validateProjectName('my-project');
+    expect(result.isValid).toBe(true);
+  });
+
+  it('should reject invalid characters', () => {
+    const result = validateProjectName('my project!');
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('invalid characters');
+  });
+});
+```
+
+### Integration Tests
+
+Test component interactions:
+
+```typescript
+// Plugin integration test
+import { describe, it, expect } from 'bun:test';
+import { loadPlugin } from '@/src/utils/plugin-utils';
+
+describe('Plugin Loading', () => {
+  it('should load and initialize plugin', async () => {
+    const plugin = await loadPlugin('@elizaos/plugin-openai');
+    expect(plugin).toBeDefined();
+    expect(plugin.name).toBe('plugin-openai');
+  });
+});
+```
+
+### End-to-End Tests
+
+Test complete workflows:
+
+```typescript
+// E2E test example
+import { describe, it, expect } from 'bun:test';
+import { startServer, createAgent } from './test-utils';
+
+describe('Agent Chat E2E', () => {
+  it('should handle complete conversation', async () => {
+    const server = await startServer();
+    const agent = await createAgent();
+    
+    const response = await agent.chat('Hello');
+    expect(response).toContain('Hi');
+    
+    await server.stop();
+  });
+});
+```
+
+### BATS Tests
+
+Shell script testing for CLI commands:
+
+```bash
+#!/usr/bin/env bats
+
+@test "elizaos create creates project" {
+  run elizaos create test-project --yes
+  [ "$status" -eq 0 ]
+  [ -d "test-project" ]
+  [ -f "test-project/package.json" ]
+}
+
+@test "elizaos start runs server" {
+  cd test-project
+  run timeout 5s elizaos start
+  [ "$status" -eq 124 ] # Timeout expected
+}
+```
+
+## Test Infrastructure
+
+### Test Runner
+
+ElizaOS uses Bun's built-in test runner:
+
+```json
+{
+  "scripts": {
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
+  }
+}
+```
+
+### Test Organization
+
+```
+project/
+├── src/
+│   ├── __tests__/        # Unit tests
+│   │   ├── utils.test.ts
+│   │   └── actions.test.ts
+│   └── integration/      # Integration tests
+│       └── plugin.test.ts
+├── e2e/                  # E2E tests
+│   ├── chat.test.ts
+│   └── workflow.test.ts
+└── tests/
+    └── bats/            # BATS tests
+        ├── commands/
+        └── integration/
+```
+
+### Test Utilities
+
+#### Port Management
+
+```typescript
+// Automatic port allocation
+import { getAvailablePort } from '@/src/utils/port-utils';
+
+const port = await getAvailablePort(3000);
+// Returns available port starting from 3000
+```
+
+#### Process Management
+
+```typescript
+// Cleanup utilities
+import { cleanupProcesses } from '@/src/utils/test-utils';
+
+afterAll(async () => {
+  await cleanupProcesses();
+});
+```
+
+#### Timeout Management
+
+```typescript
+// Configurable timeouts
+import { TimeoutManager } from '@/src/utils/testing/timeout-manager';
+
+const manager = new TimeoutManager();
+await manager.runWithTimeout(async () => {
+  // Long running operation
+}, 30000);
+```
+
+## Testing Commands
+
+### CLI Test Command
+
+```bash
+# Run all tests
+elizaos test
+
+# Run specific type
+elizaos test --type component
+elizaos test --type e2e
+
+# Test with options
+elizaos test --name "specific-test"
+elizaos test --skip-build
+elizaos test --port 4000
+```
+
+### Direct Test Execution
+
+```bash
+# Run all tests in package
+bun test
+
+# Run specific test file
+bun test src/utils.test.ts
+
+# Watch mode
+bun test --watch
+
+# Coverage
+bun test --coverage
+```
+
+### BATS Testing
+
+```bash
+# Run all BATS tests
+bun run test:bats
+
+# Run specific suite
+bats tests/bats/commands/
+
+# Run single test
+bats tests/bats/commands/start.bats
+```
+
+## Test Configuration
+
+### TypeScript Configuration
+
+```typescript
+// tsconfig.json for tests
+{
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@test/*": ["./tests/*"]
+    }
+  }
+}
+```
+
+### Test Environment
+
+```typescript
+// test-setup.ts
+import { beforeAll, afterAll } from 'bun:test';
+
+beforeAll(() => {
+  // Global setup
+  process.env.NODE_ENV = 'test';
+  process.env.QUIET_MODE = 'true';
+});
+
+afterAll(() => {
+  // Global cleanup
+});
+```
+
+### Coverage Configuration
+
+```json
+{
+  "scripts": {
+    "coverage": "bun test --coverage",
+    "coverage:html": "bun test --coverage --coverage-reporter=html"
+  }
+}
+```
+
+## Writing Tests
+
+### Test Structure
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+
+describe('Feature Name', () => {
+  let testContext;
+
+  beforeEach(() => {
+    // Setup before each test
+    testContext = createTestContext();
+  });
+
+  afterEach(() => {
+    // Cleanup after each test
+    testContext.cleanup();
+  });
+
+  describe('Specific Functionality', () => {
+    it('should perform expected behavior', () => {
+      // Arrange
+      const input = prepareInput();
+      
+      // Act
+      const result = performAction(input);
+      
+      // Assert
+      expect(result).toBe(expectedValue);
+    });
+  });
+});
+```
+
+### Async Testing
+
+```typescript
+it('should handle async operations', async () => {
+  const promise = asyncOperation();
+  await expect(promise).resolves.toBe('success');
+});
+
+it('should handle errors', async () => {
+  const promise = failingOperation();
+  await expect(promise).rejects.toThrow('Expected error');
+});
+```
+
+### Mocking
+
+```typescript
+import { mock } from 'bun:test';
+
+const mockFetch = mock(() => 
+  Promise.resolve({ json: () => ({ data: 'mocked' }) })
+);
+
+globalThis.fetch = mockFetch;
+```
+
+## Testing Patterns
+
+### Plugin Testing
+
+```typescript
+describe('Plugin', () => {
+  it('should export required interface', () => {
+    expect(plugin.name).toBeDefined();
+    expect(plugin.description).toBeDefined();
+    expect(plugin.init).toBeInstanceOf(Function);
+  });
+
+  it('should initialize correctly', async () => {
+    const config = { API_KEY: 'test-key' };
+    const initialized = await plugin.init(config);
+    expect(initialized).toBeDefined();
+  });
+});
+```
+
+### Character Testing
+
+```typescript
+describe('Character', () => {
+  it('should have valid structure', () => {
+    expect(character.name).toBeDefined();
+    expect(character.plugins).toBeInstanceOf(Array);
+    expect(character.settings).toBeInstanceOf(Object);
+  });
+
+  it('should load from file', async () => {
+    const loaded = await loadCharacter('test.json');
+    expect(loaded).toMatchObject({ name: expect.any(String) });
+  });
+});
+```
+
+### API Testing
+
+```typescript
+describe('API Endpoints', () => {
+  let server;
+
+  beforeAll(async () => {
+    server = await startTestServer();
+  });
+
+  afterAll(async () => {
+    await server.close();
+  });
+
+  it('should respond to health check', async () => {
+    const response = await fetch(`${server.url}/health`);
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+## Continuous Integration
+
+### GitHub Actions
+
+```yaml
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun test
+      - run: bun run test:bats
+```
+
+### Pre-commit Hooks
+
+```json
+{
+  "husky": {
+    "hooks": {
+      "pre-commit": "bun test --changed"
+    }
+  }
+}
+```
+
+## Performance Testing
+
+### Load Testing
+
+```typescript
+describe('Performance', () => {
+  it('should handle concurrent requests', async () => {
+    const requests = Array.from({ length: 100 }, () =>
+      fetch('/api/chat', { method: 'POST', body: 'test' })
+    );
+    
+    const start = Date.now();
+    await Promise.all(requests);
+    const duration = Date.now() - start;
+    
+    expect(duration).toBeLessThan(5000);
+  });
+});
+```
+
+### Memory Testing
+
+```typescript
+it('should not leak memory', async () => {
+  const initialMemory = process.memoryUsage().heapUsed;
+  
+  for (let i = 0; i < 1000; i++) {
+    await processLargeData();
+  }
+  
+  global.gc(); // Force garbage collection
+  const finalMemory = process.memoryUsage().heapUsed;
+  
+  expect(finalMemory).toBeLessThan(initialMemory * 1.5);
+});
+```
+
+## Debugging Tests
+
+### Verbose Output
+
+```bash
+# Run with detailed output
+bun test --verbose
+
+# Debug specific test
+bun test --grep "specific test name"
+```
+
+### Debugging in VS Code
+
+```json
+{
+  "type": "bun",
+  "request": "launch",
+  "name": "Debug Test",
+  "program": "${workspaceFolder}/node_modules/bun/bin/bun",
+  "args": ["test", "${file}"],
+  "cwd": "${workspaceFolder}"
+}
+```
+
+## Best Practices
+
+### Test Naming
+
+```typescript
+// Good test names
+it('should return user data when valid ID provided');
+it('should throw error when ID is invalid');
+it('should cache results for subsequent calls');
+
+// Poor test names
+it('test user');
+it('works');
+it('error case');
+```
+
+### Test Isolation
+
+```typescript
+// Each test should be independent
+beforeEach(() => {
+  // Reset state
+  database.clear();
+  cache.flush();
+});
+
+// Don't share state between tests
+let sharedState; // Avoid!
+```
+
+### Assertions
+
+```typescript
+// Be specific with assertions
+expect(result).toEqual({
+  status: 'success',
+  data: { id: 1, name: 'Test' }
+});
+
+// Not just
+expect(result).toBeDefined();
+```
+
+### Test Data
+
+```typescript
+// Use factories for test data
+const createTestUser = (overrides = {}) => ({
+  id: 'test-id',
+  name: 'Test User',
+  email: 'test@example.com',
+  ...overrides
+});
+
+const user = createTestUser({ name: 'Custom Name' });
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Already in Use**
+   ```bash
+   # Kill processes on port
+   lsof -ti:3000 | xargs kill -9
+   ```
+
+2. **Test Timeouts**
+   ```typescript
+   // Increase timeout for specific test
+   it('long running test', async () => {
+     // test code
+   }, 60000); // 60 second timeout
+   ```
+
+3. **Flaky Tests**
+   ```typescript
+   // Add retries for unstable tests
+   it.retry(3)('might fail occasionally', async () => {
+     // test code
+   });
+   ```
+
+## Related Documentation
+
+- [CLI Tools](/docs/core-concepts/infrastructure/cli-tools)
+- [Development Workflow](/docs/getting-started/development)
+- [CI/CD Pipeline](/docs/deployment/ci-cd)
+- [Code Quality](/docs/development/code-quality)

@@ -1,6 +1,9 @@
 {
   "title": "Migration",
   "pages": [
-    "index"
+    "index",
+    "v1.2.0-migration",
+    "migration-helper",
+    "api-migration"
   ]
 }

@@ -5,4 +5,240 @@ description: Create your first agent in minutes
 
 # Quickstart
 
-Content to be added.
+Create your first AI agent in under 5 minutes with the ElizaOS CLI.
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** (v23.3.0 exact version required)
+- **Bun** package manager (v1.2.15 recommended)
+- **API Key** from OpenAI, Anthropic, or local AI setup
+- **Windows Users**: WSL 2 required
+
+<Callout type="info">
+Complete installation instructions are available in the [Installation Guide](/docs/getting-started/installation).
+</Callout>
+
+## Step 1: Install the CLI
+
+Install the ElizaOS CLI globally:
+
+```bash
+bun install -g @elizaos/cli
+```
+
+Verify the installation:
+
+```bash
+elizaos --version
+```
+
+## Step 2: Create Your First Agent
+
+Create a new agent project using the interactive CLI:
+
+```bash
+# Interactive mode (recommended for beginners)
+elizaos create
+
+# Or specify details directly
+elizaos create my-first-agent --type project
+```
+
+The CLI will prompt you to choose:
+- **Project Type**: Select `project` (full ElizaOS application)
+- **Database**: Select `pglite` (lightweight, no setup required) or `postgres` (production-ready)
+- **Model Provider**: Select `openai` (most reliable for beginners)
+- **Template**: Select `default` (includes common plugins) or `minimal` (basic setup)
+
+## Step 3: Configure Your Agent
+
+Navigate to your project directory:
+
+```bash
+cd my-first-agent
+```
+
+Set up your environment variables using the new v1.2.0 environment management:
+
+```bash
+# Interactive environment setup (recommended)
+elizaos env interactive
+
+# Or edit environment variables directly
+elizaos env edit-local
+
+# Or manually edit .env file
+nano .env
+```
+
+Add your API key and basic configuration:
+
+```bash
+# Required: Your OpenAI API key
+OPENAI_API_KEY=your_api_key_here
+
+# Optional: Logging level
+LOG_LEVEL=info
+
+# Optional: Server configuration
+SERVER_PORT=3000
+SERVER_HOST=localhost
+
+# Optional: Discord integration (if needed)
+DISCORD_APPLICATION_ID=your_discord_app_id
+DISCORD_API_TOKEN=your_discord_bot_token
+```
+
+## Step 4: Start Your Agent
+
+Build and start your agent:
+
+```bash
+# Start in production mode
+elizaos start
+
+# Or start in development mode (with hot-reload)
+elizaos dev
+
+# Build before starting (recommended for first run)
+elizaos start --build
+```
+
+Your agent will start and be available at:
+- **Web Interface**: http://localhost:3000 (or your configured port)
+- **Console**: Interactive chat in your terminal
+- **API**: RESTful API endpoints for agent management
+
+## Step 5: Test Your Agent
+
+1. **Web Interface**: Open your browser to `http://localhost:3000`
+2. **Start a conversation** with your agent
+3. **Try different questions** and commands
+4. **Observe responses** and behavior
+
+### Testing Commands (New in v1.2.0)
+
+```bash
+# Run basic tests
+elizaos test
+
+# Run component tests
+elizaos test component
+
+# Run end-to-end tests
+elizaos test e2e
+
+# Check environment configuration
+elizaos env list
+```
+
+## Next Steps
+
+Now that your agent is running, you can:
+
+<Cards>
+  <Card title="Add Plugins" href="/docs/plugins" icon="🔌">
+    Extend your agent with community plugins using `elizaos plugins add`
+  </Card>
+  <Card title="Connect to Discord" href="/docs/core-concepts/communication" icon="🔗">
+    Set up Discord integration for your agent
+  </Card>
+  <Card title="Customize Personality" href="/docs/core-concepts/agent-development/character-definition" icon="🎭">
+    Define your agent's personality and behavior
+  </Card>
+  <Card title="Development Workflow" href="/docs/getting-started/configuration" icon="⚙️">
+    Learn about dev mode, testing, and deployment
+  </Card>
+  <Card title="Deploy to Production" href="/docs/advanced/deployment" icon="🚀">
+    Make your agent available 24/7
+  </Card>
+  <Card title="TEE Deployment" href="/docs/advanced/tee-deployment" icon="🔒">
+    Deploy to Trusted Execution Environment
+  </Card>
+</Cards>
+
+## Development Workflow
+
+### Basic Development Commands
+
+```bash
+# Start development server with hot-reload
+elizaos dev
+
+# Start with specific character files
+elizaos dev --character characters/my-agent.json
+
+# Build and test your changes
+elizaos test
+
+# Update CLI and dependencies
+elizaos update
+```
+
+### Plugin Management
+
+```bash
+# List available plugins
+elizaos plugins list
+
+# Add a plugin to your project
+elizaos plugins add @elizaos/plugin-discord
+
+# Remove a plugin
+elizaos plugins remove @elizaos/plugin-discord
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Agent won't start?**
+- Verify your API key is correctly set: `elizaos env list`
+- Check that Node.js v23.3.0 (exact version) is installed: `node --version`
+- Ensure port 3000 is available or use `--port` option
+- Try building first: `elizaos start --build`
+
+**Agent not responding?**
+- Check the console for error messages
+- Verify your API key is valid and has credits
+- Try restarting with `elizaos start --configure`
+- Check database connection: `elizaos env test-db`
+
+**CLI or dependency issues?**
+- Update the CLI: `bun update -g @elizaos/cli`
+- Check for updates: `elizaos update --check`
+- Reinstall dependencies: `bun install`
+
+**Plugin problems?**
+- List installed plugins: `elizaos plugins installed-plugins`
+- Remove problematic plugin: `elizaos plugins remove <plugin-name>`
+- Check plugin compatibility with v1.2.0
+
+### Getting Help
+
+- **Environment Check**: `elizaos env check`
+- **CLI Help**: `elizaos --help` or `elizaos <command> --help`
+- **Troubleshooting Guide**: [Check our comprehensive guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
+- **Community**: [Join the Discord community](https://discord.gg/elizaos)
+- **FAQ**: [Review frequently asked questions](/docs/faq)
+
+---
+
+🎉 **Congratulations!** You've successfully created your first AI agent with ElizaOS v1.2.0.
+
+### What You've Accomplished
+
+- ✅ Installed the ElizaOS CLI
+- ✅ Created a new agent project
+- ✅ Configured environment variables
+- ✅ Started your first agent
+- ✅ Tested basic functionality
+
+### Ready for More?
+
+Explore the [configuration guide](/docs/getting-started/configuration) to learn about advanced features, or dive into [plugin development](/docs/plugins/creating-plugins) to extend your agent's capabilities.

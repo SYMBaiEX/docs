@@ -1,0 +1,985 @@
+---
+title: "Core Bootstrap Providers"
+description: "Comprehensive documentation for the core bootstrap providers in ElizaOS"
+---
+
+# Core Bootstrap Providers
+
+The bootstrap plugin provides essential providers that form the foundation of agent functionality in ElizaOS. These providers supply crucial data and context to agents during runtime, enabling them to understand their environment, access conversation history, manage state, and respond appropriately.
+
+## Provider Interface
+
+All providers implement the `Provider` interface:
+
+```typescript
+interface Provider {
+  name: string;
+  description?: string;
+  dynamic?: boolean;
+  position?: number;
+  private?: boolean;
+  get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
+}
+```
+
+### ProviderResult Structure
+
+```typescript
+interface ProviderResult {
+  values?: { [key: string]: any };
+  data?: { [key: string]: any };
+  text?: string;
+}
+```
+
+## Core Providers
+
+### Actions Provider
+
+**Name**: `ACTIONS`  
+**Description**: Possible response actions  
+**Position**: -1  
+
+Provides information about available actions that the agent can perform based on the current context.
+
+```typescript
+export const actionsProvider: Provider = {
+  name: 'ACTIONS',
+  description: 'Possible response actions',
+  position: -1,
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Get actions that validate for this message
+    const actionPromises = runtime.actions.map(async (action: Action) => {
+      const result = await action.validate(runtime, message, state);
+      return result ? action : null;
+    });
+
+    const resolvedActions = await Promise.all(actionPromises);
+    const actionsData = resolvedActions.filter(Boolean) as Action[];
+
+    return {
+      data: { actionsData },
+      values: {
+        actions: formatActions(actionsData),
+        actionNames: formatActionNames(actionsData),
+        actionExamples: composeActionExamples(actionsData, 10),
+        actionsWithDescriptions: actionsData.map(action => 
+          `- **${action.name}**: ${action.description || 'No description available'}`
+        ).join('\n')
+      },
+      text: formattedActionsText
+    };
+  }
+};
+```
+
+### Anxiety Provider
+
+**Name**: `ANXIETY`  
+**Description**: Social directions for the AI to follow based on the channel type  
+
+Provides behavioral guidance to help the agent respond appropriately based on the communication channel type (group, DM, voice, etc.).
+
+```typescript
+export const anxietyProvider: Provider = {
+  name: 'ANXIETY',
+  description: 'Social directions for the AI to follow based on the channel type',
+  get: async (_runtime: IAgentRuntime, message: Memory) => {
+    const channelType = message.content.channelType;
+    
+    let anxietyExamples: string[] = [];
+    
+    if (channelType === ChannelType.GROUP) {
+      anxietyExamples = groupAnxietyExamples; // Use IGNORE when unsure
+    } else if (channelType === ChannelType.DM) {
+      anxietyExamples = dmAnxietyExamples; // Be engaging and helpful
+    } else if (channelType === ChannelType.VOICE_GROUP || channelType === ChannelType.VOICE_DM) {
+      anxietyExamples = voiceAnxietyExamples; // Keep responses brief
+    } else {
+      anxietyExamples = directAnxietyExamples; // Default guidance
+    }
+
+    // Select 3 random examples
+    const randomExamples = anxietyExamples.sort(() => Math.random() - 0.5).slice(0, 3);
+    
+    return {
+      data: { anxiety: randomExamples },
+      values: { anxiety: addHeader('# Anxiety Guidance', randomExamples.join('\n')) },
+      text: addHeader('# Anxiety Guidance', randomExamples.join('\n'))
+    };
+  }
+};
+```
+
+### Attachments Provider
+
+**Name**: `ATTACHMENTS`  
+**Description**: List of attachments sent during the current conversation  
+**Dynamic**: true  
+
+Manages and provides access to file attachments in the conversation history.
+
+```typescript
+export const attachmentsProvider: Provider = {
+  name: 'ATTACHMENTS',
+  description: 'List of attachments sent during the current conversation, including names, descriptions, and summaries',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    const currentMessageAttachments = message.content.attachments || [];
+    let allAttachments = [...currentMessageAttachments];
+
+    // Get recent messages and their attachments
+    const recentMessagesData = await runtime.getMemories({
+      roomId: message.roomId,
+      count: runtime.getConversationLength(),
+      unique: false,
+      tableName: 'messages'
+    });
+
+    // Process and merge attachments from recent messages
+    // Hide text for attachments older than 1 hour
+    
+    const formattedAttachments = allAttachments.map(attachment => `
+ID: ${attachment.id}
+Name: ${attachment.title}
+URL: ${attachment.url}
+Type: ${attachment.source}
+Description: ${attachment.description}
+Text: ${attachment.text}
+    `).join('\n');
+
+    return {
+      data: { attachments: allAttachments },
+      values: { attachments: addHeader('# Attachments', formattedAttachments) },
+      text: addHeader('# Attachments', formattedAttachments)
+    };
+  }
+};
+```
+
+### Capabilities Provider
+
+**Name**: `CAPABILITIES`  
+**Description**: Current capabilities of the agent  
+
+Provides information about the agent's capabilities by collecting descriptions from all registered services.
+
+```typescript
+export const capabilitiesProvider: Provider = {
+  name: 'CAPABILITIES',
+  get: async (runtime: IAgentRuntime, _message: Memory): Promise<ProviderResult> => {
+    const services = runtime.getAllServices();
+    
+    if (!services || services.size === 0) {
+      return { text: 'No services are currently registered.' };
+    }
+
+    const capabilities: string[] = [];
+    
+    for (const [serviceType, service] of services) {
+      if (service.capabilityDescription) {
+        capabilities.push(
+          `${serviceType} - ${service.capabilityDescription.replace('{{agentName}}', runtime.character.name)}`
+        );
+      }
+    }
+
+    return {
+      data: { capabilities },
+      text: `# ${runtime.character.name}'s Capabilities\n\n${capabilities.join('\n')}`
+    };
+  }
+};
+```
+
+### Character Provider
+
+**Name**: `CHARACTER`  
+**Description**: Character information  
+
+Provides comprehensive character information including bio, topics, adjectives, and examples.
+
+```typescript
+export const characterProvider: Provider = {
+  name: 'CHARACTER',
+  description: 'Character information',
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const character = runtime.character;
+    
+    // Handle bio (string or random selection from array)
+    const bioText = Array.isArray(character.bio)
+      ? character.bio.sort(() => 0.5 - Math.random()).slice(0, 10).join(' ')
+      : character.bio || '';
+
+    // Random topic and adjective selection
+    const topicString = character.topics?.length > 0 
+      ? character.topics[Math.floor(Math.random() * character.topics.length)]
+      : null;
+      
+    const adjectiveString = character.adjectives?.length > 0
+      ? character.adjectives[Math.floor(Math.random() * character.adjectives.length)]
+      : '';
+
+    // Format examples based on channel type
+    const room = state.data.room ?? await runtime.getRoom(message.roomId);
+    const isPostFormat = room?.type === ChannelType.FEED || room?.type === ChannelType.THREAD;
+    
+    const examples = isPostFormat ? characterPostExamples : characterMessageExamples;
+    const directions = isPostFormat ? postDirections : messageDirections;
+
+    return {
+      data: { character, bio: bioText, topic: topicString, adjective: adjectiveString },
+      values: {
+        agentName: character.name,
+        bio: addHeader(`# About ${character.name}`, bioText),
+        topic: topicString || '',
+        adjective: adjectiveString || '',
+        directions,
+        examples
+      },
+      text: combinedCharacterText
+    };
+  }
+};
+```
+
+### Choice Provider
+
+**Name**: `CHOICE`  
+**Description**: Pending tasks with options for selection  
+
+Manages and displays pending tasks that require user choice selection.
+
+```typescript
+export const choiceProvider: Provider = {
+  name: 'CHOICE',
+  get: async (runtime: IAgentRuntime, message: Memory, _state: State): Promise<ProviderResult> => {
+    const pendingTasks = await runtime.getTasks({
+      roomId: message.roomId,
+      tags: ['AWAITING_CHOICE']
+    });
+
+    const tasksWithOptions = pendingTasks.filter(task => task.metadata?.options);
+    
+    if (tasksWithOptions.length === 0) {
+      return {
+        data: { tasks: [] },
+        values: { tasks: 'No pending choices for the moment.' },
+        text: 'No pending choices for the moment.'
+      };
+    }
+
+    // Format tasks with their options
+    let output = '# Pending Tasks\n\nThe following tasks are awaiting your selection:\n\n';
+    
+    tasksWithOptions.forEach((task, index) => {
+      output += `${index + 1}. **${task.name}**\n`;
+      if (task.description) output += `   ${task.description}\n`;
+      
+      if (task.metadata?.options) {
+        output += '   Options:\n';
+        const options = task.metadata.options as string[] | OptionObject[];
+        options.forEach(option => {
+          if (typeof option === 'string') {
+            output += `   - \`${option}\`\n`;
+          } else {
+            output += `   - \`${option.name}\` ${option.description ? `- ${option.description}` : ''}\n`;
+          }
+        });
+      }
+    });
+
+    return {
+      data: { tasks: tasksWithOptions },
+      values: { tasks: output },
+      text: output
+    };
+  }
+};
+```
+
+### Entities Provider
+
+**Name**: `ENTITIES`  
+**Description**: People in the current conversation  
+**Dynamic**: true  
+
+Provides information about people/entities in the current conversation.
+
+```typescript
+export const entitiesProvider: Provider = {
+  name: 'ENTITIES',
+  description: 'People in the current conversation',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    const { roomId, entityId } = message;
+    
+    // Get entities details
+    const entitiesData = await getEntityDetails({ runtime, roomId });
+    
+    // Format entities for display
+    const formattedEntities = formatEntities({ entities: entitiesData ?? [] });
+    
+    // Find sender name
+    const senderName = entitiesData?.find((entity: Entity) => entity.id === entityId)?.names[0];
+    
+    const entities = formattedEntities && formattedEntities.length > 0
+      ? addHeader('# People in the Room', formattedEntities)
+      : '';
+
+    return {
+      data: { entitiesData, senderName },
+      values: { entities },
+      text: entities
+    };
+  }
+};
+```
+
+### Evaluators Provider
+
+**Name**: `EVALUATORS`  
+**Description**: Evaluators that can be used to evaluate the conversation after responding  
+**Private**: true  
+
+Provides information about available evaluators for conversation assessment.
+
+```typescript
+export const evaluatorsProvider: Provider = {
+  name: 'EVALUATORS',
+  description: 'Evaluators that can be used to evaluate the conversation after responding',
+  private: true,
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Get evaluators that validate for this message
+    const evaluatorPromises = runtime.evaluators.map(async (evaluator: Evaluator) => {
+      const result = await evaluator.validate(runtime, message, state);
+      return result ? evaluator : null;
+    });
+
+    const resolvedEvaluators = await Promise.all(evaluatorPromises);
+    const evaluatorsData = resolvedEvaluators.filter(Boolean) as Evaluator[];
+
+    return {
+      values: {
+        evaluatorsData,
+        evaluators: formatEvaluators(evaluatorsData),
+        evaluatorNames: formatEvaluatorNames(evaluatorsData),
+        evaluatorExamples: formatEvaluatorExamples(evaluatorsData)
+      },
+      text: formattedEvaluatorsText
+    };
+  }
+};
+```
+
+### Facts Provider
+
+**Name**: `FACTS`  
+**Description**: Key facts that the agent knows  
+**Dynamic**: true  
+
+Provides relevant facts from the agent's knowledge base using semantic search.
+
+```typescript
+export const factsProvider: Provider = {
+  name: 'FACTS',
+  description: 'Key facts that the agent knows',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory, _state?: State) => {
+    // Get recent messages for context
+    const recentMessages = await runtime.getMemories({
+      tableName: 'messages',
+      roomId: message.roomId,
+      count: 10,
+      unique: false
+    });
+
+    // Create embedding from recent messages
+    const last5Messages = recentMessages.slice(-5)
+      .map(message => message.content.text).join('\n');
+    
+    const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+      text: last5Messages
+    });
+
+    // Search for relevant facts
+    const [relevantFacts, recentFactsData] = await Promise.all([
+      runtime.searchMemories({
+        tableName: 'facts',
+        embedding,
+        roomId: message.roomId,
+        worldId: message.worldId,
+        count: 6,
+        query: message.content.text
+      }),
+      runtime.searchMemories({
+        embedding,
+        query: message.content.text,
+        tableName: 'facts',
+        roomId: message.roomId,
+        entityId: message.entityId,
+        count: 6
+      })
+    ]);
+
+    // Deduplicate and format facts
+    const allFacts = [...relevantFacts, ...recentFactsData]
+      .filter((fact, index, self) => 
+        index === self.findIndex(t => t.id === fact.id)
+      );
+
+    const formattedFacts = allFacts.reverse()
+      .map(fact => fact.content.text).join('\n');
+
+    return {
+      data: { facts: allFacts },
+      values: { facts: formattedFacts },
+      text: `Key facts that ${runtime.character.name} knows:\n${formattedFacts}`
+    };
+  }
+};
+```
+
+### Providers Provider
+
+**Name**: `PROVIDERS`  
+**Description**: List of all data providers the agent can use to get additional information  
+
+Provides a list of all available dynamic providers.
+
+```typescript
+export const providersProvider: Provider = {
+  name: 'PROVIDERS',
+  description: 'List of all data providers the agent can use to get additional information',
+  get: async (runtime: IAgentRuntime, _message: Memory, _state: State) => {
+    // Filter providers with dynamic: true
+    const dynamicProviders = runtime.providers.filter(provider => provider.dynamic === true);
+    
+    // Create formatted text for each provider
+    const providerDescriptions = dynamicProviders.map(provider => 
+      `- **${provider.name}**: ${provider.description || 'No description available'}`
+    );
+
+    const headerText = '# Providers\n\nThese providers are available for the agent to select and use:';
+    const providersText = providerDescriptions.join('\n');
+
+    return {
+      data: {
+        dynamicProviders: dynamicProviders.map(provider => ({
+          name: provider.name,
+          description: provider.description || ''
+        }))
+      },
+      text: addHeader(headerText, providersText)
+    };
+  }
+};
+```
+
+### Recent Messages Provider
+
+**Name**: `RECENT_MESSAGES`  
+**Description**: Recent messages, interactions and other memories  
+**Position**: 100  
+
+Provides recent conversation history and interactions.
+
+```typescript
+export const recentMessagesProvider: Provider = {
+  name: 'RECENT_MESSAGES',
+  description: 'Recent messages, interactions and other memories',
+  position: 100,
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    const { roomId } = message;
+    const conversationLength = runtime.getConversationLength();
+
+    // Fetch data in parallel
+    const [entitiesData, room, recentMessagesData, recentInteractionsData] = await Promise.all([
+      getEntityDetails({ runtime, roomId }),
+      runtime.getRoom(roomId),
+      runtime.getMemories({
+        tableName: 'messages',
+        roomId,
+        count: conversationLength,
+        unique: false
+      }),
+      message.entityId !== runtime.agentId
+        ? getRecentInteractions(runtime, message.entityId, runtime.agentId, roomId)
+        : Promise.resolve([])
+    ]);
+
+    // Format based on channel type
+    const isPostFormat = room?.type === ChannelType.FEED || room?.type === ChannelType.THREAD;
+    
+    const [formattedRecentMessages, formattedRecentPosts] = await Promise.all([
+      formatMessages({ messages: recentMessagesData, entities: entitiesData }),
+      formatPosts({ messages: recentMessagesData, entities: entitiesData, conversationHeader: false })
+    ]);
+
+    return {
+      data: { recentMessages: recentMessagesData, recentInteractions: recentInteractionsData },
+      values: {
+        recentPosts: formattedRecentPosts,
+        recentMessages: formattedRecentMessages,
+        recentInteractions: isPostFormat ? recentPostInteractions : recentMessageInteractions
+      },
+      text: combinedMessagesText
+    };
+  }
+};
+```
+
+### Relationships Provider
+
+**Name**: `RELATIONSHIPS`  
+**Description**: Relationships between the agent and other people  
+**Dynamic**: true  
+
+Provides information about relationships and interactions between entities.
+
+```typescript
+export const relationshipsProvider: Provider = {
+  name: 'RELATIONSHIPS',
+  description: 'Relationships between the agent and other people, or between other people that the agent has observed interacting with',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    // Get all relationships for the current user
+    const relationships = await runtime.getRelationships({
+      entityId: message.entityId
+    });
+
+    if (!relationships || relationships.length === 0) {
+      return {
+        data: { relationships: [] },
+        values: { relationships: 'No relationships found.' },
+        text: 'No relationships found.'
+      };
+    }
+
+    // Format relationships by interaction strength
+    const formattedRelationships = await formatRelationships(runtime, relationships);
+
+    return {
+      data: { relationships: formattedRelationships },
+      values: { relationships: formattedRelationships },
+      text: `# ${runtime.character.name} has observed ${message.content.senderName || message.content.name} interacting with these people:\n${formattedRelationships}`
+    };
+  }
+};
+```
+
+### Roles Provider
+
+**Name**: `ROLES`  
+**Description**: Roles in the server, default are OWNER, ADMIN and MEMBER (as well as NONE)  
+
+Provides information about user roles in the server hierarchy.
+
+```typescript
+export const roleProvider: Provider = {
+  name: 'ROLES',
+  description: 'Roles in the server, default are OWNER, ADMIN and MEMBER (as well as NONE)',
+  get: async (runtime: IAgentRuntime, message: Memory, state: State): Promise<ProviderResult> => {
+    const room = state.data.room ?? await runtime.getRoom(message.roomId);
+    
+    if (!room || room.type !== ChannelType.GROUP) {
+      return {
+        data: { roles: [] },
+        values: { roles: 'No access to role information in DMs, the role provider is only available in group scenarios.' },
+        text: 'No access to role information in DMs, the role provider is only available in group scenarios.'
+      };
+    }
+
+    const serverId = room.serverId;
+    const worldId = createUniqueUuid(runtime, serverId);
+    const world = await runtime.getWorld(worldId);
+    
+    if (!world?.metadata?.roles) {
+      return {
+        data: { roles: [] },
+        values: { roles: 'No role information available for this server.' },
+        text: 'No role information available for this server.'
+      };
+    }
+
+    // Process roles and group by hierarchy
+    const roles = world.metadata.roles || {};
+    const owners = [], admins = [], members = [];
+    
+    for (const entityId of Object.keys(roles)) {
+      const userRole = roles[entityId];
+      const user = await runtime.getEntityById(entityId);
+      
+      if (user?.metadata?.name && user?.metadata?.username) {
+        const userInfo = {
+          name: user.metadata.name,
+          username: user.metadata.username,
+          names: user.names
+        };
+        
+        switch (userRole) {
+          case 'OWNER': owners.push(userInfo); break;
+          case 'ADMIN': admins.push(userInfo); break;
+          default: members.push(userInfo); break;
+        }
+      }
+    }
+
+    // Format response
+    let response = '# Server Role Hierarchy\n\n';
+    if (owners.length > 0) {
+      response += '## Owners\n';
+      owners.forEach(owner => response += `${owner.name} (${owner.names.join(', ')})\n`);
+    }
+    // ... similar for admins and members
+
+    return {
+      data: { roles: response },
+      values: { roles: response },
+      text: response
+    };
+  }
+};
+```
+
+### Settings Provider
+
+**Name**: `SETTINGS`  
+**Description**: Current settings for the server  
+
+Provides configuration settings for the current server/world.
+
+```typescript
+export const settingsProvider: Provider = {
+  name: 'SETTINGS',
+  description: 'Current settings for the server',
+  get: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<ProviderResult> => {
+    const [room, userWorlds] = await Promise.all([
+      runtime.getRoom(message.roomId),
+      findWorldsForOwner(runtime, message.entityId)
+    ]);
+
+    if (!room) {
+      return {
+        data: { settings: [] },
+        values: { settings: 'Error: Room not found' },
+        text: 'Error: Room not found'
+      };
+    }
+
+    const type = room.type;
+    const isOnboarding = type === ChannelType.DM;
+    
+    let world: World | null = null;
+    let worldSettings: WorldSettings | null = null;
+
+    if (isOnboarding) {
+      // Use user's world for onboarding
+      world = userWorlds?.find(world => world.metadata?.settings !== undefined);
+      if (world) {
+        worldSettings = await getWorldSettings(runtime, world.serverId);
+      }
+    } else {
+      // Use room's world for regular operation
+      world = await runtime.getWorld(room.worldId);
+      if (world) {
+        worldSettings = await getWorldSettings(runtime, world.serverId);
+      }
+    }
+
+    if (!worldSettings) {
+      return {
+        data: { settings: [] },
+        values: { settings: 'Configuration has not been completed yet.' },
+        text: 'Configuration has not been completed yet.'
+      };
+    }
+
+    const output = generateStatusMessage(runtime, worldSettings, isOnboarding, state);
+
+    return {
+      data: { settings: worldSettings },
+      values: { settings: output },
+      text: output
+    };
+  }
+};
+```
+
+### Should Respond Provider
+
+**Name**: `SHOULD_RESPOND`  
+**Description**: Examples of when the agent should respond, ignore, or stop responding  
+**Position**: -1  
+
+Provides examples to guide the agent's decision-making on when to respond.
+
+```typescript
+export const shouldRespondProvider: Provider = {
+  name: 'SHOULD_RESPOND',
+  description: 'Examples of when the agent should respond, ignore, or stop responding',
+  position: -1,
+  get: async (runtime: IAgentRuntime, _message: Memory) => {
+    const agentName = runtime.character.name;
+    
+    // Generate random names for examples
+    const name1 = uniqueNamesGenerator(nameConfig);
+    const name2 = uniqueNamesGenerator(nameConfig);
+    const characterName = uniqueNamesGenerator(nameConfig);
+
+    // Select and format random examples
+    const shuffledExamples = [...messageExamples].sort(() => 0.5 - Math.random()).slice(0, 7);
+    
+    const formattedExamples = shuffledExamples.map(example => 
+      example
+        .replace(/{{name1}}/g, name1)
+        .replace(/{{name2}}/g, name2)
+        .replace(/{{agentName}}/g, agentName)
+        .replace(/{{characterName}}/g, characterName)
+    );
+
+    return {
+      text: addHeader('# RESPONSE EXAMPLES', formattedExamples.join('\n\n'))
+    };
+  }
+};
+```
+
+### Time Provider
+
+**Name**: `TIME`  
+**Description**: Current date and time information  
+
+Provides current date and time in UTC format.
+
+```typescript
+export const timeProvider: Provider = {
+  name: 'TIME',
+  get: async (_runtime: IAgentRuntime, _message: Memory) => {
+    const currentDate = new Date();
+    
+    const options = {
+      timeZone: 'UTC',
+      dateStyle: 'full' as const,
+      timeStyle: 'long' as const
+    };
+    
+    const humanReadable = new Intl.DateTimeFormat('en-US', options).format(currentDate);
+    
+    return {
+      data: { time: currentDate },
+      values: { time: humanReadable },
+      text: `The current date and time is ${humanReadable}. Please use this as your reference for any time-based operations or responses.`
+    };
+  }
+};
+```
+
+### World Provider
+
+**Name**: `WORLD`  
+**Description**: World and environment information  
+**Dynamic**: true  
+
+Provides information about the current world/environment including channels and participants.
+
+```typescript
+export const worldProvider: Provider = {
+  name: 'WORLD',
+  description: 'World and environment information',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    // Get current room and world
+    const currentRoom = await runtime.getRoom(message.roomId);
+    if (!currentRoom?.worldId) {
+      return {
+        data: { world: { info: 'Unable to retrieve world information' } },
+        text: 'Unable to retrieve world information'
+      };
+    }
+
+    const world = await runtime.getWorld(currentRoom.worldId);
+    if (!world) {
+      return {
+        data: { world: { info: 'World not found' } },
+        text: 'World not found'
+      };
+    }
+
+    // Get world rooms and participants
+    const [worldRooms, participants] = await Promise.all([
+      runtime.getRooms(currentRoom.worldId),
+      runtime.getParticipantsForRoom(message.roomId)
+    ]);
+
+    // Categorize channels by type
+    const channelsByType = {
+      text: [], voice: [], dm: [], feed: [], thread: [], other: []
+    };
+
+    worldRooms.forEach(room => {
+      const roomInfo = {
+        id: room.id,
+        name: room.name,
+        isCurrentChannel: room.id === message.roomId
+      };
+
+      // Categorize by channel type
+      if (room.type === ChannelType.GROUP || room.type === ChannelType.WORLD || room.type === ChannelType.FORUM) {
+        channelsByType.text.push(roomInfo);
+      } else if (room.type === ChannelType.VOICE_GROUP || room.type === ChannelType.VOICE_DM) {
+        channelsByType.voice.push(roomInfo);
+      } else if (room.type === ChannelType.DM || room.type === ChannelType.SELF) {
+        channelsByType.dm.push(roomInfo);
+      } else if (room.type === ChannelType.FEED) {
+        channelsByType.feed.push(roomInfo);
+      } else if (room.type === ChannelType.THREAD) {
+        channelsByType.thread.push(roomInfo);
+      } else {
+        channelsByType.other.push({ ...roomInfo, type: room.type });
+      }
+    });
+
+    const worldInfoText = [
+      `# World: ${world.name}`,
+      `Current Channel: ${currentRoom.name} (${currentRoom.type})`,
+      `Total Channels: ${worldRooms.length}`,
+      `Participants in current channel: ${participants.length}`,
+      '',
+      `Text channels: ${channelsByType.text.length}`,
+      `Voice channels: ${channelsByType.voice.length}`,
+      `DM channels: ${channelsByType.dm.length}`,
+      `Feed channels: ${channelsByType.feed.length}`,
+      `Thread channels: ${channelsByType.thread.length}`,
+      `Other channels: ${channelsByType.other.length}`
+    ].join('\n');
+
+    return {
+      data: {
+        world: {
+          id: world.id,
+          name: world.name,
+          serverId: world.serverId,
+          metadata: world.metadata || {},
+          currentRoom: {
+            id: currentRoom.id,
+            name: currentRoom.name,
+            type: currentRoom.type,
+            channelId: currentRoom.channelId,
+            participantCount: participants.length
+          },
+          channels: channelsByType,
+          channelStats: {
+            total: worldRooms.length,
+            text: channelsByType.text.length,
+            voice: channelsByType.voice.length,
+            dm: channelsByType.dm.length,
+            feed: channelsByType.feed.length,
+            thread: channelsByType.thread.length,
+            other: channelsByType.other.length
+          }
+        }
+      },
+      values: {
+        worldName: world.name,
+        currentChannelName: currentRoom.name,
+        worldInfo: worldInfoText
+      },
+      text: addHeader('# World Information', worldInfoText)
+    };
+  }
+};
+```
+
+## Provider Usage Patterns
+
+### State Composition
+
+Providers can be used together to compose comprehensive state information:
+
+```typescript
+// Example of how providers work together
+const state = {
+  // Character information
+  character: characterProvider.get(runtime, message, state),
+  
+  // Recent context
+  recentMessages: recentMessagesProvider.get(runtime, message, state),
+  
+  // Current environment
+  world: worldProvider.get(runtime, message, state),
+  
+  // Available actions
+  actions: actionsProvider.get(runtime, message, state),
+  
+  // Key facts
+  facts: factsProvider.get(runtime, message, state)
+};
+```
+
+### Dynamic vs Static Providers
+
+**Dynamic providers** (`dynamic: true`) can be selectively invoked:
+- `ATTACHMENTS` - File attachment handling
+- `ENTITIES` - People in conversation
+- `FACTS` - Knowledge base facts
+- `RELATIONSHIPS` - Entity relationships
+- `WORLD` - Environment information
+
+**Static providers** are always included:
+- `CHARACTER` - Character information
+- `TIME` - Current time
+- `ANXIETY` - Behavioral guidance
+- `RECENT_MESSAGES` - Conversation history
+
+### Provider Positioning
+
+Providers can specify their position in the provider chain:
+- Negative positions (e.g., `-1`) are processed early
+- Positive positions (e.g., `100`) are processed later
+- No position defaults to standard ordering
+
+## Best Practices
+
+1. **Error Handling**: Always include proper error handling and fallbacks
+2. **Performance**: Use parallel processing for independent operations
+3. **Caching**: Leverage runtime caching for expensive operations
+4. **Context Awareness**: Consider channel type and conversation context
+5. **Memory Management**: Be mindful of memory usage with large datasets
+
+## Integration Examples
+
+### Custom Provider Implementation
+
+```typescript
+export const customProvider: Provider = {
+  name: 'CUSTOM',
+  description: 'Custom provider example',
+  dynamic: true,
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    try {
+      // Your custom logic here
+      const customData = await fetchCustomData(runtime, message);
+      
+      return {
+        data: { customData },
+        values: { customFormatted: formatCustomData(customData) },
+        text: addHeader('# Custom Information', formatCustomData(customData))
+      };
+    } catch (error) {
+      return {
+        text: 'Error retrieving custom information'
+      };
+    }
+  }
+};
+```
+
+### Provider Registration
+
+```typescript
+// Register custom providers with the runtime
+runtime.registerProvider(customProvider);
+```
+
+This comprehensive documentation covers all core bootstrap providers, their functionality, usage patterns, and integration examples. Each provider serves a specific purpose in the agent's ecosystem, from managing conversation state to providing environmental context and behavioral guidance.

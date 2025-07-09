@@ -1,0 +1,1463 @@
+---
+title: "Runtime System"
+description: "Complete guide to the ElizaOS runtime system architecture, lifecycle management, and service orchestration"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+# Runtime System
+
+The ElizaOS runtime system is built around the `AgentRuntime` class, which serves as the core orchestrator for all agent operations. This comprehensive system provides a flexible, event-driven framework that manages plugins, services, models, memory, and the complete agent lifecycle.
+
+## Architecture Overview
+
+### Core Components
+
+The runtime system consists of several key components working together:
+
+- **AgentRuntime**: Main orchestration class implementing `IAgentRuntime`
+- **Plugin System**: Extensible architecture for adding functionality
+- **Service Management**: Type-safe service registration and discovery
+- **Model Handlers**: Unified interface for AI model interactions
+- **Memory System**: Persistent storage with embedding-based search
+- **Event System**: Pub/sub pattern for decoupled communication
+- **Connection Management**: Entity and room relationship handling
+
+### AgentRuntime Class
+
+The `AgentRuntime` class implements the `IAgentRuntime` interface and serves as the primary execution environment:
+
+```typescript
+export class AgentRuntime implements IAgentRuntime {
+  readonly agentId: UUID;
+  readonly character: Character;
+  public adapter!: IDatabaseAdapter;
+  readonly actions: Action[] = [];
+  readonly evaluators: Evaluator[] = [];
+  readonly providers: Provider[] = [];
+  readonly plugins: Plugin[] = [];
+  private isInitialized = false;
+  
+  // Service management
+  services = new Map<ServiceTypeName, Service>();
+  private serviceTypes = new Map<ServiceTypeName, typeof Service>();
+  
+  // Model handling
+  models = new Map<string, ModelHandler[]>();
+  
+  // Event system
+  events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
+  
+  // State management
+  stateCache = new Map<UUID, State>();
+  
+  // Run tracking for debugging
+  private currentRunId?: UUID;
+  private currentActionContext?: ActionContext;
+}
+```
+
+### IAgentRuntime Interface
+
+The runtime implements a comprehensive interface that extends `IDatabaseAdapter`:
+
+```typescript
+interface IAgentRuntime extends IDatabaseAdapter {
+  // Core properties
+  agentId: UUID;
+  character: Character;
+  providers: Provider[];
+  actions: Action[];
+  evaluators: Evaluator[];
+  plugins: Plugin[];
+  services: Map<ServiceTypeName, Service>;
+  events: Map<string, ((params: any) => Promise<void>)[]>;
+  routes: Route[];
+  
+  // Core methods
+  registerPlugin(plugin: Plugin): Promise<void>;
+  initialize(): Promise<void>;
+  stop(): Promise<void>;
+  
+  // Service management
+  getService<T extends Service>(serviceName: ServiceTypeName): T | null;
+  registerService(serviceDef: typeof Service): Promise<void>;
+  
+  // Model handling
+  useModel<T extends ModelTypeName>(
+    modelType: T,
+    params: ModelParamsMap[T],
+    provider?: string
+  ): Promise<ModelResultMap[T]>;
+  
+  // State composition
+  composeState(message: Memory, includeList?: string[]): Promise<State>;
+  
+  // Connection management
+  ensureConnection(params: ConnectionParams): Promise<void>;
+  
+  // Event system
+  emitEvent(event: string | string[], params: any): Promise<void>;
+  registerEvent(event: string, handler: EventHandler): void;
+}
+```
+
+## Runtime Lifecycle
+
+### 1. Construction and Setup
+
+The runtime is created with configuration options and prepares for initialization:
+
+```typescript
+const runtime = new AgentRuntime({
+  agentId: stringToUuid("my-agent"),
+  character: myCharacter,
+  plugins: [sqlPlugin, corePlugin],
+  adapter: databaseAdapter,
+  settings: runtimeSettings,
+  allAvailablePlugins: availablePlugins
+});
+```
+
+<Callout type="info">
+The runtime constructor sets up basic properties but doesn't initialize services or plugins. Always call `initialize()` before using the runtime.
+</Callout>
+
+### 2. Initialization Process
+
+The initialization follows a structured multi-step process:
+
+<Tabs items={['Overview', 'Plugin Registration', 'Database Setup', 'Service Initialization']}>
+<Tab value="Overview">
+```typescript
+async initialize(): Promise<void> {
+  if (this.isInitialized) {
+    this.logger.warn('Agent already initialized');
+    return;
+  }
+
+  // Step 1: Register all plugins
+  const pluginRegistrationPromises = [];
+  for (const plugin of this.characterPlugins) {
+    if (plugin) {
+      pluginRegistrationPromises.push(this.registerPlugin(plugin));
+    }
+  }
+  await Promise.all(pluginRegistrationPromises);
+
+  // Step 2: Initialize database adapter
+  if (!this.adapter) {
+    throw new Error('Database adapter not initialized');
+  }
+  await this.adapter.init();
+
+  // Step 3: Run plugin migrations
+  await this.runPluginMigrations();
+
+  // Step 4: Create agent entity
+  const existingAgent = await this.ensureAgentExists(this.character);
+  
+  // Step 5: Setup room and participants
+  await this.setupRoomAndParticipants();
+
+  // Step 6: Initialize embedding dimensions
+  await this.ensureEmbeddingDimension();
+
+  // Step 7: Initialize queued services
+  for (const service of this.servicesInitQueue) {
+    await this.registerService(service);
+  }
+
+  this.isInitialized = true;
+}
+```
+</Tab>
+<Tab value="Plugin Registration">
+```typescript
+async registerPlugin(plugin: Plugin): Promise<void> {
+  // Validate plugin
+  if (!plugin?.name) {
+    throw new Error('Plugin or plugin name is undefined');
+  }
+
+  // Check for duplicates
+  const existingPlugin = this.plugins.find((p) => p.name === plugin.name);
+  if (existingPlugin) {
+    this.logger.warn(`Plugin ${plugin.name} already registered`);
+    return;
+  }
+
+  // Add to active plugins
+  this.plugins.push(plugin);
+
+  // Initialize plugin
+  if (plugin.init) {
+    await plugin.init(plugin.config || {}, this);
+  }
+
+  // Register plugin components
+  if (plugin.adapter) {
+    this.registerDatabaseAdapter(plugin.adapter);
+  }
+  if (plugin.actions) {
+    plugin.actions.forEach(action => this.registerAction(action));
+  }
+  if (plugin.evaluators) {
+    plugin.evaluators.forEach(evaluator => this.registerEvaluator(evaluator));
+  }
+  if (plugin.providers) {
+    plugin.providers.forEach(provider => this.registerProvider(provider));
+  }
+  if (plugin.models) {
+    Object.entries(plugin.models).forEach(([modelType, handler]) => {
+      this.registerModel(modelType, handler, plugin.name, plugin.priority);
+    });
+  }
+  if (plugin.services) {
+    plugin.services.forEach(service => {
+      if (this.isInitialized) {
+        this.registerService(service);
+      } else {
+        this.servicesInitQueue.add(service);
+      }
+    });
+  }
+}
+```
+</Tab>
+<Tab value="Database Setup">
+```typescript
+// Database initialization and entity setup
+async setupDatabase(): Promise<void> {
+  // Initialize database adapter
+  await this.adapter.init();
+
+  // Run plugin migrations
+  await this.runPluginMigrations();
+
+  // Create agent entity
+  const existingAgent = await this.ensureAgentExists(this.character);
+  
+  // Create agent entity if not exists
+  let agentEntity = await this.getEntityById(this.agentId);
+  if (!agentEntity) {
+    await this.createEntity({
+      id: this.agentId,
+      names: [this.character.name],
+      metadata: {},
+      agentId: existingAgent.id,
+    });
+  }
+
+  // Setup default room
+  const room = await this.getRoom(this.agentId);
+  if (!room) {
+    await this.createRoom({
+      id: this.agentId,
+      name: this.character.name,
+      source: 'elizaos',
+      type: ChannelType.SELF,
+      channelId: this.agentId,
+      serverId: this.agentId,
+      worldId: this.agentId,
+    });
+  }
+
+  // Add agent as participant
+  await this.ensureParticipantInRoom(this.agentId, this.agentId);
+}
+```
+</Tab>
+<Tab value="Service Initialization">
+```typescript
+async registerService(serviceDef: typeof Service): Promise<void> {
+  const serviceType = serviceDef.serviceType as ServiceTypeName;
+  
+  if (!serviceType) {
+    this.logger.warn(`Service ${serviceDef.name} missing serviceType`);
+    return;
+  }
+
+  if (this.services.has(serviceType)) {
+    this.logger.warn(`Service ${serviceType} already registered`);
+    return;
+  }
+
+  try {
+    const serviceInstance = await serviceDef.start(this);
+    this.services.set(serviceType, serviceInstance);
+    this.serviceTypes.set(serviceType, serviceDef);
+    
+    // Register send handlers if available
+    if (typeof serviceDef.registerSendHandlers === 'function') {
+      serviceDef.registerSendHandlers(this, serviceInstance);
+    }
+    
+    this.logger.debug(`Service ${serviceType} registered successfully`);
+  } catch (error) {
+    this.logger.error(`Failed to register service ${serviceType}:`, error);
+    throw error;
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### 3. Plugin Migration System
+
+The runtime supports plugin-specific database migrations:
+
+```typescript
+async runPluginMigrations(): Promise<void> {
+  const drizzle = this.adapter.db;
+  if (!drizzle) {
+    this.logger.warn('Drizzle instance not found, skipping migrations');
+    return;
+  }
+
+  const pluginsWithSchemas = this.plugins.filter(p => p.schema);
+  
+  for (const plugin of pluginsWithSchemas) {
+    if (plugin.schema) {
+      this.logger.info(`Running migrations for plugin: ${plugin.name}`);
+      try {
+        if (this.adapter && 'runMigrations' in this.adapter) {
+          await this.adapter.runMigrations(plugin.schema, plugin.name);
+        }
+      } catch (error) {
+        this.logger.error(`Failed to migrate plugin ${plugin.name}:`, error);
+      }
+    }
+  }
+}
+```
+
+## Service Management
+
+### Service Registration and Discovery
+
+The runtime provides a type-safe service system:
+
+```typescript
+// Service registration
+async registerService(serviceDef: typeof Service): Promise<void> {
+  const serviceType = serviceDef.serviceType as ServiceTypeName;
+  
+  if (this.services.has(serviceType)) {
+    this.logger.warn(`Service ${serviceType} already registered`);
+    return;
+  }
+
+  const serviceInstance = await serviceDef.start(this);
+  this.services.set(serviceType, serviceInstance);
+  this.serviceTypes.set(serviceType, serviceDef);
+}
+
+// Service discovery
+getService<T extends Service = Service>(serviceName: ServiceTypeName): T | null {
+  const serviceInstance = this.services.get(serviceName);
+  if (!serviceInstance) {
+    this.logger.debug(`Service ${serviceName} not found`);
+    return null;
+  }
+  return serviceInstance as T;
+}
+
+// Type-safe service access
+getTypedService<T extends Service = Service>(serviceName: ServiceTypeName): T | null {
+  return this.getService<T>(serviceName);
+}
+
+// Service introspection
+getRegisteredServiceTypes(): ServiceTypeName[] {
+  return Array.from(this.services.keys());
+}
+
+hasService(serviceType: ServiceTypeName): boolean {
+  return this.services.has(serviceType);
+}
+
+getAllServices(): Map<ServiceTypeName, Service> {
+  return this.services;
+}
+```
+
+### Service Usage Examples
+
+<Tabs items={['Basic Usage', 'Type-Safe Access', 'Service Discovery']}>
+<Tab value="Basic Usage">
+```typescript
+// Get a service
+const twitterService = runtime.getService('twitter');
+if (twitterService) {
+  await twitterService.sendMessage(content);
+}
+
+// Check if service exists
+if (runtime.hasService('discord')) {
+  const discord = runtime.getService('discord');
+  await discord.processMessage(message);
+}
+```
+</Tab>
+<Tab value="Type-Safe Access">
+```typescript
+// Type-safe service access
+const twitterService = runtime.getTypedService<TwitterService>('twitter');
+if (twitterService) {
+  // TypeScript knows this is a TwitterService
+  await twitterService.postTweet(content);
+}
+
+// Service with custom interface
+interface CustomService extends Service {
+  customMethod(): Promise<void>;
+}
+
+const customService = runtime.getTypedService<CustomService>('custom');
+await customService?.customMethod();
+```
+</Tab>
+<Tab value="Service Discovery">
+```typescript
+// List all registered services
+const serviceTypes = runtime.getRegisteredServiceTypes();
+console.log('Available services:', serviceTypes);
+
+// Get all services
+const allServices = runtime.getAllServices();
+for (const [serviceName, service] of allServices) {
+  console.log(`Service ${serviceName}: ${service.constructor.name}`);
+}
+
+// Check service availability
+const requiredServices = ['twitter', 'discord', 'telegram'];
+const availableServices = requiredServices.filter(s => runtime.hasService(s));
+console.log('Available required services:', availableServices);
+```
+</Tab>
+</Tabs>
+
+## Model System
+
+### Model Registration and Priority
+
+Models are registered with priority-based selection:
+
+```typescript
+registerModel(
+  modelType: ModelTypeName,
+  handler: (params: any) => Promise<any>,
+  provider: string,
+  priority?: number
+) {
+  const modelKey = typeof modelType === 'string' ? modelType : ModelType[modelType];
+  
+  if (!this.models.has(modelKey)) {
+    this.models.set(modelKey, []);
+  }
+
+  const registrationOrder = Date.now();
+  this.models.get(modelKey)?.push({
+    handler,
+    provider,
+    priority: priority || 0,
+    registrationOrder,
+  });
+
+  // Sort by priority then registration order
+  this.models.get(modelKey)?.sort((a, b) => {
+    if ((b.priority || 0) !== (a.priority || 0)) {
+      return (b.priority || 0) - (a.priority || 0);
+    }
+    return a.registrationOrder - b.registrationOrder;
+  });
+}
+```
+
+### Model Usage with Run ID Tracking
+
+The runtime tracks model usage for debugging and logging:
+
+```typescript
+async useModel<T extends ModelTypeName, R = ModelResultMap[T]>(
+  modelType: T,
+  params: Omit<ModelParamsMap[T], 'runtime'> | any,
+  provider?: string
+): Promise<R> {
+  const modelKey = typeof modelType === 'string' ? modelType : ModelType[modelType];
+  const model = this.getModel(modelKey, provider);
+  
+  if (!model) {
+    throw new Error(`No handler found for model type: ${modelKey}`);
+  }
+
+  const startTime = performance.now();
+  const response = await model(this, { ...params, runtime: this });
+  const elapsedTime = performance.now() - startTime;
+
+  // Log model usage with run ID tracking
+  await this.adapter.log({
+    entityId: this.agentId,
+    roomId: this.agentId,
+    body: {
+      modelType,
+      modelKey,
+      params,
+      runId: this.getCurrentRunId(),
+      timestamp: Date.now(),
+      executionTime: elapsedTime,
+      provider: provider || this.models.get(modelKey)?.[0]?.provider || 'unknown',
+      actionContext: this.currentActionContext,
+      response: Array.isArray(response) && response.every(x => typeof x === 'number')
+        ? '[array]'
+        : response,
+    },
+    type: `useModel:${modelKey}`,
+  });
+
+  return response as R;
+}
+```
+
+### Run ID Tracking System
+
+The runtime includes a new run ID tracking system for debugging:
+
+```typescript
+// Run ID management
+createRunId(): UUID {
+  return uuidv4() as UUID;
+}
+
+startRun(): UUID {
+  this.currentRunId = this.createRunId();
+  return this.currentRunId;
+}
+
+endRun(): void {
+  this.currentRunId = undefined;
+}
+
+getCurrentRunId(): UUID {
+  if (!this.currentRunId) {
+    this.currentRunId = this.createRunId();
+  }
+  return this.currentRunId;
+}
+
+// Usage example
+const runId = runtime.startRun();
+try {
+  const response = await runtime.useModel(ModelType.COMPLETION, {
+    prompt: "Hello world"
+  });
+  // Process response
+} finally {
+  runtime.endRun();
+}
+```
+
+## Memory and State Management
+
+### State Composition
+
+The runtime composes state from multiple providers with caching:
+
+```typescript
+async composeState(
+  message: Memory,
+  includeList: string[] | null = null,
+  onlyInclude = false,
+  skipCache = false
+): Promise<State> {
+  const filterList = onlyInclude ? includeList : null;
+  const emptyObj = { values: {}, data: {}, text: '' } as State;
+  const cachedState = skipCache ? emptyObj : (await this.stateCache.get(message.id)) || emptyObj;
+
+  // Determine providers to use
+  const providerNames = new Set<string>();
+  if (filterList && filterList.length > 0) {
+    filterList.forEach(name => providerNames.add(name));
+  } else {
+    this.providers
+      .filter(p => !p.private && !p.dynamic)
+      .forEach(p => providerNames.add(p.name));
+  }
+
+  if (!filterList && includeList && includeList.length > 0) {
+    includeList.forEach(name => providerNames.add(name));
+  }
+
+  // Get providers in order
+  const providersToGet = Array.from(
+    new Set(this.providers.filter(p => providerNames.has(p.name)))
+  ).sort((a, b) => (a.position || 0) - (b.position || 0));
+
+  // Execute providers
+  const providerData = await Promise.all(
+    providersToGet.map(async (provider) => {
+      const start = Date.now();
+      try {
+        const result = await provider.get(this, message, cachedState);
+        const duration = Date.now() - start;
+        
+        this.logger.debug(`${provider.name} Provider took ${duration}ms`);
+        return { ...result, providerName: provider.name };
+      } catch (error) {
+        this.logger.error('Provider error:', provider.name, error);
+        return { values: {}, text: '', data: {}, providerName: provider.name };
+      }
+    })
+  );
+
+  // Aggregate results
+  const currentProviderResults = { ...(cachedState.data?.providers || {}) };
+  for (const freshResult of providerData) {
+    currentProviderResults[freshResult.providerName] = freshResult;
+  }
+
+  // Build final state
+  const newState = {
+    values: aggregatedStateValues,
+    data: { providers: currentProviderResults },
+    text: providersText,
+  } as State;
+
+  this.stateCache.set(message.id, newState);
+  return newState;
+}
+```
+
+### Memory Operations
+
+The runtime provides comprehensive memory management:
+
+<Tabs items={['Create Memory', 'Search Memory', 'Memory with Embeddings']}>
+<Tab value="Create Memory">
+```typescript
+async createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID> {
+  // Add embedding if not present
+  if (!memory.embedding) {
+    memory = await this.addEmbeddingToMemory(memory);
+  }
+  
+  return await this.adapter.createMemory(memory, tableName, unique);
+}
+
+async addEmbeddingToMemory(memory: Memory): Promise<Memory> {
+  if (memory.embedding) {
+    return memory;
+  }
+  
+  const memoryText = memory.content.text;
+  if (!memoryText) {
+    throw new Error('Cannot generate embedding: Memory content is empty');
+  }
+  
+  try {
+    memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, {
+      text: memoryText,
+    });
+  } catch (error) {
+    this.logger.error('Failed to generate embedding:', error);
+    memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, null);
+  }
+  
+  return memory;
+}
+```
+</Tab>
+<Tab value="Search Memory">
+```typescript
+async searchMemories(params: {
+  embedding: number[];
+  query?: string;
+  match_threshold?: number;
+  count?: number;
+  roomId?: UUID;
+  unique?: boolean;
+  worldId?: UUID;
+  entityId?: UUID;
+  tableName: string;
+}): Promise<Memory[]> {
+  const memories = await this.adapter.searchMemories(params);
+  
+  // Re-rank results if query provided
+  if (params.query) {
+    return await this.rerankMemories(params.query, memories);
+  }
+  
+  return memories;
+}
+
+async rerankMemories(query: string, memories: Memory[]): Promise<Memory[]> {
+  const docs = memories.map(memory => ({
+    title: memory.id,
+    content: memory.content.text,
+  }));
+  
+  const bm25 = new BM25(docs);
+  const results = bm25.search(query, memories.length);
+  
+  return results.map(result => memories[result.index]);
+}
+```
+</Tab>
+<Tab value="Memory with Embeddings">
+```typescript
+// Get memories with embedding search
+async getRelevantMemories(
+  query: string,
+  roomId: UUID,
+  count: number = 10
+): Promise<Memory[]> {
+  // Generate query embedding
+  const queryEmbedding = await this.useModel(ModelType.TEXT_EMBEDDING, {
+    text: query
+  });
+  
+  // Search memories
+  const memories = await this.searchMemories({
+    embedding: queryEmbedding,
+    query,
+    match_threshold: 0.7,
+    count,
+    roomId,
+    tableName: 'memories'
+  });
+  
+  return memories;
+}
+
+// Clear all agent memories
+async clearAllAgentMemories(): Promise<void> {
+  this.logger.info(`Clearing all memories for agent ${this.character.name}`);
+  
+  const allMemories = await this.getAllMemories();
+  const memoryIds = allMemories.map(memory => memory.id);
+  
+  if (memoryIds.length === 0) {
+    this.logger.info('No memories found to delete');
+    return;
+  }
+  
+  this.logger.info(`Found ${memoryIds.length} memories to delete`);
+  await this.adapter.deleteManyMemories(memoryIds);
+  
+  this.logger.info(`Successfully cleared all ${memoryIds.length} memories`);
+}
+```
+</Tab>
+</Tabs>
+
+## Action Processing and Context Tracking
+
+### Action Execution with Context Tracking
+
+The runtime tracks action execution for debugging and logging:
+
+```typescript
+async processActions(
+  message: Memory,
+  responses: Memory[],
+  state?: State,
+  callback?: HandlerCallback
+): Promise<void> {
+  for (const response of responses) {
+    if (!response.content?.actions || response.content.actions.length === 0) {
+      continue;
+    }
+
+    const actions = response.content.actions;
+    
+    for (const responseAction of actions) {
+      // Find matching action
+      const action = this.findAction(responseAction);
+      
+      if (action && action.handler) {
+        // Start tracking this action's execution
+        const actionId = uuidv4() as UUID;
+        this.currentActionContext = {
+          actionName: action.name,
+          actionId: actionId,
+          prompts: [],
+        };
+
+        try {
+          await action.handler(this, message, state, {}, callback, responses);
+          
+          // Log action execution with collected prompts
+          await this.adapter.log({
+            entityId: message.entityId,
+            roomId: message.roomId,
+            type: 'action',
+            body: {
+              action: action.name,
+              actionId: actionId,
+              message: message.content.text,
+              messageId: message.id,
+              state,
+              responses,
+              prompts: this.currentActionContext?.prompts || [],
+              promptCount: this.currentActionContext?.prompts.length || 0,
+            },
+          });
+        } catch (error) {
+          this.logger.error('Action execution failed:', error);
+          
+          // Create error memory
+          const actionMemory: Memory = {
+            id: uuidv4() as UUID,
+            content: {
+              thought: error.message,
+              source: 'auto',
+            },
+            entityId: message.entityId,
+            roomId: message.roomId,
+            worldId: message.worldId,
+          };
+          await this.createMemory(actionMemory, 'messages');
+          throw error;
+        } finally {
+          // Clear action context
+          this.currentActionContext = undefined;
+        }
+      }
+    }
+  }
+}
+
+private findAction(responseAction: string): Action | undefined {
+  const normalizedResponseAction = responseAction.toLowerCase().replace('_', '');
+  
+  // Try exact match first
+  let action = this.actions.find(
+    a => a.name.toLowerCase().replace('_', '') === normalizedResponseAction
+  );
+  
+  if (!action) {
+    // Try partial match
+    action = this.actions.find(
+      a => a.name.toLowerCase().replace('_', '').includes(normalizedResponseAction) ||
+           normalizedResponseAction.includes(a.name.toLowerCase().replace('_', ''))
+    );
+  }
+  
+  if (!action) {
+    // Try similes
+    for (const _action of this.actions) {
+      const simileAction = _action.similes?.find(
+        simile => simile.toLowerCase().replace('_', '').includes(normalizedResponseAction) ||
+                 normalizedResponseAction.includes(simile.toLowerCase().replace('_', ''))
+      );
+      if (simileAction) {
+        action = _action;
+        break;
+      }
+    }
+  }
+  
+  return action;
+}
+```
+
+### Action Context for Debugging
+
+The runtime provides detailed action context for debugging:
+
+```typescript
+interface ActionContext {
+  actionName: string;
+  actionId: UUID;
+  prompts: Array<{
+    modelType: string;
+    prompt: string;
+    timestamp: number;
+  }>;
+}
+
+// During model usage, prompts are collected
+if (this.currentActionContext && promptContent) {
+  this.currentActionContext.prompts.push({
+    modelType: modelKey,
+    prompt: promptContent,
+    timestamp: Date.now(),
+  });
+}
+```
+
+## Event System
+
+### Event Registration and Emission
+
+The runtime supports a flexible event system for decoupled communication:
+
+```typescript
+registerEvent(event: string, handler: (params: any) => Promise<void>) {
+  if (!this.events.has(event)) {
+    this.events.set(event, []);
+  }
+  this.events.get(event)?.push(handler);
+}
+
+getEvent(event: string): ((params: any) => Promise<void>)[] | undefined {
+  return this.events.get(event);
+}
+
+async emitEvent(event: string | string[], params: any) {
+  const events = Array.isArray(event) ? event : [event];
+  
+  for (const eventName of events) {
+    const eventHandlers = this.events.get(eventName);
+    if (!eventHandlers) {
+      continue;
+    }
+    
+    try {
+      await Promise.all(eventHandlers.map(handler => handler(params)));
+    } catch (error) {
+      this.logger.error(`Error during emitEvent for ${eventName}:`, error);
+    }
+  }
+}
+```
+
+### Event Usage Examples
+
+```typescript
+// Register event handler
+runtime.registerEvent('user_joined', async (params) => {
+  console.log('User joined:', params.userId);
+  await runtime.createMemory({
+    id: uuidv4(),
+    content: { text: `User ${params.userName} joined the room` },
+    entityId: params.userId,
+    roomId: params.roomId,
+  }, 'messages');
+});
+
+// Emit event
+await runtime.emitEvent('user_joined', {
+  userId: 'user-123',
+  userName: 'Alice',
+  roomId: 'room-456'
+});
+
+// Multiple events
+await runtime.emitEvent(['user_joined', 'activity_logged'], params);
+```
+
+## Connection Management
+
+### Entity and Room Management
+
+The runtime manages connections between entities, rooms, and worlds:
+
+```typescript
+async ensureConnection({
+  entityId,
+  roomId,
+  worldId,
+  worldName,
+  userName,
+  name,
+  source,
+  type,
+  channelId,
+  serverId,
+  userId,
+  metadata,
+}: ConnectionParams) {
+  // Create world ID if not provided
+  if (!worldId && serverId) {
+    worldId = createUniqueUuid(this.agentId + serverId, serverId);
+  }
+
+  // Prepare entity metadata
+  const entityMetadata = {
+    [source]: {
+      id: userId,
+      name: name,
+      userName: userName,
+    },
+  };
+
+  try {
+    // Create or update entity
+    const entity = await this.getEntityById(entityId);
+    if (!entity) {
+      await this.createEntity({
+        id: entityId,
+        names: [name, userName].filter(Boolean),
+        metadata: entityMetadata,
+        agentId: this.agentId,
+      });
+    } else {
+      await this.adapter.updateEntity({
+        id: entityId,
+        names: [...new Set([...(entity.names || []), ...names])].filter(Boolean),
+        metadata: { ...entity.metadata, ...entityMetadata },
+        agentId: this.agentId,
+      });
+    }
+
+    // Ensure world exists
+    await this.ensureWorldExists({
+      id: worldId,
+      name: worldName || `World for server ${serverId}`,
+      agentId: this.agentId,
+      serverId: serverId || 'default',
+      metadata,
+    });
+
+    // Ensure room exists
+    await this.ensureRoomExists({
+      id: roomId,
+      name: name,
+      source,
+      type,
+      channelId,
+      serverId,
+      worldId,
+    });
+
+    // Add participants
+    await this.ensureParticipantInRoom(entityId, roomId);
+    await this.ensureParticipantInRoom(this.agentId, roomId);
+
+    this.logger.debug(`Successfully connected entity ${entityId} in room ${roomId}`);
+  } catch (error) {
+    this.logger.error('Failed to ensure connection:', error);
+    throw error;
+  }
+}
+```
+
+### Bulk Connection Management
+
+For performance, the runtime supports bulk operations:
+
+```typescript
+async ensureConnections(entities, rooms, source, world): Promise<void> {
+  // Create world
+  await this.ensureWorldExists({ ...world, agentId: this.agentId });
+
+  // Chunk arrays for batch processing
+  const chunkArray = (arr, size) =>
+    arr.reduce((chunks, item, i) => {
+      if (i % size === 0) chunks.push([]);
+      chunks[chunks.length - 1].push(item);
+      return chunks;
+    }, []);
+
+  // Create all rooms first
+  const roomIds = rooms.map(r => r.id);
+  const roomExistsCheck = await this.getRoomsByIds(roomIds);
+  const roomsIdExists = roomExistsCheck.map(r => r.id);
+  const roomsToCreate = roomIds.filter(id => !roomsIdExists.includes(id));
+
+  if (roomsToCreate.length) {
+    const roomObjsToCreate = rooms
+      .filter(r => roomsToCreate.includes(r.id))
+      .map(r => ({ ...r, worldId: world.id, serverId: world.serverId, source, agentId: this.agentId }));
+    await this.createRooms(roomObjsToCreate);
+  }
+
+  // Create all entities
+  const entityIds = entities.map(e => e.id);
+  const entityExistsCheck = await this.adapter.getEntityByIds(entityIds);
+  const entitiesToUpdate = entityExistsCheck.map(e => e.id);
+  const entitiesToCreate = entities.filter(e => !entitiesToUpdate.includes(e.id));
+
+  if (entitiesToCreate.length) {
+    const batches = chunkArray(entitiesToCreate, 5000);
+    for (const batch of batches) {
+      await this.createEntities(batch);
+    }
+  }
+
+  // Add participants in batches
+  const firstRoom = rooms[0];
+  await this.ensureParticipantInRoom(this.agentId, firstRoom.id);
+  
+  const entityIdsInFirstRoom = await this.getParticipantsForRoom(firstRoom.id);
+  const missingIdsInRoom = entityIds.filter(id => !entityIdsInFirstRoom.includes(id));
+  
+  if (missingIdsInRoom.length) {
+    await this.addParticipantsRoom(missingIdsInRoom, firstRoom.id);
+  }
+}
+```
+
+## Runtime Shutdown
+
+### Graceful Shutdown
+
+The runtime provides mechanisms for graceful shutdown:
+
+```typescript
+async stop(): Promise<void> {
+  this.logger.debug(`Stopping runtime for character ${this.character.name}`);
+  
+  // Stop all services
+  for (const [serviceName, service] of this.services) {
+    this.logger.debug(`Stopping service ${serviceName}`);
+    try {
+      await service.stop();
+    } catch (error) {
+      this.logger.error(`Error stopping service ${serviceName}:`, error);
+    }
+  }
+
+  // Close database connection
+  if (this.adapter) {
+    try {
+      await this.adapter.close();
+    } catch (error) {
+      this.logger.error('Error closing database adapter:', error);
+    }
+  }
+
+  // Clear caches
+  this.stateCache.clear();
+  this.events.clear();
+  
+  // Reset initialization state
+  this.isInitialized = false;
+  
+  this.logger.info('Runtime stopped successfully');
+}
+```
+
+## Advanced Features
+
+### Semaphore for Concurrency Control
+
+The runtime includes a semaphore implementation for managing concurrent operations:
+
+```typescript
+export class Semaphore {
+  private permits: number;
+  private waiting: Array<() => void> = [];
+
+  constructor(count: number) {
+    this.permits = count;
+  }
+
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits -= 1;
+      return Promise.resolve();
+    }
+    
+    return new Promise<void>((resolve) => {
+      this.waiting.push(resolve);
+    });
+  }
+
+  release(): void {
+    this.permits += 1;
+    const nextResolve = this.waiting.shift();
+    if (nextResolve && this.permits > 0) {
+      this.permits -= 1;
+      nextResolve();
+    }
+  }
+}
+
+// Usage example
+const semaphore = new Semaphore(3); // Allow 3 concurrent operations
+
+async function performOperation() {
+  await semaphore.acquire();
+  try {
+    // Perform operation
+  } finally {
+    semaphore.release();
+  }
+}
+```
+
+### Task Worker System
+
+The runtime supports task workers for background processing:
+
+```typescript
+registerTaskWorker(taskHandler: TaskWorker): void {
+  if (this.taskWorkers.has(taskHandler.name)) {
+    this.logger.warn(`Task definition ${taskHandler.name} already registered`);
+  }
+  this.taskWorkers.set(taskHandler.name, taskHandler);
+}
+
+getTaskWorker(name: string): TaskWorker | undefined {
+  return this.taskWorkers.get(name);
+}
+
+// Usage
+const taskWorker: TaskWorker = {
+  name: 'backup-memories',
+  handler: async (runtime, task) => {
+    // Backup logic
+    const memories = await runtime.getMemories({
+      tableName: 'memories',
+      count: 1000
+    });
+    // Process memories
+  }
+};
+
+runtime.registerTaskWorker(taskWorker);
+```
+
+## Error Handling and Debugging
+
+### Comprehensive Error Handling
+
+The runtime implements comprehensive error handling:
+
+```typescript
+// Plugin registration with error handling
+try {
+  await plugin.init(plugin.config || {}, this);
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  if (
+    errorMessage.includes('API key') ||
+    errorMessage.includes('environment variables') ||
+    errorMessage.includes('Invalid plugin configuration')
+  ) {
+    console.warn(`Plugin ${plugin.name} requires configuration: ${errorMessage}`);
+    console.warn('Please check your environment variables and ensure all required API keys are set.');
+  } else {
+    throw error;
+  }
+}
+
+// Service registration with error handling
+try {
+  const serviceInstance = await serviceDef.start(this);
+  this.services.set(serviceType, serviceInstance);
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  this.logger.error(`Failed to register service ${serviceType}: ${errorMessage}`);
+  throw error;
+}
+```
+
+### Debug Logging
+
+The runtime provides comprehensive debug logging:
+
+```typescript
+// Enable debug logging
+const runtime = new AgentRuntime({
+  // ... other options
+  settings: {
+    LOG_LEVEL: 'debug'
+  }
+});
+
+// Debug logs include:
+// - Plugin registration details
+// - Service initialization
+// - Model usage timing
+// - Provider execution timing
+// - Action execution context
+// - Memory operations
+// - Connection management
+```
+
+## Performance Optimization
+
+### State Caching
+
+The runtime implements state caching to improve performance:
+
+```typescript
+// State caching in composeState
+const cachedState = skipCache ? emptyObj : (await this.stateCache.get(message.id)) || emptyObj;
+
+// Cache results
+this.stateCache.set(message.id, newState);
+```
+
+### Connection Pooling
+
+The runtime supports connection pooling through the database adapter:
+
+```typescript
+async getConnection(): Promise<unknown> {
+  if (!this.adapter) {
+    throw new Error('Database adapter not registered');
+  }
+  return this.adapter.getConnection();
+}
+```
+
+### Batch Operations
+
+Use batch operations for better performance:
+
+```typescript
+// Batch entity creation
+await this.createEntities(entities);
+
+// Batch room creation
+await this.createRooms(rooms);
+
+// Batch participant addition
+await this.addParticipantsRoom(entityIds, roomId);
+```
+
+## Best Practices
+
+### 1. Initialization
+
+<Callout type="info">
+Always initialize the runtime before using it and handle initialization errors gracefully.
+</Callout>
+
+```typescript
+try {
+  await runtime.initialize();
+  console.log('Runtime initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize runtime:', error);
+  process.exit(1);
+}
+```
+
+### 2. Error Handling
+
+Implement comprehensive error handling for all runtime operations:
+
+```typescript
+// Wrap operations in try-catch
+try {
+  const result = await runtime.useModel(ModelType.COMPLETION, params);
+  return result;
+} catch (error) {
+  this.logger.error('Model usage failed:', error);
+  // Implement fallback or retry logic
+}
+```
+
+### 3. Resource Management
+
+Properly manage resources and implement cleanup:
+
+```typescript
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await runtime.stop();
+  process.exit(0);
+});
+```
+
+### 4. Performance Monitoring
+
+Monitor runtime performance:
+
+```typescript
+// Track execution time
+const startTime = performance.now();
+const result = await runtime.useModel(ModelType.COMPLETION, params);
+const executionTime = performance.now() - startTime;
+console.log(`Model execution took ${executionTime}ms`);
+```
+
+### 5. Service Management
+
+Use type-safe service access:
+
+```typescript
+// Type-safe service access
+const service = runtime.getTypedService<MyService>('myService');
+if (service) {
+  await service.performOperation();
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Plugin Registration Failures
+
+**Problem**: Plugin fails to register with API key errors.
+
+**Solution**: Check environment variables and plugin configuration:
+
+```typescript
+// Check if required environment variables are set
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY environment variable is required');
+}
+```
+
+#### 2. Database Connection Issues
+
+**Problem**: Database adapter not initialized.
+
+**Solution**: Ensure SQL plugin is included:
+
+```typescript
+// Make sure @elizaos/plugin-sql is included in your plugins
+const plugins = [
+  sqlPlugin,
+  // ... other plugins
+];
+```
+
+#### 3. Service Not Found
+
+**Problem**: Service not available when expected.
+
+**Solution**: Check service registration and timing:
+
+```typescript
+// Check if service is registered
+if (!runtime.hasService('myService')) {
+  console.error('Service not registered. Check plugin configuration.');
+}
+
+// List available services
+console.log('Available services:', runtime.getRegisteredServiceTypes());
+```
+
+#### 4. Memory Issues
+
+**Problem**: Out of memory errors during bulk operations.
+
+**Solution**: Use batch processing:
+
+```typescript
+// Process in batches
+const batchSize = 1000;
+for (let i = 0; i < entities.length; i += batchSize) {
+  const batch = entities.slice(i, i + batchSize);
+  await runtime.createEntities(batch);
+}
+```
+
+#### 5. Model Not Found
+
+**Problem**: No handler found for model type.
+
+**Solution**: Check model registration:
+
+```typescript
+// Check if model is registered
+const model = runtime.getModel(ModelType.COMPLETION);
+if (!model) {
+  console.error('No completion model registered');
+  // Register a model or check plugin configuration
+}
+```
+
+The runtime system provides a robust foundation for building intelligent agents with comprehensive lifecycle management, service orchestration, and debugging capabilities. By following the patterns and best practices outlined in this documentation, you can build reliable and scalable ElizaOS applications.

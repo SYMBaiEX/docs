@@ -1,0 +1,664 @@
+---
+title: Plugin Testing Guide
+description: Comprehensive testing strategies and best practices for ElizaOS plugins
+---
+
+# Plugin Testing Guide
+
+This guide covers comprehensive testing strategies for ElizaOS plugins, including unit tests, integration tests, and end-to-end testing approaches.
+
+## Testing Overview
+
+ElizaOS plugins support multiple testing approaches:
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test component interactions
+- **End-to-End Tests**: Test complete workflows with real runtime
+- **Component Tests**: Test specific plugin components
+- **Performance Tests**: Test plugin performance and resource usage
+
+## Test Setup
+
+### Project Structure
+
+```
+plugin-name/
+├── src/
+│   ├── __tests__/
+│   │   ├── unit/
+│   │   │   ├── actions.test.ts
+│   │   │   ├── providers.test.ts
+│   │   │   └── services.test.ts
+│   │   ├── integration/
+│   │   │   ├── plugin.test.ts
+│   │   │   └── workflow.test.ts
+│   │   └── e2e/
+│   │       ├── plugin-e2e.test.ts
+│   │       └── scenarios.test.ts
+│   └── test-utils/
+│       ├── mocks.ts
+│       ├── fixtures.ts
+│       └── helpers.ts
+├── vitest.config.ts
+└── package.json
+```
+
+### Configuration
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    globals: true,
+    setupFiles: ['./src/test-utils/setup.ts']
+  }
+});
+```
+
+### Test Dependencies
+
+```json
+{
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "vitest-mock-extended": "^1.0.0",
+    "@elizaos/core": "workspace:*"
+  }
+}
+```
+
+## Unit Testing
+
+### Testing Actions
+
+```typescript
+// src/__tests__/unit/actions.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { IAgentRuntime, Memory, State } from '@elizaos/core';
+import { greetAction } from '../../actions/greetAction';
+
+describe('Greet Action', () => {
+  const mockRuntime = {
+    getSetting: vi.fn(),
+    getService: vi.fn()
+  } as unknown as IAgentRuntime;
+
+  const mockMessage: Memory = {
+    content: { text: 'hello' },
+    userId: 'test-user',
+    roomId: 'test-room'
+  };
+
+  const mockState: State = {
+    userId: 'test-user',
+    roomId: 'test-room',
+    agentId: 'test-agent'
+  };
+
+  it('should validate correctly for greeting messages', async () => {
+    const result = await greetAction.validate(mockRuntime, mockMessage);
+    expect(result).toBe(true);
+  });
+
+  it('should not validate for non-greeting messages', async () => {
+    const nonGreetingMessage = {
+      ...mockMessage,
+      content: { text: 'what is the weather?' }
+    };
+    
+    const result = await greetAction.validate(mockRuntime, nonGreetingMessage);
+    expect(result).toBe(false);
+  });
+
+  it('should handle greeting correctly', async () => {
+    const result = await greetAction.handler(mockRuntime, mockMessage, mockState);
+    
+    expect(result).toBeDefined();
+    expect(result.text).toContain('Hello');
+    expect(result.actions).toContain('GREET');
+  });
+
+  it('should handle missing userId gracefully', async () => {
+    const messageWithoutUser = {
+      ...mockMessage,
+      userId: undefined
+    };
+
+    const result = await greetAction.handler(mockRuntime, messageWithoutUser, mockState);
+    expect(result.text).toContain('friend');
+  });
+});
+```
+
+### Testing Providers
+
+```typescript
+// src/__tests__/unit/providers.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { IAgentRuntime, Memory, State } from '@elizaos/core';
+import { weatherProvider } from '../../providers/weatherProvider';
+
+describe('Weather Provider', () => {
+  const mockRuntime = {
+    getSetting: vi.fn()
+  } as unknown as IAgentRuntime;
+
+  const mockMessage: Memory = {
+    content: { text: 'what is the weather in New York?' },
+    userId: 'test-user',
+    roomId: 'test-room'
+  };
+
+  const mockState: State = {
+    userId: 'test-user',
+    roomId: 'test-room',
+    agentId: 'test-agent'
+  };
+
+  it('should provide weather data', async () => {
+    const result = await weatherProvider.get(mockRuntime, mockMessage, mockState);
+    
+    expect(result).toBeDefined();
+    expect(result.text).toContain('weather');
+    expect(result.values).toHaveProperty('location');
+    expect(result.values).toHaveProperty('temperature');
+  });
+
+  it('should extract location from message', async () => {
+    const result = await weatherProvider.get(mockRuntime, mockMessage, mockState);
+    
+    expect(result.values.location).toBe('New York');
+  });
+
+  it('should handle missing location gracefully', async () => {
+    const messageWithoutLocation = {
+      ...mockMessage,
+      content: { text: 'what is the weather?' }
+    };
+
+    const result = await weatherProvider.get(mockRuntime, messageWithoutLocation, mockState);
+    expect(result.values.location).toBe('New York'); // Default location
+  });
+});
+```
+
+### Testing Services
+
+```typescript
+// src/__tests__/unit/services.test.ts
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { IAgentRuntime } from '@elizaos/core';
+import { NotificationService } from '../../services/NotificationService';
+
+describe('Notification Service', () => {
+  let mockRuntime: IAgentRuntime;
+  let service: NotificationService;
+
+  beforeEach(() => {
+    mockRuntime = {
+      getSetting: vi.fn(),
+      getService: vi.fn()
+    } as unknown as IAgentRuntime;
+  });
+
+  it('should start successfully', async () => {
+    service = await NotificationService.start(mockRuntime);
+    
+    expect(service).toBeInstanceOf(NotificationService);
+    expect(service.capabilityDescription).toBeDefined();
+  });
+
+  it('should stop successfully', async () => {
+    service = await NotificationService.start(mockRuntime);
+    
+    await expect(service.stop()).resolves.not.toThrow();
+  });
+
+  it('should handle service lifecycle', async () => {
+    // Test static methods
+    mockRuntime.getService = vi.fn().mockReturnValue(service);
+    
+    await expect(NotificationService.stop(mockRuntime)).resolves.not.toThrow();
+  });
+});
+```
+
+## Integration Testing
+
+### Testing Plugin Integration
+
+```typescript
+// src/__tests__/integration/plugin.test.ts
+import { describe, it, expect, beforeEach } from 'vitest';
+import { IAgentRuntime } from '@elizaos/core';
+import { weatherPlugin } from '../../index';
+import { createMockRuntime } from '../../test-utils/mocks';
+
+describe('Weather Plugin Integration', () => {
+  let mockRuntime: IAgentRuntime;
+
+  beforeEach(() => {
+    mockRuntime = createMockRuntime();
+  });
+
+  it('should initialize plugin correctly', async () => {
+    const config = {
+      WEATHER_API_KEY: 'test-key'
+    };
+
+    await expect(weatherPlugin.init(config, mockRuntime)).resolves.not.toThrow();
+  });
+
+  it('should register all components', () => {
+    expect(weatherPlugin.actions).toBeDefined();
+    expect(weatherPlugin.providers).toBeDefined();
+    expect(weatherPlugin.actions.length).toBeGreaterThan(0);
+    expect(weatherPlugin.providers.length).toBeGreaterThan(0);
+  });
+
+  it('should handle action-provider interaction', async () => {
+    // Test interaction between action and provider
+    const action = weatherPlugin.actions[0];
+    const provider = weatherPlugin.providers[0];
+
+    const mockMessage = {
+      content: { text: 'what is the weather in Paris?' },
+      userId: 'test-user',
+      roomId: 'test-room'
+    };
+
+    const mockState = {
+      userId: 'test-user',
+      roomId: 'test-room',
+      agentId: 'test-agent'
+    };
+
+    // Test that action can validate and use provider data
+    const isValid = await action.validate(mockRuntime, mockMessage);
+    expect(isValid).toBe(true);
+
+    const providerData = await provider.get(mockRuntime, mockMessage, mockState);
+    expect(providerData).toBeDefined();
+    expect(providerData.values.location).toBe('Paris');
+  });
+});
+```
+
+### Testing Workflow Integration
+
+```typescript
+// src/__tests__/integration/workflow.test.ts
+import { describe, it, expect } from 'vitest';
+import { createMockRuntime } from '../../test-utils/mocks';
+import { weatherPlugin } from '../../index';
+
+describe('Weather Plugin Workflow', () => {
+  it('should complete full weather query workflow', async () => {
+    const mockRuntime = createMockRuntime();
+    
+    // Initialize plugin
+    await weatherPlugin.init({
+      WEATHER_API_KEY: 'test-key'
+    }, mockRuntime);
+
+    // Simulate message processing
+    const message = {
+      content: { text: 'what is the weather in London?' },
+      userId: 'test-user',
+      roomId: 'test-room'
+    };
+
+    const state = {
+      userId: 'test-user',
+      roomId: 'test-room',
+      agentId: 'test-agent'
+    };
+
+    // Test provider
+    const provider = weatherPlugin.providers[0];
+    const providerResult = await provider.get(mockRuntime, message, state);
+    
+    expect(providerResult.values.location).toBe('London');
+    expect(providerResult.values.temperature).toBeDefined();
+
+    // Test action
+    const action = weatherPlugin.actions[0];
+    const actionResult = await action.handler(mockRuntime, message, state);
+    
+    expect(actionResult.text).toContain('weather');
+    expect(actionResult.text).toContain('London');
+  });
+});
+```
+
+## End-to-End Testing
+
+### E2E Test Suite
+
+```typescript
+// src/__tests__/e2e/plugin-e2e.test.ts
+import { TestSuite } from '@elizaos/core';
+
+export const WeatherPluginE2ETestSuite: TestSuite = {
+  name: 'weather_plugin_e2e_test_suite',
+  description: 'End-to-end tests for weather plugin',
+  
+  tests: [
+    {
+      name: 'weather_query_workflow',
+      fn: async (runtime) => {
+        // Test complete weather query workflow
+        const message = {
+          content: { text: 'what is the weather in Tokyo?' },
+          userId: 'test-user',
+          roomId: 'test-room'
+        };
+
+        const state = {
+          userId: 'test-user',
+          roomId: 'test-room',
+          agentId: 'test-agent'
+        };
+
+        // Find weather action
+        const weatherAction = runtime.actions?.find(a => a.name === 'WEATHER_QUERY');
+        expect(weatherAction).toBeDefined();
+
+        // Validate action
+        const isValid = await weatherAction.validate(runtime, message);
+        expect(isValid).toBe(true);
+
+        // Execute action
+        const result = await weatherAction.handler(runtime, message, state);
+        expect(result).toBeDefined();
+        expect(result.text).toContain('Tokyo');
+        expect(result.text).toContain('weather');
+      }
+    },
+    {
+      name: 'weather_service_integration',
+      fn: async (runtime) => {
+        // Test weather service integration
+        const weatherService = runtime.getService('weather-service');
+        expect(weatherService).toBeDefined();
+
+        // Test service capabilities
+        expect(weatherService.capabilityDescription).toContain('weather');
+      }
+    },
+    {
+      name: 'error_handling',
+      fn: async (runtime) => {
+        // Test error handling for invalid location
+        const message = {
+          content: { text: 'what is the weather in InvalidLocation123?' },
+          userId: 'test-user',
+          roomId: 'test-room'
+        };
+
+        const state = {
+          userId: 'test-user',
+          roomId: 'test-room',
+          agentId: 'test-agent'
+        };
+
+        const weatherAction = runtime.actions?.find(a => a.name === 'WEATHER_QUERY');
+        const result = await weatherAction.handler(runtime, message, state);
+        
+        // Should handle error gracefully
+        expect(result.text).toContain('unable') || expect(result.text).toContain('error');
+      }
+    }
+  ]
+};
+```
+
+### Including E2E Tests in Plugin
+
+```typescript
+// src/index.ts
+import { Plugin } from '@elizaos/core';
+import { WeatherPluginE2ETestSuite } from './__tests__/e2e/plugin-e2e.test';
+
+export const weatherPlugin: Plugin = {
+  name: 'weather-plugin',
+  description: 'Provides weather information',
+  
+  // Include E2E tests
+  tests: [WeatherPluginE2ETestSuite],
+  
+  // ... other plugin components
+};
+```
+
+## Test Utilities
+
+### Mock Runtime
+
+```typescript
+// src/test-utils/mocks.ts
+import { vi } from 'vitest';
+import { IAgentRuntime } from '@elizaos/core';
+
+export function createMockRuntime(): IAgentRuntime {
+  return {
+    getSetting: vi.fn().mockImplementation((key: string) => {
+      const settings = {
+        'WEATHER_API_KEY': 'test-api-key',
+        'OPENAI_API_KEY': 'test-openai-key'
+      };
+      return settings[key];
+    }),
+    
+    getService: vi.fn().mockImplementation((type: string) => {
+      const services = {
+        'weather-service': {
+          capabilityDescription: 'Provides weather data',
+          fetchWeather: vi.fn().mockResolvedValue({
+            temperature: 72,
+            conditions: 'Sunny'
+          })
+        }
+      };
+      return services[type];
+    }),
+    
+    actions: [],
+    providers: [],
+    evaluators: [],
+    
+    // Add other runtime methods as needed
+  } as unknown as IAgentRuntime;
+}
+```
+
+### Test Fixtures
+
+```typescript
+// src/test-utils/fixtures.ts
+import { Memory, State } from '@elizaos/core';
+
+export const mockMessage: Memory = {
+  content: { text: 'test message' },
+  userId: 'test-user',
+  roomId: 'test-room',
+  agentId: 'test-agent',
+  createdAt: Date.now()
+};
+
+export const mockState: State = {
+  userId: 'test-user',
+  roomId: 'test-room',
+  agentId: 'test-agent'
+};
+
+export const weatherMessages = {
+  simple: {
+    ...mockMessage,
+    content: { text: 'what is the weather?' }
+  },
+  withLocation: {
+    ...mockMessage,
+    content: { text: 'what is the weather in New York?' }
+  },
+  greeting: {
+    ...mockMessage,
+    content: { text: 'hello' }
+  }
+};
+```
+
+### Test Helpers
+
+```typescript
+// src/test-utils/helpers.ts
+import { IAgentRuntime, Memory, State } from '@elizaos/core';
+
+export async function simulateMessageProcessing(
+  runtime: IAgentRuntime,
+  message: Memory,
+  state: State
+) {
+  // Simulate the message processing flow
+  const applicableActions = [];
+  
+  for (const action of runtime.actions) {
+    const isValid = await action.validate(runtime, message);
+    if (isValid) {
+      applicableActions.push(action);
+    }
+  }
+  
+  // Execute first applicable action
+  if (applicableActions.length > 0) {
+    return await applicableActions[0].handler(runtime, message, state);
+  }
+  
+  return null;
+}
+
+export function createTestMessage(text: string, userId = 'test-user'): Memory {
+  return {
+    content: { text },
+    userId,
+    roomId: 'test-room',
+    agentId: 'test-agent',
+    createdAt: Date.now()
+  };
+}
+```
+
+## Running Tests
+
+### CLI Commands
+
+```bash
+# Run all tests
+elizaos test
+
+# Run specific test types
+elizaos test component
+elizaos test integration
+elizaos test e2e
+
+# Run tests with coverage
+elizaos test --coverage
+
+# Run tests in watch mode
+elizaos test --watch
+
+# Run specific test file
+elizaos test weather.test.ts
+
+# Run tests with name filter
+elizaos test --name "weather"
+```
+
+### Continuous Integration
+
+```yaml
+# .github/workflows/test.yml
+name: Test Plugin
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+    
+    - name: Install dependencies
+      run: bun install
+    
+    - name: Run tests
+      run: bun test
+    
+    - name: Run E2E tests
+      run: elizaos test e2e
+    
+    - name: Check coverage
+      run: bun test --coverage
+```
+
+## Best Practices
+
+### Test Organization
+
+1. **Separate test types** into different directories
+2. **Use descriptive test names** that explain what is being tested
+3. **Group related tests** using describe blocks
+4. **Use beforeEach/afterEach** for setup and cleanup
+5. **Keep tests focused** on single functionality
+
+### Mocking Strategy
+
+1. **Mock external dependencies** (APIs, databases, file system)
+2. **Use test doubles** for complex runtime interactions
+3. **Avoid mocking internal plugin logic**
+4. **Mock at the boundary** between your plugin and external systems
+
+### Error Testing
+
+1. **Test error conditions** explicitly
+2. **Verify error messages** are user-friendly
+3. **Test recovery mechanisms**
+4. **Ensure graceful degradation**
+
+### Performance Testing
+
+```typescript
+// Performance test example
+it('should handle large number of requests efficiently', async () => {
+  const start = performance.now();
+  
+  const promises = Array.from({ length: 100 }, (_, i) => 
+    weatherAction.handler(mockRuntime, createTestMessage(`weather ${i}`), mockState)
+  );
+  
+  await Promise.all(promises);
+  
+  const end = performance.now();
+  const duration = end - start;
+  
+  expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
+});
+```
+
+### Test Coverage
+
+Aim for:
+- **90%+ code coverage** for critical paths
+- **100% coverage** for error handling
+- **Test all public APIs**
+- **Test edge cases** and boundary conditions
+
+This comprehensive testing approach ensures your ElizaOS plugins are reliable, maintainable, and production-ready.

@@ -1,0 +1,519 @@
+---
+title: "Project Structure"
+description: "Comprehensive guide to the ElizaOS monorepo structure and build system"
+---
+
+# Project Structure
+
+ElizaOS is built as a comprehensive monorepo using modern development tools and practices. This document provides a detailed overview of the project structure, build system, and development workflow.
+
+## Repository Overview
+
+The ElizaOS project is organized as a monorepo containing multiple packages that work together to provide a complete AI agent framework:
+
+```
+eliza/
+├── packages/                 # Core packages and plugins
+├── plugin-specification/     # Plugin development specifications
+├── docs/                     # Documentation site
+├── scripts/                  # Build and development scripts
+├── package.json             # Root package configuration
+├── turbo.json               # Turbo build configuration
+├── lerna.json               # Lerna publishing configuration
+└── tsconfig.json            # TypeScript configuration
+```
+
+## Build System Architecture
+
+### Turbo Configuration
+
+The project uses [Turbo](https://turbo.build/) for efficient monorepo builds and task orchestration:
+
+```json
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["LOG_LEVEL"],
+      "outputs": ["dist/**"]
+    },
+    "start": {
+      "dependsOn": ["@elizaos/core#build"],
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    }
+  }
+}
+```
+
+### Package Management
+
+The project uses **Bun** (v1.2.15) as the primary package manager with workspace support:
+
+```json
+{
+  "packageManager": "bun@1.2.15",
+  "workspaces": [
+    "packages/*",
+    "plugin-specification/*"
+  ]
+}
+```
+
+### Lerna Publishing
+
+Lerna is used for package publishing and version management:
+
+```json
+{
+  "version": "1.0.16",
+  "packages": ["packages/*"],
+  "npmClient": "bun",
+  "command": {
+    "publish": {
+      "workspaceConfig": true
+    }
+  }
+}
+```
+
+## Core Packages
+
+### @elizaos/core
+
+The foundational package providing core runtime functionality:
+
+```
+packages/core/
+├── src/
+│   ├── __tests__/           # Comprehensive test suite
+│   ├── actions.ts           # Action system
+│   ├── database.ts          # Database abstractions
+│   ├── entities.ts          # Entity management
+│   ├── logger.ts            # Logging system
+│   ├── prompts.ts           # Prompt management
+│   ├── runtime.ts           # AgentRuntime class
+│   ├── schemas/             # Validation schemas
+│   │   └── character.ts
+│   ├── types/               # TypeScript type definitions
+│   │   ├── agent.ts
+│   │   ├── components.ts
+│   │   ├── database.ts
+│   │   ├── events.ts
+│   │   ├── plugin.ts
+│   │   ├── runtime.ts
+│   │   └── ...
+│   └── utils.ts             # Utility functions
+├── package.json
+├── tsconfig.json
+└── tsup.config.ts          # Build configuration
+```
+
+### @elizaos/cli
+
+Command-line interface for agent development and deployment:
+
+```
+packages/cli/
+├── src/
+│   ├── commands/            # CLI command implementations
+│   ├── characters/          # Default character definitions
+│   │   └── eliza.ts
+│   ├── services/            # CLI services
+│   │   └── env-file.service.ts
+│   ├── utils/               # CLI utilities
+│   │   ├── plugin-creator.ts
+│   │   ├── package-manager.ts
+│   │   ├── test-runner.ts
+│   │   └── ...
+│   └── index.ts
+├── templates/               # Project templates
+│   ├── plugin-starter/
+│   ├── project-starter/
+│   └── project-tee-starter/
+└── tests/                   # CLI tests
+    ├── commands/
+    ├── integration/
+    └── unit/
+```
+
+### @elizaos/client
+
+React-based web interface for agent interaction:
+
+```
+packages/client/
+├── src/
+│   ├── components/          # React components
+│   │   ├── agent-card.tsx
+│   │   ├── chat.tsx
+│   │   ├── memory-viewer.tsx
+│   │   └── ...
+│   ├── hooks/               # Custom React hooks
+│   │   ├── use-agent-management.ts
+│   │   ├── use-socket-chat.ts
+│   │   └── ...
+│   ├── lib/                 # Client utilities
+│   │   ├── api-client-config.ts
+│   │   ├── socketio-manager.ts
+│   │   └── ...
+│   └── routes/              # Application routes
+│       ├── chat.tsx
+│       ├── agent-list.tsx
+│       └── ...
+├── public/                  # Static assets
+├── cypress/                 # E2E tests
+├── vite.config.ts           # Vite configuration
+└── package.json
+```
+
+### @elizaos/server
+
+Server components for agent hosting:
+
+```
+packages/server/
+├── src/
+│   ├── authMiddleware.ts    # Authentication middleware
+│   ├── bus.ts               # Message bus
+│   ├── index.ts             # Server entry point
+│   ├── loader.ts            # Agent loader
+│   ├── types.ts             # Server types
+│   └── upload.ts            # File upload handling
+├── examples/
+│   ├── standalone-server.ts
+│   └── package.json
+└── package.json
+```
+
+### @elizaos/api-client
+
+TypeScript client for the ElizaOS API:
+
+```
+packages/api-client/
+├── src/
+│   ├── __tests__/           # Client tests
+│   ├── client.ts            # Main client class
+│   ├── lib/
+│   │   └── base-client.ts   # Base client functionality
+│   ├── services/            # API service modules
+│   │   ├── agents.ts
+│   │   ├── memory.ts
+│   │   ├── messaging.ts
+│   │   └── ...
+│   └── types/               # API type definitions
+│       ├── agents.ts
+│       ├── memory.ts
+│       └── ...
+└── package.json
+```
+
+## Plugin Architecture
+
+### Plugin Structure
+
+Plugins follow a standardized structure:
+
+```
+packages/plugin-{name}/
+├── src/
+│   ├── index.ts             # Plugin entry point
+│   ├── plugin.ts            # Plugin implementation
+│   ├── actions/             # Plugin actions
+│   ├── providers/           # Plugin providers
+│   ├── services/            # Plugin services
+│   └── types/               # Plugin types
+├── package.json
+├── tsconfig.json
+└── tsup.config.ts
+```
+
+### Core Plugins
+
+#### @elizaos/plugin-sql
+
+Database adapter plugin providing SQL database support:
+
+```
+packages/plugin-sql/
+├── src/
+│   ├── index.ts             # Plugin entry point
+│   ├── base.ts              # Base adapter functionality
+│   ├── custom-migrator.ts   # Migration system
+│   ├── migration-service.ts # Migration service
+│   ├── types.ts             # SQL types
+│   └── utils.ts             # SQL utilities
+├── drizzle.config.ts        # Drizzle ORM configuration
+└── package.json
+```
+
+#### @elizaos/plugin-bootstrap
+
+Bootstrap plugin for agent initialization:
+
+```
+packages/plugin-bootstrap/
+├── src/
+│   └── index.ts             # Bootstrap functionality
+└── package.json
+```
+
+## Development Tools
+
+### TypeScript Configuration
+
+Root TypeScript configuration with path mapping:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@elizaos/core": ["./packages/core/src/index.ts"],
+      "@elizaos/cli": ["./packages/cli/src/index.ts"],
+      "@elizaos/client": ["./packages/client/src/index.ts"]
+    }
+  }
+}
+```
+
+### Build Configuration
+
+Each package uses `tsup` for building:
+
+```typescript
+// tsup.config.ts
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  format: ['esm'],
+  dts: true,
+  splitting: false,
+  sourcemap: true,
+  clean: true,
+  outDir: 'dist',
+});
+```
+
+### Testing Infrastructure
+
+The project uses a comprehensive testing setup:
+
+```
+tests/
+├── __tests__/               # Unit tests
+├── e2e/                     # End-to-end tests
+├── integration/             # Integration tests
+├── fixtures/                # Test fixtures
+├── global-setup.ts          # Global test setup
+└── setup.ts                 # Test configuration
+```
+
+## Development Workflow
+
+### Scripts and Commands
+
+Key development scripts defined in the root package.json:
+
+```json
+{
+  "scripts": {
+    "start": "turbo run start --filter=./packages/cli",
+    "dev": "bun run scripts/dev-watch.js",
+    "build": "turbo run build --filter=!@elizaos/docs",
+    "test": "turbo run test --concurrency 3",
+    "lint": "turbo run lint --filter=./packages/*",
+    "clean": "rm -rf dist .turbo node_modules && bun install && bun run build"
+  }
+}
+```
+
+### Development Server
+
+The development server uses file watching for hot reloading:
+
+```javascript
+// scripts/dev-watch.js
+import { watch } from 'chokidar';
+import { spawn } from 'child_process';
+
+const watcher = watch('packages/*/src/**/*.ts', {
+  ignored: /node_modules/,
+  persistent: true
+});
+
+watcher.on('change', (path) => {
+  console.log(`File changed: ${path}`);
+  // Rebuild and restart
+});
+```
+
+### Build Process
+
+The build process follows these steps:
+
+1. **Dependency Resolution**: Turbo determines build order based on dependencies
+2. **TypeScript Compilation**: Each package is compiled with `tsup`
+3. **Type Generation**: TypeScript definitions are generated
+4. **Asset Copying**: Static assets are copied to dist folders
+5. **Validation**: Built packages are validated
+
+### Plugin Development
+
+Plugin development follows a structured approach:
+
+1. **Template Generation**: Use CLI to create plugin template
+2. **Implementation**: Implement plugin interface
+3. **Testing**: Write comprehensive tests
+4. **Documentation**: Document plugin functionality
+5. **Publishing**: Publish to npm registry
+
+## File Organization Patterns
+
+### Import/Export Patterns
+
+The project uses barrel exports for clean imports:
+
+```typescript
+// packages/core/src/index.ts
+export * from './runtime';
+export * from './types';
+export * from './actions';
+export * from './database';
+// ...
+
+// Usage
+import { AgentRuntime, type Plugin } from '@elizaos/core';
+```
+
+### Type Organization
+
+Types are organized by domain:
+
+```
+types/
+├── agent.ts                 # Agent-related types
+├── components.ts            # Component types
+├── database.ts              # Database types
+├── events.ts                # Event types
+├── plugin.ts                # Plugin types
+├── runtime.ts               # Runtime types
+└── index.ts                 # Barrel export
+```
+
+### Configuration Files
+
+Configuration files follow consistent patterns:
+
+```
+package/
+├── package.json             # Package configuration
+├── tsconfig.json            # TypeScript configuration
+├── tsconfig.build.json      # Build-specific TS config
+├── tsup.config.ts           # Build configuration
+├── bunfig.toml             # Bun configuration
+└── .eslintrc.json          # ESLint configuration
+```
+
+## Build Optimization
+
+### Caching Strategy
+
+Turbo provides intelligent caching:
+
+- **Build Caching**: Compiled outputs are cached
+- **Test Caching**: Test results are cached
+- **Remote Caching**: Team-wide cache sharing
+
+### Bundle Splitting
+
+Packages are built with optimal splitting:
+
+```typescript
+// tsup.config.ts
+export default defineConfig({
+  splitting: true,
+  treeshake: true,
+  minify: false,
+  external: ['@elizaos/core'],
+});
+```
+
+### Dependency Management
+
+Dependencies are carefully managed:
+
+- **Shared Dependencies**: Common dependencies in root
+- **Peer Dependencies**: Marked as peer dependencies
+- **Dev Dependencies**: Development-only dependencies
+
+## Quality Assurance
+
+### Linting Configuration
+
+ESLint configuration for consistent code quality:
+
+```json
+{
+  "extends": ["next/core-web-vitals", "@typescript-eslint/recommended"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
+}
+```
+
+### Testing Strategy
+
+Comprehensive testing approach:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Cross-package testing
+- **E2E Tests**: Full application testing
+- **Performance Tests**: Load and stress testing
+
+### CI/CD Integration
+
+GitHub Actions workflow for automated testing and deployment:
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: bun install
+      - run: bun run build
+      - run: bun run test
+```
+
+## Performance Considerations
+
+### Build Performance
+
+- **Incremental Builds**: Only changed packages are rebuilt
+- **Parallel Execution**: Multiple packages built simultaneously
+- **Caching**: Aggressive caching at multiple levels
+
+### Runtime Performance
+
+- **Tree Shaking**: Unused code is eliminated
+- **Code Splitting**: Lazy loading of components
+- **Bundle Optimization**: Optimal bundle sizes
+
+### Memory Management
+
+- **Streaming**: Large files are streamed
+- **Garbage Collection**: Proper cleanup of resources
+- **Connection Pooling**: Database connections are pooled
+
+The ElizaOS project structure provides a solid foundation for building, testing, and deploying AI agents while maintaining code quality and developer productivity through modern tooling and best practices.

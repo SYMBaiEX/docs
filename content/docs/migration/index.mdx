@@ -5,4 +5,29 @@ description: Migration guides and breaking changes
 
 # Migration
 
-Content to be added.
+This section contains guides for migrating between different versions of elizaOS, including API changes, breaking changes, and upgrade paths.
+
+## Available Migration Guides
+
+- [ElizaOS v1.2.0 Migration Guide](/docs/migration/v1.2.0-migration) - **Complete upgrade guide** for migrating to v1.2.0 with breaking changes, automated tools, and step-by-step instructions
+- [Migration Helper Scripts](/docs/migration/migration-helper) - Ready-to-use scripts to automate common migration tasks
+- [API Migration Guide](/docs/migration/api-migration) - Migrate from old agent-specific APIs to the new centralized messaging system
+
+## Breaking Changes
+
+### v1.2.0
+
+- **Domain-based API routing** - New centralized messaging system
+- **Enhanced plugin system** - Strict plugin ordering and new interface features
+- **Character schema updates** - Required plugin configuration and message format changes
+- **Runtime system improvements** - Mandatory database adapters and configuration changes
+- **Database adapter requirements** - All installations now require database adapters
+
+### v1.0.0
+
+- Centralized message bus architecture
+- New messaging API endpoints
+- WebSocket to Socket.IO migration
+- Multi-agent support improvements
+
+For detailed migration instructions, see the specific migration guides listed above.

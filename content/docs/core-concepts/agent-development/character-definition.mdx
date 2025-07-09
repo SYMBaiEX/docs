@@ -1,0 +1,948 @@
+---
+title: "Character Definition"
+description: "Complete guide to creating and validating character definitions with schema validation, bio management, and configuration patterns in ElizaOS"
+---
+
+# Character Definition
+
+Character definitions are the blueprint for agent personalities and behaviors in ElizaOS. They define how an agent thinks, speaks, and interacts with users. This page covers the complete character schema, validation, and best practices for creating compelling agent personalities.
+
+## Character Interface
+
+The Character interface defines the complete structure for agent personalities:
+
+```typescript
+interface Character {
+  /** Optional unique identifier */
+  id?: UUID;
+  
+  /** Character name */
+  name: string;
+  
+  /** Optional username for interactions */
+  username?: string;
+  
+  /** System prompt guiding overall behavior */
+  system?: string;
+  
+  /** Prompt templates for different situations */
+  templates?: {
+    [key: string]: TemplateType;
+  };
+  
+  /** Character biography */
+  bio: string | string[];
+  
+  /** Example conversations */
+  messageExamples?: MessageExample[][];
+  
+  /** Example posts */
+  postExamples?: string[];
+  
+  /** Topics of interest */
+  topics?: string[];
+  
+  /** Character traits */
+  adjectives?: string[];
+  
+  /** Knowledge base paths */
+  knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
+  
+  /** Available plugins */
+  plugins?: string[];
+  
+  /** Configuration settings */
+  settings?: {
+    [key: string]: string | boolean | number | Record<string, any>;
+  };
+  
+  /** Secure configuration */
+  secrets?: {
+    [key: string]: string | boolean | number;
+  };
+  
+  /** Writing style guides */
+  style?: {
+    all?: string[];
+    chat?: string[];
+    post?: string[];
+  };
+}
+```
+
+## Required Properties
+
+### name
+The character's display name, used in conversations and system references.
+
+```typescript
+const character = {
+  name: "Ada", // Required
+  // ... other properties
+};
+```
+
+### bio
+Character biography that can be a single string or array of strings. When an array is provided, random selections are made for variety.
+
+```typescript
+// Single string bio
+const character = {
+  name: "Ada",
+  bio: "A brilliant AI researcher focused on machine learning and ethics"
+};
+
+// Array bio for variety
+const character = {
+  name: "Ada",
+  bio: [
+    "A brilliant AI researcher focused on machine learning and ethics.",
+    "Passionate about democratizing AI technology for social good.",
+    "Former professor turned entrepreneur in the AI space.",
+    "Advocate for responsible AI development and deployment."
+  ]
+};
+```
+
+## Optional Properties
+
+### system
+System prompt that guides the agent's overall behavior and reasoning patterns.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  system: "You are Ada, a knowledgeable AI researcher. Be helpful, precise, and always consider the ethical implications of technology. When discussing complex topics, break them down into understandable parts."
+};
+```
+
+### templates
+Custom prompt templates for specific situations using the `TemplateType`:
+
+```typescript
+type TemplateType = 
+  | string 
+  | ((options: { state: State | { [key: string]: string } }) => string);
+
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  templates: {
+    // String template
+    greeting: "Hello! I'm {{agentName}}, how can I help you today?",
+    
+    // Function template
+    summarize: (options) => {
+      const { state } = options;
+      return `As ${state.agentName}, let me summarize our conversation: ${state.recentMessages}`;
+    }
+  }
+};
+```
+
+### messageExamples
+Conversation examples that demonstrate the character's communication style. These are used for training and consistency.
+
+<Callout type="info" title="v1.2.0 Format">
+The `messageExamples` format has been updated in v1.2.0. Each message must include a `name` field and a `content` object with a `text` field.
+</Callout>
+
+```typescript
+interface MessageExample {
+  name: string;
+  content: Content;
+}
+
+interface Content {
+  /** Required: The text content of the message */
+  text: string;
+  
+  /** Optional: Providers to use for this message (e.g., KNOWLEDGE, TIME, NEWS) */
+  providers?: string[];
+  
+  /** Optional: Actions to perform (e.g., REPLY, GENERATE_IMAGE, SEND_TOKEN) */
+  actions?: string[];
+  
+  /** Optional: File attachments, images, or other media */
+  attachments?: Attachment[];
+  
+  /** Optional: Internal thought process (not shown to user) */
+  thought?: string;
+  
+  /** Optional: Source of the message */
+  source?: string;
+  
+  /** Optional: Target for the message */
+  target?: string;
+  
+  /** Optional: URL reference */
+  url?: string;
+  
+  /** Optional: Message this is replying to */
+  inReplyTo?: string;
+  
+  /** Optional: Channel type (discord, telegram, etc.) */
+  channelType?: string;
+  
+  /** Optional: Additional metadata */
+  metadata?: {
+    timestamp?: number;
+    userId?: string;
+    platform?: string;
+    threadId?: string;
+    conversationId?: string;
+  };
+}
+
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  messageExamples: [
+    [
+      {
+        name: "{{user1}}",
+        content: { 
+          text: "What's the future of AI?"
+        }
+      },
+      {
+        name: "Ada",
+        content: { 
+          text: "The future of AI is incredibly promising, but we must approach it thoughtfully. I see three key areas where AI will transform our world...",
+          providers: ["KNOWLEDGE"]
+        }
+      }
+    ],
+    [
+      {
+        name: "{{user1}}",
+        content: { 
+          text: "How do neural networks learn?"
+        }
+      },
+      {
+        name: "Ada",
+        content: { 
+          text: "Great question! Neural networks learn through a process called backpropagation. Think of it like learning from mistakes...",
+          actions: ["EXPLAIN_CONCEPT"]
+        }
+      }
+    ]
+  ]
+};
+```
+
+### postExamples
+Example posts for social media or feed-style interactions.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  postExamples: [
+    "Just published a paper on ethical AI development. The key insight: transparency and accountability must be built into our systems from day one, not retrofitted later.",
+    "Exciting breakthrough in neural network interpretability today! Being able to understand WHY a model makes decisions is crucial for building trust.",
+    "Reminder: AI is a tool to augment human intelligence, not replace it. Our goal should be human-AI collaboration, not competition."
+  ]
+};
+```
+
+### topics
+Array of topics the character is interested in or knowledgeable about.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  topics: [
+    "machine learning",
+    "neural networks", 
+    "AI ethics",
+    "deep learning",
+    "natural language processing",
+    "computer vision",
+    "reinforcement learning"
+  ]
+};
+```
+
+### adjectives
+Character traits that influence personality and behavior.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  adjectives: [
+    "intelligent",
+    "thoughtful",
+    "ethical",
+    "curious",
+    "patient",
+    "analytical",
+    "empathetic"
+  ]
+};
+```
+
+### knowledge
+Paths to knowledge files or directories that the agent can access.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  knowledge: [
+    // Simple file path
+    "/path/to/ai-papers.txt",
+    
+    // Path with sharing configuration
+    {
+      path: "/path/to/research-notes.md",
+      shared: true
+    },
+    
+    // Directory item
+    {
+      directory: "/path/to/knowledge-base",
+      shared: false
+    }
+  ]
+};
+```
+
+### plugins
+Array of plugin names to load for this character.
+
+<Callout type="error" title="Plugin Order Critical">
+Plugin order is critical in v1.2.0. Always follow this exact order:
+1. `@elizaos/plugin-sql` (REQUIRED FIRST)
+2. Model provider plugin (e.g., `@elizaos/plugin-openai`)
+3. `@elizaos/plugin-bootstrap` (REQUIRED LAST)
+</Callout>
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  plugins: [
+    "@elizaos/plugin-sql",        // MUST BE FIRST
+    "@elizaos/plugin-openai",     // Model provider
+    "@elizaos/plugin-bootstrap",  // MUST BE LAST
+    "@elizaos/plugin-web-search",
+    "@elizaos/plugin-arxiv"
+  ]
+};
+```
+
+### settings
+General configuration settings for the character.
+
+<Callout type="warning" title="Environment Variables">
+In v1.2.0, use environment variables for sensitive settings and API keys.
+</Callout>
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  settings: {
+    // String settings
+    language: "en",
+    timezone: "UTC",
+    
+    // Boolean settings
+    verbose: true,
+    debug: false,
+    ragKnowledge: true,
+    
+    // Number settings
+    maxTokens: 2000,
+    temperature: 0.7,
+    
+    // Model configuration
+    model: "gpt-4",
+    modelConfig: {
+      temperature: 0.7,
+      maxInputTokens: 4096,
+      maxOutputTokens: 1024
+    },
+    
+    // Voice settings
+    voice: {
+      model: "en_US-female-medium"
+    },
+    
+    // Complex settings
+    preferences: {
+      formality: "casual",
+      explanation_style: "detailed"
+    }
+  }
+};
+```
+
+### secrets
+Secure configuration that should be handled carefully.
+
+<Callout type="error" title="Security Warning">
+Never hardcode secrets in character files. Use environment variables in production.
+</Callout>
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  secrets: {
+    // Use environment variables
+    OPENAI_API_KEY: "${OPENAI_API_KEY}",
+    ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}",
+    DISCORD_TOKEN: "${DISCORD_TOKEN}",
+    
+    // Character-specific secrets
+    "CHARACTER.Ada.OPENAI_API_KEY": "${CHARACTER.Ada.OPENAI_API_KEY}",
+    
+    // Webhook configuration
+    webhookUrl: "${WEBHOOK_URL}",
+    maxRetries: 3
+  }
+};
+```
+
+### style
+Writing style guidelines for different contexts.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  style: {
+    // Apply to all contexts
+    all: [
+      "Be helpful and informative",
+      "Use clear, concise language",
+      "Provide examples when explaining concepts"
+    ],
+    
+    // Chat-specific style
+    chat: [
+      "Keep responses conversational",
+      "Ask follow-up questions",
+      "Use emojis sparingly but appropriately"
+    ],
+    
+    // Post-specific style
+    post: [
+      "Write in a professional tone",
+      "Include relevant hashtags",
+      "Engage with current topics"
+    ]
+  }
+};
+```
+
+## Character Schema Validation
+
+ElizaOS provides comprehensive validation for character definitions using Zod schemas:
+
+<Callout type="info" title="v1.2.0 Validation">
+Validation functions have been updated in v1.2.0 with stricter requirements for plugin ordering and message format.
+</Callout>
+
+```typescript
+import { validateCharacter, parseAndValidateCharacter } from '@elizaos/core';
+
+// Validate a character object
+const result = validateCharacter(characterData);
+
+if (result.success) {
+  console.log('Character is valid:', result.data);
+} else {
+  console.error('Validation failed:', result.error);
+  // Log specific validation errors
+  result.error.issues?.forEach(issue => {
+    console.error(`${issue.path.join('.')}: ${issue.message}`);
+  });
+}
+
+// Parse and validate JSON string
+const jsonResult = parseAndValidateCharacter(jsonString);
+
+// Validate plugin order specifically
+const validatePluginOrder = (plugins: string[]) => {
+  const requiredOrder = ['@elizaos/plugin-sql', 'model-provider', '@elizaos/plugin-bootstrap'];
+  const sqlIndex = plugins.findIndex(p => p === '@elizaos/plugin-sql');
+  const bootstrapIndex = plugins.findIndex(p => p === '@elizaos/plugin-bootstrap');
+  
+  if (sqlIndex !== 0) {
+    throw new Error('@elizaos/plugin-sql must be first');
+  }
+  
+  if (bootstrapIndex !== plugins.length - 1) {
+    throw new Error('@elizaos/plugin-bootstrap must be last');
+  }
+};
+```
+
+### Validation Schema Details
+
+The character schema includes comprehensive validation for all properties:
+
+```typescript
+// UUID validation with strict format checking
+const uuidSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid UUID format');
+
+// Content validation for message examples (v1.2.0)
+const contentSchema = z
+  .object({
+    text: z.string().min(1, 'Text content is required'),
+    thought: z.string().optional(),
+    actions: z.array(z.string()).optional(),
+    providers: z.array(z.string()).optional(),
+    source: z.string().optional(),
+    target: z.string().optional(),
+    url: z.string().optional(),
+    inReplyTo: uuidSchema.optional(),
+    attachments: z.array(z.any()).optional(),
+    channelType: z.string().optional(),
+    // v1.2.0 specific fields
+    metadata: z.object({
+      timestamp: z.number().optional(),
+      userId: z.string().optional(),
+      platform: z.string().optional(),
+    }).optional(),
+  })
+  .passthrough(); // Allow additional properties
+
+// Message example validation (v1.2.0)
+const messageExampleSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  content: contentSchema,
+});
+
+// Validate message examples format
+const validateMessageExamples = (examples: any[]) => {
+  examples.forEach((conversation, index) => {
+    if (!Array.isArray(conversation)) {
+      throw new Error(`Conversation ${index} must be an array`);
+    }
+    
+    conversation.forEach((message, msgIndex) => {
+      if (!message.name || !message.content || !message.content.text) {
+        throw new Error(`Message ${msgIndex} in conversation ${index} must have name and content.text`);
+      }
+    });
+  });
+};
+
+// Directory item validation for knowledge base
+const directoryItemSchema = z.object({
+  directory: z.string(),
+  shared: z.boolean().optional(),
+});
+
+// Knowledge item can be string, path object, or directory
+const knowledgeItemSchema = z.union([
+  z.string(),
+  z.object({
+    path: z.string(),
+    shared: z.boolean().optional(),
+  }),
+  directoryItemSchema,
+]);
+
+// Template type validation (string or function)
+const templateTypeSchema = z.union([
+  z.string(),
+  z.function().optional(), // Functions allowed in runtime but not in JSON
+]);
+
+// Style configuration validation
+const styleSchema = z
+  .object({
+    all: z.array(z.string()).optional(),
+    chat: z.array(z.string()).optional(),
+    post: z.array(z.string()).optional(),
+  })
+  .optional();
+
+// Settings validation - flexible object
+const settingsSchema = z.record(z.union([z.string(), z.boolean(), z.number(), z.any()])).optional();
+
+// Secrets validation
+const secretsSchema = z.record(z.union([z.string(), z.boolean(), z.number()])).optional();
+
+// Main character schema with strict validation (v1.2.0)
+export const characterSchema = z
+  .object({
+    id: uuidSchema.optional(),
+    name: z.string().min(1, 'Character name is required'),
+    username: z.string().optional(),
+    system: z.string().optional(),
+    templates: z.record(templateTypeSchema).optional(),
+    bio: z.union([z.string(), z.array(z.string())]).refine(
+      (bio) => {
+        if (Array.isArray(bio)) {
+          return bio.length > 0 && bio.every(item => item.length > 0);
+        }
+        return bio.length > 0;
+      },
+      'Bio must not be empty'
+    ),
+    messageExamples: z.array(z.array(messageExampleSchema)).optional().refine(
+      (examples) => {
+        if (!examples) return true;
+        return examples.every(conversation => 
+          conversation.every(message => 
+            message.name && message.content && message.content.text
+          )
+        );
+      },
+      'All messageExamples must have name and content.text'
+    ),
+    postExamples: z.array(z.string()).optional(),
+    topics: z.array(z.string()).optional(),
+    adjectives: z.array(z.string()).optional(),
+    knowledge: z.array(knowledgeItemSchema).optional(),
+    plugins: z.array(z.string()).min(3, 'At least 3 plugins required (sql, model-provider, bootstrap)').refine(
+      (plugins) => {
+        const sqlIndex = plugins.findIndex(p => p === '@elizaos/plugin-sql');
+        const bootstrapIndex = plugins.findIndex(p => p === '@elizaos/plugin-bootstrap');
+        return sqlIndex === 0 && bootstrapIndex === plugins.length - 1;
+      },
+      'Plugin order must be: @elizaos/plugin-sql first, @elizaos/plugin-bootstrap last'
+    ),
+    settings: settingsSchema,
+    secrets: secretsSchema,
+    style: styleSchema,
+  })
+  .strict(); // Only allow known properties
+```
+
+### Validation Result Interface
+
+The validation functions return structured results:
+
+```typescript
+interface CharacterValidationResult {
+  success: boolean;
+  data?: Character;
+  error?: {
+    message: string;
+    issues?: z.ZodIssue[];
+  };
+}
+
+// Usage examples
+const result = validateCharacter(characterData);
+if (result.success) {
+  const character: Character = result.data;
+  // Use validated character
+} else {
+  console.error('Validation failed:', result.error.message);
+  result.error.issues?.forEach(issue => {
+    console.error(`${issue.path.join('.')}: ${issue.message}`);
+  });
+}
+```
+
+### Type Guards
+
+ElizaOS provides type guards for runtime validation:
+
+```typescript
+import { isValidCharacter, validateCharacterFile } from '@elizaos/core';
+
+// Type guard usage
+if (isValidCharacter(data)) {
+  // TypeScript knows data is Character
+  console.log(data.name); // Safe to access
+} else {
+  console.error('Invalid character data');
+}
+
+// File validation for JSON files
+const validateCharacterFromFile = async (filePath: string) => {
+  try {
+    const result = await validateCharacterFile(filePath);
+    if (result.success) {
+      return result.character;
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('Character file validation failed:', error);
+    throw error;
+  }
+};
+```
+
+## Complete Character Example
+
+Here's a comprehensive example of a well-defined character:
+
+```typescript
+const adaCharacter = {
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  name: "Ada",
+  username: "ada_ai_researcher",
+  
+  system: "You are Ada, a brilliant AI researcher with a passion for ethical technology development. You're knowledgeable, thoughtful, and always consider the broader implications of AI advancement. When explaining complex concepts, break them down into understandable parts and use relevant examples.",
+  
+  templates: {
+    greeting: "Hello! I'm {{agentName}}, an AI researcher. How can I help you explore the fascinating world of artificial intelligence today?",
+    
+    explanation: "As an AI researcher, let me break down {{topic}} for you. {{context}}",
+    
+    ethical_consideration: "From an ethical standpoint, we need to consider: {{considerations}}"
+  },
+  
+  bio: [
+    "Dr. Ada Chen is a leading AI researcher focused on machine learning ethics and interpretability.",
+    "Former MIT professor turned industry researcher, passionate about democratizing AI.",
+    "Author of 'Ethical AI: Building Trust in Intelligent Systems' and 50+ peer-reviewed papers.",
+    "Advocate for responsible AI development and transparent algorithmic decision-making."
+  ],
+  
+  messageExamples: [
+    [
+      {
+        name: "{{user1}}",
+        content: { 
+          text: "What's the biggest challenge in AI today?" 
+        }
+      },
+      {
+        name: "Ada",
+        content: { 
+          text: "I'd argue it's the interpretability problem. We have incredibly powerful models, but we often can't explain WHY they make certain decisions. This is crucial for building trust and ensuring fairness.",
+          providers: ["KNOWLEDGE"]
+        }
+      }
+    ],
+    [
+      {
+        name: "{{user1}}",
+        content: { 
+          text: "How do you approach AI ethics in your research?" 
+        }
+      },
+      {
+        name: "Ada",
+        content: { 
+          text: "Ethics isn't an afterthought - it's woven into every stage of my research. I ask: Who might be affected? What biases might exist? How can we ensure transparency? These questions guide my methodology.",
+          actions: ["ETHICAL_ANALYSIS"]
+        }
+      }
+    ]
+  ],
+  
+  postExamples: [
+    "New paper out on interpretable neural networks! We developed a method to visualize decision pathways in deep learning models. Transparency is key to building trust in AI systems. 🧠✨ #AIResearch #Ethics",
+    
+    "Fascinating discussion at today's AI ethics workshop. The consensus: we need diverse teams building AI systems. Different perspectives lead to more robust, fair outcomes. #AIEthics #Diversity",
+    
+    "Reminder: AI bias isn't just a technical problem - it's a human problem. Our algorithms reflect our data, and our data reflects our society. Let's be mindful of what we're building. 🤖⚖️"
+  ],
+  
+  topics: [
+    "machine learning",
+    "AI ethics",
+    "neural network interpretability",
+    "algorithmic fairness",
+    "deep learning",
+    "natural language processing",
+    "computer vision",
+    "responsible AI development"
+  ],
+  
+  adjectives: [
+    "intelligent",
+    "ethical",
+    "thoughtful",
+    "analytical",
+    "passionate",
+    "empathetic",
+    "curious",
+    "patient",
+    "thorough"
+  ],
+  
+  knowledge: [
+    {
+      path: "/knowledge/ai-papers.txt",
+      shared: true
+    },
+    {
+      path: "/knowledge/ethics-guidelines.md",
+      shared: false
+    },
+    {
+      directory: "/knowledge/research-notes",
+      shared: false
+    }
+  ],
+  
+  plugins: [
+    "@elizaos/plugin-sql",        // REQUIRED FIRST
+    "@elizaos/plugin-openai",     // Model provider
+    "@elizaos/plugin-bootstrap",  // REQUIRED LAST
+    "@elizaos/plugin-web-search",
+    "@elizaos/plugin-arxiv",
+    "@elizaos/plugin-scholar"
+  ],
+  
+  settings: {
+    language: "en",
+    timezone: "America/New_York",
+    formality: "professional",
+    explanation_style: "detailed",
+    max_response_length: 2000,
+    include_citations: true,
+    ethics_focus: true
+  },
+  
+  secrets: {
+    OPENAI_API_KEY: "${OPENAI_API_KEY}",
+    ARXIV_API_KEY: "${ARXIV_API_KEY}",
+    SCHOLAR_API_KEY: "${SCHOLAR_API_KEY}"
+  },
+  
+  style: {
+    all: [
+      "Be intellectually curious and thorough",
+      "Always consider ethical implications",
+      "Use clear, accessible language",
+      "Provide concrete examples",
+      "Cite sources when making claims"
+    ],
+    
+    chat: [
+      "Be conversational but maintain professionalism",
+      "Ask thoughtful follow-up questions",
+      "Show genuine interest in the user's learning",
+      "Use analogies to explain complex concepts"
+    ],
+    
+    post: [
+      "Write in an engaging, accessible tone",
+      "Include relevant hashtags",
+      "Share insights from recent research",
+      "Encourage thoughtful discussion"
+    ]
+  }
+};
+```
+
+## Best Practices
+
+### Character Design
+
+1. **Consistency**: Ensure all properties work together to create a cohesive personality
+2. **Authenticity**: Base the character on realistic expertise and traits
+3. **Flexibility**: Use arrays for bio and examples to add variety
+4. **Context**: Tailor topics and adjectives to the character's domain
+
+### Bio Management
+
+```typescript
+// Good: Varied but consistent bios
+bio: [
+  "A passionate educator focused on making science accessible to everyone.",
+  "Former research scientist turned science communicator and educator.",
+  "Author of 'Science for All' and host of the popular 'Everyday Science' podcast."
+]
+
+// Avoid: Contradictory information
+bio: [
+  "A 25-year-old recent graduate in computer science.",
+  "A veteran professor with 30 years of teaching experience." // Inconsistent
+]
+```
+
+### Template Usage
+
+```typescript
+// Good: Contextual templates
+templates: {
+  greeting: "Hello! I'm {{agentName}}, ready to explore {{topic}} together!",
+  
+  explanation: (options) => {
+    const level = options.state.userLevel || 'beginner';
+    return `Let me explain {{topic}} at a ${level} level: {{explanation}}`;
+  }
+}
+```
+
+### Validation Patterns
+
+```typescript
+// Always validate before using
+const createCharacter = (data: unknown) => {
+  const result = validateCharacter(data);
+  
+  if (!result.success) {
+    throw new Error(`Invalid character: ${result.error.message}`);
+  }
+  
+  return result.data;
+};
+```
+
+## Common Patterns
+
+### Academic Character
+```typescript
+const academicCharacter = {
+  name: "Dr. Smith",
+  bio: "University professor with expertise in cognitive psychology",
+  topics: ["psychology", "cognition", "research methods"],
+  adjectives: ["analytical", "precise", "curious"],
+  style: {
+    all: ["Use academic language", "Cite sources", "Be methodical"],
+    chat: ["Encourage critical thinking", "Ask probing questions"]
+  }
+};
+```
+
+### Creative Character
+```typescript
+const creativeCharacter = {
+  name: "Maya",
+  bio: "Digital artist and creative technologist",
+  topics: ["digital art", "creativity", "design", "technology"],
+  adjectives: ["imaginative", "expressive", "innovative"],
+  style: {
+    all: ["Be inspirational", "Use vivid language", "Encourage experimentation"],
+    post: ["Share creative insights", "Use artistic metaphors"]
+  }
+};
+```
+
+### Technical Character
+```typescript
+const technicalCharacter = {
+  name: "Alex",
+  bio: "Senior software engineer with focus on system architecture",
+  topics: ["software engineering", "system design", "programming"],
+  adjectives: ["logical", "detail-oriented", "problem-solving"],
+  style: {
+    all: ["Be precise and accurate", "Provide code examples", "Focus on best practices"],
+    chat: ["Ask about technical requirements", "Suggest optimal solutions"]
+  }
+};
+```
+
+## Related Components
+
+- **[Agents](./agents)**: How characters become operational agents
+- **[Actions](./actions)**: Behaviors that characters can perform
+- **[Evaluators](./evaluators)**: Assessment systems for character behavior
+- **[Providers](./providers)**: Data sources for character context
+
+## Summary
+
+Character definitions are the foundation of agent personalities in ElizaOS. They combine structured data with flexible configuration to create compelling, consistent AI personalities. The validation system ensures data integrity while allowing for creative expression. Well-designed characters provide the basis for engaging, authentic AI interactions that users can trust and enjoy.

@@ -1,0 +1,754 @@
+---
+title: "Event System"
+description: "Comprehensive guide to the event-driven architecture and event handling in ElizaOS v1.2.0"
+---
+
+# Event System
+
+ElizaOS v1.2.0 implements a comprehensive event-driven architecture that enables loose coupling between components. The event system facilitates communication between agents, plugins, and services through a standardized event interface with typed payloads, handler registration, and enhanced domain-based routing.
+
+## Event Types
+
+The core event types are defined in the `EventType` enum:
+
+```typescript
+export enum EventType {
+  // World events
+  WORLD_JOINED = 'WORLD_JOINED',
+  WORLD_CONNECTED = 'WORLD_CONNECTED',
+  WORLD_LEFT = 'WORLD_LEFT',
+
+  // Entity events
+  ENTITY_JOINED = 'ENTITY_JOINED',
+  ENTITY_LEFT = 'ENTITY_LEFT',
+  ENTITY_UPDATED = 'ENTITY_UPDATED',
+
+  // Room events
+  ROOM_JOINED = 'ROOM_JOINED',
+  ROOM_LEFT = 'ROOM_LEFT',
+
+  // Message events
+  MESSAGE_RECEIVED = 'MESSAGE_RECEIVED',
+  MESSAGE_SENT = 'MESSAGE_SENT',
+  MESSAGE_DELETED = 'MESSAGE_DELETED',
+
+  // Channel events
+  CHANNEL_CLEARED = 'CHANNEL_CLEARED',
+
+  // Voice events
+  VOICE_MESSAGE_RECEIVED = 'VOICE_MESSAGE_RECEIVED',
+  VOICE_MESSAGE_SENT = 'VOICE_MESSAGE_SENT',
+
+  // Interaction events
+  REACTION_RECEIVED = 'REACTION_RECEIVED',
+  POST_GENERATED = 'POST_GENERATED',
+  INTERACTION_RECEIVED = 'INTERACTION_RECEIVED',
+
+  // Run events
+  RUN_STARTED = 'RUN_STARTED',
+  RUN_ENDED = 'RUN_ENDED',
+  RUN_TIMEOUT = 'RUN_TIMEOUT',
+
+  // Action events
+  ACTION_STARTED = 'ACTION_STARTED',
+  ACTION_COMPLETED = 'ACTION_COMPLETED',
+
+  // Evaluator events
+  EVALUATOR_STARTED = 'EVALUATOR_STARTED',
+  EVALUATOR_COMPLETED = 'EVALUATOR_COMPLETED',
+
+  // Model events
+  MODEL_USED = 'MODEL_USED',
+  
+  // Enhanced events in v1.2.0
+  MODEL_PROVIDER_FAILED = 'MODEL_PROVIDER_FAILED',
+  SERVICE_HEALTH_CHECK_FAILED = 'SERVICE_HEALTH_CHECK_FAILED',
+  PLUGIN_LOADED = 'PLUGIN_LOADED',
+  PLUGIN_FAILED = 'PLUGIN_FAILED',
+  RUNTIME_STARTING = 'RUNTIME_STARTING',
+  RUNTIME_STOPPING = 'RUNTIME_STOPPING'
+}
+```
+
+## Event Payloads
+
+Each event type has a corresponding payload interface:
+
+### Base Payload
+
+```typescript
+export interface EventPayload {
+  runtime: IAgentRuntime;
+  source: string;
+  onComplete?: () => void;
+}
+```
+
+### Message Events
+
+```typescript
+export interface MessagePayload extends EventPayload {
+  message: Memory;
+  callback?: HandlerCallback;
+  onComplete?: () => void;
+}
+```
+
+### Entity Events
+
+```typescript
+export interface EntityPayload extends EventPayload {
+  entityId: UUID;
+  worldId?: UUID;
+  roomId?: UUID;
+  metadata?: {
+    orginalId: string;
+    username: string;
+    displayName?: string;
+    [key: string]: any;
+  };
+}
+```
+
+### Channel Events
+
+```typescript
+export interface ChannelClearedPayload extends EventPayload {
+  roomId: UUID;
+  channelId: string;
+  memoryCount: number;
+}
+```
+
+### Run Events
+
+```typescript
+export interface RunEventPayload extends EventPayload {
+  runId: UUID;
+  messageId: UUID;
+  roomId: UUID;
+  entityId: UUID;
+  startTime: number;
+  status: 'started' | 'completed' | 'timeout';
+  endTime?: number;
+  duration?: number;
+  error?: string;
+}
+```
+
+## v1.2.0 Domain-Based Events
+
+### Domain Event System
+
+ElizaOS v1.2.0 introduces domain-based event routing for better organization and filtering:
+
+```typescript
+// Domain-based event structure
+interface DomainEvent {
+  domain: string;
+  event: string;
+  payload: any;
+  timestamp: number;
+  runId: UUID;
+  source: string;
+}
+
+// Emit domain events
+await runtime.emitDomainEvent('database', 'connection_error', {
+  error: 'Connection timeout',
+  retryCount: 3,
+  timestamp: Date.now()
+});
+
+await runtime.emitDomainEvent('ai', 'model_response', {
+  modelType: 'TEXT_LARGE',
+  provider: 'openai',
+  tokens: 150,
+  latency: 2500
+});
+
+await runtime.emitDomainEvent('plugin', 'migration_completed', {
+  pluginName: 'discord',
+  version: '1.2.0',
+  tablesAffected: ['discord_messages', 'discord_users']
+});
+```
+
+### Domain Event Handlers
+
+Register handlers for specific domain events:
+
+```typescript
+// Listen to database domain events
+runtime.registerEvent('database:connection_error', async (context) => {
+  console.log(`Database error in run ${context.runId}: ${context.error}`);
+  
+  // Implement retry logic
+  await retryDatabaseConnection();
+});
+
+runtime.registerEvent('database:query_slow', async (context) => {
+  console.log(`Slow query detected: ${context.query} (${context.duration}ms)`);
+  
+  // Log for optimization
+  await logSlowQuery(context);
+});
+
+// Listen to AI domain events
+runtime.registerEvent('ai:model_response', async (context) => {
+  console.log(`Model ${context.modelType} responded in ${context.latency}ms`);
+  
+  // Track performance metrics
+  await trackModelPerformance(context);
+});
+
+runtime.registerEvent('ai:model_error', async (context) => {
+  console.log(`Model ${context.modelType} failed: ${context.error}`);
+  
+  // Implement fallback logic
+  await handleModelFailure(context);
+});
+```
+
+### Enhanced Event Context
+
+All events in v1.2.0 include enhanced context information:
+
+```typescript
+interface EnhancedEventContext {
+  eventId: UUID;
+  runId: UUID;
+  timestamp: string;
+  source: string;
+  actionContext?: ActionContext;
+  serviceContext?: ServiceContext;
+  metadata?: Record<string, any>;
+}
+
+// Example enhanced event emission
+await runtime.emitEvent('message_processed', {
+  messageId: message.id,
+  agentId: runtime.agentId,
+  runId: runtime.runId,
+  actionCount: actions.length,
+  processingTime: endTime - startTime,
+  metadata: {
+    modelCalls: modelCallCount,
+    memoryLookups: memoryLookupCount,
+    serviceInteractions: serviceInteractionCount
+  }
+});
+```
+
+## Event Emitting
+
+### Runtime Event Emission
+
+```typescript
+// Emit events from agent runtime
+export class AgentRuntime implements IAgentRuntime {
+  async emitEvent<T extends keyof EventPayloadMap>(
+    eventType: T,
+    payload: EventPayloadMap[T]
+  ): Promise<void> {
+    const handlers = this.eventHandlers.get(eventType) || [];
+    
+    for (const handler of handlers) {
+      try {
+        await handler(payload);
+      } catch (error) {
+        logger.error(`Error in event handler for ${eventType}:`, error);
+      }
+    }
+  }
+}
+```
+
+### Common Event Emissions
+
+```typescript
+// Message received
+await runtime.emitEvent(EventType.MESSAGE_RECEIVED, {
+  runtime,
+  message: incomingMessage,
+  callback: responseHandler,
+  source: 'message-bus'
+});
+
+// Entity joined
+await runtime.emitEvent(EventType.ENTITY_JOINED, {
+  runtime,
+  entityId: userId,
+  worldId: serverId,
+  roomId: channelId,
+  metadata: { type: ChannelType.DM },
+  source: 'websocket'
+});
+
+// Run started
+await runtime.emitEvent(EventType.RUN_STARTED, {
+  runtime,
+  runId: generateUUID(),
+  messageId: message.id,
+  roomId: message.roomId,
+  entityId: message.entityId,
+  startTime: Date.now(),
+  status: 'started',
+  source: 'messageHandler'
+});
+```
+
+## Event Handlers
+
+### Handler Registration
+
+Event handlers are registered through plugins:
+
+```typescript
+// Plugin event handlers
+const events = {
+  [EventType.MESSAGE_RECEIVED]: [
+    async (payload: MessagePayload) => {
+      await messageReceivedHandler({
+        runtime: payload.runtime,
+        message: payload.message,
+        callback: payload.callback,
+        onComplete: payload.onComplete
+      });
+    }
+  ],
+
+  [EventType.ENTITY_JOINED]: [
+    async (payload: EntityPayload) => {
+      await handleEntityJoined(payload);
+    }
+  ],
+
+  [EventType.MESSAGE_DELETED]: [
+    async (payload: MessagePayload) => {
+      await messageDeletedHandler({
+        runtime: payload.runtime,
+        message: payload.message
+      });
+    }
+  ]
+};
+
+// Register in plugin
+export const bootstrapPlugin: Plugin = {
+  name: 'bootstrap',
+  events: events as any as PluginEvents,
+  // ... other plugin properties
+};
+```
+
+### Handler Implementation
+
+```typescript
+// Message received handler
+const messageReceivedHandler = async ({
+  runtime,
+  message,
+  callback,
+  onComplete
+}: MessageReceivedHandlerParams): Promise<void> => {
+  try {
+    // Process the message
+    logger.info(`Processing message from ${message.entityId}`);
+    
+    // Generate response
+    const response = await generateResponse(runtime, message);
+    
+    // Execute callback with response
+    if (callback) {
+      await callback(response);
+    }
+    
+    // Signal completion
+    onComplete?.();
+  } catch (error) {
+    logger.error('Message processing failed:', error);
+    throw error;
+  }
+};
+
+// Entity joined handler
+const handleEntityJoined = async (payload: EntityPayload) => {
+  const { entityId, worldId, roomId, metadata } = payload;
+  
+  // Ensure user connection
+  await syncSingleUser(
+    entityId,
+    payload.runtime,
+    worldId,
+    roomId,
+    metadata?.type || ChannelType.GROUP,
+    payload.source
+  );
+};
+```
+
+## Event Lifecycle
+
+### Message Processing Lifecycle
+
+The complete message processing lifecycle involves multiple events:
+
+```typescript
+// 1. Message received
+await runtime.emitEvent(EventType.MESSAGE_RECEIVED, {
+  runtime,
+  message: incomingMessage,
+  callback: async (response: Content) => {
+    // 2. Generate response
+    const responseMessage = createResponseMessage(response);
+    
+    // 3. Message sent
+    await runtime.emitEvent(EventType.MESSAGE_SENT, {
+      runtime,
+      message: responseMessage,
+      source: 'agent_response'
+    });
+    
+    // 4. Post to external systems
+    await postToExternalSystems(responseMessage);
+  },
+  onComplete: () => {
+    logger.info('Message processing completed');
+  }
+});
+```
+
+### Run Tracking
+
+```typescript
+// Track agent run lifecycle
+class RunTracker {
+  private activeRuns = new Map<UUID, RunEventPayload>();
+
+  async startRun(messageId: UUID, roomId: UUID, entityId: UUID) {
+    const runId = generateUUID();
+    const startTime = Date.now();
+    
+    const payload: RunEventPayload = {
+      runtime,
+      runId,
+      messageId,
+      roomId,
+      entityId,
+      startTime,
+      status: 'started',
+      source: 'run-tracker'
+    };
+    
+    this.activeRuns.set(runId, payload);
+    
+    await runtime.emitEvent(EventType.RUN_STARTED, payload);
+    
+    return runId;
+  }
+
+  async completeRun(runId: UUID, error?: string) {
+    const run = this.activeRuns.get(runId);
+    if (!run) return;
+    
+    const endTime = Date.now();
+    const completedPayload: RunEventPayload = {
+      ...run,
+      status: error ? 'error' : 'completed',
+      endTime,
+      duration: endTime - run.startTime,
+      error
+    };
+    
+    await runtime.emitEvent(EventType.RUN_ENDED, completedPayload);
+    
+    this.activeRuns.delete(runId);
+  }
+}
+```
+
+## Platform-Specific Events
+
+### Discord Events
+
+```typescript
+// Discord-specific event handling
+const discordEvents = {
+  [`${PlatformPrefix.DISCORD}_MESSAGE_RECEIVED`]: [
+    async (payload: MessagePayload) => {
+      // Handle Discord-specific message processing
+      await processDiscordMessage(payload);
+    }
+  ],
+
+  [`${PlatformPrefix.DISCORD}_REACTION_RECEIVED`]: [
+    async (payload: MessagePayload) => {
+      // Handle Discord reaction events
+      await processDiscordReaction(payload);
+    }
+  ]
+};
+```
+
+### Custom Platform Events
+
+```typescript
+// Define custom platform events
+enum CustomEventType {
+  CUSTOM_ACTION = 'CUSTOM_ACTION',
+  INTEGRATION_SYNC = 'INTEGRATION_SYNC'
+}
+
+// Register custom event handlers
+const customEvents = {
+  [CustomEventType.CUSTOM_ACTION]: [
+    async (payload: CustomPayload) => {
+      // Handle custom action
+      await handleCustomAction(payload);
+    }
+  ]
+};
+```
+
+## Error Handling
+
+### Event Handler Errors
+
+```typescript
+// Graceful error handling in event handlers
+const safeEventHandler = async (payload: EventPayload) => {
+  try {
+    await processEvent(payload);
+  } catch (error) {
+    logger.error('Event handler error:', error);
+    
+    // Emit error event
+    await payload.runtime.emitEvent(EventType.ERROR, {
+      ...payload,
+      error: error.message,
+      originalEvent: EventType.MESSAGE_RECEIVED
+    });
+    
+    // Don't re-throw to prevent cascade failures
+  }
+};
+```
+
+### Event Emission Errors
+
+```typescript
+// Error boundaries for event emission
+export class AgentRuntime implements IAgentRuntime {
+  async emitEvent<T extends keyof EventPayloadMap>(
+    eventType: T,
+    payload: EventPayloadMap[T]
+  ): Promise<void> {
+    const handlers = this.eventHandlers.get(eventType) || [];
+    
+    const errors: Error[] = [];
+    
+    for (const handler of handlers) {
+      try {
+        await handler(payload);
+      } catch (error) {
+        logger.error(`Error in event handler for ${eventType}:`, error);
+        errors.push(error);
+      }
+    }
+    
+    // Optionally throw if all handlers failed
+    if (errors.length === handlers.length && handlers.length > 0) {
+      throw new Error(`All event handlers failed for ${eventType}`);
+    }
+  }
+}
+```
+
+## Event Monitoring
+
+### Event Metrics
+
+```typescript
+class EventMetrics {
+  private eventCounts = new Map<string, number>();
+  private eventLatencies = new Map<string, number[]>();
+  private eventErrors = new Map<string, number>();
+
+  trackEvent(eventType: string, startTime: number, error?: Error) {
+    // Count events
+    this.eventCounts.set(eventType, (this.eventCounts.get(eventType) || 0) + 1);
+    
+    // Track latency
+    const latency = Date.now() - startTime;
+    const latencies = this.eventLatencies.get(eventType) || [];
+    latencies.push(latency);
+    this.eventLatencies.set(eventType, latencies.slice(-100));
+    
+    // Track errors
+    if (error) {
+      this.eventErrors.set(eventType, (this.eventErrors.get(eventType) || 0) + 1);
+    }
+  }
+
+  getMetrics() {
+    return {
+      counts: Object.fromEntries(this.eventCounts),
+      averageLatencies: this.calculateAverageLatencies(),
+      errorRates: this.calculateErrorRates()
+    };
+  }
+
+  private calculateAverageLatencies() {
+    return Object.fromEntries(
+      Array.from(this.eventLatencies.entries()).map(([event, latencies]) => [
+        event,
+        latencies.reduce((a, b) => a + b, 0) / latencies.length
+      ])
+    );
+  }
+
+  private calculateErrorRates() {
+    return Object.fromEntries(
+      Array.from(this.eventErrors.entries()).map(([event, errors]) => [
+        event,
+        errors / (this.eventCounts.get(event) || 1)
+      ])
+    );
+  }
+}
+```
+
+### Event Logging
+
+```typescript
+// Enhanced event logging
+const eventLogger = {
+  logEvent(eventType: string, payload: any, duration?: number) {
+    logger.info(`Event: ${eventType}`, {
+      eventType,
+      duration,
+      payload: this.sanitizePayload(payload),
+      timestamp: Date.now()
+    });
+  },
+
+  logEventError(eventType: string, error: Error, payload: any) {
+    logger.error(`Event Error: ${eventType}`, {
+      eventType,
+      error: error.message,
+      stack: error.stack,
+      payload: this.sanitizePayload(payload),
+      timestamp: Date.now()
+    });
+  },
+
+  sanitizePayload(payload: any) {
+    // Remove sensitive information
+    const sanitized = { ...payload };
+    delete sanitized.runtime;
+    delete sanitized.callback;
+    return sanitized;
+  }
+};
+```
+
+## Best Practices
+
+### Event Handler Design
+
+```typescript
+// Use specific handler functions
+const messageHandlers = {
+  [EventType.MESSAGE_RECEIVED]: messageReceivedHandler,
+  [EventType.MESSAGE_SENT]: messageSentHandler,
+  [EventType.MESSAGE_DELETED]: messageDeletedHandler
+};
+
+// Avoid anonymous functions in event registration
+// Good
+const events = {
+  [EventType.MESSAGE_RECEIVED]: [messageReceivedHandler]
+};
+
+// Bad - harder to debug and test
+const events = {
+  [EventType.MESSAGE_RECEIVED]: [
+    async (payload) => {
+      // Anonymous handler logic
+    }
+  ]
+};
+```
+
+### Event Payload Validation
+
+```typescript
+// Validate event payloads
+function validateMessagePayload(payload: MessagePayload): void {
+  if (!payload.runtime) {
+    throw new Error('Runtime is required in message payload');
+  }
+  
+  if (!payload.message) {
+    throw new Error('Message is required in message payload');
+  }
+  
+  if (!payload.message.id) {
+    throw new Error('Message ID is required');
+  }
+}
+
+// Use in handlers
+const messageReceivedHandler = async (payload: MessagePayload) => {
+  validateMessagePayload(payload);
+  // Process message
+};
+```
+
+### Memory Management
+
+```typescript
+// Prevent memory leaks in event handlers
+class EventManager {
+  private handlerRefs = new Map<string, Function[]>();
+
+  registerHandler(eventType: string, handler: Function) {
+    const handlers = this.handlerRefs.get(eventType) || [];
+    handlers.push(handler);
+    this.handlerRefs.set(eventType, handlers);
+  }
+
+  cleanup() {
+    // Clean up all handler references
+    this.handlerRefs.clear();
+  }
+}
+```
+
+The event system provides a robust foundation for building reactive, loosely-coupled applications in elizaOS v1.2.0, enabling complex agent behaviors through simple event handling patterns.
+
+## v1.2.0 Event System Enhancements
+
+### Domain-Based Routing
+- **Organized Events**: Events are organized by domain (database, ai, plugin, etc.)
+- **Filtered Listening**: Listen to specific domain events for better organization
+- **Namespace Isolation**: Prevent event name conflicts between different domains
+
+### Enhanced Context Tracking
+- **Run ID Tracking**: All events include run ID for better debugging
+- **Action Context**: Events include action context when available
+- **Service Context**: Events include service context for better monitoring
+- **Rich Metadata**: Enhanced metadata for better observability
+
+### Improved Error Handling
+- **Graceful Degradation**: Event handler failures don't cascade
+- **Error Events**: Dedicated error events for better error tracking
+- **Retry Logic**: Built-in retry mechanisms for transient failures
+
+### Performance Monitoring
+- **Event Metrics**: Built-in metrics tracking for all events
+- **Performance Tracking**: Latency and throughput monitoring
+- **Health Monitoring**: Service health events for better observability
+
+These improvements make the event system more scalable, observable, and maintainable while preserving the simplicity and flexibility that makes ElizaOS agents powerful.

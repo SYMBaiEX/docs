@@ -1,0 +1,16 @@
+{
+  "title": "Communication & Events",
+  "pages": [
+    "index",
+    "client-server-summary",
+    "server",
+    "rest-api",
+    "rest-api-reference",
+    "websockets",
+    "websocket-events",
+    "message-bus",
+    "message-bus-architecture",
+    "events",
+    "message-handlers"
+  ]
+}

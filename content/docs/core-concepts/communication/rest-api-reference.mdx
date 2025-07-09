@@ -1,0 +1,800 @@
+---
+title: REST API Reference
+description: Complete reference for ElizaOS REST API endpoints
+---
+
+## Overview
+
+The ElizaOS REST API provides comprehensive endpoints for managing agents, messaging, memory, media, and system operations. All endpoints are prefixed with `/api` and return JSON responses.
+
+## Base Configuration
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Authentication
+If `ELIZA_SERVER_AUTH_TOKEN` is set, include the API key in headers:
+```http
+X-API-KEY: your-api-key
+```
+
+### Response Format
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { /* endpoint-specific data */ }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+## Agent Management
+
+### List All Agents
+```http
+GET /api/agents
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agents": [
+      {
+        "id": "agent-uuid",
+        "name": "Agent Name",
+        "characterName": "Character Name",
+        "bio": "Agent biography",
+        "status": "active" | "inactive"
+      }
+    ]
+  }
+}
+```
+
+### Get Agent Details
+```http
+GET /api/agents/:agentId
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "name": "Agent Name",
+    "bio": ["Biography lines"],
+    "lore": ["Lore entries"],
+    "knowledge": ["Knowledge items"],
+    "topics": ["conversation", "topics"],
+    "status": "active" | "inactive"
+  }
+}
+```
+
+### Create Agent
+```http
+POST /api/agents
+```
+
+**Request Body:**
+```json
+{
+  "characterJson": { /* character configuration */ },
+  // OR
+  "characterPath": "/path/to/character.json",
+  // OR
+  "agent": { /* agent configuration */ }
+}
+```
+
+### Start Agent
+```http
+POST /api/agents/:agentId/start
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "character": { /* character data */ },
+    "status": "active"
+  }
+}
+```
+
+### Stop Agent
+```http
+POST /api/agents/:agentId/stop
+```
+
+## Messaging
+
+### Core Messaging
+
+#### Submit Message
+```http
+POST /api/messaging/submit
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "content": "Message content",
+  "in_reply_to_message_id": "message-uuid",
+  "source_type": "agent_response",
+  "raw_message": {
+    "thought": "Agent's internal thought",
+    "actions": ["action1", "action2"]
+  },
+  "metadata": {
+    "agentName": "Agent Name",
+    "attachments": []
+  }
+}
+```
+
+#### Complete Message
+```http
+POST /api/messaging/complete
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid"
+}
+```
+
+#### Ingest External Message
+```http
+POST /api/messaging/ingest-external
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "author_display_name": "User Name",
+  "content": "Message content",
+  "source_id": "platform-message-id",
+  "source_type": "discord",
+  "raw_message": {},
+  "metadata": {}
+}
+```
+
+### Servers
+
+#### List Servers
+```http
+GET /api/messaging/servers
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "servers": [
+      {
+        "id": "server-uuid",
+        "name": "Server Name",
+        "sourceType": "eliza_default",
+        "metadata": {},
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+#### Get Server Details
+```http
+GET /api/messaging/servers/:serverId
+```
+
+### Channels
+
+#### List Channels for Server
+```http
+GET /api/messaging/servers/:serverId/channels
+```
+
+**Query Parameters:**
+- `participantId` - Filter channels by participant
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channels": [
+      {
+        "id": "channel-uuid",
+        "name": "Channel Name",
+        "type": "dm" | "group",
+        "participants": ["user-uuid-1", "user-uuid-2"],
+        "lastMessageAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+#### Create Channel
+```http
+POST /api/messaging/servers/:serverId/channels
+```
+
+**Request Body:**
+```json
+{
+  "name": "Channel Name",
+  "type": "dm" | "group",
+  "participants": ["user-uuid-1", "user-uuid-2"],
+  "metadata": {}
+}
+```
+
+#### Send Message to Channel
+```http
+POST /api/messaging/central-channels/:channelId/messages
+```
+
+**Request Body:**
+```json
+{
+  "author_id": "user-uuid",
+  "content": "Message text",
+  "in_reply_to_message_id": "message-uuid",
+  "server_id": "server-uuid",
+  "raw_message": {},
+  "metadata": {
+    "user_display_name": "User Name"
+  },
+  "source_type": "eliza_gui"
+}
+```
+
+#### Get Channel Messages
+```http
+GET /api/messaging/central-channels/:channelId/messages
+```
+
+**Query Parameters:**
+- `limit` - Number of messages (default: 50)
+- `before` - ISO timestamp for pagination
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "message-uuid",
+        "content": "Message content",
+        "authorId": "author-uuid",
+        "channelId": "channel-uuid",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
+#### Upload File to Channel
+```http
+POST /api/messaging/central-channels/:channelId/upload
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/channels/{channelId}/filename.ext",
+    "filename": "filename.ext"
+  }
+}
+```
+
+#### Delete Message
+```http
+DELETE /api/messaging/messages/:messageId
+```
+
+## Memory Management
+
+### Search Agent Memory
+```http
+GET /api/memory/agents/:agentId/search
+```
+
+**Query Parameters:**
+- `query` - Search text (required)
+- `limit` - Result limit (default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Memory content",
+          "source": "conversation"
+        },
+        "similarity": 0.95,
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Create Memory
+```http
+POST /api/memory/agents/:agentId/memories
+```
+
+**Request Body:**
+```json
+{
+  "content": {
+    "text": "Memory content",
+    "type": "reflection" | "fact" | "dialogue"
+  },
+  "roomId": "optional-room-uuid"
+}
+```
+
+### Get Memories by Room
+```http
+GET /api/memory/agents/:agentId/rooms/:roomId/memories
+```
+
+**Query Parameters:**
+- `unique` - Return only unique memories (default: true)
+
+### Remove Memory
+```http
+DELETE /api/memory/agents/:agentId/memories/:memoryId
+```
+
+### Remove All Memories
+```http
+DELETE /api/memory/agents/:agentId/memories
+```
+
+**Query Parameters:**
+- `confirm` - Must be "true" to execute
+
+## Audio Processing
+
+### Transcribe Audio
+```http
+POST /api/audio/transcribe
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `audio` - Audio file
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "text": "Transcribed text",
+    "service": "openai"
+  }
+}
+```
+
+### Generate Speech
+```http
+POST /api/audio/speech
+```
+
+**Request Body:**
+```json
+{
+  "text": "Text to convert to speech",
+  "voice": "en-US-Neural2-A",
+  "service": "google" | "openai" | "elevenlabs"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "audio": "base64-encoded-audio",
+    "format": "mp3",
+    "sampleRate": 24000
+  }
+}
+```
+
+### Process Audio Conversation
+```http
+POST /api/audio/agents/:agentId/conversation
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `audio` - Audio file
+- Field: `roomId` - Room UUID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "text": "User's transcribed speech",
+    "response": "Agent's response",
+    "audio": "base64-encoded-response-audio"
+  }
+}
+```
+
+## Media Management
+
+### Upload Agent Media
+```http
+POST /api/media/agents/:agentId/upload
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/agents/{agentId}/filename.ext",
+    "filename": "filename.ext",
+    "mimeType": "image/jpeg",
+    "size": 12345
+  }
+}
+```
+
+### Upload Channel Media
+```http
+POST /api/media/channels/:channelId/upload
+```
+
+### Generate Media
+```http
+POST /api/media/agents/:agentId/generate
+```
+
+**Request Body:**
+```json
+{
+  "prompt": "Image generation prompt",
+  "type": "image",
+  "service": "openai"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/generated/{agentId}/generated-image.png",
+    "metadata": {
+      "prompt": "Original prompt",
+      "model": "dall-e-3"
+    }
+  }
+}
+```
+
+## Server Management
+
+### Health Monitoring
+
+#### Ping
+```http
+GET /api/server/ping
+```
+
+**Response:**
+```json
+{
+  "pong": true,
+  "timestamp": 1234567890
+}
+```
+
+#### Hello World
+```http
+GET /api/server/hello
+```
+
+**Response:**
+```json
+{
+  "message": "Hello World!"
+}
+```
+
+#### System Status
+```http
+GET /api/server/status
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "agentCount": 3,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+#### Health Check
+```http
+GET /api/server/health
+```
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "version": "1.2.0",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "dependencies": {
+    "agents": "healthy"
+  }
+}
+```
+
+#### Server Stop
+```http
+POST /api/server/stop
+```
+
+**Response:**
+```json
+{
+  "message": "Server stopping..."
+}
+```
+
+### Debugging
+
+#### Debug Information
+```http
+GET /api/server/debug
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "environment": "development",
+    "nodeVersion": "20.0.0",
+    "elizaVersion": "1.2.0",
+    "plugins": ["@elizaos/plugin-discord", "@elizaos/plugin-twitter"]
+  }
+}
+```
+
+### Logging
+
+#### Stream Logs
+```http
+GET /api/server/logs
+```
+
+**Query Parameters:**
+- `level` - Log level filter (debug, info, warn, error)
+- `agentId` - Filter by specific agent
+- `limit` - Number of log entries (default: 100)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "level": "info",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "message": "Log message",
+        "agentId": "agent-uuid",
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
+## System Configuration
+
+### Environment Management
+
+#### Get Local Environment Variables
+```http
+GET /api/system/env/local
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "NODE_ENV": "development",
+    "SERVER_URL": "http://localhost:3000",
+    "ELIZA_SERVER_PORT": "3000"
+  }
+}
+```
+
+#### Update Local Environment Variables
+```http
+POST /api/system/env/local
+```
+
+**Request Body:**
+```json
+{
+  "content": {
+    "NODE_ENV": "production",
+    "SERVER_URL": "https://example.com",
+    "ELIZA_SERVER_PORT": "3000"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Local env updated"
+}
+```
+
+### Version Management
+
+#### Get Version Information
+```http
+GET /api/system/version
+```
+
+**Response:**
+```json
+{
+  "version": "1.2.0",
+  "source": "server",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "environment": "development",
+  "uptime": 3600
+}
+```
+
+## TEE Operations
+
+### Generate Remote Attestation
+```http
+POST /api/tee/attestation
+```
+
+**Request Body:**
+```json
+{
+  "reportData": "custom-report-data"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "attestation": "base64-encoded-attestation",
+    "signature": "attestation-signature"
+  }
+}
+```
+
+### Derive Key
+```http
+POST /api/tee/derive-key
+```
+
+**Request Body:**
+```json
+{
+  "path": "/path/to/derive",
+  "data": "input-data"
+}
+```
+
+## Error Codes
+
+Common error codes returned by the API:
+
+| Code | Description |
+|------|-------------|
+| `INVALID_ID` | Invalid UUID format |
+| `NOT_FOUND` | Resource not found |
+| `INVALID_REQUEST` | Invalid request parameters |
+| `DB_ERROR` | Database operation failed |
+| `AUTH_REQUIRED` | Authentication required |
+| `FORBIDDEN` | Insufficient permissions |
+| `RATE_LIMITED` | Too many requests |
+| `INTERNAL_ERROR` | Server error |
+
+## Rate Limiting
+
+API endpoints are rate-limited to prevent abuse:
+- Default: 100 requests per minute per IP
+- File uploads: 10 requests per minute per IP
+- Can be configured via environment variables
+
+## CORS Configuration
+
+CORS is enabled with the following defaults:
+- Origin: Configured via `CORS_ORIGIN` env var or `*`
+- Credentials: Enabled
+- Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
+- Headers: Content-Type, Authorization, X-API-KEY
+
+## File Size Limits
+
+- JSON payloads: 100KB (configurable via `EXPRESS_MAX_PAYLOAD`)
+- File uploads: 10MB per file
+- Audio files: 25MB
+- Generated content: Limited by disk space
+
+## Best Practices
+
+1. **Always handle errors** - Check for error responses
+2. **Use proper content types** - Set Content-Type headers
+3. **Validate UUIDs** - Ensure valid UUID format
+4. **Implement retries** - Add exponential backoff
+5. **Cache responses** - Use appropriate cache headers
+6. **Monitor rate limits** - Track X-RateLimit headers
+7. **Secure file uploads** - Validate file types and sizes

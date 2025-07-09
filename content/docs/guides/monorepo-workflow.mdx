@@ -1,0 +1,450 @@
+---
+title: "Monorepo Workflow"
+description: "Complete guide to working with Eliza's monorepo structure, including package development, build processes, and publishing workflows"
+---
+
+# Monorepo Workflow
+
+Eliza uses a modern monorepo architecture powered by **Bun**, **Lerna**, and **Turbo** to manage multiple packages efficiently. This guide covers everything you need to know about developing, building, and publishing packages in the Eliza ecosystem.
+
+## Monorepo Overview
+
+The Eliza monorepo is structured to support rapid development and deployment of AI agents with a plugin-based architecture.
+
+### Technology Stack
+
+- **Bun** (v1.2.15) - JavaScript runtime and package manager
+- **Lerna** (v8.1.4) - Multi-package repository management
+- **Turbo** (v2.5.4) - Build system and task orchestration
+- **TypeScript** (v5.8.2) - Type safety across all packages
+- **Node.js** (v23.3.0) - Runtime environment
+
+### Directory Structure
+
+<Files>
+  <Folder name="eliza">
+    <Folder name="packages">
+      <Folder name="core" />
+      <Folder name="cli" />
+      <Folder name="client" />
+      <Folder name="app" />
+      <Folder name="server" />
+      <Folder name="plugin-*" />
+    </Folder>
+    <Folder name="plugin-specification" />
+    <Folder name="scripts" />
+    <File name="lerna.json" />
+    <File name="turbo.json" />
+    <File name="package.json" />
+  </Folder>
+</Files>
+
+## Development Workflow
+
+### Initial Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/elizaos/eliza.git
+   cd eliza
+   ```
+
+2. **Install dependencies**
+   ```bash
+   bun install
+   ```
+   This automatically runs the `postinstall` script which initializes submodules.
+
+3. **Build all packages**
+   ```bash
+   bun run build
+   ```
+
+### Development Commands
+
+#### Starting Development Environment
+
+The most efficient way to develop is using the integrated dev environment:
+
+```bash
+# Start full development environment with hot reload
+bun run dev
+```
+
+This command:
+- Builds the CLI server
+- Starts the backend server
+- Waits for server health check
+- Starts Vite dev server with HMR for the frontend
+- Provides coordinated logging from all services
+
+#### Individual Package Development
+
+```bash
+# Start CLI in development mode
+bun run start
+
+# Start with debug logging
+bun run start:debug
+
+# Start the web app
+bun run start:app
+
+# Start documentation site
+bun run start:docs
+```
+
+### Build System
+
+Eliza uses Turbo for orchestrating builds across packages. The build pipeline respects package dependencies automatically.
+
+#### Build Commands
+
+```bash
+# Build all packages (except docs)
+bun run build
+
+# Build specific packages
+bun run build:cli      # Build CLI only
+bun run build:core     # Build core package
+bun run build:client   # Build client package
+bun run build:docs     # Build documentation
+
+# Clean build (removes all build artifacts)
+bun run clean
+```
+
+#### Turbo Configuration
+
+The `turbo.json` file defines task pipelines:
+
+```json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    }
+  }
+}
+```
+
+Key features:
+- `^build` means "build dependencies first"
+- Automatic caching of build outputs
+- Parallel execution where possible
+
+## Package Development
+
+### Creating a New Package
+
+1. **Create package directory**
+   ```bash
+   mkdir packages/my-new-package
+   cd packages/my-new-package
+   ```
+
+2. **Initialize package.json**
+   ```json
+   {
+     "name": "@elizaos/my-new-package",
+     "version": "1.0.16",
+     "type": "module",
+     "main": "dist/index.js",
+     "types": "dist/index.d.ts",
+     "scripts": {
+       "build": "tsup",
+       "dev": "tsup --watch",
+       "test": "bun test"
+     },
+     "dependencies": {
+       "@elizaos/core": "workspace:*"
+     }
+   }
+   ```
+
+3. **Add tsup configuration**
+   ```typescript
+   // tsup.config.ts
+   import { defineConfig } from 'tsup';
+
+   export default defineConfig({
+     entry: ['src/index.ts'],
+     outDir: 'dist',
+     clean: true,
+     format: ['esm'],
+     target: 'node18',
+     dts: true
+   });
+   ```
+
+### Local Package Development
+
+For developing packages locally without publishing:
+
+1. **Use workspace protocol**
+   ```json
+   {
+     "dependencies": {
+       "@elizaos/core": "workspace:*"
+     }
+   }
+   ```
+
+2. **Link packages during development**
+   Bun automatically resolves workspace dependencies.
+
+3. **Test integration**
+   ```bash
+   # From your package directory
+   bun run build
+   
+   # From another package that depends on it
+   bun run dev
+   ```
+
+## Plugin Development
+
+### Creating a Plugin
+
+Use the plugin starter template:
+
+1. **Copy the starter**
+   ```bash
+   cp -r packages/plugin-starter packages/plugin-myservice
+   cd packages/plugin-myservice
+   ```
+
+2. **Update package.json**
+   ```json
+   {
+     "name": "@elizaos/plugin-myservice",
+     "description": "My service integration for Eliza",
+     "version": "1.0.16",
+     "private": false
+   }
+   ```
+
+3. **Implement plugin interface**
+   ```typescript
+   // src/index.ts
+   import { Plugin } from '@elizaos/core';
+
+   export const myServicePlugin: Plugin = {
+     name: 'myservice',
+     version: '1.0.0',
+     actions: [],
+     providers: [],
+     evaluators: []
+   };
+
+   export default myServicePlugin;
+   ```
+
+### Plugin Configuration
+
+Plugins can define configuration requirements:
+
+```json
+{
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "API_KEY": {
+        "type": "string",
+        "description": "API key for the service"
+      }
+    }
+  }
+}
+```
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+bun test
+
+# Run tests for specific packages
+bun run test:core
+bun run test:client
+bun run test:app
+
+# Run tests with coverage
+bun test --coverage
+
+# Watch mode
+bun test --watch
+```
+
+### Test Configuration
+
+Tests are configured per package. The root configuration excludes certain packages:
+
+```bash
+# Runs tests excluding starter packages and docs
+bun test --concurrency 3 \
+  --filter=!./packages/plugin-starter \
+  --filter=!./packages/project-starter \
+  --filter=!./packages/docs
+```
+
+## Code Quality
+
+### Linting and Formatting
+
+```bash
+# Run ESLint and Prettier
+bun run lint
+
+# Format code
+bun run format
+
+# Check formatting
+bun run format:check
+
+# Pre-commit hook (runs automatically)
+bun run pre-commit
+```
+
+### Git Hooks
+
+The project uses Husky for Git hooks:
+- Pre-commit: Runs linting on staged files
+- Configured via `.husky/` directory
+
+## Publishing Workflow
+
+### Version Management
+
+Eliza uses Lerna for version management:
+
+```bash
+# Version all packages
+bun run release
+
+# Alpha release
+bun run release:alpha
+```
+
+### Publishing Process
+
+1. **Update versions**
+   ```bash
+   lerna version --no-private --force-publish
+   ```
+
+2. **Build all packages**
+   ```bash
+   bun run build
+   ```
+
+3. **Run linting**
+   ```bash
+   bun run lint
+   ```
+
+4. **Publish to npm**
+   ```bash
+   lerna publish from-package --no-private
+   ```
+
+### Publishing Configuration
+
+- Only public packages are published (not those marked `"private": true`)
+- Uses Bun as the npm client
+- Publishes from the `dist` directory
+
+## Advanced Workflows
+
+### Database Migrations
+
+For packages using SQL:
+
+```bash
+# Run migrations
+bun run migrate
+
+# Generate new migration
+bun run migrate:generate
+```
+
+### Docker Development
+
+```bash
+# Build Docker image
+bun run docker:build
+
+# Run container
+bun run docker:run
+
+# Access container shell
+bun run docker:bash
+
+# All-in-one
+bun run docker
+```
+
+### Performance Optimization
+
+1. **Use Turbo caching**
+   - Turbo automatically caches build outputs
+   - Clean cache with `bun run clean`
+
+2. **Parallel execution**
+   - Tests run with limited concurrency to prevent overload
+   - Builds run in parallel where possible
+
+3. **Watch modes**
+   - Use `bun run dev` for automatic rebuilds
+   - Individual packages support `--watch` flag
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Build failures**
+   ```bash
+   # Clean everything and rebuild
+   bun run clean
+   ```
+
+2. **Dependency issues**
+   ```bash
+   # Reinstall dependencies
+   rm -rf node_modules bun.lockb
+   bun install
+   ```
+
+3. **Type errors**
+   - Ensure TypeScript versions match across packages
+   - Check `resolutions` in root package.json
+
+### Debug Mode
+
+Enable debug logging:
+```bash
+cross-env LOG_LEVEL=debug bun run start
+```
+
+## Best Practices
+
+1. **Always use workspace protocol** for internal dependencies
+2. **Run tests before committing** - use pre-commit hooks
+3. **Use Turbo for builds** - it handles dependencies automatically
+4. **Keep packages focused** - one responsibility per package
+5. **Document plugin interfaces** - use TypeScript types
+6. **Version packages together** - use Lerna for consistency
+
+## Resources
+
+- [Bun Documentation](https://bun.sh/docs)
+- [Lerna Documentation](https://lerna.js.org/)
+- [Turbo Documentation](https://turbo.build/repo/docs)
+- [Plugin Development Guide](/docs/plugins/creating-plugins)

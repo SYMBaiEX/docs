@@ -1,0 +1,918 @@
+---
+title: "CLI Reference"
+description: "Complete command reference for ElizaOS CLI v1.2.0 with all available commands, options, and usage examples"
+---
+
+# CLI Reference
+
+Complete reference for the ElizaOS CLI (`elizaos`) v1.2.0 with all available commands, options, and usage examples.
+
+## Installation
+
+```bash
+# Install globally with npm
+npm install -g @elizaos/cli
+
+# Install globally with bun
+bun install -g @elizaos/cli
+
+# Run without installing (npx)
+npx @elizaos/cli --help
+
+# Run without installing (bunx)
+bunx @elizaos/cli --help
+
+# Verify installation
+elizaos --version
+```
+
+## Global Options
+
+All commands support these global options:
+
+```bash
+elizaos [command] [options]
+  -v, --version      Show version number
+  -h, --help         Show help information
+  --no-emoji         Disable emoji output
+  --no-auto-install  Disable automatic Bun installation
+```
+
+## Core Commands
+
+### `elizaos create`
+
+Create new ElizaOS projects, plugins, agents, or TEE projects.
+
+```bash
+elizaos create [name] [options]
+```
+
+**Options:**
+- `--yes, -y` - Skip prompts and use defaults
+- `--type <type>` - Type of project to create (project, plugin, agent, tee)
+
+**Available Types:**
+- `project` - Full ElizaOS application with runtime and agents
+- `plugin` - Custom ElizaOS plugin for extending functionality
+- `agent` - Character definition file for agents
+- `tee` - Trusted Execution Environment project for secure computing
+
+**Examples:**
+```bash
+# Interactive creation (recommended)
+elizaos create
+
+# Create a project with defaults
+elizaos create my-agent --type project --yes
+
+# Create a plugin
+elizaos create weather-plugin --type plugin
+
+# Create an agent character
+elizaos create my-character --type agent
+
+# Create a TEE project
+elizaos create secure-agent --type tee
+```
+
+### `elizaos start`
+
+Start the ElizaOS agent server in production mode.
+
+```bash
+elizaos start [options]
+```
+
+**Options:**
+- `-c, --configure` - Reconfigure services and AI models
+- `-p, --port <port>` - Port to listen on (validated)
+- `--character <paths...>` - Character file(s) to use (supports multiple)
+
+**Examples:**
+```bash
+# Start with default configuration
+elizaos start
+
+# Start with custom character files
+elizaos start --character ./characters/alice.json ./characters/bob.json
+
+# Start on custom port
+elizaos start --port 8080
+
+# Force reconfiguration
+elizaos start --configure
+```
+
+### `elizaos dev`
+
+Start development server with auto-rebuild, detailed logging, and file change detection.
+
+```bash
+elizaos dev [options]
+```
+
+**Options:**
+- `-c, --configure` - Reconfigure services and AI models (skips saved config)
+- `--character [paths...]` - Character file(s) to use (paths or URLs)
+- `-b, --build` - Build the project before starting
+- `-p, --port <port>` - Port to listen on (default: 3000)
+
+**Examples:**
+```bash
+# Start development server
+elizaos dev
+
+# Start with custom character and build
+elizaos dev --character ./dev-character.json --build
+
+# Start on custom port with reconfiguration
+elizaos dev --port 8080 --configure
+```
+
+## Agent Management Commands
+
+### `elizaos agent list`
+
+List available agents from the runtime.
+
+```bash
+elizaos agent list [options]
+```
+
+**Aliases:** `ls`
+
+**Options:**
+- `-j, --json` - Output as JSON
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# List all agents
+elizaos agent list
+
+# List agents with JSON output
+elizaos agent list --json
+
+# List agents from remote runtime
+elizaos agent list --remote-url https://api.example.com
+```
+
+### `elizaos agent get`
+
+Get detailed information about a specific agent.
+
+```bash
+elizaos agent get [options]
+```
+
+**Aliases:** `g`
+
+**Options:**
+- `-n, --name <name>` - Agent ID, name, or index number from list (required)
+- `-j, --json` - Display agent configuration as JSON in console
+- `-o, --output [file]` - Save agent config to JSON file (defaults to `{name}.json`)
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Get agent details
+elizaos agent get --name "Agent Name"
+
+# Get agent and save to file
+elizaos agent get --name "Agent Name" --output agent-config.json
+
+# Get agent with JSON output
+elizaos agent get --name "Agent Name" --json
+```
+
+### `elizaos agent start`
+
+Start an agent with a character profile.
+
+```bash
+elizaos agent start [options]
+```
+
+**Aliases:** `s`
+
+**Options:**
+- `-n, --name <name>` - Name of an existing agent to start
+- `--path <path>` - Path to local character JSON file
+- `--remote-character <url>` - URL to remote character JSON file
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Start existing agent by name
+elizaos agent start --name "Agent Name"
+
+# Start with local character file
+elizaos agent start --path ./character.json
+
+# Start with remote character
+elizaos agent start --remote-character https://example.com/character.json
+```
+
+### `elizaos agent stop`
+
+Stop a running agent.
+
+```bash
+elizaos agent stop [options]
+```
+
+**Aliases:** `st`
+
+**Options:**
+- `-n, --name <name>` - Agent ID, name, or index number from list
+- `--all` - Stop all running agents
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Stop specific agent
+elizaos agent stop --name "Agent Name"
+
+# Stop all agents
+elizaos agent stop --all
+```
+
+### `elizaos agent remove`
+
+Remove an agent from the runtime.
+
+```bash
+elizaos agent remove [options]
+```
+
+**Aliases:** `rm`
+
+**Options:**
+- `-n, --name <name>` - Agent ID, name, or index number from list (required)
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Remove agent
+elizaos agent remove --name "Agent Name"
+```
+
+### `elizaos agent set`
+
+Update agent configuration.
+
+```bash
+elizaos agent set [options]
+```
+
+**Options:**
+- `-n, --name <name>` - Agent ID, name, or index number from list (required)
+- `-c, --config <json>` - Agent configuration as JSON string
+- `-f, --file <path>` - Path to agent configuration JSON file
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Update agent with JSON config
+elizaos agent set --name "Agent Name" --config '{"property": "value"}'
+
+# Update agent from file
+elizaos agent set --name "Agent Name" --file ./config.json
+```
+
+### `elizaos agent clear-memories`
+
+Clear all memories for an agent.
+
+```bash
+elizaos agent clear-memories [options]
+```
+
+**Aliases:** `clear`
+
+**Options:**
+- `-n, --name <name>` - Agent ID, name, or index number from list (required)
+- `-r, --remote-url <url>` - URL of the remote agent runtime
+- `-p, --port <port>` - Port to listen on
+
+**Examples:**
+```bash
+# Clear agent memories
+elizaos agent clear-memories --name "Agent Name"
+```
+
+## Plugin Management Commands
+
+### `elizaos plugins list`
+
+List available plugins from the registry (shows v1.x plugins by default).
+
+```bash
+elizaos plugins list [options]
+```
+
+**Aliases:** `l`, `ls`
+
+**Options:**
+- `--all` - List all plugins from the registry with detailed version info
+- `--v0` - List only v0.x compatible plugins
+
+**Examples:**
+```bash
+# List v1.x plugins (default)
+elizaos plugins list
+
+# List all plugins with detailed info
+elizaos plugins list --all
+
+# List only v0.x compatible plugins
+elizaos plugins list --v0
+```
+
+### `elizaos plugins add`
+
+Add a plugin to the current project.
+
+```bash
+elizaos plugins add <plugin> [options]
+```
+
+**Aliases:** `install`
+
+**Options:**
+- `-s, --skip-env-prompt` - Skip prompting for environment variables
+- `--skip-verification` - Skip plugin import verification after installation
+- `-b, --branch <branchName>` - Branch to install from when using monorepo source (default: main)
+- `-T, --tag <tagname>` - Specify a tag to install (e.g., beta)
+
+**Examples:**
+```bash
+# Install a plugin
+elizaos plugins add weather
+
+# Install from specific branch
+elizaos plugins add weather --branch development
+
+# Install specific tag
+elizaos plugins add weather --tag beta
+
+# Install with scoped name
+elizaos plugins add elizaos/plugin-weather
+
+# Skip environment prompts
+elizaos plugins add weather --skip-env-prompt
+```
+
+### `elizaos plugins installed-plugins`
+
+List plugins found in the project dependencies.
+
+```bash
+elizaos plugins installed-plugins
+```
+
+**Examples:**
+```bash
+# Show installed plugins
+elizaos plugins installed-plugins
+```
+
+### `elizaos plugins remove`
+
+Remove a plugin from the project.
+
+```bash
+elizaos plugins remove <plugin>
+```
+
+**Aliases:** `delete`, `del`, `rm`
+
+**Examples:**
+```bash
+# Remove a plugin
+elizaos plugins remove weather
+
+# Remove scoped plugin
+elizaos plugins remove elizaos/plugin-weather
+```
+
+### `elizaos plugins upgrade`
+
+Upgrade a plugin from version 0.x to 1.x using AI-powered migration.
+
+```bash
+elizaos plugins upgrade <path> [options]
+```
+
+**Options:**
+- `--api-key <key>` - Anthropic API key (or use ANTHROPIC_API_KEY env var)
+- `--skip-tests` - Skip test validation loop
+- `--skip-validation` - Skip production readiness validation
+- `--quiet` - Suppress progress display
+- `--verbose` - Show detailed information
+- `--debug` - Show debug information
+- `--skip-confirmation` - Skip user confirmation
+
+**Examples:**
+```bash
+# Upgrade a plugin
+elizaos plugins upgrade https://github.com/user/plugin-name
+
+# Upgrade local plugin
+elizaos plugins upgrade ./my-plugin
+
+# Upgrade with custom API key
+elizaos plugins upgrade ./my-plugin --api-key sk-ant-...
+
+# Upgrade with verbose output
+elizaos plugins upgrade ./my-plugin --verbose
+```
+
+### `elizaos plugins generate`
+
+Generate a new plugin using AI-powered code generation.
+
+```bash
+elizaos plugins generate [options]
+```
+
+**Options:**
+- `--api-key <key>` - Anthropic API key (or use ANTHROPIC_API_KEY env var)
+- `--skip-tests` - Skip test validation loop
+- `--skip-validation` - Skip production readiness validation
+- `--skip-prompts` - Skip interactive prompts (requires --spec-file)
+- `--spec-file <path>` - Path to JSON file containing plugin specification
+
+**Examples:**
+```bash
+# Generate plugin interactively
+elizaos plugins generate
+
+# Generate with specification file
+elizaos plugins generate --spec-file ./plugin-spec.json
+
+# Generate without prompts
+elizaos plugins generate --skip-prompts --spec-file ./spec.json
+```
+
+## Testing Commands
+
+### `elizaos test`
+
+Run tests for the current project or a specified plugin.
+
+```bash
+elizaos test [path] [options]
+```
+
+**Options:**
+- `-t, --type <type>` - Type of test to run (component, e2e, all) - default: all
+- `--port <port>` - Port to run e2e tests on (validated)
+- `--name <name>` - Filter tests by name
+- `--skip-build` - Skip building before running tests
+- `--skip-type-check` - Skip TypeScript validation before running tests
+
+**Examples:**
+```bash
+# Run all tests
+elizaos test
+
+# Run component tests only
+elizaos test --type component
+
+# Run e2e tests only
+elizaos test --type e2e
+
+# Run tests for specific plugin
+elizaos test ./my-plugin
+
+# Run tests with name filter
+elizaos test --name "auth tests"
+
+# Skip build and type checking
+elizaos test --skip-build --skip-type-check
+```
+
+## Environment Management Commands
+
+### `elizaos env list`
+
+List all environment variables.
+
+```bash
+elizaos env list [options]
+```
+
+**Options:**
+- `--system` - List only system information
+- `--local` - List only local environment variables
+
+**Examples:**
+```bash
+# List all environment variables
+elizaos env list
+
+# List only local variables
+elizaos env list --local
+
+# List only system information
+elizaos env list --system
+```
+
+### `elizaos env edit-local`
+
+Edit local environment variables interactively.
+
+```bash
+elizaos env edit-local [options]
+```
+
+**Options:**
+- `-y, --yes` - Automatically confirm prompts
+
+**Examples:**
+```bash
+# Edit environment variables interactively
+elizaos env edit-local
+
+# Edit with auto-confirmation
+elizaos env edit-local --yes
+```
+
+### `elizaos env reset`
+
+Reset environment variables and clean up database/cache files.
+
+```bash
+elizaos env reset [options]
+```
+
+**Options:**
+- `-y, --yes` - Automatically reset using default selections
+
+**Examples:**
+```bash
+# Reset environment interactively
+elizaos env reset
+
+# Reset with defaults
+elizaos env reset --yes
+```
+
+### `elizaos env interactive`
+
+Start interactive environment variable management.
+
+```bash
+elizaos env interactive [options]
+```
+
+**Options:**
+- `-y, --yes` - Automatically confirm prompts
+
+**Examples:**
+```bash
+# Start interactive environment manager
+elizaos env interactive
+```
+
+## Publishing Commands
+
+### `elizaos publish`
+
+Publish a plugin to npm, GitHub, and the registry.
+
+```bash
+elizaos publish [options]
+```
+
+**Options:**
+- `--npm` - Publish to npm only (skip GitHub and registry)
+- `-t, --test` - Test publish process without making changes
+- `-d, --dry-run` - Generate registry files locally without publishing
+- `--skip-registry` - Skip publishing to the registry
+
+**Examples:**
+```bash
+# Publish to all platforms
+elizaos publish
+
+# Test publishing process
+elizaos publish --test
+
+# Publish to npm only
+elizaos publish --npm
+
+# Dry run (no actual publishing)
+elizaos publish --dry-run
+
+# Skip registry publication
+elizaos publish --skip-registry
+```
+
+## Development Commands
+
+### `elizaos monorepo`
+
+Clone the ElizaOS monorepo for development.
+
+```bash
+elizaos monorepo [options]
+```
+
+**Options:**
+- `-b, --branch <branch>` - Branch to install (default: develop)
+- `-d, --dir <directory>` - Destination directory (default: ./eliza)
+
+**Examples:**
+```bash
+# Clone monorepo (develop branch)
+elizaos monorepo
+
+# Clone specific branch
+elizaos monorepo --branch main
+
+# Clone to custom directory
+elizaos monorepo --dir ./my-eliza
+```
+
+### `elizaos update`
+
+Update ElizaOS CLI and project dependencies.
+
+```bash
+elizaos update [options]
+```
+
+**Options:**
+- `-c, --check` - Check for available updates without applying them
+- `--skip-build` - Skip building after updating
+- `--cli` - Update only the CLI
+- `--packages` - Update only packages
+
+**Examples:**
+```bash
+# Update everything
+elizaos update
+
+# Check for updates only
+elizaos update --check
+
+# Update CLI only
+elizaos update --cli
+
+# Update packages only
+elizaos update --packages
+```
+
+## TEE (Trusted Execution Environment) Commands
+
+### `elizaos tee phala`
+
+Manage TEE deployments with Phala Network integration.
+
+```bash
+elizaos tee phala [subcommand] [options]
+```
+
+**Examples:**
+```bash
+# Access Phala TEE commands
+elizaos tee phala --help
+```
+
+## Advanced Usage
+
+### Non-Interactive Mode
+
+Set environment variables or use flags to run commands non-interactively:
+
+```bash
+# Using environment variable
+ELIZA_NONINTERACTIVE=1 elizaos create my-project --type project
+
+# Using flag
+elizaos create my-project --type project --yes
+```
+
+### Working with Remote Runtimes
+
+Many agent commands support remote runtime URLs:
+
+```bash
+# List agents from remote runtime
+elizaos agent list --remote-url https://api.example.com --port 3000
+
+# Start agent on remote runtime
+elizaos agent start --name "Agent" --remote-url https://api.example.com
+```
+
+### Plugin Development Workflow
+
+```bash
+# 1. Create plugin
+elizaos create weather-plugin --type plugin
+
+# 2. Navigate to plugin directory
+cd weather-plugin
+
+# 3. Develop with hot reload
+elizaos dev
+
+# 4. Run tests
+elizaos test
+
+# 5. Test publishing
+elizaos publish --test
+
+# 6. Publish to all platforms
+elizaos publish
+```
+
+### Agent Development Workflow
+
+```bash
+# 1. Create project
+elizaos create my-agent --type project
+
+# 2. Navigate to project
+cd my-agent
+
+# 3. Start development mode
+elizaos dev
+
+# 4. Test the agent
+elizaos test
+
+# 5. Start production server
+elizaos start
+```
+
+### Monorepo Development Workflow
+
+```bash
+# 1. Clone the monorepo
+elizaos monorepo --branch develop
+
+# 2. Navigate to monorepo
+cd eliza
+
+# 3. Install dependencies
+bun install
+
+# 4. Start development
+bun run dev
+```
+
+## Environment Variables
+
+The CLI recognizes these environment variables:
+
+```bash
+# Core Configuration
+ELIZA_NONINTERACTIVE=1          # Enable non-interactive mode
+ELIZA_NO_AUTO_INSTALL=true      # Disable automatic Bun installation
+
+# API Keys
+OPENAI_API_KEY=sk-...           # OpenAI API key
+ANTHROPIC_API_KEY=sk-ant-...    # Anthropic API key for plugin generation/upgrade
+
+# Platform Integration
+DISCORD_TOKEN=...               # Discord bot token
+TWITTER_API_KEY=...            # Twitter API key
+TELEGRAM_BOT_TOKEN=...         # Telegram bot token
+
+# Development
+NODE_ENV=development           # Environment mode
+LOG_LEVEL=debug               # Logging level
+DEBUG=elizaos:*               # Debug output
+
+# CLI Behavior
+QUIET_MODE=true               # Suppress output
+NODE_OPTIONS=--no-deprecation # Node.js options
+NODE_NO_WARNINGS=1           # Disable Node.js warnings
+```
+
+## Configuration Files
+
+### Project Configuration
+
+ElizaOS projects can include configuration through:
+
+- `package.json` - Project metadata and dependencies
+- `.env` - Environment variables
+- `characters/` - Character definition files
+- `plugins/` - Plugin configurations
+
+### Character Files
+
+Character files define agent personalities and behaviors:
+
+```json
+{
+  "name": "Agent Name",
+  "bio": "Agent description",
+  "personality": "Agent personality traits",
+  "knowledge": ["Domain knowledge areas"],
+  "messageExamples": [
+    {
+      "user": "Hello",
+      "content": {
+        "text": "Hello! How can I help you today?"
+      }
+    }
+  ]
+}
+```
+
+## Error Handling
+
+The CLI uses structured error handling with specific exit codes:
+
+- `0` - Success
+- `1` - General error
+- `2` - Invalid arguments
+- `3` - Configuration error
+- `4` - Network error
+- `5` - Build error
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Command not found**
+   ```bash
+   # Reinstall CLI globally
+   npm install -g @elizaos/cli
+   
+   # Or use npx
+   npx @elizaos/cli --help
+   ```
+
+2. **Permission errors**
+   ```bash
+   # Use npx instead of global install
+   npx @elizaos/cli create my-project
+   ```
+
+3. **Plugin installation failures**
+   ```bash
+   # Check plugin availability
+   elizaos plugins list --all
+   
+   # Try with verbose output
+   elizaos plugins add plugin-name --verbose
+   ```
+
+4. **Build failures**
+   ```bash
+   # Clear cache and rebuild
+   rm -rf node_modules dist
+   npm install
+   elizaos test
+   ```
+
+### Debug Mode
+
+Enable debug output for troubleshooting:
+
+```bash
+# Enable debug logging
+DEBUG=elizaos:* elizaos dev
+
+# Use verbose flags
+elizaos plugins add weather --verbose
+
+# Check CLI version
+elizaos --version
+```
+
+## Getting Help
+
+```bash
+# General help
+elizaos --help
+
+# Command-specific help
+elizaos create --help
+elizaos plugins --help
+elizaos agent --help
+
+# Show version
+elizaos --version
+```
+
+## Resources
+
+- [ElizaOS Documentation](https://elizaos.github.io/eliza)
+- [Plugin Development Guide](/docs/plugins/creating-plugins)
+- [Character Creation Guide](/docs/learning-tracks/simple/guides/character-creation)
+- [Monorepo Workflow](/docs/guides/monorepo-workflow)
+- [Troubleshooting Guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)

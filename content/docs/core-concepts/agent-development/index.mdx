@@ -1,0 +1,297 @@
+---
+title: Overview
+description: Comprehensive guide to developing agents in ElizaOS
+---
+
+# Overview
+
+Agent development in ElizaOS involves creating intelligent, autonomous entities that can interact with users, perform actions, and maintain persistent memory. The framework provides a complete toolkit for building sophisticated agents with personality, knowledge, and capabilities.
+
+## Core Components
+
+### [Character Definition](./character-definition)
+
+Character definitions are JSON-based configurations that define an agent's personality, knowledge, and behavior:
+
+**Character Schema**:
+```typescript
+interface Character {
+  name: string;
+  bio: string[];
+  lore: string[];
+  knowledge: string[];
+  messageExamples: MessageExample[][];
+  postExamples: string[];
+  topics: string[];
+  style: {
+    all: string[];
+    chat: string[];
+    post: string[];
+  };
+  adjectives: string[];
+  settings?: {
+    secrets?: { [key: string]: string };
+    voice?: { model: string };
+  };
+}
+```
+
+**Key Features**:
+- **Personality Definition**: Bio, lore, and behavioral traits
+- **Knowledge Base**: Domain-specific information and facts
+- **Communication Style**: Tone, language patterns, and response styles
+- **Example Conversations**: Training data for consistent responses
+- **Voice Configuration**: Text-to-speech and audio settings
+
+### [Actions](./actions)
+
+Actions are executable behaviors that agents can perform in response to user interactions or system events:
+
+**Action Interface**:
+```typescript
+interface Action {
+  name: string;
+  description: string;
+  validate: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
+  handler: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
+  examples: ActionExample[][];
+}
+```
+
+**Built-in Actions**:
+- **Message Processing**: Text analysis and response generation
+- **Media Handling**: Image, audio, and video processing
+- **Web Integration**: API calls and web scraping
+- **File Operations**: Document processing and management
+- **Social Media**: Platform-specific interactions
+
+**Custom Actions**:
+- Plugin-based extensibility
+- Event-driven execution
+- Context-aware processing
+- Memory integration
+
+### [Evaluators](./evaluators)
+
+Evaluators assess situations and determine appropriate responses:
+
+**Evaluator Interface**:
+```typescript
+interface Evaluator {
+  name: string;
+  description: string;
+  similes: string[];
+  examples: EvaluatorExample[];
+  handler: (runtime: IAgentRuntime, message: Memory) => Promise<string>;
+  validate: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
+}
+```
+
+**Evaluation Types**:
+- **Sentiment Analysis**: Emotional tone detection
+- **Intent Recognition**: Purpose and goal identification
+- **Context Assessment**: Situational understanding
+- **Response Appropriateness**: Content and timing evaluation
+- **Trust Scoring**: Relationship and credibility assessment
+
+### [Providers](./providers)
+
+Providers integrate external services and data sources:
+
+**Provider Interface**:
+```typescript
+interface Provider {
+  get: (runtime: IAgentRuntime, message: Memory) => Promise<string>;
+}
+```
+
+**Provider Types**:
+- **Time Provider**: Current time and scheduling information
+- **Facts Provider**: Verified information and knowledge
+- **Browser Provider**: Web search and content retrieval
+- **Wallet Provider**: Cryptocurrency and token information
+- **Database Provider**: Persistent data storage and retrieval
+
+### [Tasks](./tasks)
+
+Tasks manage long-running operations and background processes:
+
+**Task Interface**:
+```typescript
+interface Task {
+  id: UUID;
+  name: string;
+  description: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  handler: (runtime: IAgentRuntime) => Promise<void>;
+}
+```
+
+**Task Management**:
+- **Scheduling**: Cron-like scheduling for recurring tasks
+- **Queue Management**: Priority-based task execution
+- **Error Handling**: Retry logic and failure recovery
+- **Progress Tracking**: Status monitoring and reporting
+
+### [Agents](./agents)
+
+Agents are complete instances combining all components:
+
+**Agent Runtime**:
+- **Initialization**: Character loading and plugin registration
+- **Message Processing**: Intelligent conversation handling
+- **Memory Management**: Persistent state and knowledge
+- **Action Execution**: Behavior implementation
+- **Learning**: Continuous improvement from interactions
+
+## Development Workflow
+
+### 1. Character Creation
+
+Start by defining your agent's personality and knowledge:
+
+```bash
+# Create a new character file
+elizaos create my-agent --character
+
+# Edit character definition
+{
+  "name": "Assistant",
+  "bio": ["I am a helpful AI assistant"],
+  "knowledge": ["I know about programming and technology"],
+  "style": {
+    "all": ["Be helpful and informative"],
+    "chat": ["Use conversational tone"]
+  }
+}
+```
+
+### 2. Plugin Development
+
+Extend agent capabilities with custom plugins:
+
+```bash
+# Create a new plugin
+elizaos create my-plugin --type plugin
+
+# Plugin structure
+src/
+├── index.ts          # Plugin exports
+├── actions/          # Custom actions
+├── evaluators/       # Custom evaluators
+├── providers/        # Custom providers
+└── services/         # Custom services
+```
+
+### 3. Local Development
+
+Test and iterate on your agent:
+
+```bash
+# Start development server
+elizaos dev --character my-agent.json
+
+# Hot reload enabled
+# Real-time testing
+# Debug logging
+```
+
+### 4. Testing
+
+Comprehensive testing framework:
+
+```bash
+# Run tests
+elizaos test
+
+# Test types
+├── unit/             # Component testing
+├── integration/      # Feature testing
+└── e2e/             # End-to-end testing
+```
+
+### 5. Deployment
+
+Deploy your agent to production:
+
+```bash
+# Build for production
+elizaos start --build
+
+# Deploy to cloud
+elizaos deploy --platform docker
+
+# Monitor performance
+elizaos logs --follow
+```
+
+## Best Practices
+
+### Character Design
+
+1. **Consistent Personality**: Maintain consistent tone and behavior
+2. **Rich Knowledge**: Provide comprehensive domain knowledge
+3. **Clear Examples**: Use diverse conversation examples
+4. **Appropriate Style**: Match communication style to use case
+
+### Action Implementation
+
+1. **Validate Input**: Always validate user inputs
+2. **Handle Errors**: Implement graceful error handling
+3. **Context Awareness**: Use conversation context effectively
+4. **Performance**: Optimize for response time
+
+### Memory Management
+
+1. **Structured Storage**: Organize information logically
+2. **Relevance Scoring**: Prioritize important information
+3. **Cleanup**: Remove outdated or irrelevant data
+4. **Privacy**: Respect user privacy and data protection
+
+### Plugin Development
+
+1. **Single Responsibility**: Each plugin should have a clear purpose
+2. **Configuration**: Use environment variables for settings
+3. **Dependencies**: Minimize external dependencies
+4. **Documentation**: Provide clear documentation and examples
+
+## Advanced Features
+
+### Multi-Agent Systems
+
+- **Agent Communication**: Inter-agent messaging and coordination
+- **Role Specialization**: Agents with specific expertise
+- **Workflow Orchestration**: Complex multi-step processes
+- **Resource Sharing**: Shared memory and knowledge bases
+
+### Learning and Adaptation
+
+- **Conversation Learning**: Improve responses based on feedback
+- **Knowledge Updates**: Dynamic knowledge base updates
+- **Behavior Adaptation**: Adjust behavior based on user preferences
+- **Performance Optimization**: Continuous improvement metrics
+
+### Integration Patterns
+
+- **API Integrations**: Connect with external services
+- **Database Connections**: Persistent data storage
+- **Real-time Updates**: WebSocket and event-driven updates
+- **Platform Deployment**: Multi-platform deployment strategies
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Memory Leaks**: Monitor memory usage and cleanup
+2. **Performance Issues**: Profile and optimize critical paths
+3. **Plugin Conflicts**: Manage plugin dependencies
+4. **Character Inconsistency**: Review and refine character definitions
+
+### Debugging Tools
+
+- **Debug Logging**: Detailed execution traces
+- **Memory Inspector**: Memory usage analysis
+- **Performance Profiler**: Bottleneck identification
+- **Error Tracking**: Comprehensive error monitoring
+
+This comprehensive approach to agent development ensures you can create sophisticated, reliable, and engaging AI agents that provide value to users while maintaining consistent performance and behavior.

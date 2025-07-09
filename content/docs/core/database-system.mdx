@@ -1,0 +1,698 @@
+---
+title: Database System Architecture
+description: Comprehensive guide to ElizaOS database system, SQL plugin, and ORM integration
+---
+
+# Database System Architecture
+
+ElizaOS provides a comprehensive database system built on top of Drizzle ORM with support for both PostgreSQL and PGlite (SQLite-compatible) databases. The system is designed for scalability, type safety, and flexible plugin architecture.
+
+## Core Architecture
+
+### Database Adapter Pattern
+
+The database system uses an adapter pattern that provides a unified interface for different database backends:
+
+```typescript
+interface IDatabaseAdapter {
+  // Core CRUD operations
+  createAgent(agent: Agent): Promise<boolean>;
+  getAgent(agentId: UUID): Promise<Agent | null>;
+  updateAgent(agentId: UUID, agent: Partial<Agent>): Promise<boolean>;
+  deleteAgent(agentId: UUID): Promise<boolean>;
+  
+  // Memory operations
+  createMemory(memory: Memory, tableName: string): Promise<UUID>;
+  getMemoryById(memoryId: UUID): Promise<Memory | null>;
+  searchMemories(params: SearchParams): Promise<Memory[]>;
+  
+  // Entity operations
+  createEntities(entities: Entity[]): Promise<boolean>;
+  getEntityByIds(entityIds: UUID[]): Promise<Entity[]>;
+  
+  // Component operations
+  createComponent(component: Component): Promise<boolean>;
+  getComponent(entityId: UUID, type: string): Promise<Component | null>;
+  
+  // Relationship operations
+  createRelationship(relationship: Relationship): Promise<boolean>;
+  getRelationships(entityId: UUID): Promise<Relationship[]>;
+  
+  // Task operations
+  createTask(task: Task): Promise<boolean>;
+  getTasks(agentId: UUID): Promise<Task[]>;
+  
+  // Vector operations
+  searchEmbeddings(params: EmbeddingSearchParams): Promise<Memory[]>;
+  
+  // Lifecycle management
+  init(): Promise<void>;
+  close(): Promise<void>;
+  isReady(): Promise<boolean>;
+}
+```
+
+### Supported Database Backends
+
+#### PostgreSQL Adapter
+- **Production-ready**: Full PostgreSQL support with connection pooling
+- **Extensions**: Supports pgvector for embeddings, fuzzystrmatch for fuzzy matching
+- **Scalability**: Connection pooling and transaction management
+- **Migration**: Schema-based migrations with plugin support
+
+#### PGlite Adapter
+- **Development**: SQLite-compatible embedded database
+- **Portability**: File-based storage with no external dependencies
+- **Testing**: Ideal for unit tests and development environments
+- **Extensions**: Vector support through PGlite extensions
+
+## Database Schema
+
+### Core Tables
+
+#### Agents Table
+```sql
+CREATE TABLE agents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    enabled BOOLEAN DEFAULT true NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    name TEXT NOT NULL,
+    username TEXT,
+    system TEXT DEFAULT '',
+    bio JSONB DEFAULT '[]'::jsonb,
+    message_examples JSONB DEFAULT '[]'::jsonb NOT NULL,
+    post_examples JSONB DEFAULT '[]'::jsonb NOT NULL,
+    topics JSONB DEFAULT '[]'::jsonb NOT NULL,
+    adjectives JSONB DEFAULT '[]'::jsonb NOT NULL,
+    knowledge JSONB DEFAULT '[]'::jsonb NOT NULL,
+    plugins JSONB DEFAULT '[]'::jsonb NOT NULL,
+    settings JSONB DEFAULT '{}'::jsonb NOT NULL,
+    style JSONB DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT name_unique UNIQUE (name)
+);
+```
+
+#### Memories Table
+```sql
+CREATE TABLE memories (
+    id UUID PRIMARY KEY,
+    type TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    content JSONB NOT NULL,
+    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    world_id UUID,
+    unique BOOLEAN DEFAULT true NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    
+    -- Indexes for performance
+    INDEX idx_memories_type_room ON (type, room_id),
+    INDEX idx_memories_world_id ON (world_id),
+    INDEX idx_memories_metadata_type ON ((metadata->>'type')),
+    INDEX idx_memories_document_id ON ((metadata->>'documentId')),
+    INDEX idx_fragments_order ON ((metadata->>'documentId'), (metadata->>'position')),
+    
+    -- Validation constraints
+    CONSTRAINT fragment_metadata_check CHECK (
+        CASE 
+            WHEN metadata->>'type' = 'fragment' THEN
+                metadata ? 'documentId' AND metadata ? 'position'
+            ELSE true
+        END
+    ),
+    CONSTRAINT document_metadata_check CHECK (
+        CASE 
+            WHEN metadata->>'type' = 'document' THEN
+                metadata ? 'timestamp'
+            ELSE true
+        END
+    )
+);
+```
+
+#### Embeddings Table
+```sql
+CREATE TABLE embeddings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    memory_id UUID REFERENCES memories(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    dim_384 VECTOR(384),
+    dim_512 VECTOR(512),
+    dim_768 VECTOR(768),
+    dim_1024 VECTOR(1024),
+    dim_1536 VECTOR(1536),
+    dim_3072 VECTOR(3072),
+    
+    CONSTRAINT embedding_source_check CHECK (memory_id IS NOT NULL),
+    INDEX idx_embedding_memory ON (memory_id)
+);
+```
+
+#### Entities Table
+```sql
+CREATE TABLE entities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
+    names TEXT[] NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_entities_agent_id ON (agent_id),
+    INDEX idx_entities_names ON (names)
+);
+```
+
+#### Components Table
+```sql
+CREATE TABLE components (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
+    type TEXT NOT NULL,
+    source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    world_id UUID,
+    state JSONB DEFAULT '{}' NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_components_entity_type ON (entity_id, type),
+    INDEX idx_components_world_id ON (world_id),
+    CONSTRAINT unique_component_per_entity UNIQUE (entity_id, type, world_id, source_entity_id)
+);
+```
+
+#### Relationships Table
+```sql
+CREATE TABLE relationships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_a_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
+    entity_b_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
+    type TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_relationships_entity_a ON (entity_a_id),
+    INDEX idx_relationships_entity_b ON (entity_b_id),
+    INDEX idx_relationships_type ON (type),
+    CONSTRAINT unique_relationship UNIQUE (entity_a_id, entity_b_id, type)
+);
+```
+
+#### Tasks Table
+```sql
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
+    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    world_id UUID,
+    status TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_tasks_agent_id ON (agent_id),
+    INDEX idx_tasks_status ON (status),
+    INDEX idx_tasks_type ON (type),
+    INDEX idx_tasks_world_id ON (world_id)
+);
+```
+
+### Multi-Server Support Tables
+
+#### Message Servers Table
+```sql
+CREATE TABLE message_servers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    config JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    CONSTRAINT unique_server_name UNIQUE (name)
+);
+```
+
+#### Channels Table
+```sql
+CREATE TABLE channels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id UUID REFERENCES message_servers(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_channels_server_id ON (server_id),
+    CONSTRAINT unique_channel_per_server UNIQUE (server_id, name)
+);
+```
+
+#### Messages Table
+```sql
+CREATE TABLE messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID REFERENCES channels(id) ON DELETE CASCADE NOT NULL,
+    author_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
+    content JSONB NOT NULL,
+    metadata JSONB DEFAULT '{}' NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    
+    INDEX idx_messages_channel_id ON (channel_id),
+    INDEX idx_messages_author_id ON (author_id),
+    INDEX idx_messages_created_at ON (created_at)
+);
+```
+
+## Plugin Architecture
+
+### SQL Plugin Structure
+
+The SQL plugin (`@elizaos/plugin-sql`) provides the core database functionality:
+
+```typescript
+export const plugin: Plugin = {
+  name: '@elizaos/plugin-sql',
+  description: 'A plugin for SQL database access with dynamic schema migrations',
+  priority: 0,
+  schema, // Exports all core tables
+  init: async (_, runtime: IAgentRuntime) => {
+    // Get configuration
+    const postgresUrl = runtime.getSetting('POSTGRES_URL');
+    const dataDir = runtime.getSetting('PGLITE_PATH') || 
+                   runtime.getSetting('DATABASE_PATH') || 
+                   './.eliza/.elizadb';
+
+    // Create appropriate adapter
+    const dbAdapter = createDatabaseAdapter({
+      dataDir,
+      postgresUrl,
+    }, runtime.agentId);
+
+    // Register adapter with runtime
+    runtime.registerDatabaseAdapter(dbAdapter);
+  },
+};
+```
+
+### Dynamic Schema Migration System
+
+The migration system supports plugin-based schema extensions:
+
+```typescript
+export class DatabaseMigrationService {
+  private registeredSchemas = new Map<string, any>();
+
+  discoverAndRegisterPluginSchemas(plugins: Plugin[]): void {
+    for (const plugin of plugins) {
+      if (plugin.schema) {
+        this.registeredSchemas.set(plugin.name, plugin.schema);
+      }
+    }
+  }
+
+  async runAllPluginMigrations(): Promise<void> {
+    for (const [pluginName, schema] of this.registeredSchemas) {
+      await runPluginMigrations(this.db, pluginName, schema);
+    }
+  }
+}
+```
+
+### Plugin Schema Namespacing
+
+Each plugin gets its own schema namespace:
+
+```typescript
+export class PluginNamespaceManager {
+  async getPluginSchema(pluginName: string): Promise<string> {
+    if (pluginName === '@elizaos/plugin-sql') {
+      return 'public'; // Core tables in public schema
+    }
+    // Convert plugin name to valid schema name
+    return pluginName.replace(/@elizaos\/plugin-|\W/g, '_').toLowerCase();
+  }
+
+  async ensureNamespace(schemaName: string): Promise<void> {
+    if (schemaName === 'public') return;
+    await this.db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`));
+  }
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+#### PostgreSQL Configuration
+```bash
+# Production PostgreSQL URL
+POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
+
+# Connection pool settings
+POSTGRES_MAX_CONNECTIONS=20
+POSTGRES_IDLE_TIMEOUT=30000
+POSTGRES_CONNECTION_TIMEOUT=5000
+```
+
+#### PGlite Configuration
+```bash
+# PGlite data directory
+PGLITE_PATH=./.eliza/.elizadb
+DATABASE_PATH=./.eliza/.elizadb
+
+# Legacy path migration
+PGLITE_DATA_DIR=./.eliza/.elizadb
+```
+
+### Adapter Factory
+
+The system automatically selects the appropriate adapter based on configuration:
+
+```typescript
+export function createDatabaseAdapter(
+  config: {
+    dataDir?: string;
+    postgresUrl?: string;
+  },
+  agentId: UUID
+): IDatabaseAdapter {
+  if (config.postgresUrl) {
+    // Use PostgreSQL adapter
+    const manager = new PostgresConnectionManager(config.postgresUrl);
+    return new PgDatabaseAdapter(agentId, manager);
+  }
+  
+  // Use PGlite adapter
+  const dataDir = resolvePgliteDir(config.dataDir);
+  const manager = new PGliteClientManager({ dataDir });
+  return new PgliteDatabaseAdapter(agentId, manager);
+}
+```
+
+## Advanced Features
+
+### Vector Search and Embeddings
+
+The system supports multi-dimensional vector embeddings:
+
+```typescript
+// Search for similar memories using vector similarity
+const similarMemories = await adapter.searchEmbeddings({
+  tableName: 'memories',
+  embedding: [0.1, 0.2, 0.3, ...], // 384-dimensional vector
+  dimension: 384,
+  threshold: 0.7,
+  limit: 10
+});
+
+// Vector similarity search with cosine distance
+const vectorQuery = sql`
+  SELECT m.*, (1 - (e.dim_384 <=> ${embedding})) as similarity
+  FROM memories m
+  JOIN embeddings e ON m.id = e.memory_id
+  WHERE (1 - (e.dim_384 <=> ${embedding})) > ${threshold}
+  ORDER BY similarity DESC
+  LIMIT ${limit}
+`;
+```
+
+### Retry Logic and Error Handling
+
+The base adapter includes robust retry logic:
+
+```typescript
+export abstract class BaseDrizzleAdapter extends DatabaseAdapter {
+  protected readonly maxRetries = 3;
+  protected readonly baseDelay = 1000;
+  protected readonly maxDelay = 10000;
+
+  protected async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt === this.maxRetries) {
+          throw lastError;
+        }
+        
+        const delay = Math.min(
+          this.baseDelay * Math.pow(2, attempt - 1),
+          this.maxDelay
+        );
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError!;
+  }
+}
+```
+
+### Connection Management
+
+#### PostgreSQL Connection Pool
+```typescript
+export class PostgresConnectionManager {
+  private pool: Pool;
+  private db: NodePgDatabase;
+
+  constructor(connectionString: string) {
+    this.pool = new Pool({ connectionString });
+    this.db = drizzle(this.pool);
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      const client = await this.pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+```
+
+#### PGlite Client Manager
+```typescript
+export class PGliteClientManager {
+  private client: PGlite;
+
+  constructor(options: PGliteOptions) {
+    this.client = new PGlite({
+      ...options,
+      extensions: {
+        vector,       // Vector similarity search
+        fuzzystrmatch // Fuzzy string matching
+      }
+    });
+  }
+}
+```
+
+## Testing Infrastructure
+
+### Test Database Creation
+
+```typescript
+export async function createTestDatabase(
+  testAgentId: UUID,
+  testPlugins: Plugin[] = []
+): Promise<{
+  adapter: PgliteDatabaseAdapter | PgDatabaseAdapter;
+  runtime: AgentRuntime;
+  cleanup: () => Promise<void>;
+}> {
+  if (process.env.POSTGRES_URL) {
+    // PostgreSQL testing with isolated schemas
+    const connectionManager = new PostgresConnectionManager(process.env.POSTGRES_URL);
+    const adapter = new PgDatabaseAdapter(testAgentId, connectionManager);
+    
+    const schemaName = `test_${testAgentId.replace(/-/g, '_')}`;
+    const db = connectionManager.getDatabase();
+    
+    // Create isolated test schema
+    await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`));
+    await db.execute(sql.raw(`SET search_path TO ${schemaName}, public`));
+    
+    // Run migrations
+    const migrationService = new DatabaseMigrationService();
+    await migrationService.initializeWithDatabase(db);
+    migrationService.discoverAndRegisterPluginSchemas([sqlPlugin, ...testPlugins]);
+    await migrationService.runAllPluginMigrations();
+    
+    return { adapter, runtime, cleanup: async () => {
+      await db.execute(sql.raw(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE`));
+      await adapter.close();
+    }};
+  } else {
+    // PGlite testing with temporary directories
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eliza-test-'));
+    const connectionManager = new PGliteClientManager({ dataDir: tempDir });
+    const adapter = new PgliteDatabaseAdapter(testAgentId, connectionManager);
+    
+    return { adapter, runtime, cleanup: async () => {
+      await adapter.close();
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }};
+  }
+}
+```
+
+### Test Coverage
+
+The plugin includes comprehensive test coverage:
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Full database workflow testing
+- **Migration Tests**: Schema migration validation
+- **Performance Tests**: Vector search and query optimization
+- **Concurrent Tests**: Multi-agent and multi-runtime scenarios
+
+## Performance Optimization
+
+### Indexing Strategy
+
+```sql
+-- Memory search optimization
+CREATE INDEX idx_memories_type_room ON memories(type, room_id);
+CREATE INDEX idx_memories_metadata_type ON memories((metadata->>'type'));
+
+-- Entity search optimization
+CREATE INDEX idx_entities_names ON entities USING GIN(names);
+
+-- Vector search optimization
+CREATE INDEX idx_embeddings_vector_384 ON embeddings USING ivfflat (dim_384 vector_cosine_ops);
+```
+
+### Query Optimization
+
+```typescript
+// Efficient entity search with name matching
+const entities = await db
+  .select()
+  .from(entityTable)
+  .where(
+    and(
+      eq(entityTable.agentId, agentId),
+      sql`${entityTable.names} && ${names}` // Array overlap operator
+    )
+  )
+  .limit(limit);
+
+// Optimized memory search with metadata filtering
+const memories = await db
+  .select()
+  .from(memoryTable)
+  .where(
+    and(
+      eq(memoryTable.agentId, agentId),
+      eq(memoryTable.type, type),
+      sql`${memoryTable.metadata}->>'source' = ${source}`
+    )
+  )
+  .orderBy(desc(memoryTable.createdAt))
+  .limit(limit);
+```
+
+### Memory Management
+
+```typescript
+// Batch operations for better performance
+async createEntities(entities: Entity[]): Promise<boolean> {
+  return await this.withDatabase(async () => {
+    // Use batch insert for better performance
+    await this.db.insert(entityTable).values(entities);
+    return true;
+  });
+}
+
+// Streaming for large result sets
+async *streamMemories(agentId: UUID, type: string): AsyncGenerator<Memory> {
+  const query = this.db
+    .select()
+    .from(memoryTable)
+    .where(and(
+      eq(memoryTable.agentId, agentId),
+      eq(memoryTable.type, type)
+    ))
+    .orderBy(desc(memoryTable.createdAt));
+    
+  for await (const row of query) {
+    yield this.mapRowToMemory(row);
+  }
+}
+```
+
+## Migration and Deployment
+
+### Production Migration Strategy
+
+1. **Schema Versioning**: Each plugin maintains its own schema version
+2. **Rollback Support**: Migrations include rollback procedures
+3. **Zero-Downtime**: Online schema changes with minimal impact
+4. **Validation**: Pre-migration validation and post-migration verification
+
+### Deployment Configuration
+
+```typescript
+// Production configuration
+const productionConfig = {
+  postgres: {
+    url: process.env.POSTGRES_URL,
+    ssl: process.env.NODE_ENV === 'production',
+    pool: {
+      min: 2,
+      max: 20,
+      idleTimeoutMillis: 30000,
+    }
+  },
+  migration: {
+    automaticMigrations: false,
+    requireExplicitMigration: true,
+    backupBeforeMigration: true,
+  }
+};
+```
+
+## Best Practices
+
+### 1. Connection Management
+- Use connection pooling for PostgreSQL
+- Implement proper connection cleanup
+- Monitor connection health and metrics
+
+### 2. Error Handling
+- Implement retry logic for transient failures
+- Use proper error classification
+- Log errors with sufficient context
+
+### 3. Performance
+- Use appropriate indexes for query patterns
+- Implement pagination for large result sets
+- Consider read replicas for read-heavy workloads
+
+### 4. Security
+- Use parameterized queries to prevent SQL injection
+- Implement proper access controls
+- Encrypt sensitive data at rest
+
+### 5. Testing
+- Use isolated test databases
+- Implement comprehensive integration tests
+- Test migration procedures thoroughly
+
+## Conclusion
+
+The ElizaOS database system provides a robust, scalable, and type-safe foundation for agent data management. With support for both PostgreSQL and PGlite, comprehensive plugin architecture, and advanced features like vector search, it's designed to handle the complex requirements of modern AI agent systems while maintaining simplicity and developer productivity.

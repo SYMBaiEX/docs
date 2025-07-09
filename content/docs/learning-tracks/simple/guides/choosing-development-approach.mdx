@@ -1,0 +1,215 @@
+---
+title: Choosing Your Development Approach
+description: Learn when to use standalone agent projects versus monorepo development for Eliza
+---
+
+# Choosing Your Development Approach
+
+When building with Eliza, you have two primary development approaches: **standalone agent projects** and **monorepo development**. This guide will help you choose the right approach based on your needs and technical expertise.
+
+## Quick Decision Guide
+
+### Use Standalone Agent Project If You Are:
+- **A Vibecoder** focusing on character creation and personality
+- Building a single agent with specific functionality
+- New to development or prefer simpler setups
+- Working independently or in a small team
+- Prioritizing quick deployment and iteration
+- Not planning extensive custom plugin development
+
+### Use Monorepo If You Are:
+- **A Developer** building multiple agents or complex systems
+- Creating custom plugins and providers
+- Contributing to Eliza core
+- Managing multiple related projects
+- Working in a larger team with shared code
+- Need advanced tooling and dependency management
+
+## Standalone Agent Projects
+
+### What Is It?
+A standalone agent project is a separate repository containing just your agent's configuration, character files, and minimal custom code. It uses Eliza as a dependency.
+
+### Benefits
+- **Simple Setup**: Get started in minutes with minimal configuration
+- **Clear Focus**: All files relate directly to your agent
+- **Easy Deployment**: Straightforward deployment process
+- **Low Complexity**: No need to understand the entire Eliza codebase
+- **Quick Iteration**: Make changes without affecting other projects
+
+### Best For
+- Character designers and creative developers
+- Single-purpose agents (Discord bots, Twitter agents, etc.)
+- Proof of concepts and experiments
+- Learning Eliza basics
+- Projects with minimal custom code
+
+### Example Structure
+```
+my-agent/
+├── src/
+│   ├── character.json    # Agent personality
+│   └── index.ts         # Entry point
+├── .env                 # Environment variables
+├── package.json         # Dependencies
+└── README.md           # Documentation
+```
+
+### Getting Started
+```bash
+# Clone the standalone template
+git clone https://github.com/elizaos/eliza-starter my-agent
+cd my-agent
+
+# Install dependencies
+npm install
+
+# Configure your agent
+# Edit src/character.json
+
+# Run your agent
+npm start
+```
+
+## Monorepo Development
+
+### What Is It?
+Monorepo development means working within the main Eliza repository or a fork, managing multiple packages and agents in a single codebase.
+
+### Benefits
+- **Code Sharing**: Reuse components across multiple agents
+- **Unified Development**: All projects in one place
+- **Better Tooling**: Advanced build and test infrastructure
+- **Contribution Ready**: Easy to contribute back to Eliza
+- **Type Safety**: Shared TypeScript definitions
+- **Synchronized Versions**: Consistent dependency versions
+
+### Best For
+- Building multiple interconnected agents
+- Developing custom plugins and providers
+- Contributing to Eliza core
+- Enterprise deployments
+- Complex agent networks
+- Teams with multiple developers
+
+### Example Structure
+```
+eliza/
+├── packages/
+│   ├── core/           # Core Eliza functionality
+│   ├── plugins/        # Shared plugins
+│   └── client-*/       # Various clients
+├── agents/
+│   ├── agent-1/        # First agent
+│   ├── agent-2/        # Second agent
+│   └── shared/         # Shared agent code
+├── scripts/            # Build and deployment scripts
+└── package.json        # Workspace configuration
+```
+
+### Getting Started
+```bash
+# Fork and clone Eliza
+git clone https://github.com/your-username/eliza
+cd eliza
+
+# Install dependencies
+pnpm install
+
+# Create a new agent
+cd agents
+mkdir my-agent
+# ... configure your agent
+
+# Run from monorepo
+pnpm --filter my-agent dev
+```
+
+## Comparison Table
+
+| Aspect | Standalone | Monorepo |
+|--------|------------|----------|
+| **Setup Complexity** | Low | High |
+| **Learning Curve** | Gentle | Steep |
+| **Code Sharing** | Limited | Extensive |
+| **Deployment** | Simple | Complex |
+| **Version Management** | Independent | Synchronized |
+| **Custom Plugins** | Harder | Native |
+| **Team Collaboration** | Basic | Advanced |
+| **Build Times** | Fast | Slower |
+| **Testing** | Isolated | Integrated |
+| **Contributing to Core** | Difficult | Easy |
+
+## Decision Criteria
+
+### Choose Standalone When:
+1. **Single Agent Focus**: You're building one specific agent
+2. **Time Constraints**: Need to launch quickly
+3. **Limited Scope**: Not planning extensive customization
+4. **Learning Phase**: Still understanding Eliza concepts
+5. **Independent Work**: Not coordinating with other developers
+
+### Choose Monorepo When:
+1. **Multiple Agents**: Managing several related agents
+2. **Custom Development**: Building new plugins or providers
+3. **Team Project**: Multiple developers working together
+4. **Code Reuse**: Sharing logic between projects
+5. **Core Contributions**: Planning to contribute to Eliza
+
+## Migration Strategies
+
+### From Standalone to Monorepo
+1. **Evaluate Needs**: Ensure monorepo benefits outweigh complexity
+2. **Prepare Code**: Refactor for shared components
+3. **Create Fork**: Fork the Eliza repository
+4. **Move Agent**: Copy your agent into the monorepo structure
+5. **Update Dependencies**: Switch from npm packages to local references
+6. **Test Integration**: Ensure everything works in the new environment
+
+### From Monorepo to Standalone
+1. **Identify Dependencies**: List all used Eliza packages
+2. **Extract Code**: Copy agent-specific code
+3. **Setup Project**: Create new standalone repository
+4. **Install Packages**: Add Eliza as npm dependencies
+5. **Configure Build**: Set up independent build process
+6. **Test Deployment**: Verify standalone operation
+
+## Real-World Examples
+
+### Standalone Success Stories
+- **Community Discord Bot**: A vibecoder created a popular Discord agent focusing on personality and interactions
+- **Twitter Personality**: An artist built a Twitter agent representing their creative persona
+- **Customer Support Agent**: A small business deployed a simple support agent
+
+### Monorepo Success Stories
+- **Agent Network**: A development team built 10+ interconnected agents sharing custom plugins
+- **Enterprise Platform**: A company created a comprehensive AI assistant platform
+- **Open Source Project**: Contributors added new capabilities to Eliza core
+
+## Best Practices
+
+### For Standalone Projects
+- Keep character files well-documented
+- Use environment variables for configuration
+- Version control your character iterations
+- Test locally before deployment
+- Monitor resource usage
+
+### For Monorepo Development
+- Follow Eliza coding standards
+- Write comprehensive tests
+- Document shared components
+- Use workspace commands effectively
+- Coordinate with other developers
+
+## Conclusion
+
+There's no "wrong" choice between standalone and monorepo development. The best approach depends on your specific needs, technical expertise, and project goals. Start with what feels comfortable and migrate if your needs change.
+
+**Remember**: You can always start with a standalone project and move to monorepo later as your requirements grow!
+
+## Next Steps
+
+- **For Standalone**: Check out our [Quick Start Guide](/docs/learning-tracks/simple/getting-started/quick-start)
+- **For Monorepo**: Read the [Technical Architecture Overview](/docs/learning-tracks/technical/architecture/overview)
+- **Need Help?**: Join our [Discord community](https://discord.gg/eliza) for support

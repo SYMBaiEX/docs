@@ -1,8 +1,220 @@
 ---
 title: API Reference
-description: Complete API documentation
+description: Complete API documentation for ElizaOS v1.2.0
 ---
 
 # API Reference
 
-Content to be added.
+ElizaOS v1.2.0 provides a comprehensive REST API and WebSocket interface for building conversational AI applications. The API is organized into domain-based routing for better structure and maintainability.
+
+## Overview
+
+The ElizaOS API provides the following domains:
+
+- **Agents** (`/api/agents`) - Agent lifecycle management and operations
+- **Messaging** (`/api/messaging`) - Real-time messaging and communication
+- **Memory** (`/api/memory`) - Agent memory and knowledge management
+- **Audio** (`/api/audio`) - Speech processing and voice synthesis
+- **Media** (`/api/media`) - File uploads and media generation
+- **Server** (`/api/server`) - Runtime health and system monitoring
+- **System** (`/api/system`) - Environment and version information
+- **TEE** (`/api/tee`) - Trusted Execution Environment operations
+
+## Base Configuration
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Authentication
+If `ELIZA_SERVER_AUTH_TOKEN` is set, include the API key in headers:
+```http
+X-API-KEY: your-api-key
+```
+
+### Response Format
+
+All API responses follow a consistent format:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { /* endpoint-specific data */ }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+## Domain Structure
+
+### Agents API (`/api/agents`)
+
+Agent management and lifecycle operations:
+- **CRUD Operations**: `GET /`, `GET /:id`, `POST /`, `PATCH /:id`, `DELETE /:id`
+- **Lifecycle Management**: `POST /:id/start`, `POST /:id/stop`
+- **Memory Operations**: `GET /:id/memories`, `POST /:id/memories`, `DELETE /:id/memories`
+- **Room Management**: `GET /:id/rooms`, `GET /:id/rooms/:roomId`
+- **Logs and Monitoring**: `GET /:id/logs`, `GET /:id/logs/stream`
+- **Worlds and Panels**: `GET /:id/worlds`, `GET /:id/panels`
+
+### Messaging API (`/api/messaging`)
+
+Real-time messaging and communication:
+- **Core Messaging**: `POST /submit`, `POST /complete`, `POST /ingest-external`
+- **Server Management**: `GET /servers`, `POST /servers`, `GET /servers/:id`
+- **Channel Operations**: `GET /central-channels/:id/messages`, `POST /central-channels/:id/messages`
+- **Channel Management**: `POST /channels`, `GET /dm-channel`, `POST /central-channels`
+- **File Uploads**: `POST /channels/:id/upload-media`
+- **External Integration**: Support for Discord, Slack, and other platforms
+
+### Memory API (`/api/memory`)
+
+Agent memory and knowledge management:
+- **Agent Memory**: `GET /agents/:id/memories`, `POST /agents/:id/memories`
+- **Memory Search**: `GET /agents/:id/memories/search` (semantic similarity)
+- **Room Memory**: `GET /agents/:id/rooms/:roomId/memories`
+- **Group Memory**: `GET /groups`, `POST /groups`, `GET /groups/:id/memories`
+- **Memory Analytics**: `GET /agents/:id/stats`, `GET /agents/:id/insights`
+- **Import/Export**: `GET /agents/:id/export`, `POST /agents/:id/import`
+
+### Audio API (`/api/audio`)
+
+Speech processing and voice synthesis:
+- **Audio Processing**: `POST /:agentId/audio-messages`, `POST /:agentId/transcriptions`
+- **Text-to-Speech**: `POST /:agentId/synthesize`, `GET /:agentId/voices`
+- **Conversational Audio**: `POST /:agentId/conversation`, `GET /:agentId/conversation/status`
+- **Audio Buffer Management**: Real-time audio streaming support
+
+### Media API (`/api/media`)
+
+File uploads and media handling:
+- **Agent Media**: `POST /agents/:id/upload` (images, documents, audio)
+- **Channel Media**: `POST /channels/:id/upload` (shared media)
+- **File Management**: `GET /files/:id`, `DELETE /files/:id`
+- **Media Processing**: Automatic format conversion and optimization
+
+### Server API (`/api/server`)
+
+Runtime health and system monitoring:
+- **Health Checks**: `GET /ping`, `GET /health`, `GET /status`
+- **System Control**: `POST /stop`, `GET /hello`
+- **Runtime Debug**: `GET /debug/state`, `GET /debug/metrics`
+- **Log Management**: `GET /logs`, `GET /logs/stream`
+
+### System API (`/api/system`)
+
+Environment and version information:
+- **Version Info**: `GET /version` (returns server version, environment, uptime)
+- **Environment**: `GET /env` (configuration and environment variables)
+- **System Capabilities**: Runtime feature detection and availability
+
+### TEE API (`/api/tee`)
+
+Trusted Execution Environment operations:
+- **Remote Attestation**: Secure identity verification
+- **Key Derivation**: Cryptographic key management
+- **Secure Operations**: Privacy-preserving computations
+- *Note: Implementation in progress*
+
+## Key Features
+
+### Domain-Based Routing
+
+ElizaOS v1.2.0 introduces domain-based routing for better organization:
+
+```
+/api/agents/*     - Agent lifecycle, memory, and management
+/api/messaging/*  - Real-time messaging and communication
+/api/memory/*     - Agent memory and knowledge management
+/api/audio/*      - Speech processing and voice synthesis
+/api/media/*      - File uploads and media handling
+/api/server/*     - Runtime health and system monitoring
+/api/system/*     - Environment and version information
+/api/tee/*        - Trusted Execution Environment (future)
+```
+
+### Real-time Communication
+
+WebSocket support for real-time messaging:
+- Socket.IO integration
+- Real-time message broadcasting
+- Live log streaming
+- Channel management
+
+### Plugin System
+
+Extensible plugin architecture:
+- Agent-specific routes
+- Global plugin routes
+- Dynamic route registration
+- Plugin lifecycle management
+
+## Security Features
+
+- **Rate Limiting** - Request rate limiting per IP
+- **CORS Configuration** - Configurable cross-origin policies
+- **Content Security Policy** - Security headers
+- **Input Validation** - Request validation and sanitization
+- **Authentication** - Optional API key authentication
+
+## Error Handling
+
+Common error codes:
+
+| Code | Description |
+|------|-------------|
+| `INVALID_ID` | Invalid UUID format |
+| `NOT_FOUND` | Resource not found |
+| `INVALID_REQUEST` | Invalid request parameters |
+| `DB_ERROR` | Database operation failed |
+| `AUTH_REQUIRED` | Authentication required |
+| `FORBIDDEN` | Insufficient permissions |
+| `RATE_LIMITED` | Too many requests |
+| `INTERNAL_ERROR` | Server error |
+
+## Getting Started
+
+1. **Start the Server**
+   ```bash
+   npm start
+   ```
+
+2. **Test the API**
+   ```bash
+   curl http://localhost:3000/api/server/health
+   ```
+
+3. **Create an Agent**
+   ```bash
+   curl -X POST http://localhost:3000/api/agents \
+     -H "Content-Type: application/json" \
+     -d '{"characterPath": "./characters/example.json"}'
+   ```
+
+4. **Start an Agent**
+   ```bash
+   curl -X POST http://localhost:3000/api/agents/{agentId}/start
+   ```
+
+## Next Steps
+
+- [Agents API](./agents) - Agent lifecycle and management
+- [Messaging API](./messaging) - Real-time messaging and communication
+- [Memory API](./memory) - Agent memory and knowledge management
+- [Audio API](./audio) - Speech processing and voice synthesis
+- [Media API](./media) - File uploads and media handling
+- [Server API](./server) - Runtime health and system monitoring
+- [System API](./system) - Environment and version information
+- [WebSocket Events](../core-concepts/communication/websocket-events) - Real-time communication

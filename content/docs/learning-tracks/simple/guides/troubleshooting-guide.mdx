@@ -1,0 +1,834 @@
+---
+title: "Troubleshooting Guide"
+description: "Comprehensive troubleshooting guide for common ElizaOS issues including setup, development, and deployment problems"
+---
+
+# Troubleshooting Guide
+
+This guide covers common issues you might encounter while developing with ElizaOS and provides step-by-step solutions.
+
+## Quick Diagnostics
+
+Before diving into specific issues, run this quick diagnostic checklist:
+
+```bash
+# Check system requirements
+node --version    # Should be v23.3.0+
+bun --version     # Should be 1.2.15+
+git --version     # Any recent version
+
+# Check ElizaOS installation
+elizaos --version
+elizaos --help
+
+# Check project structure
+ls -la            # Verify files are present
+cat package.json  # Check dependencies
+```
+
+## Installation Issues
+
+### Issue: Permission Denied During Installation
+
+**Symptoms:**
+```bash
+npm ERR! Error: EACCES: permission denied
+```
+
+**Solutions:**
+
+1. **Use Node Version Manager (Recommended)**
+   ```bash
+   # Install nvm
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+   
+   # Restart terminal or run:
+   source ~/.bashrc
+   
+   # Install and use Node.js
+   nvm install 23.3.0
+   nvm use 23.3.0
+   
+   # Install ElizaOS CLI
+   npm install -g @elizaos/cli
+   ```
+
+2. **Fix npm permissions**
+   ```bash
+   # Create directory for global packages
+   mkdir ~/.npm-global
+   
+   # Configure npm
+   npm config set prefix '~/.npm-global'
+   
+   # Add to PATH (add to ~/.bashrc or ~/.zshrc)
+   export PATH=~/.npm-global/bin:$PATH
+   
+   # Reload shell
+   source ~/.bashrc
+   ```
+
+3. **Use npx instead**
+   ```bash
+   # Run without global installation
+   npx @elizaos/cli create -t project my-agent
+   ```
+
+### Issue: Bun Installation Fails
+
+**Symptoms:**
+```bash
+bun: command not found
+```
+
+**Solutions:**
+
+1. **Install Bun**
+   ```bash
+   # Linux/macOS
+   curl -fsSL https://bun.sh/install | bash
+   
+   # Windows (PowerShell)
+   irm bun.sh/install.ps1 | iex
+   
+   # Restart terminal or run:
+   source ~/.bashrc
+   ```
+
+2. **Verify installation**
+   ```bash
+   bun --version
+   which bun
+   ```
+
+3. **Manual PATH setup**
+   ```bash
+   # Add to ~/.bashrc or ~/.zshrc
+   export PATH="$HOME/.bun/bin:$PATH"
+   source ~/.bashrc
+   ```
+
+### Issue: Node.js Version Mismatch
+
+**Symptoms:**
+```bash
+engine "node" is incompatible with this module
+```
+
+**Solutions:**
+
+1. **Update Node.js**
+   ```bash
+   # Using nvm
+   nvm install 23.3.0
+   nvm use 23.3.0
+   nvm alias default 23.3.0
+   
+   # Or download from nodejs.org
+   ```
+
+2. **Check current version**
+   ```bash
+   node --version
+   npm --version
+   ```
+
+## Project Creation Issues
+
+### Issue: Project Template Not Found
+
+**Symptoms:**
+```bash
+Error: Template 'project' not found
+```
+
+**Solutions:**
+
+1. **Update CLI to latest version**
+   ```bash
+   npm update -g @elizaos/cli
+   elizaos --version
+   ```
+
+2. **Use full template name**
+   ```bash
+   elizaos create -t project-starter my-agent
+   ```
+
+3. **Manual template download**
+   ```bash
+   git clone https://github.com/elizaos/eliza.git
+   cp -r eliza/packages/project-starter my-agent
+   cd my-agent
+   bun install
+   ```
+
+### Issue: Dependencies Installation Fails
+
+**Symptoms:**
+```bash
+bun install failed
+error: package not found
+```
+
+**Solutions:**
+
+1. **Clear cache and reinstall**
+   ```bash
+   rm -rf node_modules
+   rm bun.lockb
+   bun install
+   ```
+
+2. **Check network connection**
+   ```bash
+   # Test npm registry access
+   npm ping
+   
+   # Use different registry if needed
+   npm config set registry https://registry.npmjs.org/
+   ```
+
+3. **Use npm as fallback**
+   ```bash
+   npm install
+   ```
+
+## Development Issues
+
+### Issue: Agent Won't Start
+
+**Symptoms:**
+```bash
+Error: Cannot find module '@elizaos/core'
+```
+
+**Solutions:**
+
+1. **Install dependencies**
+   ```bash
+   bun install
+   ```
+
+2. **Build the project**
+   ```bash
+   bun run build
+   ```
+
+3. **Check environment variables**
+   ```bash
+   # Copy example file
+   cp .env.example .env
+   
+   # Edit with your values
+   nano .env
+   ```
+
+4. **Verify file structure**
+   ```bash
+   ls -la src/
+   # Should contain index.ts and character.ts
+   ```
+
+### Issue: Hot Reload Not Working
+
+**Symptoms:**
+- Changes not reflected automatically
+- Need to restart manually
+
+**Solutions:**
+
+1. **Use correct development command**
+   ```bash
+   # Use dev command for hot reload
+   elizaos dev
+   
+   # NOT elizaos start
+   ```
+
+2. **Check file watchers**
+   ```bash
+   # Linux: Increase file watcher limit
+   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+   sudo sysctl -p
+   ```
+
+3. **Verify TypeScript compilation**
+   ```bash
+   # Check for TypeScript errors
+   bun run type-check
+   ```
+
+### Issue: Environment Variables Not Loading
+
+**Symptoms:**
+```bash
+Error: Missing required environment variable
+```
+
+**Solutions:**
+
+1. **Check .env file exists**
+   ```bash
+   ls -la .env
+   cat .env
+   ```
+
+2. **Verify .env format**
+   ```bash
+   # .env file should have:
+   OPENAI_API_KEY=your_key_here
+   # NOT: OPENAI_API_KEY="your_key_here"
+   ```
+
+3. **Check file permissions**
+   ```bash
+   chmod 600 .env
+   ```
+
+4. **Restart development server**
+   ```bash
+   # Stop with Ctrl+C
+   elizaos dev
+   ```
+
+## API Integration Issues
+
+### Issue: OpenAI API Errors
+
+**Symptoms:**
+```bash
+Error: 401 Unauthorized
+Error: Rate limit exceeded
+```
+
+**Solutions:**
+
+1. **Verify API key**
+   ```bash
+   # Test API key
+   curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+     https://api.openai.com/v1/models
+   ```
+
+2. **Check API quota**
+   ```bash
+   # Login to OpenAI dashboard
+   # Check usage and billing
+   ```
+
+3. **Handle rate limits**
+   ```typescript
+   // Add retry logic
+   const response = await openai.chat.completions.create({
+     model: "gpt-3.5-turbo",
+     messages: [...],
+     max_tokens: 150,
+     timeout: 30000
+   });
+   ```
+
+### Issue: Discord Bot Not Responding
+
+**Symptoms:**
+- Bot appears online but doesn't respond
+- No error messages
+
+**Solutions:**
+
+1. **Check bot permissions**
+   ```bash
+   # Bot needs these permissions:
+   # - Read Messages
+   # - Send Messages
+   # - Use Slash Commands
+   ```
+
+2. **Verify bot token**
+   ```bash
+   # Check token in Discord Developer Portal
+   # Regenerate if necessary
+   ```
+
+3. **Check intents**
+   ```typescript
+   // Ensure proper intents are enabled
+   const client = new Client({
+     intents: [
+       GatewayIntentBits.Guilds,
+       GatewayIntentBits.GuildMessages,
+       GatewayIntentBits.MessageContent
+     ]
+   });
+   ```
+
+4. **Debug message handling**
+   ```typescript
+   client.on('messageCreate', (message) => {
+     console.log('Received message:', message.content);
+     // Add debug logging
+   });
+   ```
+
+## Build and Deployment Issues
+
+### Issue: Build Failures
+
+**Symptoms:**
+```bash
+Build failed with exit code 1
+TypeScript errors
+```
+
+**Solutions:**
+
+1. **Check TypeScript configuration**
+   ```bash
+   # Verify tsconfig.json exists
+   cat tsconfig.json
+   
+   # Check for syntax errors
+   bun run type-check
+   ```
+
+2. **Fix import errors**
+   ```typescript
+   // Use correct imports
+   import { Plugin } from '@elizaos/core';
+   // NOT: import { Plugin } from 'elizaos';
+   ```
+
+3. **Clear build cache**
+   ```bash
+   rm -rf dist/
+   rm -rf .turbo/
+   bun run build
+   ```
+
+4. **Check for missing dependencies**
+   ```bash
+   bun install
+   ```
+
+### Issue: Deployment Failures
+
+**Symptoms:**
+```bash
+Deployment failed
+Application not starting
+```
+
+**Solutions:**
+
+1. **Check production environment**
+   ```bash
+   # Set production environment
+   NODE_ENV=production
+   
+   # Check start script
+   npm run start
+   ```
+
+2. **Verify environment variables**
+   ```bash
+   # Check all required variables are set
+   printenv | grep -E "(OPENAI|DISCORD|TWITTER)"
+   ```
+
+3. **Test locally in production mode**
+   ```bash
+   bun run build
+   NODE_ENV=production bun start
+   ```
+
+4. **Check platform-specific logs**
+   ```bash
+   # Railway
+   railway logs
+   
+   # Vercel
+   vercel logs
+   
+   # Heroku
+   heroku logs --tail
+   ```
+
+## Performance Issues
+
+### Issue: High Memory Usage
+
+**Symptoms:**
+- Application crashes with out-of-memory errors
+- Slow response times
+
+**Solutions:**
+
+1. **Monitor memory usage**
+   ```bash
+   # Check memory usage
+   top -p $(pgrep node)
+   
+   # Or use htop
+   htop
+   ```
+
+2. **Implement memory limits**
+   ```javascript
+   // PM2 configuration
+   module.exports = {
+     apps: [{
+       name: 'eliza-agent',
+       script: 'dist/index.js',
+       max_memory_restart: '1G'
+     }]
+   };
+   ```
+
+3. **Optimize memory usage**
+   ```typescript
+   // Clear unused variables
+   let largeObject = null;
+   
+   // Use streaming for large responses
+   const stream = await openai.chat.completions.create({
+     model: "gpt-3.5-turbo",
+     messages: [...],
+     stream: true
+   });
+   ```
+
+### Issue: Slow Response Times
+
+**Symptoms:**
+- Long delays in bot responses
+- Timeout errors
+
+**Solutions:**
+
+1. **Optimize API calls**
+   ```typescript
+   // Use shorter prompts
+   const response = await openai.chat.completions.create({
+     model: "gpt-3.5-turbo",
+     messages: trimMessages(messages),
+     max_tokens: 150
+   });
+   ```
+
+2. **Implement caching**
+   ```typescript
+   // Cache frequent responses
+   const cache = new Map();
+   
+   function getCachedResponse(key: string) {
+     if (cache.has(key)) {
+       return cache.get(key);
+     }
+     // Generate response and cache
+   }
+   ```
+
+3. **Use async/await properly**
+   ```typescript
+   // Parallel execution
+   const [response1, response2] = await Promise.all([
+     api.call1(),
+     api.call2()
+   ]);
+   ```
+
+## Database Issues
+
+### Issue: Database Connection Failures
+
+**Symptoms:**
+```bash
+Error: connect ECONNREFUSED
+Database connection timeout
+```
+
+**Solutions:**
+
+1. **Check database configuration**
+   ```bash
+   # Verify database URL
+   echo $DATABASE_URL
+   
+   # Test connection
+   psql $DATABASE_URL -c "SELECT 1;"
+   ```
+
+2. **Check database service**
+   ```bash
+   # Local PostgreSQL
+   sudo systemctl status postgresql
+   sudo systemctl start postgresql
+   
+   # Docker
+   docker ps | grep postgres
+   ```
+
+3. **Verify credentials**
+   ```bash
+   # Check database credentials
+   # Update .env with correct values
+   ```
+
+### Issue: Migration Failures
+
+**Symptoms:**
+```bash
+Migration failed
+Table already exists
+```
+
+**Solutions:**
+
+1. **Check migration status**
+   ```bash
+   elizaos migrate status
+   ```
+
+2. **Reset migrations**
+   ```bash
+   # WARNING: This will delete all data
+   elizaos migrate reset
+   elizaos migrate
+   ```
+
+3. **Manual migration**
+   ```bash
+   # Run specific migration
+   elizaos migrate up
+   ```
+
+## Plugin Development Issues
+
+### Issue: Plugin Not Loading
+
+**Symptoms:**
+- Plugin appears in list but doesn't work
+- No error messages
+
+**Solutions:**
+
+1. **Check plugin export**
+   ```typescript
+   // Ensure proper export
+   export default myPlugin;
+   
+   // Verify plugin structure
+   const myPlugin: Plugin = {
+     name: 'my-plugin',
+     version: '1.0.0',
+     actions: [...],
+     providers: [...],
+     evaluators: [...]
+   };
+   ```
+
+2. **Verify plugin registration**
+   ```typescript
+   // Check plugin is added to runtime
+   const runtime = createRuntime({
+     plugins: [myPlugin]
+   });
+   ```
+
+3. **Check for naming conflicts**
+   ```bash
+   # Ensure unique plugin names
+   elizaos plugins list
+   ```
+
+### Issue: Plugin Dependencies
+
+**Symptoms:**
+```bash
+Cannot resolve module
+Plugin dependencies not found
+```
+
+**Solutions:**
+
+1. **Install plugin dependencies**
+   ```bash
+   bun install plugin-dependencies
+   ```
+
+2. **Check peer dependencies**
+   ```json
+   {
+     "peerDependencies": {
+       "@elizaos/core": "^1.0.0"
+     }
+   }
+   ```
+
+3. **Verify plugin structure**
+   ```bash
+   # Check plugin directory structure
+   ls -la packages/plugin-name/
+   ```
+
+## Testing Issues
+
+### Issue: Tests Failing
+
+**Symptoms:**
+```bash
+Tests failed
+Timeout errors
+```
+
+**Solutions:**
+
+1. **Run tests individually**
+   ```bash
+   # Run specific test
+   bun test __tests__/plugin.test.ts
+   
+   # Run with verbose output
+   bun test --verbose
+   ```
+
+2. **Check test environment**
+   ```bash
+   # Ensure test environment variables
+   cp .env.example .env.test
+   ```
+
+3. **Increase test timeout**
+   ```typescript
+   // In test file
+   describe('Plugin tests', () => {
+     it('should work', async () => {
+       // Test implementation
+     }, 30000); // 30 second timeout
+   });
+   ```
+
+## Debugging Tools
+
+### Enable Debug Logging
+
+```bash
+# Enable verbose logging
+LOG_LEVEL=debug elizaos dev
+
+# Enable Node.js debug
+DEBUG=* elizaos dev
+```
+
+### Use Development Tools
+
+```bash
+# Check TypeScript compilation
+bun run type-check
+
+# Lint code
+bun run lint
+
+# Format code
+bun run format
+```
+
+### Monitor System Resources
+
+```bash
+# Check system resources
+htop
+df -h
+
+# Monitor network
+netstat -tulpn
+```
+
+## Getting Help
+
+### Information to Collect
+
+Before seeking help, gather:
+
+1. **System information**
+   ```bash
+   node --version
+   bun --version
+   elizaos --version
+   uname -a
+   ```
+
+2. **Error messages**
+   ```bash
+   # Copy full error output
+   # Include stack traces
+   ```
+
+3. **Configuration files**
+   ```bash
+   # Share (without secrets):
+   # - package.json
+   # - tsconfig.json
+   # - .env.example
+   ```
+
+### Where to Get Help
+
+1. **Documentation**: Search these docs first
+2. **Discord**: Join the ElizaOS Discord server
+3. **GitHub Issues**: Report bugs or feature requests
+4. **Community Forums**: Ask questions and share solutions
+
+### Creating Good Bug Reports
+
+Include:
+- Clear description of the issue
+- Steps to reproduce
+- Expected vs actual behavior
+- System information
+- Relevant code snippets
+- Error messages and logs
+
+## Prevention Tips
+
+### Best Practices
+
+1. **Keep dependencies updated**
+   ```bash
+   bun update
+   ```
+
+2. **Use version control**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   ```
+
+3. **Test locally before deploying**
+   ```bash
+   bun run build
+   bun run test
+   ```
+
+4. **Monitor application health**
+   ```bash
+   # Set up monitoring
+   # Check logs regularly
+   ```
+
+5. **Backup important data**
+   ```bash
+   # Backup database
+   # Backup configuration
+   ```
+
+### Development Workflow
+
+1. **Start with templates**
+2. **Test changes incrementally**
+3. **Use linting and formatting**
+4. **Write tests for new features**
+5. **Document your changes**
+
+This troubleshooting guide should help you resolve most common issues. If you encounter something not covered here, please contribute to the documentation or ask for help in the community! 🚀

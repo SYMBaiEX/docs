@@ -1,0 +1,586 @@
+---
+title: CLI Tools
+description: Complete guide to ElizaOS CLI commands and development utilities with actual implementation details
+---
+
+# CLI Tools
+
+The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to manage your ElizaOS projects and plugins, from local development to cloud deployment. It includes:
+
+- Project scaffolding and initialization
+- Plugin development and management
+- Agent lifecycle management
+- Development environment tools
+- Testing infrastructure
+- Publishing and deployment utilities
+
+## CLI Architecture
+
+The CLI is built with a command-based architecture located in `/home/cid/eliza/packages/cli/src/commands/`:
+
+```
+commands/
+├── agent/          # Agent lifecycle management
+├── create/         # Project creation
+├── dev/            # Development server
+├── env/            # Environment management
+├── monorepo/       # Monorepo setup
+├── plugins/        # Plugin management
+├── publish/        # Publishing utilities
+├── shared/         # Shared utilities
+├── start/          # Server startup
+├── tee/            # TEE integration
+├── test/           # Testing framework
+└── update/         # Update management
+```
+
+## Command Implementation Details
+
+### Create Command
+
+The create command uses actual templates from the codebase:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/create/actions/creators.ts
+export async function createProject(options: CreateProjectOptions) {
+  const { name, dir, type, skipPrompts } = options;
+  
+  // Template selection logic
+  const templateMap = {
+    'project': 'project-starter',
+    'plugin': 'plugin-starter',
+    'agent': 'agent-starter',
+    'tee': 'tee-starter'
+  };
+  
+  const template = templateMap[type] || 'project-starter';
+  
+  // Copy template with replacements
+  await copyTemplate(template, targetDir, {
+    replacements: {
+      PROJECTNAME: name,
+      DESCRIPTION: `A new ElizaOS ${type}`,
+      AUTHOR: await getGitUser(),
+      YEAR: new Date().getFullYear().toString()
+    }
+  });
+  
+  // Post-creation setup
+  await setupProject(targetDir, type);
+}
+```
+
+### Test Command
+
+The test command implements comprehensive testing as shown in the actual implementation:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/test/actions/component-tests.ts
+export async function runComponentTests(
+  testPath: string | undefined,
+  options: TestCommandOptions,
+  projectInfo: ProjectInfo
+): Promise<TestResult> {
+  const { name, skipBuild, port } = options;
+  
+  // TypeScript validation
+  const tscValidator = new TypeScriptValidator();
+  const validationResult = await tscValidator.validate(testPath);
+  
+  if (!validationResult.success) {
+    logger.error('TypeScript validation failed');
+    return { success: false, failed: true };
+  }
+  
+  // Run Bun tests
+  const testCommand = ['bun', 'test'];
+  if (name) testCommand.push('--grep', name);
+  if (port) testCommand.push('--port', port.toString());
+  
+  const result = await runCommand(testCommand, { cwd: testPath });
+  
+  return {
+    success: result.exitCode === 0,
+    failed: result.exitCode !== 0,
+    output: result.stdout + result.stderr
+  };
+}
+```
+
+## Installation
+
+```bash
+# Install globally
+bun install -g @elizaos/cli
+
+# Or use with npx
+npx @elizaos/cli create my-project
+```
+
+### Automatic Bun Installation
+
+The CLI automatically installs [Bun](https://bun.sh) if not present:
+
+- ✅ Cross-platform support (Windows, macOS, Linux)
+- ✅ PATH configuration for current session
+- ✅ CI environment detection
+- ✅ Can be disabled with `--no-auto-install`
+
+## Global Options
+
+Available for all commands:
+
+- `--no-emoji` - Disable emoji output
+- `--no-auto-install` - Disable automatic Bun installation
+- `-v, --version` - Show CLI version
+- `-h, --help` - Display help
+
+## Command Reference
+
+### Creating Projects
+
+The `create` command scaffolds new projects, plugins, agents, or TEE projects:
+
+```bash
+elizaos create [name] [options]
+```
+
+**Options:**
+- `--dir <dir>` - Target directory (default: `.`)
+- `--yes, -y` - Skip prompts, use defaults
+- `--type <type>` - Type: 'project', 'plugin', 'agent', 'tee'
+
+**Project Types:**
+
+1. **Project** - Full ElizaOS application with runtime
+2. **Plugin** - Extend ElizaOS functionality
+3. **Agent** - Character definition file
+4. **TEE** - Trusted Execution Environment project
+
+### Development Mode
+
+Run projects with auto-rebuild and hot reload:
+
+```bash
+elizaos dev [options]
+```
+
+**Options:**
+- `-c, --configure` - Reconfigure services
+- `--character [paths...]` - Character files to load
+- `-b, --build` - Build before starting
+- `-p, --port <port>` - Server port
+
+**Features:**
+- File change detection with auto-restart
+- Detailed logging
+- Multiple character support
+- URL-based character loading
+
+### Plugin Management
+
+Manage ElizaOS plugins with the `plugins` command:
+
+```bash
+# List available plugins
+elizaos plugins list [--all] [--v0]
+
+# Add a plugin
+elizaos plugins add <plugin-name> [options]
+
+# Remove a plugin
+elizaos plugins remove <plugin-name>
+
+# List installed plugins
+elizaos plugins installed-plugins
+
+# Upgrade v0.x to v1.x
+elizaos plugins upgrade <path> [options]
+
+# Generate new plugin with AI
+elizaos plugins generate [options]
+```
+
+**Add Plugin Options:**
+- `-s, --skip-env-prompt` - Skip environment setup
+- `--skip-verification` - Skip import verification
+- `-b, --branch <name>` - Source branch
+- `-T, --tag <name>` - Specific tag
+
+### Agent Management
+
+Control agent lifecycle:
+
+```bash
+# List agents
+elizaos agent list [--json] [--remote-url <url>]
+
+# Get agent details
+elizaos agent get --name <name> [--output <file>]
+
+# Start an agent
+elizaos agent start [--name <name>] [--path <file>]
+
+# Stop agent(s)
+elizaos agent stop --name <name>
+elizaos agent stop --all
+
+# Update configuration
+elizaos agent set --name <name> --config <json>
+```
+
+**Agent Start Options:**
+- `--path <path>` - Local character file
+- `--remote-character <url>` - Remote character URL
+- `-r, --remote-url <url>` - Runtime URL
+- `-p, --port <port>` - Server port
+
+### Starting Servers
+
+Start the Eliza agent server:
+
+```bash
+elizaos start [options]
+```
+
+**Options:**
+- `-c, --configure` - Force reconfiguration
+- `--character [paths...]` - Character files
+- `-b, --build` - Build before starting
+- `-p, --port <port>` - Server port
+
+**Character Loading:**
+```bash
+# Multiple files
+elizaos start --character char1.json char2.json
+
+# URLs supported
+elizaos start --character https://example.com/char.json
+
+# Extension optional
+elizaos start --character myagent
+```
+
+### Testing
+
+Comprehensive testing framework:
+
+```bash
+# Run all tests
+elizaos test [path]
+
+# Run specific test type
+elizaos test --type component
+elizaos test --type e2e
+
+# Test options
+elizaos test --name <pattern>
+elizaos test --skip-build
+elizaos test --port <port>
+```
+
+**Test Types:**
+- **Component** - Unit and integration tests
+- **E2E** - End-to-end runtime tests
+- **All** - Both component and E2E
+
+### Environment Management
+
+Manage environment variables:
+
+```bash
+# List variables
+elizaos env list [--local]
+
+# Edit local .env
+elizaos env edit-local
+
+# Reset environment
+elizaos env reset [--yes]
+
+# Interactive manager
+elizaos env interactive
+```
+
+### Publishing
+
+Publish plugins to registry:
+
+```bash
+# Full publish (npm + GitHub + registry)
+elizaos publish
+
+# Test mode
+elizaos publish --test
+
+# npm only
+elizaos publish --npm
+
+# Generate files locally
+elizaos publish --dry-run
+```
+
+**Publishing Requirements:**
+- Valid `package.json`
+- Logo image (400x400px)
+- Banner image (1280x640px)
+- `agentConfig` section
+
+### Updates
+
+Keep CLI and dependencies current:
+
+```bash
+# Update everything
+elizaos update
+
+# Check updates only
+elizaos update --check
+
+# Update CLI only
+elizaos update --cli
+
+# Update packages only
+elizaos update --packages
+```
+
+### Monorepo Setup
+
+Clone the ElizaOS monorepo:
+
+```bash
+elizaos monorepo [options]
+```
+
+**Options:**
+- `-b, --branch <branch>` - Source branch (default: develop)
+- `-d, --dir <directory>` - Target directory
+
+## Development Utilities
+
+### Auto Documentation
+
+The `@elizaos/autodoc` package generates documentation automatically:
+
+```typescript
+// Analyzes TypeScript/JavaScript code
+// Generates JSDoc comments with AI
+// Creates comprehensive documentation
+// Manages pull requests for docs
+```
+
+**Features:**
+- TypeScript AST parsing
+- AI-powered documentation generation
+- Git integration
+- Plugin documentation
+- Environment variable detection
+
+### Project Structure
+
+Generated projects follow this structure:
+
+```
+my-project/
+├── src/
+│   ├── index.ts       # Main entry point
+│   ├── character.ts   # Agent character definition
+│   └── plugin.ts      # Custom plugin code
+├── data/              # Data storage
+├── tests/             # Test files
+├── package.json       # Project configuration
+└── tsconfig.json      # TypeScript config
+```
+
+### Plugin Structure
+
+Plugins have a specific structure:
+
+```
+plugin-name/
+├── src/
+│   └── index.ts       # Plugin definition
+├── images/
+│   ├── logo.jpg       # 400x400px
+│   └── banner.jpg     # 1280x640px
+├── tests/
+├── package.json       # With agentConfig
+└── README.md
+```
+
+## Testing Infrastructure
+
+### Test Types
+
+1. **Unit Tests** - Component-level testing
+2. **Integration Tests** - Plugin integration
+3. **E2E Tests** - Full runtime testing
+4. **BATS Tests** - Shell script testing
+
+### Test Utilities
+
+```typescript
+// Test runner with timeout management
+// Port allocation for parallel tests
+// Process cleanup on failure
+// TypeScript validation
+// Coverage reporting
+```
+
+### Running Tests
+
+```bash
+# Unit tests
+bun test
+
+# Integration tests
+elizaos test --type component
+
+# E2E tests
+elizaos test --type e2e --port 4000
+
+# BATS tests
+bun run test:bats
+```
+
+## Build System
+
+### TypeScript Build
+
+Uses `tsup` for fast builds:
+
+```typescript
+// Zero-config TypeScript builds
+// ESM output by default
+// Source maps included
+// Type definitions generated
+```
+
+### Client Build
+
+Frontend builds with Vite:
+
+```bash
+# Development with HMR
+elizaos dev
+
+# Production build
+elizaos start --build
+```
+
+## Scripts and Automation
+
+### Development Scripts
+
+- `dev-watch.js` - Orchestrates development environment
+- `test.sh` - Comprehensive test runner
+- `docker.sh` - Container management
+- `update-news.sh` - News aggregation
+
+### Build Scripts
+
+- `copy-templates.js` - Template management
+- `copy-client-dist.ts` - Client distribution
+- `async-optimizer.js` - Code optimization
+
+## Best Practices
+
+### Development Workflow
+
+1. **Create Project**
+   ```bash
+   elizaos create my-project
+   cd my-project
+   ```
+
+2. **Install Plugins**
+   ```bash
+   elizaos plugins add @elizaos/plugin-openai
+   ```
+
+3. **Development**
+   ```bash
+   elizaos dev
+   ```
+
+4. **Testing**
+   ```bash
+   elizaos test
+   ```
+
+5. **Production**
+   ```bash
+   elizaos start
+   ```
+
+### Plugin Development
+
+1. **Create Plugin**
+   ```bash
+   elizaos create my-plugin --type plugin
+   ```
+
+2. **Implement Plugin**
+   ```typescript
+   export const myPlugin: Plugin = {
+     name: 'plugin-my-plugin',
+     description: 'Description',
+     config: {
+       API_KEY: process.env.MY_API_KEY,
+     },
+     async init(config) {
+       // Plugin logic
+     }
+   };
+   ```
+
+3. **Test Plugin**
+   ```bash
+   elizaos test
+   ```
+
+4. **Publish**
+   ```bash
+   elizaos publish
+   ```
+
+### CI/CD Integration
+
+```yaml
+# GitHub Actions example
+- name: Install ElizaOS CLI
+  run: bun install -g @elizaos/cli
+
+- name: Run tests
+  run: elizaos test --skip-build
+
+- name: Build project
+  run: elizaos start --build
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Bun Installation**
+   - Use `--no-auto-install` in CI
+   - Manual install: `curl -fsSL https://bun.sh/install | bash`
+
+2. **Port Conflicts**
+   - Use custom ports: `elizaos dev --port 4000`
+   - Check running processes: `elizaos agent stop --all`
+
+3. **Plugin Loading**
+   - Verify installation: `elizaos plugins installed-plugins`
+   - Check imports in character file
+
+4. **Test Failures**
+   - Clean state: `elizaos env reset`
+   - Rebuild: `elizaos start --build`
+
+## Related Documentation
+
+- [Plugin System](/docs/core-concepts/architecture/plugin-system)
+- [Testing Guide](/docs/core-concepts/infrastructure/testing)
+- [Environment Configuration](/docs/core-concepts/infrastructure/environment-config)
+- [Project Structure](/docs/core-concepts/architecture/project-structure)

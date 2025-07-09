@@ -1,0 +1,406 @@
+---
+title: Client-Server Architecture
+description: Understanding ElizaOS's client-server implementation with REST API and real-time communication
+---
+
+## Overview
+
+ElizaOS implements a robust client-server architecture that combines RESTful APIs for structured data operations with WebSocket-based real-time communication for instant messaging and event streaming. The architecture is designed to support multiple concurrent agents, scalable deployment, and flexible client integrations.
+
+## Architecture Components
+
+### Server Architecture (`@elizaos/server`)
+
+The server is built using Express.js and Socket.IO, providing both HTTP REST endpoints and WebSocket connections:
+
+```typescript
+export class AgentServer {
+  public app: express.Application;
+  private agents: Map<UUID, IAgentRuntime>;
+  public server: http.Server;
+  public socketIO: SocketIOServer;
+  public database: DatabaseAdapter;
+  
+  // Server lifecycle methods
+  public async initialize(options?: ServerOptions): Promise<void>
+  public async start(port: number): Promise<void>
+  public async stop(): Promise<void>
+}
+```
+
+### Client Architecture (`@elizaos/client`)
+
+The client is a React-based web application using:
+- **React 19.1.0** with TypeScript
+- **React Query** for server state management
+- **Socket.IO Client** for real-time communication
+- **Tailwind CSS v4** for styling
+
+### API Client Library (`@elizaos/api-client`)
+
+A TypeScript library providing programmatic access to all server endpoints:
+
+```typescript
+export class ElizaClient {
+  public readonly agents: AgentsService;
+  public readonly messaging: MessagingService;
+  public readonly memory: MemoryService;
+  public readonly audio: AudioService;
+  public readonly media: MediaService;
+  public readonly server: ServerService;
+  public readonly system: SystemService;
+}
+```
+
+## Server Implementation
+
+### Initialization and Setup
+
+The server initializes with database connections, middleware configuration, and service registration:
+
+```typescript
+// Server initialization
+const server = new AgentServer();
+await server.initialize({
+  dataDir: './data',
+  middlewares: [customMiddleware],
+  postgresUrl: process.env.DATABASE_URL
+});
+
+// Start server
+await server.start(3000);
+```
+
+### Middleware Stack
+
+The server implements a comprehensive middleware stack:
+
+1. **Security Headers** (Helmet.js)
+   - Content Security Policy (environment-aware)
+   - XSS Protection
+   - Frame Options
+   - HSTS (production only)
+
+2. **CORS Configuration**
+   - Configurable origins
+   - Credential support
+   - Preflight caching
+
+3. **Authentication** (Optional)
+   - API Key authentication via `X-API-KEY` header
+   - Configured through `ELIZA_SERVER_AUTH_TOKEN`
+
+4. **Rate Limiting**
+   - Prevents API abuse
+   - Configurable limits per endpoint
+
+5. **Request Parsing**
+   - JSON body parsing with size limits
+   - Multipart form data for file uploads
+
+### REST API Structure
+
+The API is organized into domain-specific routers:
+
+```
+/api
+├── /agents         # Agent management
+├── /messaging      # Messages and channels
+├── /memory         # Agent memory operations
+├── /audio          # Audio processing
+├── /media          # File uploads and serving
+├── /server         # Runtime management
+├── /system         # System configuration
+└── /tee            # Trusted Execution Environment
+```
+
+### WebSocket Implementation
+
+Real-time communication is handled through Socket.IO:
+
+```typescript
+export class SocketIORouter {
+  private agents: Map<UUID, IAgentRuntime>;
+  private connections: Map<string, UUID>;
+  private serverInstance: AgentServer;
+  
+  setupListeners(io: SocketIOServer) {
+    io.on('connection', (socket: Socket) => {
+      this.handleNewConnection(socket, io);
+    });
+  }
+}
+```
+
+## Client Implementation
+
+### Application Structure
+
+The client uses a provider-based architecture:
+
+```tsx
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ConnectionProvider>
+            <AppContent />
+          </ConnectionProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}
+```
+
+### State Management
+
+- **React Query**: Server state synchronization
+- **Context API**: Authentication and connection state
+- **Local State**: UI state and optimistic updates
+
+### Real-time Communication
+
+The client manages WebSocket connections through a singleton:
+
+```typescript
+export class SocketIOManager extends EventAdapter {
+  private static instance: SocketIOManager | null = null;
+  private socket: Socket | null = null;
+  
+  public async joinChannel(channelId: string): Promise<void>
+  public async sendMessage(
+    message: string,
+    channelId: string,
+    serverId: string,
+    source: string
+  ): Promise<void>
+}
+```
+
+## Communication Patterns
+
+### REST API Communication
+
+All REST endpoints follow a consistent response format:
+
+```typescript
+// Success response
+{
+  "success": true,
+  "data": { /* response data */ }
+}
+
+// Error response
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": "Additional error details"
+  }
+}
+```
+
+### WebSocket Events
+
+The system uses typed events for real-time communication:
+
+```typescript
+// Client to Server Events
+- ROOM_JOINING: Join a channel
+- SEND_MESSAGE: Send a message
+- subscribe_logs: Subscribe to log streaming
+
+// Server to Client Events
+- messageBroadcast: New message in channel
+- messageComplete: Message processing complete
+- controlMessage: UI control commands
+- log_stream: Real-time log entries
+```
+
+### Message Flow
+
+1. **Client sends message** via WebSocket
+2. **Server validates** and stores in database
+3. **Message broadcast** to channel participants
+4. **Agent processing** through internal message bus
+5. **Agent response** broadcast to channel
+
+## Authentication and Security
+
+### API Authentication
+
+Optional API key authentication:
+
+```typescript
+// Server configuration
+process.env.ELIZA_SERVER_AUTH_TOKEN = "your-secret-key"
+
+// Client usage
+const client = new ElizaClient({
+  baseUrl: 'http://localhost:3000',
+  apiKey: 'your-secret-key'
+});
+```
+
+### Security Features
+
+- CORS protection with configurable origins
+- Rate limiting on API endpoints
+- Content Security Policy
+- XSS and injection protection
+- Secure file upload handling
+
+## Message Bus Architecture
+
+The server implements an internal message bus for agent communication:
+
+```typescript
+class InternalMessageBus extends EventEmitter {}
+const internalMessageBus = new InternalMessageBus();
+```
+
+This enables:
+- Decoupled agent-server communication
+- Event-driven message processing
+- Scalable message distribution
+- Plugin integration points
+
+## File Handling
+
+### Upload Management
+
+Files are organized by agent and type:
+
+```
+.eliza/data/
+├── uploads/
+│   ├── agents/
+│   │   └── {agentId}/
+│   └── channels/
+│       └── {channelId}/
+└── generated/
+    └── {agentId}/
+```
+
+### Media Serving
+
+Static file serving with security:
+- UUID validation for paths
+- Agent-specific access control
+- Proper MIME type handling
+
+## Error Handling
+
+### Client-Side Error Handling
+
+```typescript
+try {
+  const result = await elizaClient.agents.listAgents();
+} catch (error) {
+  if (error instanceof ApiError) {
+    console.error(`API Error [${error.code}]: ${error.message}`);
+  }
+}
+```
+
+### Server-Side Error Handling
+
+- Graceful error responses
+- Detailed logging
+- Error recovery mechanisms
+- Circuit breaker patterns
+
+## Performance Optimization
+
+### Client Optimizations
+
+- Query result caching with stale times
+- Optimistic UI updates
+- Connection pooling
+- Lazy loading of components
+
+### Server Optimizations
+
+- Database connection pooling
+- Efficient message routing
+- Resource cleanup on shutdown
+- Memory leak prevention
+
+## Deployment Considerations
+
+### Environment Configuration
+
+```bash
+# Server configuration
+NODE_ENV=production
+ELIZA_SERVER_AUTH_TOKEN=your-secret
+EXPRESS_MAX_PAYLOAD=2mb
+CORS_ORIGIN=https://your-domain.com
+
+# UI configuration
+ELIZA_UI_ENABLE=false  # Disable UI in production
+```
+
+### Scaling Strategies
+
+1. **Horizontal Scaling**: Multiple server instances
+2. **Load Balancing**: Distribute client connections
+3. **Message Queue**: Replace internal bus for multi-instance
+4. **Database Scaling**: Read replicas and sharding
+
+## Best Practices
+
+### Server Development
+
+1. Use typed endpoints with proper validation
+2. Implement comprehensive error handling
+3. Add appropriate logging for debugging
+4. Follow RESTful conventions
+5. Secure all file operations
+
+### Client Development
+
+1. Handle connection states gracefully
+2. Implement retry logic for failed requests
+3. Use optimistic updates for better UX
+4. Cache appropriately with React Query
+5. Clean up WebSocket listeners
+
+### API Client Usage
+
+```typescript
+// Initialize client
+const client = new ElizaClient({
+  baseUrl: 'http://localhost:3000',
+  apiKey: process.env.API_KEY,
+  timeout: 30000
+});
+
+// Use typed services
+const agents = await client.agents.listAgents();
+const messages = await client.messaging.getMessages(channelId);
+```
+
+## Debugging and Monitoring
+
+### Server Logging
+
+```typescript
+logger.info('[API] Request received', { method, path });
+logger.error('[WebSocket] Connection error', error);
+logger.debug('[Message Bus] Event emitted', { event, data });
+```
+
+### Client Debugging
+
+- Browser DevTools for network inspection
+- React Developer Tools for component state
+- Socket.IO debugging in development mode
+- Comprehensive client-side logging
+
+## Conclusion
+
+The ElizaOS client-server architecture provides a solid foundation for building AI agent applications with real-time communication capabilities. The combination of REST APIs for structured operations and WebSockets for real-time events enables responsive, scalable applications while maintaining clean separation of concerns.

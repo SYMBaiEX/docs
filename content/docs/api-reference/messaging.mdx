@@ -1,0 +1,1014 @@
+---
+title: Messaging API
+description: Comprehensive API documentation for messaging and communication
+---
+
+# Messaging API
+
+The Messaging API provides real-time messaging capabilities, server management, and channel operations. All messaging endpoints are prefixed with `/api/messaging`.
+
+## Overview
+
+The Messaging API includes:
+
+- **Core Messaging** - Message submission, completion, and ingestion
+- **Server Management** - Server creation and management
+- **Channel Operations** - Channel creation, messaging, and file uploads
+- **Real-time Communication** - WebSocket integration for live messaging
+
+## Base URL
+
+```
+http://localhost:3000/api/messaging
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Core Messaging
+
+### Submit Message
+
+```http
+POST /api/messaging/submit
+```
+
+Submits a processed message from an agent or system component. Used for agent responses and system-generated messages.
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "content": "Message content",
+  "in_reply_to_message_id": "message-uuid",
+  "source_type": "agent_response",
+  "raw_message": {
+    "thought": "Agent's internal thought",
+    "actions": ["action1", "action2"]
+  },
+  "metadata": {
+    "agentName": "Agent Name",
+    "attachments": []
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "message-uuid",
+    "channelId": "channel-uuid",
+    "authorId": "author-uuid",
+    "content": "Message content",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "sourceType": "agent_response"
+  }
+}
+```
+
+**Notes:**
+- This endpoint is for messages **already processed** by agents
+- Messages are stored in the database and broadcast via WebSocket
+- Does not trigger agent processing through the message bus
+
+### Complete Message
+
+```http
+POST /api/messaging/complete
+```
+
+Notifies that a message processing is complete.
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Completion event emitted"
+}
+```
+
+### Ingest External Message
+
+```http
+POST /api/messaging/ingest-external
+```
+
+Ingests messages from external platforms (Discord, Slack, etc.).
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "author_display_name": "User Name",
+  "content": "Message content",
+  "source_id": "platform-message-id",
+  "source_type": "discord",
+  "in_reply_to_message_id": "message-uuid",
+  "raw_message": {
+    "original_data": "Platform-specific data"
+  },
+  "metadata": {
+    "platform": "discord",
+    "channel_name": "general"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Message ingested and published to bus",
+  "data": {
+    "messageId": "message-uuid"
+  }
+}
+```
+
+## Server Management
+
+### List Servers
+
+```http
+GET /api/messaging/servers
+```
+
+Lists all messaging servers.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "servers": [
+      {
+        "id": "server-uuid",
+        "name": "Server Name",
+        "sourceType": "eliza_default",
+        "metadata": {
+          "description": "Server description"
+        },
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Get Server Details
+
+```http
+GET /api/messaging/servers/:serverId
+```
+
+Gets detailed information about a specific server.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "server-uuid",
+    "name": "Server Name",
+    "sourceType": "eliza_default",
+    "metadata": {
+      "description": "Server description",
+      "settings": {}
+    },
+    "channelCount": 5,
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Create Server
+
+```http
+POST /api/messaging/servers
+```
+
+Creates a new messaging server.
+
+**Request Body:**
+```json
+{
+  "name": "Server Name",
+  "sourceType": "eliza_default",
+  "metadata": {
+    "description": "Server description",
+    "settings": {}
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "server-uuid",
+    "name": "Server Name",
+    "sourceType": "eliza_default",
+    "metadata": {},
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Update Server
+
+```http
+PATCH /api/messaging/servers/:serverId
+```
+
+Updates an existing server.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier
+
+**Request Body:**
+```json
+{
+  "name": "Updated Server Name",
+  "metadata": {
+    "description": "Updated description"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "server-uuid",
+    "name": "Updated Server Name",
+    "sourceType": "eliza_default",
+    "metadata": {
+      "description": "Updated description"
+    },
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Delete Server
+
+```http
+DELETE /api/messaging/servers/:serverId
+```
+
+Deletes a server and all associated channels.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Channel Operations
+
+### List Channels for Server
+
+```http
+GET /api/messaging/central-servers/:serverId/channels
+```
+
+Lists all channels for a specific server.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier (use `00000000-0000-0000-0000-000000000000` for default server)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channels": [
+      {
+        "id": "channel-uuid",
+        "name": "Channel Name",
+        "type": "dm" | "group",
+        "participants": ["user-uuid-1", "user-uuid-2"],
+        "lastMessageAt": "2024-01-01T00:00:00Z",
+        "messageCount": 150,
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
+### Get Channel Details
+
+```http
+GET /api/messaging/central-channels/:channelId/details
+```
+
+Gets detailed information about a specific channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "Channel Name",
+    "type": "dm" | "group",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "lastMessageAt": "2024-01-01T00:00:00Z",
+    "messageCount": 150,
+    "metadata": {
+      "description": "Channel description"
+    },
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Channel Participants
+
+```http
+GET /api/messaging/central-channels/:channelId/participants
+```
+
+Gets the participants of a specific channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": ["user-uuid-1", "user-uuid-2", "agent-uuid-1"]
+}
+```
+
+### Create Channel
+
+```http
+POST /api/messaging/channels
+```
+
+Creates a new channel.
+
+**Request Body:**
+```json
+{
+  "serverId": "server-uuid",
+  "name": "Channel Name",
+  "type": "dm" | "group",
+  "sourceType": "eliza_default",
+  "metadata": {
+    "description": "Channel description",
+    "private": false
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channel": {
+      "id": "channel-uuid",
+      "name": "Channel Name",
+      "type": "group",
+      "messageServerId": "server-uuid",
+      "metadata": {},
+      "createdAt": "2024-01-01T00:00:00Z"
+    }
+  }
+}
+```
+
+### Create Group Channel
+
+```http
+POST /api/messaging/central-channels
+```
+
+Creates a new group channel with participants.
+
+**Request Body:**
+```json
+{
+  "name": "Group Name",
+  "participantCentralUserIds": ["user-uuid-1", "user-uuid-2"],
+  "type": "group",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "metadata": {
+    "description": "Group description"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "Group Name",
+    "type": "group",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Find or Create DM Channel
+
+```http
+GET /api/messaging/dm-channel?targetUserId=:targetUserId&currentUserId=:currentUserId&dmServerId=:serverId
+```
+
+Finds existing DM channel or creates one between two users.
+
+**Query Parameters:**
+- `targetUserId` (UUID) - Target user ID (required)
+- `currentUserId` (UUID) - Current user ID (required)
+- `dmServerId` (UUID) - Server ID (optional, defaults to default server)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "DM Channel",
+    "type": "dm",
+    "participants": ["current-user-uuid", "target-user-uuid"],
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Update Channel
+
+```http
+PATCH /api/messaging/servers/:serverId/channels/:channelId
+```
+
+Updates an existing channel.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "name": "Updated Channel Name",
+  "metadata": {
+    "description": "Updated description"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "Updated Channel Name",
+    "type": "group",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "metadata": {
+      "description": "Updated description"
+    },
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Delete Channel
+
+```http
+DELETE /api/messaging/servers/:serverId/channels/:channelId
+```
+
+Deletes a channel and all associated messages.
+
+**Parameters:**
+- `serverId` (UUID) - Server identifier
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Channel Messaging
+
+### Send Message to Channel
+
+```http
+POST /api/messaging/central-channels/:channelId/messages
+```
+
+Sends a message to a channel. Creates the channel automatically if it doesn't exist.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "author_id": "user-uuid",
+  "content": "Message text",
+  "in_reply_to_message_id": "message-uuid",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "raw_message": {
+    "type": "text",
+    "data": "Message data"
+  },
+  "metadata": {
+    "user_display_name": "User Name",
+    "client": "web",
+    "isDm": false,
+    "channelType": "group"
+  },
+  "source_type": "eliza_gui"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "message-uuid",
+    "channel_id": "channel-uuid",
+    "author_id": "user-uuid",
+    "content": "Message text",
+    "created_at": 1704067200000,
+    "source_type": "eliza_gui"
+  }
+}
+```
+
+**Notes:**
+- Messages are automatically published to the internal message bus for agent processing
+- Channel is auto-created if it doesn't exist
+- Real-time broadcast via WebSocket to all channel participants
+
+### Get Channel Messages
+
+```http
+GET /api/messaging/central-channels/:channelId/messages
+```
+
+Retrieves messages from a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of messages (default: 50)
+- `before` (number) - Timestamp for pagination (messages before this time)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "message-uuid",
+        "content": "Message content",
+        "authorId": "author-uuid",
+        "channelId": "channel-uuid",
+        "created_at": 1704067200000,
+        "updated_at": 1704067200000,
+        "sourceType": "eliza_gui",
+        "metadata": {
+          "user_display_name": "User Name",
+          "thought": "Agent's internal thought",
+          "actions": ["action1", "action2"]
+        }
+      }
+    ]
+  }
+}
+```
+
+**Notes:**
+- Messages are returned in reverse chronological order (newest first)
+- Includes thought and actions from rawMessage for agent responses
+- Timestamps are in milliseconds since epoch
+
+### Delete Message
+
+```http
+DELETE /api/messaging/messages/:messageId
+```
+
+Deletes a specific message.
+
+**Parameters:**
+- `messageId` (UUID) - Message identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+### Clear Channel Messages
+
+```http
+DELETE /api/messaging/central-channels/:channelId/messages
+```
+
+Clears all messages from a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Query Parameters:**
+- `confirm` (string) - Must be "true" to execute
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Channel messages cleared"
+}
+```
+
+## File Uploads
+
+### Upload File to Channel
+
+```http
+POST /api/messaging/channels/:channelId/upload-media
+```
+
+Uploads a file to a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file (max 10MB)
+
+**Supported file types:**
+- Images: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
+- Audio: `audio/mpeg`, `audio/wav`, `audio/ogg`
+- Video: `video/mp4`, `video/webm`
+- Documents: `application/pdf`, `text/plain`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/channels/{channelId}/filename.ext",
+    "type": "image/jpeg",
+    "filename": "12345-67890.jpg",
+    "originalName": "uploaded-image.jpg",
+    "size": 12345
+  }
+}
+```
+
+**Notes:**
+- Files are stored in `.eliza/data/uploads/channels/{channelId}/`
+- Filenames are automatically generated with timestamps for uniqueness
+- Rate limiting applies to prevent abuse
+
+### Channel Management Operations
+
+#### Update Channel
+
+```http
+PATCH /api/messaging/central-channels/:channelId
+```
+
+Updates channel information.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "name": "Updated Channel Name",
+  "participantCentralUserIds": ["user-uuid-1", "user-uuid-2"],
+  "metadata": {
+    "description": "Updated description"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "Updated Channel Name",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "metadata": {
+      "description": "Updated description"
+    },
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+#### Delete Channel
+
+```http
+DELETE /api/messaging/central-channels/:channelId
+```
+
+Deletes a channel and all associated messages.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+**Notes:**
+- Emits `channel_cleared` event to internal message bus
+- Broadcasts `channelDeleted` event via WebSocket
+
+## Agent Management in Channels
+
+### Add Agent to Channel
+
+```http
+POST /api/messaging/central-channels/:channelId/agents
+```
+
+Adds an agent to a channel as a participant.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-uuid",
+    "agentId": "agent-uuid",
+    "message": "Agent added to channel successfully"
+  }
+}
+```
+
+### Remove Agent from Channel
+
+```http
+DELETE /api/messaging/central-channels/:channelId/agents/:agentId
+```
+
+Removes an agent from a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-uuid",
+    "agentId": "agent-uuid",
+    "message": "Agent removed from channel successfully"
+  }
+}
+```
+
+### List Channel Agents
+
+```http
+GET /api/messaging/central-channels/:channelId/agents
+```
+
+Lists all agents in a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-uuid",
+    "participants": ["user-uuid-1", "agent-uuid-1", "agent-uuid-2"]
+  }
+}
+```
+
+## Channel Title Generation
+
+### Generate Channel Title
+
+```http
+POST /api/messaging/central-channels/:channelId/generate-title
+```
+
+Generates a descriptive title for a channel based on recent conversation.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "title": "React Component Help",
+    "channelId": "channel-uuid"
+  }
+}
+```
+
+**Notes:**
+- Uses the specified agent's language model to generate title
+- Analyzes recent conversation history
+- Returns null if not enough messages to generate a title
+
+## Real-time Events
+
+The Messaging API integrates with WebSocket events for real-time communication:
+
+### Message Events
+- `messageBroadcast` - New message in channel
+- `messageUpdated` - Message edited
+- `messageDeleted` - Message deleted
+- `messageReaction` - Reaction added/removed
+
+### Channel Events
+- `channelCreated` - New channel created
+- `channelUpdated` - Channel updated
+- `channelDeleted` - Channel deleted
+- `channelCleared` - Channel messages cleared
+
+### User Events
+- `userJoined` - User joined channel
+- `userLeft` - User left channel
+- `userTyping` - User is typing
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_ID` - Invalid UUID format
+- `NOT_FOUND` - Resource not found
+- `INVALID_REQUEST` - Invalid request parameters
+- `PERMISSION_DENIED` - Insufficient permissions
+- `RATE_LIMITED` - Too many requests
+- `FILE_TOO_LARGE` - File exceeds size limit
+- `INVALID_FILE_TYPE` - Unsupported file type
+
+## Rate Limiting
+
+Messaging endpoints are subject to rate limiting:
+- Standard operations: 100 requests per minute
+- Message sending: 60 requests per minute
+- File uploads: 10 requests per minute
+- External ingestion: 1000 requests per minute
+
+## Best Practices
+
+1. **Use WebSocket events** for real-time updates
+2. **Implement message pagination** for large channels
+3. **Validate file types and sizes** before upload
+4. **Handle rate limiting** with exponential backoff
+5. **Store message IDs** for reply chains
+6. **Implement proper error handling** for all operations
+7. **Use message threading** for organized conversations
+
+## Examples
+
+### Complete Messaging Flow
+
+```bash
+# 1. Create server
+curl -X POST http://localhost:3000/api/messaging/servers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Server",
+    "sourceType": "eliza_default"
+  }'
+
+# 2. Create channel
+curl -X POST http://localhost:3000/api/messaging/servers/{serverId}/channels \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "general",
+    "type": "group",
+    "participants": ["user-uuid-1", "user-uuid-2"]
+  }'
+
+# 3. Send message
+curl -X POST http://localhost:3000/api/messaging/central-channels/{channelId}/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "author_id": "user-uuid",
+    "content": "Hello, world!",
+    "server_id": "server-uuid",
+    "source_type": "eliza_gui"
+  }'
+
+# 4. Get messages
+curl "http://localhost:3000/api/messaging/central-channels/{channelId}/messages?limit=20"
+```
+
+### External Integration
+
+```bash
+# Ingest message from Discord
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "channel-uuid",
+    "server_id": "server-uuid",
+    "author_id": "discord-user-id",
+    "author_display_name": "Discord User",
+    "content": "Message from Discord",
+    "source_id": "discord-message-id",
+    "source_type": "discord",
+    "metadata": {
+      "platform": "discord",
+      "guild_id": "discord-guild-id"
+    }
+  }'
+```
+
+### File Upload
+
+```bash
+# Upload file to channel
+curl -X POST http://localhost:3000/api/messaging/central-channels/{channelId}/upload \
+  -F "file=@/path/to/image.jpg"
+
+# List channel files
+curl "http://localhost:3000/api/messaging/central-channels/{channelId}/files?type=image"
+```

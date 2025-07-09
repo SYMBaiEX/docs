@@ -1,0 +1,771 @@
+---
+title: "Deployment Guide"
+description: "Complete guide to deploying ElizaOS agents to various platforms including cloud services, VPS, and containerized environments"
+---
+
+# Deployment Guide
+
+This comprehensive guide covers deploying ElizaOS agents to production environments, from simple cloud deployments to complex containerized systems.
+
+## Deployment Options Overview
+
+| Platform | Difficulty | Cost | Scalability | Best For |
+|----------|------------|------|-------------|----------|
+| **Railway** | Easy | Low | Medium | Quick prototypes |
+| **Vercel** | Easy | Low | High | Serverless agents |
+| **Heroku** | Easy | Medium | Medium | Traditional apps |
+| **AWS/GCP** | Hard | Variable | High | Enterprise |
+| **Digital Ocean** | Medium | Low | Medium | VPS hosting |
+| **Docker** | Medium | Variable | High | Containerized apps |
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+- Working ElizaOS agent (tested locally)
+- Environment variables documented
+- API keys for your chosen platform
+- Domain name (optional but recommended)
+
+## Method 1: Railway (Recommended for Beginners)
+
+Railway offers the easiest deployment experience with automatic builds and deployments.
+
+### Step 1: Prepare Your Project
+
+```bash
+# Ensure your project has a build script
+# package.json
+{
+  "scripts": {
+    "build": "bun run build",
+    "start": "node dist/index.js",
+    "dev": "elizaos dev"
+  }
+}
+```
+
+### Step 2: Add Railway Configuration
+
+Create `railway.toml`:
+```toml
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "bun start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+```
+
+### Step 3: Deploy to Railway
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login to Railway
+railway login
+
+# Initialize project
+railway init
+
+# Deploy
+railway up
+```
+
+### Step 4: Configure Environment Variables
+
+```bash
+# Set environment variables
+railway variables set OPENAI_API_KEY=your_key_here
+railway variables set DISCORD_TOKEN=your_token_here
+railway variables set NODE_ENV=production
+```
+
+### Step 5: Custom Domain (Optional)
+
+```bash
+# Add custom domain
+railway domain add yourdomain.com
+```
+
+## Method 2: Vercel (Serverless)
+
+Best for agents that don't need persistent state.
+
+### Step 1: Configure for Serverless
+
+Create `vercel.json`:
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/index.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
+```
+
+### Step 2: Modify Entry Point
+
+```typescript
+// src/index.ts - Serverless handler
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { createAgent } from './agent';
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  const agent = await createAgent();
+  
+  // Handle webhook requests
+  if (req.method === 'POST') {
+    await agent.handleMessage(req.body);
+    res.status(200).json({ success: true });
+  } else {
+    res.status(200).json({ status: 'Agent is running' });
+  }
+}
+```
+
+### Step 3: Deploy to Vercel
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+vercel
+
+# Set environment variables
+vercel env add OPENAI_API_KEY
+vercel env add DISCORD_TOKEN
+```
+
+## Method 3: AWS EC2 (Advanced)
+
+For full control and scalability.
+
+### Step 1: Launch EC2 Instance
+
+```bash
+# Launch Ubuntu 22.04 LTS instance
+# Choose t3.small or larger for production
+
+# Connect to instance
+ssh -i your-key.pem ubuntu@your-instance-ip
+```
+
+### Step 2: Setup Environment
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+
+# Install PM2 for process management
+npm install -g pm2
+```
+
+### Step 3: Deploy Your Agent
+
+```bash
+# Clone your repository
+git clone https://github.com/yourusername/your-agent.git
+cd your-agent
+
+# Install dependencies
+bun install
+
+# Build for production
+bun run build
+
+# Create environment file
+sudo nano .env
+# Add your environment variables
+```
+
+### Step 4: Configure PM2
+
+Create `ecosystem.config.js`:
+```javascript
+module.exports = {
+  apps: [{
+    name: 'eliza-agent',
+    script: 'dist/index.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production'
+    }
+  }]
+};
+```
+
+### Step 5: Start and Monitor
+
+```bash
+# Start with PM2
+pm2 start ecosystem.config.js
+
+# Save PM2 configuration
+pm2 save
+
+# Setup PM2 to start on boot
+pm2 startup
+sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
+
+# Monitor
+pm2 monit
+```
+
+## Method 4: Docker Deployment
+
+Containerized deployment for consistency across environments.
+
+### Step 1: Create Dockerfile
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY bun.lockb ./
+
+# Install dependencies
+RUN bun install --production
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN bun run build
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start application
+CMD ["bun", "start"]
+```
+
+### Step 2: Docker Compose
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  eliza-agent:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    
+  # Optional: Add database
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=eliza
+      - POSTGRES_USER=eliza
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+### Step 3: Deploy with Docker
+
+```bash
+# Build and run
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f eliza-agent
+
+# Update deployment
+docker-compose pull
+docker-compose up -d
+```
+
+## Method 5: Kubernetes (Enterprise)
+
+For large-scale, production deployments.
+
+### Step 1: Create Kubernetes Manifests
+
+```yaml
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eliza-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: eliza-agent
+  template:
+    metadata:
+      labels:
+        app: eliza-agent
+    spec:
+      containers:
+      - name: eliza-agent
+        image: your-registry/eliza-agent:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eliza-secrets
+              key: openai-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eliza-agent-service
+spec:
+  selector:
+    app: eliza-agent
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: LoadBalancer
+```
+
+### Step 2: Create Secrets
+
+```bash
+# Create secrets
+kubectl create secret generic eliza-secrets \
+  --from-literal=openai-api-key=your_key_here \
+  --from-literal=discord-token=your_token_here
+```
+
+### Step 3: Deploy
+
+```bash
+# Apply manifests
+kubectl apply -f deployment.yaml
+
+# Check deployment
+kubectl get pods
+kubectl get services
+```
+
+## Platform-Specific Configurations
+
+### Discord Bot Deployment
+
+```bash
+# Environment variables needed
+DISCORD_TOKEN=your_bot_token
+DISCORD_APPLICATION_ID=your_app_id
+DISCORD_GUILD_ID=your_guild_id  # Optional: for guild-specific commands
+```
+
+### Twitter Bot Deployment
+
+```bash
+# Twitter API credentials
+TWITTER_API_KEY=your_api_key
+TWITTER_API_SECRET=your_api_secret
+TWITTER_ACCESS_TOKEN=your_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret
+TWITTER_BEARER_TOKEN=your_bearer_token
+```
+
+### Telegram Bot Deployment
+
+```bash
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_WEBHOOK_URL=https://yourdomain.com/webhook
+```
+
+## Environment Variables Management
+
+### Development vs Production
+
+```bash
+# .env.development
+LOG_LEVEL=debug
+NODE_ENV=development
+
+# .env.production
+LOG_LEVEL=info
+NODE_ENV=production
+```
+
+### Secure Secrets Management
+
+```bash
+# Use platform-specific secret management
+# AWS: AWS Secrets Manager
+# GCP: Secret Manager
+# Azure: Key Vault
+# Vercel: Environment Variables
+# Railway: Environment Variables
+```
+
+## Monitoring and Logging
+
+### Basic Health Check
+
+```typescript
+// src/health.ts
+export function setupHealthCheck(app: Express) {
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  
+  app.get('/ready', (req, res) => {
+    // Check if agent is ready to receive requests
+    res.json({
+      status: 'ready',
+      timestamp: new Date().toISOString()
+    });
+  });
+}
+```
+
+### Logging Configuration
+
+```typescript
+// src/logger.ts
+import winston from 'winston';
+
+export const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/app.log' })
+  ]
+});
+```
+
+### Monitoring with PM2
+
+```bash
+# Install PM2 monitoring
+pm2 install pm2-server-monit
+
+# View monitoring dashboard
+pm2 monit
+
+# View logs
+pm2 logs eliza-agent
+```
+
+## SSL/TLS Configuration
+
+### Using Let's Encrypt
+
+```bash
+# Install Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Get certificate
+sudo certbot --nginx -d yourdomain.com
+
+# Auto-renewal
+sudo systemctl enable certbot.timer
+```
+
+### Nginx Configuration
+
+```nginx
+# /etc/nginx/sites-available/eliza-agent
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name yourdomain.com;
+    
+    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+## Scaling and Performance
+
+### Horizontal Scaling
+
+```bash
+# PM2 cluster mode
+pm2 start ecosystem.config.js --instances max
+
+# Docker scaling
+docker-compose up -d --scale eliza-agent=3
+
+# Kubernetes scaling
+kubectl scale deployment eliza-agent --replicas=5
+```
+
+### Performance Optimization
+
+```typescript
+// src/performance.ts
+import cluster from 'cluster';
+import os from 'os';
+
+if (cluster.isMaster) {
+  // Fork workers
+  for (let i = 0; i < os.cpus().length; i++) {
+    cluster.fork();
+  }
+  
+  cluster.on('exit', (worker) => {
+    console.log(`Worker ${worker.process.pid} died`);
+    cluster.fork();
+  });
+} else {
+  // Worker process
+  require('./index.js');
+}
+```
+
+## Backup and Recovery
+
+### Database Backup
+
+```bash
+# PostgreSQL backup
+pg_dump eliza > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Automated backup script
+#!/bin/bash
+BACKUP_DIR="/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+pg_dump eliza > "$BACKUP_DIR/eliza_backup_$DATE.sql"
+
+# Keep only last 7 days
+find $BACKUP_DIR -name "eliza_backup_*.sql" -mtime +7 -delete
+```
+
+### Configuration Backup
+
+```bash
+# Backup configuration
+tar -czf config_backup_$(date +%Y%m%d).tar.gz \
+  .env* \
+  ecosystem.config.js \
+  docker-compose.yml
+```
+
+## Troubleshooting Common Issues
+
+### Memory Issues
+
+```bash
+# Check memory usage
+free -h
+htop
+
+# Increase PM2 memory limit
+pm2 start ecosystem.config.js --max-memory-restart 1G
+```
+
+### Port Conflicts
+
+```bash
+# Check port usage
+sudo lsof -i :3000
+
+# Kill process using port
+sudo kill -9 $(sudo lsof -t -i:3000)
+```
+
+### SSL Certificate Issues
+
+```bash
+# Test SSL certificate
+openssl s_client -connect yourdomain.com:443 -servername yourdomain.com
+
+# Renew certificate
+sudo certbot renew --dry-run
+```
+
+## Security Best Practices
+
+### Environment Security
+
+```bash
+# Secure file permissions
+chmod 600 .env
+
+# Use secrets management
+# Never commit secrets to version control
+echo ".env*" >> .gitignore
+```
+
+### Network Security
+
+```bash
+# Firewall configuration
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+
+# Fail2ban for SSH protection
+sudo apt install fail2ban
+```
+
+## Deployment Checklist
+
+Before deploying to production:
+
+- [ ] Environment variables configured
+- [ ] SSL certificate installed
+- [ ] Database configured and backed up
+- [ ] Monitoring and logging set up
+- [ ] Health checks implemented
+- [ ] Security measures in place
+- [ ] Backup and recovery plan
+- [ ] Performance testing completed
+- [ ] Documentation updated
+- [ ] Team access configured
+
+## Maintenance and Updates
+
+### Regular Updates
+
+```bash
+# Update dependencies
+bun update
+
+# Rebuild application
+bun run build
+
+# Restart services
+pm2 restart eliza-agent
+```
+
+### Monitoring Performance
+
+```bash
+# PM2 monitoring
+pm2 monit
+
+# System monitoring
+htop
+df -h
+```
+
+## Cost Optimization
+
+### Resource Monitoring
+
+- Monitor CPU and memory usage
+- Scale down during low usage periods
+- Use spot instances for non-critical workloads
+- Implement auto-scaling policies
+
+### Platform Costs
+
+- **Railway**: $5-20/month for small agents
+- **Vercel**: $0-20/month with generous free tier
+- **AWS EC2**: $10-100/month depending on instance size
+- **Digital Ocean**: $5-40/month for VPS
+
+## Next Steps
+
+After successful deployment:
+
+1. **Monitor Performance**: Set up alerting and monitoring
+2. **Scale as Needed**: Implement auto-scaling
+3. **Optimize Costs**: Right-size your infrastructure
+4. **Backup Strategy**: Implement regular backups
+5. **Security Updates**: Keep systems updated
+6. **Documentation**: Document your deployment process
+
+Your ElizaOS agent is now live and ready to serve users! 🚀

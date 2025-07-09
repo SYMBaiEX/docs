@@ -1,0 +1,357 @@
+---
+title: State Management
+description: Learn about ElizaOS state management system, including state structure, state values, and enhanced state interfaces.
+---
+
+# State Management
+
+ElizaOS provides a robust state management system that maintains conversational context and agent state throughout interactions. The state system is designed to be flexible, extensible, and type-safe.
+
+## State Interface
+
+The core `State` interface provides the foundation for all state management in ElizaOS:
+
+```typescript
+export interface State {
+  [key: string]: any;
+  values: {
+    [key: string]: any;
+  };
+  data: {
+    [key: string]: any;
+  };
+  text: string;
+}
+```
+
+### State Properties
+
+- **`values`**: A key-value store for general state variables, often populated by providers
+- **`data`**: Another key-value store for more structured or internal data
+- **`text`**: A string representation of the current context, often a summary or concatenated history
+- **Dynamic properties**: Additional properties can be added via the index signature
+
+## Enhanced State System
+
+ElizaOS provides an enhanced state system with better type safety through the `EnhancedState` interface:
+
+```typescript
+export interface EnhancedState {
+  values: StateObject;
+  data: StateObject;
+  text: string;
+  [key: string]: StateValue;
+}
+```
+
+### State Value Types
+
+The enhanced state system uses typed values:
+
+```typescript
+export type StateValue = string | number | boolean | null | StateObject | StateArray;
+
+export interface StateObject {
+  [key: string]: StateValue;
+}
+
+export type StateArray = StateValue[];
+```
+
+### State Composition
+
+State is composed dynamically by aggregating data from multiple providers. The `composeState` method orchestrates this process:
+
+```typescript
+const state = await runtime.composeState(
+  message,           // The current message
+  includeList,       // Optional list of providers to include
+  onlyInclude,       // Whether to only use includeList providers
+  skipCache          // Whether to skip the state cache
+);
+```
+
+## Providers
+
+Providers are the primary mechanism for populating state with relevant data. Each provider can contribute values, data, and text to the composed state.
+
+### Provider Interface
+
+```typescript
+interface Provider {
+  name: string;
+  description?: string;
+  dynamic?: boolean;
+  position?: number;
+  private?: boolean;
+  get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
+}
+
+interface ProviderResult {
+  values?: { [key: string]: any };
+  data?: { [key: string]: any };
+  text?: string;
+}
+```
+
+### Built-in Providers
+
+Eliza includes several built-in providers:
+
+- **Time Provider**: Adds current time information
+- **Facts Provider**: Retrieves agent facts and knowledge
+- **Recent Messages Provider**: Includes recent conversation history
+- **Wallet Provider**: Adds wallet/financial information (if configured)
+
+### Creating Custom Providers
+
+You can create custom providers to add any data to the state:
+
+```typescript
+const weatherProvider: Provider = {
+  name: "WEATHER",
+  description: "Provides current weather information",
+  get: async (runtime, message, state) => {
+    const location = state.values.userLocation || "New York";
+    const weather = await fetchWeatherData(location);
+    
+    return {
+      values: {
+        temperature: weather.temp,
+        conditions: weather.conditions
+      },
+      data: {
+        fullWeatherData: weather
+      },
+      text: `Current weather in ${location}: ${weather.temp}°F, ${weather.conditions}`
+    };
+  }
+};
+
+// Register the provider
+runtime.registerProvider(weatherProvider);
+```
+
+## State Caching
+
+Eliza implements an in-memory cache for composed states to improve performance:
+
+```typescript
+// State cache is automatically managed
+const cachedState = await runtime.stateCache.get(message.id);
+
+// Force cache bypass if needed
+const freshState = await runtime.composeState(message, null, false, true);
+```
+
+The cache is keyed by message ID and helps avoid redundant provider calls for the same message context.
+
+## Using State in Actions
+
+Actions receive the composed state and can use it to make decisions:
+
+```typescript
+const myAction: Action = {
+  name: "WEATHER_REPORT",
+  handler: async (runtime, message, state) => {
+    // Access provider data
+    const temperature = state.values.temperature;
+    const userPreference = state.values.userTemperatureUnit || "F";
+    
+    // Access structured data
+    const fullWeather = state.data.providers?.WEATHER?.data?.fullWeatherData;
+    
+    // Use state text for context
+    const contextText = state.text;
+    
+    // Make decisions based on state
+    if (temperature > 90) {
+      return { text: "It's very hot today! Stay hydrated." };
+    }
+    
+    return { text: `Current temperature: ${temperature}°${userPreference}` };
+  }
+};
+```
+
+## Provider Ordering
+
+Providers can specify a `position` property to control their execution order:
+
+```typescript
+const criticalProvider: Provider = {
+  name: "CRITICAL_DATA",
+  position: -10,  // Negative positions run first
+  get: async () => ({ values: { critical: true } })
+};
+
+const supplementalProvider: Provider = {
+  name: "SUPPLEMENTAL",
+  position: 10,   // Positive positions run later
+  get: async () => ({ values: { extra: "data" } })
+};
+```
+
+## Dynamic and Private Providers
+
+### Dynamic Providers
+
+Dynamic providers are not automatically included in state composition and must be explicitly requested:
+
+```typescript
+const dynamicProvider: Provider = {
+  name: "EXPENSIVE_API",
+  dynamic: true,
+  get: async () => {
+    // Only called when explicitly included
+    const data = await expensiveApiCall();
+    return { values: { apiData: data } };
+  }
+};
+
+// Must explicitly include dynamic providers
+const state = await runtime.composeState(message, ["EXPENSIVE_API"]);
+```
+
+### Private Providers
+
+Private providers are not displayed in the regular provider list and must be called explicitly:
+
+```typescript
+const privateProvider: Provider = {
+  name: "INTERNAL_DEBUG",
+  private: true,
+  get: async () => ({ values: { debug: getDebugInfo() } })
+};
+```
+
+## Best Practices
+
+### 1. Provider Design
+
+- Keep providers focused on a single responsibility
+- Return meaningful text summaries for model context
+- Use the `data` field for complex structures, `values` for simple lookups
+
+### 2. State Access
+
+```typescript
+// Prefer destructuring for clarity
+const { temperature, humidity } = state.values;
+
+// Check for provider data existence
+const weatherData = state.data.providers?.WEATHER;
+if (weatherData) {
+  // Use weather data
+}
+```
+
+### 3. Error Handling
+
+Providers should handle errors gracefully:
+
+```typescript
+const resilientProvider: Provider = {
+  name: "EXTERNAL_API",
+  get: async (runtime, message, state) => {
+    try {
+      const data = await fetchExternalData();
+      return { values: { external: data } };
+    } catch (error) {
+      runtime.logger.error("External API failed:", error);
+      return { 
+        values: { externalError: true },
+        text: "External data unavailable"
+      };
+    }
+  }
+};
+```
+
+### 4. Performance Optimization
+
+- Use caching for expensive operations
+- Consider provider positions for dependency ordering
+- Mark providers as dynamic if they're computationally expensive
+
+## Example: User Context State
+
+Here's a complete example of building user context:
+
+```typescript
+// User profile provider
+const userProfileProvider: Provider = {
+  name: "USER_PROFILE",
+  position: -5, // Run early
+  get: async (runtime, message) => {
+    const userId = message.entityId;
+    const profile = await runtime.getEntity(userId);
+    
+    return {
+      values: {
+        userName: profile?.names[0] || "User",
+        userId: userId
+      },
+      data: {
+        fullProfile: profile
+      },
+      text: `User: ${profile?.names[0] || "Unknown"}`
+    };
+  }
+};
+
+// User preferences provider
+const preferencesProvider: Provider = {
+  name: "USER_PREFERENCES",
+  get: async (runtime, message, state) => {
+    const userId = state.values.userId;
+    const prefs = await runtime.getComponent(userId, "preferences");
+    
+    return {
+      values: {
+        language: prefs?.data?.language || "en",
+        timezone: prefs?.data?.timezone || "UTC"
+      }
+    };
+  }
+};
+
+// Register providers
+runtime.registerProvider(userProfileProvider);
+runtime.registerProvider(preferencesProvider);
+
+// Use in action
+const greetingAction: Action = {
+  name: "GREET_USER",
+  handler: async (runtime, message, state) => {
+    const { userName, language } = state.values;
+    const greeting = getLocalizedGreeting(language);
+    
+    return {
+      text: `${greeting}, ${userName}!`
+    };
+  }
+};
+```
+
+## State Debugging
+
+To debug state composition:
+
+```typescript
+// Log full state
+console.log("Composed state:", JSON.stringify(state, null, 2));
+
+// Check specific providers
+console.log("Available providers:", Object.keys(state.data.providers || {}));
+
+// Inspect provider results
+const weatherResult = state.data.providers?.WEATHER;
+console.log("Weather provider result:", weatherResult);
+```
+
+## Related Topics
+
+- [Memory System](./memory-system) - How memories are stored and retrieved
+- [Database Architecture](./database) - Entity-component system for structured data
+- [Actions](../agent-development/actions) - Using state in action handlers

@@ -1,0 +1,333 @@
+---
+title: Tauri Desktop Application
+description: Build native desktop applications for Eliza agents using Tauri
+---
+
+# Tauri Desktop Application
+
+The Eliza Desktop application provides a native desktop experience for running and interacting with Eliza agents. Built with [Tauri](https://tauri.app/), it combines a React frontend with a lightweight Rust backend for optimal performance and security.
+
+## Overview
+
+The Tauri desktop app (`@elizaos/app`) enables users to run Eliza agents in a secure, native desktop environment with features like:
+
+- **Cross-platform support** - Works on Windows, macOS, and Linux
+- **Native performance** - Rust-based backend for optimal speed
+- **Secure by default** - Tauri's security model protects system resources
+- **Small bundle size** - Significantly smaller than Electron alternatives
+- **Modern UI** - React-based interface with hot module reloading
+
+## Architecture
+
+The desktop app follows Tauri's architecture pattern:
+
+```
+┌─────────────────────────────────────────────┐
+│              Frontend (React)                │
+│  - User Interface                            │
+│  - Agent Communication                       │
+│  - State Management                          │
+└─────────────────────┬───────────────────────┘
+                      │
+                      │ IPC Bridge
+                      │
+┌─────────────────────┴───────────────────────┐
+│             Backend (Rust)                   │
+│  - System APIs                               │
+│  - File System Access                        │
+│  - Network Communication                     │
+│  - Security Layer                            │
+└──────────────────────────────────────────────┘
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- Rust (latest stable)
+- Platform-specific dependencies:
+  - **Windows**: Microsoft C++ Build Tools
+  - **macOS**: Xcode Command Line Tools
+  - **Linux**: `webkit2gtk-4.0`, `build-essential`
+
+### Installation
+
+```bash
+# Navigate to the app package
+cd packages/app
+
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run tauri:dev
+
+# Build for production
+bun run tauri:build
+```
+
+## Development
+
+### Project Structure
+
+```
+packages/app/
+├── src/                    # React frontend
+│   ├── main.tsx           # Application entry point
+│   └── vite-env.d.ts      # TypeScript definitions
+├── src-tauri/             # Rust backend
+│   ├── src/
+│   │   ├── main.rs        # Main process entry
+│   │   └── lib.rs         # Library code
+│   ├── Cargo.toml         # Rust dependencies
+│   └── tauri.conf.json    # Tauri configuration
+├── index.html             # HTML template
+└── vite.config.ts         # Vite configuration
+```
+
+### Available Scripts
+
+```json
+{
+  "scripts": {
+    "start": "tauri dev",           // Start Tauri in dev mode
+    "dev": "vite",                  // Frontend dev server only
+    "build": "tsc && vite build",   // Build frontend
+    "tauri:dev": "tauri dev",       // Full Tauri development
+    "tauri:build": "tauri build"    // Build distributable
+  }
+}
+```
+
+### Configuration
+
+The main configuration file `src-tauri/tauri.conf.json` controls:
+
+```json
+{
+  "productName": "Eliza Desktop",
+  "version": "1.0.16",
+  "identifier": "com.elizaos.app",
+  "build": {
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{
+      "title": "Eliza Desktop",
+      "width": 1200,
+      "height": 800,
+      "minWidth": 800,
+      "minHeight": 600
+    }],
+    "security": {
+      "csp": {
+        // Content Security Policy configuration
+      }
+    }
+  }
+}
+```
+
+## Features
+
+### Window Management
+
+The app creates a default window with:
+- Initial size: 1200x800 pixels
+- Minimum size: 800x600 pixels
+- Resizable and movable
+- Native window controls
+
+### API Integration
+
+Connect to Eliza agents using the built-in API client:
+
+```typescript
+import { ApiClient } from "@elizaos/api-client";
+
+// Initialize client
+const client = new ApiClient({
+  baseUrl: "http://localhost:3000"
+});
+
+// Interact with agents
+const response = await client.sendMessage(agentId, message);
+```
+
+### Security
+
+Tauri implements multiple security layers:
+
+1. **Content Security Policy (CSP)** - Restricts resource loading
+2. **IPC Security** - Validates all frontend-backend communication
+3. **Capability-based Permissions** - Fine-grained API access control
+4. **Secure Context** - All code runs in a secure context
+
+The CSP configuration allows connections to:
+- Local development server (`http://localhost:3000`)
+- WebSocket connections for real-time updates
+- Eliza API endpoints (`https://api.eliza.how`)
+
+### Shell Plugin
+
+The app includes the Tauri Shell plugin for opening external links:
+
+```typescript
+import { open } from '@tauri-apps/plugin-shell';
+
+// Open link in default browser
+await open('https://elizaos.github.io/eliza/');
+```
+
+## Building & Distribution
+
+### Development Build
+
+```bash
+# Run with hot reload
+bun run tauri:dev
+```
+
+### Production Build
+
+```bash
+# Build for current platform
+bun run tauri:build
+
+# Output locations:
+# Windows: src-tauri/target/release/bundle/msi/
+# macOS: src-tauri/target/release/bundle/dmg/
+# Linux: src-tauri/target/release/bundle/appimage/
+```
+
+### Cross-Platform Building
+
+For building on different platforms:
+
+```bash
+# Windows (from Windows)
+bun run tauri:build
+
+# macOS (from macOS) 
+bun run tauri:build
+
+# Linux (from Linux)
+bun run tauri:build
+```
+
+Note: Cross-compilation requires additional setup and is generally not recommended. Use CI/CD for multi-platform builds.
+
+## Customization
+
+### Branding
+
+Update branding elements:
+
+1. **Application Name**: Edit `productName` in `tauri.conf.json`
+2. **Icons**: Replace files in `src-tauri/icons/`
+3. **Window Title**: Modify `title` in window configuration
+
+### Icon Requirements
+
+Provide icons in multiple sizes:
+- `32x32.png` - Small icon
+- `128x128.png` - Medium icon
+- `128x128@2x.png` - Retina display
+- `icon.icns` - macOS icon
+- `icon.ico` - Windows icon
+
+### Extending Functionality
+
+Add new Tauri commands in `src-tauri/src/main.rs`:
+
+```rust
+#[tauri::command]
+fn custom_command(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![custom_command])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+Use in frontend:
+
+```typescript
+import { invoke } from '@tauri-apps/api/core';
+
+const result = await invoke('custom_command', { name: 'Eliza' });
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Build Failures**
+   - Ensure Rust is installed: `rustup update`
+   - Install system dependencies for your platform
+   - Clear build cache: `rm -rf src-tauri/target`
+
+2. **Development Server Issues**
+   - Check port 1420 is available
+   - Verify `devUrl` matches Vite server
+   - Restart with `bun run tauri:dev`
+
+3. **Window Not Appearing**
+   - Check console for errors
+   - Verify window configuration in `tauri.conf.json`
+   - Try resetting window position
+
+### Debug Mode
+
+Enable debug logging:
+
+```bash
+# Set environment variable
+RUST_LOG=debug bun run tauri:dev
+```
+
+## Performance Optimization
+
+### Frontend Optimization
+
+- Use React.memo for expensive components
+- Implement virtual scrolling for long lists
+- Optimize bundle size with tree shaking
+
+### Backend Optimization
+
+- Use async Rust commands for IO operations
+- Implement caching for frequent operations
+- Profile with Rust performance tools
+
+## Best Practices
+
+1. **State Management**
+   - Keep UI state in React
+   - Use Tauri for system operations only
+   - Implement proper error boundaries
+
+2. **Security**
+   - Validate all IPC inputs
+   - Use allowlists for external URLs
+   - Keep dependencies updated
+
+3. **User Experience**
+   - Provide loading states
+   - Handle offline scenarios
+   - Implement keyboard shortcuts
+
+## Resources
+
+- [Tauri Documentation](https://tauri.app/v1/guides/)
+- [Tauri API Reference](https://tauri.app/v1/api/js/)
+- [React + Tauri Guide](https://tauri.app/v1/guides/getting-started/setup/)
+- [Eliza Desktop Issues](https://github.com/elizaos/eliza/issues)

@@ -1,0 +1,596 @@
+---
+title: Database Architecture
+description: Understanding ElizaOS database architecture, adapters, and the Entity-Component System with actual implementation details
+---
+
+# Database Architecture
+
+ElizaOS uses a flexible database architecture built around the Entity-Component System (ECS) pattern. This design allows for extensible data storage with support for multiple database backends through a unified adapter interface.
+
+## Core Architecture
+
+### Database Adapter Pattern
+
+Eliza abstracts database operations through the `DatabaseAdapter` interface:
+
+```typescript
+abstract class DatabaseAdapter<DB = unknown> implements IDatabaseAdapter {
+  db: DB;
+  
+  abstract initialize(config?: any): Promise<void>;
+  abstract init(): Promise<void>;
+  abstract runMigrations(migrationsPaths?: string[]): Promise<void>;
+  abstract isReady(): Promise<boolean>;
+  abstract close(): Promise<void>;
+  abstract getConnection(): Promise<unknown>;
+  
+  // Entity operations
+  abstract getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null>;
+  abstract createEntities(entities: Entity[]): Promise<boolean>;
+  abstract updateEntity(entity: Entity): Promise<void>;
+  
+  // Component operations
+  abstract getComponent(entityId: UUID, type: string, worldId?: UUID, sourceEntityId?: UUID): Promise<Component | null>;
+  abstract createComponent(component: Component): Promise<boolean>;
+  abstract updateComponent(component: Component): Promise<void>;
+  
+  // Memory operations
+  abstract getMemories(params: {
+    entityId?: UUID;
+    agentId?: UUID;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    start?: number;
+    end?: number;
+    roomId?: UUID;
+    worldId?: UUID;
+  }): Promise<Memory[]>;
+  abstract createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID>;
+  abstract searchMemories(params: {
+    embedding: number[];
+    match_threshold?: number;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    query?: string;
+    roomId?: UUID;
+    worldId?: UUID;
+    entityId?: UUID;
+  }): Promise<Memory[]>;
+  
+  // ... additional operations
+}
+```
+
+### Entity-Component System
+
+The ECS architecture consists of three main parts:
+
+#### 1. Entities
+
+Entities are the core identifiable objects in the system:
+
+```typescript
+interface Entity {
+  id?: UUID;
+  names: string[];          // Alternative names/aliases
+  metadata?: Metadata;      // Flexible JSON metadata
+  agentId: UUID;           // Associated agent
+  components?: Component[]; // Optional attached components
+}
+```
+
+#### 2. Components
+
+Components store data associated with entities:
+
+```typescript
+interface Component {
+  id: UUID;
+  entityId: UUID;          // Parent entity
+  agentId: UUID;          // Associated agent
+  roomId: UUID;           // Context room
+  worldId: UUID;          // World context
+  sourceEntityId: UUID;   // Source of the component
+  type: string;           // Component type identifier
+  createdAt: number;      // Timestamp
+  data: Metadata;         // Component data (JSON)
+}
+```
+
+#### 3. Relationships
+
+Relationships connect entities:
+
+```typescript
+interface Relationship {
+  id: UUID;
+  sourceEntityId: UUID;
+  targetEntityId: UUID;
+  agentId: UUID;
+  tags: string[];         // Relationship tags
+  metadata: Metadata;     // Additional data
+  createdAt?: string;
+}
+```
+
+## Database Schema
+
+### Core Tables
+
+The database consists of several core tables:
+
+#### Entities Table
+```sql
+CREATE TABLE entities (
+  id UUID PRIMARY KEY,
+  agent_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  names TEXT[] DEFAULT '{}',
+  metadata JSONB DEFAULT '{}'
+);
+```
+
+#### Components Table
+```sql
+CREATE TABLE components (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+  agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
+  room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+  world_id UUID REFERENCES worlds(id) ON DELETE CASCADE,
+  source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  data JSONB DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+#### Memories Table
+```sql
+CREATE TABLE memories (
+  id UUID PRIMARY KEY,
+  type TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  content JSONB NOT NULL,
+  entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+  agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
+  room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+  world_id UUID,
+  unique BOOLEAN DEFAULT TRUE,
+  metadata JSONB DEFAULT '{}'
+);
+```
+
+#### Embeddings Table
+```sql
+CREATE TABLE embeddings (
+  id UUID PRIMARY KEY,
+  memory_id UUID REFERENCES memories(id) ON DELETE CASCADE,
+  embedding VECTOR(384) -- Dimension varies by model
+);
+```
+
+### Supporting Tables
+
+- **agents**: Agent configurations
+- **rooms**: Conversation contexts
+- **worlds**: Logical groupings
+- **participants**: Room membership
+- **relationships**: Entity connections
+- **cache**: Key-value cache
+- **logs**: Event logging
+- **tasks**: Task management
+
+## Database Adapters
+
+### PostgreSQL Adapter
+
+The primary adapter uses PostgreSQL with pgvector extension:
+
+```typescript
+import { DrizzlePostgreSQLAdapter } from '@elizaos/plugin-sql';
+
+const adapter = new DrizzlePostgreSQLAdapter({
+  connectionString: process.env.DATABASE_URL,
+  // Optional configuration
+  max: 20,              // Connection pool size
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+await adapter.initialize();
+```
+
+### SQLite Adapter
+
+For local development and testing:
+
+```typescript
+import { DrizzleSQLiteAdapter } from '@elizaos/plugin-sql';
+
+const adapter = new DrizzleSQLiteAdapter({
+  database: './data/eliza.db',
+  // SQLite specific options
+});
+```
+
+### Custom Adapters
+
+Create custom adapters by extending the base class:
+
+```typescript
+class CustomDatabaseAdapter extends DatabaseAdapter<CustomDB> {
+  async initialize(config: CustomConfig) {
+    this.db = await connectToCustomDB(config);
+  }
+  
+  async init(): Promise<void> {
+    // Initialize database connection
+    await this.initialize();
+  }
+  
+  async getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null> {
+    // Custom implementation
+    const results = await this.db.query(
+      'SELECT * FROM entities WHERE id = ANY($1)',
+      [entityIds]
+    );
+    return results.map(this.mapToEntity);
+  }
+  
+  // Implement other required methods...
+}
+```
+
+## Working with the Database
+
+### Entity Operations
+
+```typescript
+import { v4 as generateUUID } from 'uuid';
+import type { Entity, Component, UUID } from '@elizaos/core';
+
+// Create an entity
+const entity: Entity = {
+  id: generateUUID(),
+  names: ["Alice", "alice.smith"],
+  agentId: runtime.agentId,
+  metadata: {
+    type: "user",
+    verified: true
+  }
+};
+
+await runtime.createEntity(entity);
+
+// Retrieve entities
+const entities = await runtime.getEntitiesForRoom(roomId);
+
+// Update entity
+entity.metadata.lastSeen = Date.now();
+await runtime.updateEntity(entity);
+```
+
+### Component Operations
+
+```typescript
+// Create a component
+const preferences: Component = {
+  id: generateUUID(),
+  entityId: userId,
+  agentId: runtime.agentId,
+  roomId: roomId,
+  worldId: worldId,
+  sourceEntityId: agentId,
+  type: "preferences",
+  createdAt: Date.now(),
+  data: {
+    theme: "dark",
+    language: "en",
+    notifications: true
+  }
+};
+
+await runtime.createComponent(preferences);
+
+// Retrieve component
+const userPrefs = await runtime.getComponent(
+  userId,
+  "preferences",
+  worldId
+);
+
+// Update component
+userPrefs.data.theme = "light";
+await runtime.updateComponent(userPrefs);
+```
+
+### Relationship Management
+
+```typescript
+// Create relationship
+await runtime.createRelationship({
+  sourceEntityId: user1Id,
+  targetEntityId: user2Id,
+  tags: ["friend", "colleague"],
+  metadata: {
+    since: "2024-01-01",
+    strength: 0.8
+  }
+});
+
+// Query relationships
+const relationships = await runtime.getRelationships({
+  entityId: userId,
+  tags: ["friend"]
+});
+```
+
+## Vector Embeddings
+
+Eliza supports multiple embedding dimensions:
+
+```typescript
+const VECTOR_DIMS = {
+  SMALL: 384,    // All-MiniLM-L6-v2
+  MEDIUM: 512,   // Sentence-transformers
+  LARGE: 768,    // BERT-based models
+  XL: 1024,      // Large models
+  XXL: 1536,     // Ada-002
+  XXXL: 3072     // Large context models
+} as const;
+
+// Ensure embedding dimension
+await adapter.ensureEmbeddingDimension(VECTOR_DIMS.SMALL);
+```
+
+### Semantic Search
+
+```typescript
+// Search with cosine similarity
+const results = await runtime.searchMemories({
+  embedding: queryEmbedding,
+  tableName: 'messages',
+  match_threshold: 0.7,  // Cosine similarity threshold
+  count: 10,
+  roomId: roomId
+});
+```
+
+## Caching Layer
+
+The database includes a built-in caching layer:
+
+```typescript
+// Cache operations
+await runtime.setCache("user:preferences", { theme: "dark" });
+const cached = await runtime.getCache("user:preferences");
+await runtime.deleteCache("user:preferences");
+
+// Cache with TTL (requires custom implementation)
+class CacheWithTTL {
+  async setWithTTL(key: string, value: any, ttlSeconds: number) {
+    await runtime.setCache(key, {
+      value,
+      expiresAt: Date.now() + (ttlSeconds * 1000)
+    });
+  }
+  
+  async getWithTTL(key: string) {
+    const cached = await runtime.getCache(key);
+    if (!cached) return null;
+    
+    if (Date.now() > cached.expiresAt) {
+      await runtime.deleteCache(key);
+      return null;
+    }
+    
+    return cached.value;
+  }
+}
+```
+
+## Migrations
+
+Database migrations ensure schema consistency:
+
+```typescript
+// Run migrations
+await adapter.runMigrations([
+  'packages/core/migrations',
+  'packages/plugin-custom/migrations'
+]);
+
+// Migration example
+export const migration_001 = {
+  up: async (db) => {
+    await db.schema.createTable('custom_data', (table) => {
+      table.uuid('id').primary();
+      table.uuid('entity_id').references('entities.id');
+      table.jsonb('data');
+      table.timestamp('created_at').defaultTo(db.fn.now());
+    });
+  },
+  
+  down: async (db) => {
+    await db.schema.dropTable('custom_data');
+  }
+};
+```
+
+## Best Practices
+
+### 1. Connection Management
+
+```typescript
+class DatabaseManager {
+  private adapter: IDatabaseAdapter;
+  private connectionCheckInterval: NodeJS.Timer;
+  
+  async initialize() {
+    this.adapter = new DrizzlePostgreSQLAdapter(config);
+    await this.adapter.initialize();
+    
+    // Monitor connection health
+    this.connectionCheckInterval = setInterval(async () => {
+      if (!await this.adapter.isReady()) {
+        console.error('Database connection lost, attempting reconnect...');
+        await this.reconnect();
+      }
+    }, 30000);
+  }
+  
+  async shutdown() {
+    clearInterval(this.connectionCheckInterval);
+    await this.adapter.close();
+  }
+}
+```
+
+### 2. Transaction Support
+
+```typescript
+// Implement transaction support in adapter
+async function createEntityWithComponents(
+  entity: Entity,
+  components: Component[]
+) {
+  const connection = await adapter.getConnection();
+  const trx = await connection.transaction();
+  
+  try {
+    await trx.insert('entities').values(entity);
+    for (const component of components) {
+      await trx.insert('components').values(component);
+    }
+    await trx.commit();
+  } catch (error) {
+    await trx.rollback();
+    throw error;
+  }
+}
+```
+
+### 3. Query Optimization
+
+```typescript
+// Use indexes for common queries
+CREATE INDEX idx_memories_type_room ON memories(type, room_id);
+CREATE INDEX idx_memories_entity_created ON memories(entity_id, created_at DESC);
+CREATE INDEX idx_components_entity_type ON components(entity_id, type);
+
+// Batch operations
+const memoryIds = memories.map(m => m.id);
+const allMemories = await runtime.getMemoriesByIds(memoryIds);
+```
+
+### 4. Data Integrity
+
+```typescript
+// Validate data before storage
+class DataValidator {
+  validateEntity(entity: Entity): boolean {
+    if (!entity.names || entity.names.length === 0) {
+      throw new Error('Entity must have at least one name');
+    }
+    
+    if (!isValidUUID(entity.agentId)) {
+      throw new Error('Invalid agent ID');
+    }
+    
+    return true;
+  }
+  
+  validateComponent(component: Component): boolean {
+    if (!component.type || component.type.trim() === '') {
+      throw new Error('Component type is required');
+    }
+    
+    if (typeof component.data !== 'object') {
+      throw new Error('Component data must be an object');
+    }
+    
+    return true;
+  }
+}
+```
+
+## Example: Custom Entity System
+
+Here's an example of building a custom entity system:
+
+```typescript
+class GameEntitySystem {
+  constructor(private runtime: IAgentRuntime) {}
+  
+  async createPlayer(name: string, roomId: UUID): Promise<Entity> {
+    // Create player entity
+    const player: Entity = {
+      id: generateUUID(),
+      names: [name],
+      agentId: this.runtime.agentId,
+      metadata: { type: "player" }
+    };
+    
+    await this.runtime.createEntity(player);
+    
+    // Add initial components
+    await this.runtime.createComponent({
+      id: generateUUID(),
+      entityId: player.id,
+      agentId: this.runtime.agentId,
+      roomId,
+      worldId: roomId,
+      sourceEntityId: this.runtime.agentId,
+      type: "stats",
+      createdAt: Date.now(),
+      data: {
+        health: 100,
+        level: 1,
+        experience: 0
+      }
+    });
+    
+    await this.runtime.createComponent({
+      id: generateUUID(),
+      entityId: player.id,
+      agentId: this.runtime.agentId,
+      roomId,
+      worldId: roomId,
+      sourceEntityId: this.runtime.agentId,
+      type: "inventory",
+      createdAt: Date.now(),
+      data: {
+        items: [],
+        capacity: 20
+      }
+    });
+    
+    return player;
+  }
+  
+  async getPlayerStats(playerId: UUID): Promise<any> {
+    const stats = await this.runtime.getComponent(playerId, "stats");
+    return stats?.data || null;
+  }
+  
+  async updatePlayerStats(
+    playerId: UUID,
+    updates: Partial<any>
+  ): Promise<void> {
+    const stats = await this.runtime.getComponent(playerId, "stats");
+    if (!stats) throw new Error('Player stats not found');
+    
+    stats.data = { ...stats.data, ...updates };
+    await this.runtime.updateComponent(stats);
+  }
+}
+```
+
+## Related Topics
+
+- [Memory System](./memory-system) - Memory storage implementation
+- [State Management](./state-management) - State composition using database
+- [Plugin System](../architecture/plugin-system) - Understanding the plugin architecture

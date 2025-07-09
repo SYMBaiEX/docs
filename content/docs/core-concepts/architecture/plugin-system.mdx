@@ -1,0 +1,1395 @@
+---
+title: "Plugin System"
+description: "Complete guide to the ElizaOS plugin architecture and extension system with v1.2.0 enhancements"
+---
+
+# Plugin System
+
+The ElizaOS v1.2.0 plugin system is a powerful and flexible architecture that allows developers to extend agent functionality through modular, reusable components. This system provides a standardized way to add actions, providers, services, models, and more to agents, with enhanced dependency resolution, migration support, and improved lifecycle management.
+
+## Plugin Architecture Overview
+
+### Core Components
+
+The plugin system consists of several key components:
+
+```typescript
+export interface Plugin {
+  name: string;                    // Unique plugin identifier
+  description: string;             // Plugin description
+  version?: string;                // Plugin version (new in v1.2.0)
+  
+  // Lifecycle
+  init?: (config: Record<string, string>, runtime: IAgentRuntime) => Promise<void>;
+  
+  // Configuration
+  config?: { [key: string]: any };
+  
+  // Functionality
+  actions?: Action[];              // Agent actions
+  providers?: Provider[];          // Context providers
+  evaluators?: Evaluator[];        // Message evaluators
+  services?: (typeof Service)[];   // Long-running services
+  models?: { [key: string]: ModelHandler }; // AI model handlers
+  events?: PluginEvents;           // Event handlers
+  routes?: Route[];                // HTTP routes
+  
+  // Database
+  adapter?: IDatabaseAdapter;      // Database adapter
+  schema?: any;                    // Database schema
+  migrations?: Migration[];        // Database migrations (new in v1.2.0)
+  
+  // Metadata
+  dependencies?: string[];         // Plugin dependencies
+  testDependencies?: string[];     // Test dependencies
+  priority?: number;               // Loading priority
+  
+  // Enhanced dependency management (new in v1.2.0)
+  compatibilityVersion?: string;   // Runtime compatibility version
+  peerDependencies?: string[];     // Peer plugin dependencies
+  optionalDependencies?: string[]; // Optional plugin dependencies
+  
+  // Testing
+  tests?: TestSuite[];             // Test suites
+  
+  // Metadata for plugin registry (new in v1.2.0)
+  author?: string;                 // Plugin author
+  repository?: string;             // Source repository
+  license?: string;                // License information
+}
+```
+
+### Plugin Lifecycle
+
+Plugins follow a structured lifecycle with enhanced dependency management:
+
+1. **Discovery**: Plugin is discovered through dependency resolution
+2. **Validation**: Plugin structure, version compatibility, and dependencies are validated
+3. **Dependency Resolution**: Plugin dependencies are resolved in correct order (enhanced in v1.2.0)
+4. **Registration**: Plugin is registered with the runtime
+5. **Migration**: Database schemas and data are migrated if needed (enhanced in v1.2.0)
+6. **Initialization**: Plugin's `init` function is called
+7. **Component Registration**: Actions, providers, services, etc. are registered
+8. **Activation**: Plugin becomes active and functional
+
+## v1.2.0 Plugin System Enhancements
+
+### Enhanced Dependency Resolution
+
+The plugin system now supports sophisticated dependency resolution with version compatibility checking:
+
+```typescript
+export const enhancedPlugin: Plugin = {
+  name: 'enhanced-plugin',
+  version: '1.2.0',
+  description: 'Plugin with enhanced dependency management',
+  compatibilityVersion: '>=1.2.0',
+  
+  dependencies: ['@elizaos/plugin-sql@^1.0.0'],
+  peerDependencies: ['@elizaos/plugin-discord@^2.0.0'],
+  optionalDependencies: ['@elizaos/plugin-cache@^1.1.0'],
+  
+  init: async (config, runtime) => {
+    // Enhanced dependency checking
+    const sqlPlugin = runtime.getPlugin('@elizaos/plugin-sql');
+    if (!sqlPlugin) {
+      throw new Error('Required SQL plugin not found');
+    }
+    
+    // Check version compatibility
+    if (!runtime.isPluginCompatible(sqlPlugin, '^1.0.0')) {
+      throw new Error('SQL plugin version incompatible');
+    }
+  }
+};
+```
+
+### Migration System
+
+Plugins can now define database migrations for schema evolution:
+
+```typescript
+export const migrationPlugin: Plugin = {
+  name: 'migration-example',
+  version: '1.2.0',
+  description: 'Plugin with database migrations',
+  
+  migrations: [
+    {
+      version: '1.0.0',
+      up: async (db, runtime) => {
+        // Create initial tables
+        await db.schema.createTable('plugin_data', (table) => {
+          table.uuid('id').primary();
+          table.uuid('agent_id').references('agents.id');
+          table.jsonb('data');
+          table.timestamp('created_at').defaultTo(db.fn.now());
+        });
+      },
+      down: async (db, runtime) => {
+        await db.schema.dropTable('plugin_data');
+      }
+    },
+    {
+      version: '1.1.0',
+      up: async (db, runtime) => {
+        // Add new columns
+        await db.schema.alterTable('plugin_data', (table) => {
+          table.jsonb('metadata');
+          table.timestamp('updated_at').defaultTo(db.fn.now());
+        });
+      },
+      down: async (db, runtime) => {
+        await db.schema.alterTable('plugin_data', (table) => {
+          table.dropColumn('metadata');
+          table.dropColumn('updated_at');
+        });
+      }
+    }
+  ]
+};
+```
+
+### Service-Based Architecture
+
+Plugins now primarily use services instead of clients for better lifecycle management:
+
+```typescript
+export class EnhancedService extends Service {
+  static serviceType = 'enhanced-service';
+  static dependencies = ['database', 'cache']; // Service-level dependencies
+  
+  private client: ExternalClient;
+  private healthCheckInterval: NodeJS.Timer;
+  
+  constructor(runtime: IAgentRuntime) {
+    super(runtime);
+  }
+  
+  static async start(runtime: IAgentRuntime): Promise<EnhancedService> {
+    const service = new EnhancedService(runtime);
+    
+    // Enhanced initialization with health checks
+    await service.initialize();
+    await service.startHealthChecks();
+    
+    return service;
+  }
+  
+  async initialize() {
+    // Initialize external client with retry logic
+    this.client = new ExternalClient({
+      apiKey: this.runtime.getSetting('API_KEY'),
+      timeout: 30000
+    });
+    
+    // Test connection
+    await this.client.ping();
+    
+    // Register event handlers
+    this.runtime.registerEvent('message_received', this.handleMessage.bind(this));
+  }
+  
+  async startHealthChecks() {
+    this.healthCheckInterval = setInterval(async () => {
+      try {
+        await this.client.ping();
+      } catch (error) {
+        this.runtime.logger.error('Health check failed:', error);
+        // Emit health check failure event
+        await this.runtime.emitEvent('service_health_check_failed', {
+          service: this.constructor.name,
+          error: error.message
+        });
+      }
+    }, 60000); // Check every minute
+  }
+  
+  async stop() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    
+    if (this.client) {
+      await this.client.disconnect();
+    }
+  }
+  
+  // Enhanced method with context tracking
+  async handleMessage(context: any) {
+    const { message, runtime } = context;
+    
+    // Access action context if available
+    const actionContext = runtime.currentActionContext;
+    if (actionContext) {
+      this.runtime.logger.debug(
+        `Handling message in action context: ${actionContext.actionName}`
+      );
+    }
+    
+    // Process message with enhanced logging
+    await this.processMessage(message);
+  }
+}
+```
+
+### Enhanced Event System
+
+Plugins can now register domain-specific events:
+
+```typescript
+export const eventEnhancedPlugin: Plugin = {
+  name: 'event-enhanced',
+  version: '1.2.0',
+  description: 'Plugin with enhanced event handling',
+  
+  events: {
+    // Domain-specific events
+    'database:connection_error': [
+      async (context) => {
+        const { error, runtime } = context;
+        await handleDatabaseError(error, runtime);
+      }
+    ],
+    
+    'ai:model_response': [
+      async (context) => {
+        const { response, modelType, runtime } = context;
+        await logModelUsage(response, modelType, runtime);
+      }
+    ],
+    
+    // Standard events with enhanced context
+    'message_received': [
+      async (context) => {
+        const { message, runtime, runId, actionContext } = context;
+        
+        // Enhanced context available
+        console.log(`Message received in run ${runId}`);
+        if (actionContext) {
+          console.log(`Within action: ${actionContext.actionName}`);
+        }
+      }
+    ]
+  }
+};
+```
+
+## Plugin Types
+
+### Action Plugins
+
+Actions define what agents can do:
+
+```typescript
+// Example action plugin
+export const actionPlugin: Plugin = {
+  name: 'action-example',
+  description: 'Example action plugin',
+  
+  actions: [
+    {
+      name: 'SEND_MESSAGE',
+      description: 'Send a message to a user or channel',
+      similes: ['MESSAGE', 'SEND', 'REPLY'],
+      
+      validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+        // Validate if action should be triggered
+        return message.content.text.includes('send message');
+      },
+      
+      handler: async (
+        runtime: IAgentRuntime,
+        message: Memory,
+        state?: State,
+        options?: any,
+        callback?: HandlerCallback
+      ) => {
+        // Extract target and content from message
+        const target = extractTarget(message.content.text);
+        const content = extractContent(message.content.text);
+        
+        // Send message through appropriate channel
+        await runtime.sendMessageToTarget(target, {
+          text: content,
+          source: message.content.source
+        });
+        
+        // Call callback if provided
+        if (callback) {
+          await callback({
+            text: `Message sent to ${target.name}`,
+            source: message.content.source
+          });
+        }
+      },
+      
+      examples: [
+        [
+          {
+            name: 'User',
+            content: {
+              text: 'Send "Hello world" to John'
+            }
+          },
+          {
+            name: 'Agent',
+            content: {
+              text: 'Message sent to John',
+              actions: ['SEND_MESSAGE']
+            }
+          }
+        ]
+      ]
+    }
+  ]
+};
+```
+
+### Provider Plugins
+
+Providers supply context and data to agents:
+
+```typescript
+// Example provider plugin
+export const providerPlugin: Plugin = {
+  name: 'weather-provider',
+  description: 'Provides weather information',
+  
+  providers: [
+    {
+      name: 'WEATHER_PROVIDER',
+      description: 'Current weather conditions',
+      
+      get: async (
+        runtime: IAgentRuntime,
+        message: Memory,
+        state?: State
+      ): Promise<ProviderResult> => {
+        // Get user location from message or state
+        const location = extractLocation(message.content.text) || 
+                        state?.values?.location || 
+                        'New York';
+        
+        // Fetch weather data
+        const weather = await fetchWeatherData(location);
+        
+        return {
+          text: `Current weather in ${location}: ${weather.description}, ${weather.temperature}°F`,
+          values: {
+            weather: weather,
+            location: location,
+            temperature: weather.temperature
+          },
+          data: {
+            weatherProvider: {
+              location,
+              weather,
+              lastUpdated: new Date().toISOString()
+            }
+          }
+        };
+      }
+    }
+  ],
+  
+  config: {
+    WEATHER_API_KEY: process.env.WEATHER_API_KEY
+  },
+  
+  init: async (config: Record<string, string>) => {
+    if (!config.WEATHER_API_KEY) {
+      throw new Error('Weather API key is required');
+    }
+  }
+};
+```
+
+### Service Plugins
+
+Services provide long-running background functionality:
+
+```typescript
+// Example service plugin
+export class NotificationService extends Service {
+  static serviceType = 'notification';
+  private notifications: Map<string, NotificationSubscription> = new Map();
+  
+  constructor(runtime: IAgentRuntime) {
+    super(runtime);
+  }
+  
+  static async start(runtime: IAgentRuntime): Promise<NotificationService> {
+    const service = new NotificationService(runtime);
+    await service.initialize();
+    return service;
+  }
+  
+  async initialize() {
+    // Subscribe to relevant events
+    this.runtime.on('MESSAGE_RECEIVED', this.handleMessage.bind(this));
+    this.runtime.on('TASK_COMPLETED', this.handleTaskComplete.bind(this));
+  }
+  
+  async stop() {
+    // Cleanup subscriptions
+    this.notifications.clear();
+  }
+  
+  private async handleMessage(data: any) {
+    // Process incoming messages for notifications
+    const { message, runtime } = data;
+    
+    // Check if message triggers notifications
+    const subscriptions = this.findMatchingSubscriptions(message);
+    
+    for (const subscription of subscriptions) {
+      await this.sendNotification(subscription, message);
+    }
+  }
+  
+  async subscribe(userId: string, criteria: NotificationCriteria): Promise<string> {
+    const subscriptionId = uuidv4();
+    this.notifications.set(subscriptionId, {
+      id: subscriptionId,
+      userId,
+      criteria,
+      createdAt: new Date()
+    });
+    return subscriptionId;
+  }
+  
+  async unsubscribe(subscriptionId: string): Promise<boolean> {
+    return this.notifications.delete(subscriptionId);
+  }
+}
+
+export const notificationPlugin: Plugin = {
+  name: 'notification-service',
+  description: 'Handles user notifications',
+  
+  services: [NotificationService],
+  
+  actions: [
+    {
+      name: 'SUBSCRIBE_NOTIFICATIONS',
+      description: 'Subscribe to notifications',
+      validate: async (runtime, message) => {
+        return message.content.text.includes('subscribe') ||
+               message.content.text.includes('notify me');
+      },
+      handler: async (runtime, message) => {
+        const service = runtime.getService('notification') as NotificationService;
+        const criteria = extractNotificationCriteria(message.content.text);
+        
+        const subscriptionId = await service.subscribe(
+          message.entityId,
+          criteria
+        );
+        
+        return {
+          text: `Subscription created: ${subscriptionId}`,
+          source: message.content.source
+        };
+      }
+    }
+  ]
+};
+```
+
+### Model Plugins
+
+Model plugins provide AI model integrations:
+
+```typescript
+// Example model plugin
+export const modelPlugin: Plugin = {
+  name: 'openai-models',
+  description: 'OpenAI model integration',
+  
+  models: {
+    [ModelType.TEXT_GENERATION]: async (runtime: IAgentRuntime, params: GenerateTextParams) => {
+      const { prompt, maxTokens = 150, temperature = 0.7 } = params;
+      
+      // Initialize OpenAI client
+      const client = new OpenAI({
+        apiKey: runtime.getSetting('OPENAI_API_KEY')
+      });
+      
+      // Generate response
+      const response = await client.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: maxTokens,
+        temperature: temperature
+      });
+      
+      return response.choices[0].message.content;
+    },
+    
+    [ModelType.TEXT_EMBEDDING]: async (runtime: IAgentRuntime, params: { text: string }) => {
+      const client = new OpenAI({
+        apiKey: runtime.getSetting('OPENAI_API_KEY')
+      });
+      
+      const response = await client.embeddings.create({
+        model: 'text-embedding-ada-002',
+        input: params.text
+      });
+      
+      return response.data[0].embedding;
+    }
+  },
+  
+  config: {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY
+  },
+  
+  init: async (config: Record<string, string>) => {
+    if (!config.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is required');
+    }
+  }
+};
+```
+
+### Database Plugins
+
+Database plugins provide storage capabilities:
+
+```typescript
+// Example database plugin
+export const databasePlugin: Plugin = {
+  name: 'postgresql-adapter',
+  description: 'PostgreSQL database adapter',
+  
+  adapter: new PostgresDatabaseAdapter(),
+  
+  schema: {
+    // Drizzle schema definitions
+    customTable: pgTable('custom_table', {
+      id: uuid('id').primaryKey(),
+      agentId: uuid('agent_id').references(() => agents.id),
+      data: jsonb('data'),
+      createdAt: timestamp('created_at').defaultNow()
+    })
+  },
+  
+  init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    const adapter = runtime.adapter as PostgresDatabaseAdapter;
+    
+    // Initialize connection
+    await adapter.connect(config.DATABASE_URL);
+    
+    // Run migrations
+    await adapter.migrate();
+  }
+};
+```
+
+## Plugin Registration and Loading
+
+### Registration Process
+
+Plugins are registered through the runtime:
+
+```typescript
+// Manual registration
+await runtime.registerPlugin(myPlugin);
+
+// Automatic registration from character config
+const character = {
+  name: 'MyAgent',
+  plugins: [
+    '@elizaos/plugin-sql',
+    '@elizaos/plugin-discord',
+    myCustomPlugin
+  ]
+};
+
+const runtime = new AgentRuntime({
+  character,
+  plugins: character.plugins
+});
+```
+
+### Plugin Resolution
+
+The runtime resolves plugins through enhanced mechanisms with dependency management:
+
+```typescript
+// packages/core/src/runtime.ts - Enhanced for v1.2.0
+async registerPlugin(plugin: Plugin): Promise<void> {
+  // 1. Validate plugin structure and compatibility
+  if (!plugin?.name) {
+    throw new Error('Plugin name is required');
+  }
+  
+  // 2. Check version compatibility (new in v1.2.0)
+  if (plugin.compatibilityVersion) {
+    if (!this.isRuntimeCompatible(plugin.compatibilityVersion)) {
+      throw new Error(`Plugin ${plugin.name} requires runtime version ${plugin.compatibilityVersion}`);
+    }
+  }
+  
+  // 3. Check for duplicates
+  const existingPlugin = this.plugins.find(p => p.name === plugin.name);
+  if (existingPlugin) {
+    this.logger.warn(`Plugin ${plugin.name} already registered`);
+    return;
+  }
+  
+  // 4. Validate dependencies (enhanced in v1.2.0)
+  await this.validatePluginDependencies(plugin);
+  
+  // 5. Add to active plugins
+  this.plugins.push(plugin);
+  
+  // 6. Run migrations if present (new in v1.2.0)
+  if (plugin.migrations) {
+    await this.runPluginMigrations(plugin);
+  }
+  
+  // 7. Initialize plugin
+  if (plugin.init) {
+    await plugin.init(plugin.config || {}, this);
+  }
+  
+  // 8. Register database adapter
+  if (plugin.adapter) {
+    this.registerDatabaseAdapter(plugin.adapter);
+  }
+  
+  // 9. Register components
+  if (plugin.actions) {
+    plugin.actions.forEach(action => this.registerAction(action));
+  }
+  
+  if (plugin.providers) {
+    plugin.providers.forEach(provider => this.registerProvider(provider));
+  }
+  
+  if (plugin.evaluators) {
+    plugin.evaluators.forEach(evaluator => this.registerEvaluator(evaluator));
+  }
+  
+  if (plugin.services) {
+    plugin.services.forEach(service => this.registerService(service));
+  }
+  
+  if (plugin.models) {
+    Object.entries(plugin.models).forEach(([modelType, handler]) => {
+      this.registerModel(modelType as ModelTypeName, handler, plugin.name, plugin.priority);
+    });
+  }
+  
+  if (plugin.routes) {
+    plugin.routes.forEach(route => this.routes.push(route));
+  }
+  
+  if (plugin.events) {
+    Object.entries(plugin.events).forEach(([event, handlers]) => {
+      handlers.forEach(handler => this.registerEvent(event, handler));
+    });
+  }
+  
+  // 10. Log successful registration with version (new in v1.2.0)
+  this.logger.info(`Plugin ${plugin.name}${plugin.version ? ` v${plugin.version}` : ''} registered successfully`);
+}
+
+// New in v1.2.0: Plugin dependency validation
+private async validatePluginDependencies(plugin: Plugin): Promise<void> {
+  const missing: string[] = [];
+  
+  // Check required dependencies
+  if (plugin.dependencies) {
+    for (const dep of plugin.dependencies) {
+      const [name, version] = dep.split('@');
+      const depPlugin = this.plugins.find(p => p.name === name);
+      
+      if (!depPlugin) {
+        missing.push(dep);
+      } else if (version && !this.isPluginVersionCompatible(depPlugin, version)) {
+        throw new Error(`Plugin ${name} version ${depPlugin.version} incompatible with required ${version}`);
+      }
+    }
+  }
+  
+  // Check peer dependencies
+  if (plugin.peerDependencies) {
+    for (const dep of plugin.peerDependencies) {
+      const [name, version] = dep.split('@');
+      const depPlugin = this.plugins.find(p => p.name === name);
+      
+      if (!depPlugin) {
+        this.logger.warn(`Peer dependency ${dep} not found for plugin ${plugin.name}`);
+      } else if (version && !this.isPluginVersionCompatible(depPlugin, version)) {
+        this.logger.warn(`Peer dependency ${name} version incompatible`);
+      }
+    }
+  }
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing dependencies for plugin ${plugin.name}: ${missing.join(', ')}`);
+  }
+}
+
+// New in v1.2.0: Plugin migration execution
+private async runPluginMigrations(plugin: Plugin): Promise<void> {
+  if (!plugin.migrations || plugin.migrations.length === 0) {
+    return;
+  }
+  
+  const migrationTable = 'plugin_migrations';
+  
+  // Ensure migration table exists
+  await this.adapter.createMigrationTable(migrationTable);
+  
+  // Get applied migrations
+  const appliedMigrations = await this.adapter.getAppliedMigrations(plugin.name);
+  
+  // Sort migrations by version
+  const sortedMigrations = plugin.migrations.sort((a, b) => 
+    this.compareVersions(a.version, b.version)
+  );
+  
+  // Apply pending migrations
+  for (const migration of sortedMigrations) {
+    if (!appliedMigrations.includes(migration.version)) {
+      try {
+        await migration.up(this.adapter.db, this);
+        await this.adapter.recordMigration(plugin.name, migration.version);
+        this.logger.info(`Applied migration ${migration.version} for plugin ${plugin.name}`);
+      } catch (error) {
+        this.logger.error(`Failed to apply migration ${migration.version}:`, error);
+        throw error;
+      }
+    }
+  }
+}
+```
+
+## Plugin Dependencies
+
+### Dependency Management
+
+Plugins can declare enhanced dependencies with version specifications:
+
+```typescript
+export const dependentPlugin: Plugin = {
+  name: 'advanced-plugin',
+  version: '2.0.0',
+  description: 'Plugin that depends on others',
+  compatibilityVersion: '>=1.2.0',
+  
+  // Required dependencies with version constraints
+  dependencies: [
+    '@elizaos/plugin-sql@^1.0.0',      // Database functionality
+    '@elizaos/plugin-discord@^2.0.0',  // Discord integration
+    'custom-base-plugin@>=1.1.0'       // Custom dependency
+  ],
+  
+  // Peer dependencies (should be present but not automatically installed)
+  peerDependencies: [
+    '@elizaos/plugin-cache@^1.0.0'     // Cache functionality
+  ],
+  
+  // Optional dependencies (nice to have but not required)
+  optionalDependencies: [
+    '@elizaos/plugin-analytics@^1.0.0' // Analytics functionality
+  ],
+  
+  init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Verify dependencies are available
+    const sqlPlugin = runtime.getPlugin('@elizaos/plugin-sql');
+    if (!sqlPlugin) {
+      throw new Error('SQL plugin dependency not found');
+    }
+    
+    // Check version compatibility
+    if (!runtime.isPluginVersionCompatible(sqlPlugin, '^1.0.0')) {
+      throw new Error('SQL plugin version incompatible');
+    }
+    
+    // Use dependency functionality
+    const database = runtime.adapter;
+    
+    // Optional dependency handling
+    const analyticsPlugin = runtime.getPlugin('@elizaos/plugin-analytics');
+    if (analyticsPlugin) {
+      // Enable analytics if available
+      await this.enableAnalytics(analyticsPlugin);
+    }
+  }
+};
+```
+
+### Dependency Resolution
+
+Dependencies are resolved during plugin loading with enhanced version checking:
+
+```typescript
+// Enhanced dependency resolution for v1.2.0
+async function resolveDependencies(plugins: Plugin[]): Promise<Plugin[]> {
+  const resolved: Plugin[] = [];
+  const pending = [...plugins];
+  const maxIterations = pending.length * 2; // Prevent infinite loops
+  let iterations = 0;
+  
+  while (pending.length > 0 && iterations < maxIterations) {
+    const plugin = pending.shift()!;
+    iterations++;
+    
+    // Check if dependencies are resolved
+    const unresolvedDeps = plugin.dependencies?.filter(dep => {
+      const [name, version] = dep.split('@');
+      const resolvedPlugin = resolved.find(p => p.name === name);
+      
+      if (!resolvedPlugin) {
+        return true; // Not resolved yet
+      }
+      
+      // Check version compatibility if specified
+      if (version && !isVersionCompatible(resolvedPlugin.version, version)) {
+        throw new Error(`Plugin ${name} version ${resolvedPlugin.version} incompatible with required ${version}`);
+      }
+      
+      return false; // Resolved and compatible
+    }) || [];
+    
+    // Check peer dependencies (don't block but warn)
+    if (plugin.peerDependencies) {
+      for (const dep of plugin.peerDependencies) {
+        const [name, version] = dep.split('@');
+        const peerPlugin = resolved.find(p => p.name === name);
+        
+        if (!peerPlugin) {
+          console.warn(`Peer dependency ${dep} not found for plugin ${plugin.name}`);
+        } else if (version && !isVersionCompatible(peerPlugin.version, version)) {
+          console.warn(`Peer dependency ${name} version ${peerPlugin.version} incompatible with required ${version}`);
+        }
+      }
+    }
+    
+    if (unresolvedDeps.length === 0) {
+      resolved.push(plugin);
+    } else {
+      // Move to end of queue
+      pending.push(plugin);
+    }
+  }
+  
+  // Check for circular dependencies
+  if (pending.length > 0) {
+    const pendingNames = pending.map(p => p.name);
+    throw new Error(`Circular dependency detected or missing dependencies: ${pendingNames.join(', ')}`);
+  }
+  
+  return resolved;
+}
+
+// Version compatibility checking
+function isVersionCompatible(current: string, required: string): boolean {
+  // Simple semver compatibility check
+  // This would use a full semver library in production
+  
+  if (required.startsWith('^')) {
+    const requiredVersion = required.slice(1);
+    return current >= requiredVersion && current.split('.')[0] === requiredVersion.split('.')[0];
+  }
+  
+  if (required.startsWith('>=')) {
+    const requiredVersion = required.slice(2);
+    return current >= requiredVersion;
+  }
+  
+  if (required.startsWith('~')) {
+    const requiredVersion = required.slice(1);
+    const [major, minor] = requiredVersion.split('.');
+    const [currentMajor, currentMinor] = current.split('.');
+    return currentMajor === major && currentMinor === minor;
+  }
+  
+  return current === required;
+}
+```
+
+## Event System
+
+### Event Handling
+
+Plugins can register event handlers:
+
+```typescript
+export const eventPlugin: Plugin = {
+  name: 'event-handler',
+  description: 'Handles various events',
+  
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        const { message, runtime } = params;
+        console.log(`Message received: ${message.content.text}`);
+        
+        // Process message
+        await processIncomingMessage(message, runtime);
+      }
+    ],
+    
+    AGENT_CONNECTED: [
+      async (params) => {
+        const { agentId, runtime } = params;
+        console.log(`Agent connected: ${agentId}`);
+        
+        // Setup agent-specific handlers
+        await setupAgentHandlers(agentId, runtime);
+      }
+    ],
+    
+    WORLD_JOINED: [
+      async (params) => {
+        const { worldId, entityId, runtime } = params;
+        
+        // Update world state
+        await updateWorldState(worldId, entityId, runtime);
+      }
+    ]
+  }
+};
+```
+
+### Custom Events
+
+Plugins can emit custom events:
+
+```typescript
+export const customEventPlugin: Plugin = {
+  name: 'custom-events',
+  description: 'Emits custom events',
+  
+  actions: [
+    {
+      name: 'TRIGGER_CUSTOM_EVENT',
+      description: 'Triggers a custom event',
+      validate: async () => true,
+      handler: async (runtime, message) => {
+        // Emit custom event
+        await runtime.emitEvent('CUSTOM_EVENT', {
+          timestamp: new Date().toISOString(),
+          message: message.content.text,
+          entityId: message.entityId
+        });
+      }
+    }
+  ],
+  
+  events: {
+    CUSTOM_EVENT: [
+      async (params) => {
+        console.log('Custom event triggered:', params);
+        
+        // Handle custom event
+        await handleCustomEvent(params);
+      }
+    ]
+  }
+};
+```
+
+## Plugin Testing
+
+### Test Structure
+
+Plugins should include comprehensive tests:
+
+```typescript
+// Example plugin test suite
+export const pluginTestSuite: TestSuite = {
+  name: 'Plugin Test Suite',
+  description: 'Tests for the example plugin',
+  
+  tests: [
+    {
+      name: 'Action validation',
+      description: 'Test action validation logic',
+      test: async (runtime: IAgentRuntime) => {
+        const action = examplePlugin.actions![0];
+        const message = createTestMessage('test message');
+        
+        const isValid = await action.validate(runtime, message);
+        expect(isValid).toBe(true);
+      }
+    },
+    
+    {
+      name: 'Provider data',
+      description: 'Test provider data retrieval',
+      test: async (runtime: IAgentRuntime) => {
+        const provider = examplePlugin.providers![0];
+        const message = createTestMessage('test message');
+        
+        const result = await provider.get(runtime, message);
+        expect(result.text).toBeTruthy();
+        expect(result.values).toBeDefined();
+      }
+    },
+    
+    {
+      name: 'Service lifecycle',
+      description: 'Test service start/stop',
+      test: async (runtime: IAgentRuntime) => {
+        const ServiceClass = examplePlugin.services![0];
+        const service = await ServiceClass.start(runtime);
+        
+        expect(service).toBeDefined();
+        
+        await service.stop();
+      }
+    }
+  ]
+};
+```
+
+### Integration Testing
+
+Test plugins with the runtime:
+
+```typescript
+// Integration test example
+describe('Plugin Integration', () => {
+  let runtime: IAgentRuntime;
+  
+  beforeEach(async () => {
+    runtime = new AgentRuntime({
+      character: createTestCharacter(),
+      plugins: [examplePlugin]
+    });
+    
+    await runtime.initialize();
+  });
+  
+  afterEach(async () => {
+    await runtime.stop();
+  });
+  
+  it('should register plugin components', () => {
+    expect(runtime.actions).toContain(
+      expect.objectContaining({ name: 'EXAMPLE_ACTION' })
+    );
+    
+    expect(runtime.providers).toContain(
+      expect.objectContaining({ name: 'EXAMPLE_PROVIDER' })
+    );
+  });
+  
+  it('should handle actions correctly', async () => {
+    const message = createTestMessage('example action');
+    const responses = await runtime.processMessage(message);
+    
+    expect(responses).toHaveLength(1);
+    expect(responses[0].content.text).toContain('example response');
+  });
+});
+```
+
+## Plugin Development Best Practices
+
+### 1. Structure and Organization
+
+```typescript
+// Recommended plugin structure
+export const wellStructuredPlugin: Plugin = {
+  name: 'well-structured-plugin',
+  description: 'A well-structured plugin example',
+  
+  // Clear configuration
+  config: {
+    API_KEY: process.env.PLUGIN_API_KEY,
+    API_URL: process.env.PLUGIN_API_URL || 'https://api.example.com'
+  },
+  
+  // Robust initialization
+  init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Validate configuration
+    if (!config.API_KEY) {
+      throw new Error('API key is required');
+    }
+    
+    // Test connectivity
+    await testApiConnection(config.API_URL, config.API_KEY);
+    
+    // Initialize plugin state
+    await initializePluginState(runtime);
+  },
+  
+  // Well-documented components
+  actions: [
+    {
+      name: 'WELL_DOCUMENTED_ACTION',
+      description: 'Action with comprehensive documentation',
+      similes: ['DOCUMENTED', 'EXAMPLE'],
+      
+      validate: async (runtime, message, state) => {
+        // Clear validation logic
+        return validateMessage(message) && validateState(state);
+      },
+      
+      handler: async (runtime, message, state, options, callback) => {
+        try {
+          // Error handling
+          const result = await processAction(message, state, options);
+          
+          if (callback) {
+            await callback(result);
+          }
+          
+          return result;
+        } catch (error) {
+          runtime.logger.error('Action failed:', error);
+          throw error;
+        }
+      },
+      
+      // Comprehensive examples
+      examples: [
+        [
+          {
+            name: 'User',
+            content: { text: 'Example input' }
+          },
+          {
+            name: 'Agent',
+            content: { text: 'Example output', actions: ['WELL_DOCUMENTED_ACTION'] }
+          }
+        ]
+      ]
+    }
+  ],
+  
+  // Dependency management
+  dependencies: ['@elizaos/plugin-sql'],
+  
+  // Test coverage
+  tests: [wellStructuredTestSuite]
+};
+```
+
+### 2. Error Handling
+
+```typescript
+// Robust error handling
+export const errorHandlingPlugin: Plugin = {
+  name: 'error-handling-example',
+  description: 'Demonstrates proper error handling',
+  
+  init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    try {
+      // Validate configuration
+      validateConfig(config);
+      
+      // Initialize with retries
+      await retryOperation(async () => {
+        await initializeExternalService(config);
+      }, 3);
+      
+    } catch (error) {
+      runtime.logger.error('Plugin initialization failed:', error);
+      
+      // Provide helpful error messages
+      if (error instanceof ConfigurationError) {
+        throw new Error(`Configuration error: ${error.message}`);
+      }
+      
+      if (error instanceof NetworkError) {
+        throw new Error(`Network error: ${error.message}. Please check your connection.`);
+      }
+      
+      throw error;
+    }
+  },
+  
+  actions: [
+    {
+      name: 'SAFE_ACTION',
+      description: 'Action with comprehensive error handling',
+      validate: async (runtime, message, state) => {
+        try {
+          return await validateSafely(message, state);
+        } catch (error) {
+          runtime.logger.warn('Validation failed:', error);
+          return false;
+        }
+      },
+      
+      handler: async (runtime, message, state, options, callback) => {
+        try {
+          const result = await processWithTimeout(message, state, options);
+          
+          if (callback) {
+            await callback(result);
+          }
+          
+          return result;
+        } catch (error) {
+          runtime.logger.error('Action execution failed:', error);
+          
+          // Provide user-friendly error response
+          const errorResponse = {
+            text: 'I encountered an error processing your request. Please try again.',
+            source: message.content.source,
+            error: true
+          };
+          
+          if (callback) {
+            await callback(errorResponse);
+          }
+          
+          return errorResponse;
+        }
+      }
+    }
+  ]
+};
+```
+
+### 3. Performance Optimization
+
+```typescript
+// Performance-optimized plugin
+export const performantPlugin: Plugin = {
+  name: 'performant-plugin',
+  description: 'Demonstrates performance best practices',
+  
+  providers: [
+    {
+      name: 'CACHED_PROVIDER',
+      description: 'Provider with caching',
+      
+      get: async (runtime, message, state) => {
+        // Cache key generation
+        const cacheKey = generateCacheKey(message, state);
+        
+        // Check cache first
+        const cached = await runtime.getCache(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        
+        // Compute expensive operation
+        const result = await computeExpensiveOperation(message, state);
+        
+        // Cache result with TTL
+        await runtime.setCache(cacheKey, result, { ttl: 300 }); // 5 minutes
+        
+        return result;
+      }
+    }
+  ],
+  
+  actions: [
+    {
+      name: 'BATCH_ACTION',
+      description: 'Action that processes items in batches',
+      validate: async () => true,
+      
+      handler: async (runtime, message, state, options) => {
+        const items = extractItems(message.content.text);
+        
+        // Process in batches to avoid memory issues
+        const batchSize = 10;
+        const results = [];
+        
+        for (let i = 0; i < items.length; i += batchSize) {
+          const batch = items.slice(i, i + batchSize);
+          const batchResults = await Promise.all(
+            batch.map(item => processItem(item))
+          );
+          results.push(...batchResults);
+        }
+        
+        return {
+          text: `Processed ${results.length} items`,
+          source: message.content.source,
+          data: { results }
+        };
+      }
+    }
+  ]
+};
+```
+
+## Advanced Plugin Features
+
+### Schema Management
+
+Plugins can define database schemas:
+
+```typescript
+export const schemaPlugin: Plugin = {
+  name: 'schema-plugin',
+  description: 'Plugin with database schema',
+  
+  schema: {
+    // Drizzle schema definition
+    customTable: pgTable('custom_table', {
+      id: uuid('id').primaryKey(),
+      agentId: uuid('agent_id').references(() => agents.id),
+      pluginData: jsonb('plugin_data'),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow()
+    })
+  },
+  
+  init: async (config, runtime) => {
+    // Schema migrations are handled automatically
+    // Access the table through the adapter
+    const db = runtime.db;
+    
+    // Example usage
+    await db.insert(customTable).values({
+      id: uuidv4(),
+      agentId: runtime.agentId,
+      pluginData: { initialized: true }
+    });
+  }
+};
+```
+
+### Route Registration
+
+Plugins can register HTTP routes:
+
+```typescript
+export const routePlugin: Plugin = {
+  name: 'route-plugin',
+  description: 'Plugin with HTTP routes',
+  
+  routes: [
+    {
+      name: 'plugin-status',
+      path: '/api/plugin/status',
+      type: 'GET',
+      handler: async (req, res, runtime) => {
+        const status = await getPluginStatus(runtime);
+        res.json({ status });
+      }
+    },
+    
+    {
+      name: 'plugin-config',
+      path: '/api/plugin/config',
+      type: 'POST',
+      handler: async (req, res, runtime) => {
+        const config = req.body;
+        await updatePluginConfig(config, runtime);
+        res.json({ success: true });
+      }
+    }
+  ]
+};
+```
+
+The plugin system in ElizaOS provides a powerful foundation for extending agent capabilities while maintaining code quality, testability, and maintainability. By following these patterns and best practices, developers can create robust, reusable plugins that enhance the agent ecosystem.
