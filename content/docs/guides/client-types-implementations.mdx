@@ -9,7 +9,18 @@ ElizaOS supports multiple client types for connecting agents to different platfo
 ## Client Architecture Overview
 
 <Callout type="info">
-**Unified Processing**: All client types feed messages into the same processing pipeline. The `processMessage` function handles messages identically regardless of their origin - Discord, Twitter, REST API, or any other client.
+**IMPORTANT - Unified Processing**: All client types feed messages into the same processing pipeline. The `processMessage` function is **completely platform-agnostic** and handles messages identically regardless of their origin - Discord, Twitter, REST API, Telegram, or any other client.
+
+**The client type ONLY affects:**
+1. How messages are received from the platform (API format)
+2. How responses are sent back to the platform
+3. Platform-specific features (embeds, character limits, media handling)
+
+**The client type DOES NOT affect:**
+1. How agents process messages (same `processMessage` function)
+2. Decision making logic (same `shouldRespond` evaluation)
+3. Response generation (same templates and AI models)
+4. Action processing (same action handlers)
 </Callout>
 
 ### Message Flow Architecture
@@ -78,7 +89,7 @@ export class RESTClient {
         createdAt: Date.now()
       };
 
-      // Process through standard pipeline
+      // Process through standard pipeline - SAME FOR ALL CLIENTS
       await this.runtime.processMessage(message);
       
       res.json({ success: true, messageId: message.id });
@@ -93,19 +104,69 @@ export class RESTClient {
 }
 ```
 
-**Usage:**
-```bash
-# Send message via REST API
-curl -X POST http://localhost:3000/api/messaging/ingest-external \
-  -H "Content-Type: application/json" \
-  -d '{
-    "channel_id": "channel-123",
-    "server_id": "00000000-0000-0000-0000-000000000000",
-    "author_id": "user-456",
-    "content": "Hello from REST API!",
-    "source_type": "api"
-  }'
-```
+**Usage Examples:**
+
+<Tabs>
+  <Tab value="simple">
+    **Simple Message**
+    ```bash
+    curl -X POST http://localhost:3000/api/messaging/ingest-external \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel_id": "channel-123",
+        "server_id": "00000000-0000-0000-0000-000000000000",
+        "author_id": "user-456",
+        "author_display_name": "API User",
+        "content": "Hello from REST API!",
+        "source_type": "api",
+        "source_id": "msg-001"
+      }'
+    ```
+  </Tab>
+  <Tab value="attachment">
+    **With Attachments**
+    ```bash
+    curl -X POST http://localhost:3000/api/messaging/ingest-external \
+      -H "Content-Type: application/json" \
+      -d '{
+        "channel_id": "channel-123",
+        "server_id": "00000000-0000-0000-0000-000000000000",
+        "author_id": "user-456",
+        "content": "Please analyze this image",
+        "source_type": "api",
+        "raw_message": {
+          "text": "Please analyze this image",
+          "attachments": [{
+            "url": "https://example.com/image.jpg",
+            "contentType": "image/jpeg",
+            "name": "photo.jpg"
+          }]
+        }
+      }'
+    ```
+  </Tab>
+  <Tab value="postman">
+    **Postman Example**
+    ```javascript
+    // Pre-request script
+    pm.environment.set('timestamp', Date.now());
+    
+    // Body
+    {
+      "channel_id": "{{channel_id}}",
+      "server_id": "{{server_id}}",
+      "author_id": "{{user_id}}",
+      "content": "Help me debug this code",
+      "source_type": "api",
+      "source_id": "msg-{{timestamp}}",
+      "metadata": {
+        "platform": "postman",
+        "request_type": "technical_support"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ### 2. Discord Client
 
@@ -161,7 +222,7 @@ export class DiscordClient {
       createdAt: message.createdTimestamp
     };
 
-    // Process through standard pipeline
+    // Process through standard pipeline - SAME processMessage FOR ALL PLATFORMS
     const responses = await this.runtime.processMessage(memory);
     
     // Send responses back to Discord
@@ -721,6 +782,42 @@ class ManagedClient {
       }
     }
   }
+}
+```
+
+## Platform-Agnostic Message Processing
+
+<Callout type="lightbulb">
+**Key Understanding**: Every client type converts platform-specific messages to the same internal `Memory` format before processing. The agent's behavior, decision-making, and response generation are identical regardless of the source platform.
+</Callout>
+
+### Message Processing Comparison
+
+| Platform | Message Source | Conversion | Processing | Response Delivery |
+|----------|----------------|------------|------------|-------------------|
+| REST API | HTTP POST request | JSON → Memory | `processMessage()` | HTTP response |
+| Discord | Discord.js event | Discord.Message → Memory | `processMessage()` | `channel.send()` |
+| Twitter | Twitter API webhook | Tweet → Memory | `processMessage()` | `client.reply()` |
+| Telegram | Bot API update | Update → Memory | `processMessage()` | `bot.sendMessage()` |
+| WebSocket | Socket event | Event data → Memory | `processMessage()` | Socket emit |
+| Slack | Slack Events API | Event → Memory | `processMessage()` | `chat.postMessage()` |
+
+### Common Message Format
+
+All clients convert their platform-specific messages to this standard format:
+
+```typescript
+interface Memory {
+  id: UUID;
+  content: {
+    text: string;              // The message text
+    source: string;            // Platform identifier
+    attachments?: Attachment[]; // Media attachments
+    metadata?: any;            // Platform-specific data
+  };
+  entityId: UUID;              // User/author ID
+  roomId: UUID;                // Channel/room ID
+  createdAt: number;           // Timestamp
 }
 ```
 

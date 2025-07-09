@@ -117,7 +117,7 @@ The runtime is created with configuration options and prepares for initializatio
 const runtime = new AgentRuntime({
   agentId: stringToUuid("my-agent"),
   character: myCharacter,
-  plugins: [sqlPlugin, corePlugin],
+  plugins: [sqlPlugin, bootstrapPlugin],
   adapter: databaseAdapter,
   settings: runtimeSettings,
   allAvailablePlugins: availablePlugins,

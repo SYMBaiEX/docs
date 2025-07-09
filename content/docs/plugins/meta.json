@@ -1,6 +1,9 @@
 {
   "title": "Plugins",
   "pages": [
+    "---Core Plugins---",
+    "plugin-sql",
+    "---Development---",
     "creating-plugins",
     "plugin-development",
     "plugin-registry",

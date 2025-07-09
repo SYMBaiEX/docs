@@ -71,222 +71,157 @@ interface IDatabaseAdapter {
 
 ## Database Schema
 
-### Core Tables
+### Dynamic Schema System
 
-#### Agents Table
+ElizaOS uses a dynamic schema system where tables are defined through the plugin-sql's schema exports rather than static SQL files. This allows plugins to extend the database schema dynamically.
 
-```sql
-CREATE TABLE agents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    enabled BOOLEAN DEFAULT true NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-    name TEXT NOT NULL,
-    username TEXT,
-    system TEXT DEFAULT '',
-    bio JSONB DEFAULT '[]'::jsonb,
-    message_examples JSONB DEFAULT '[]'::jsonb NOT NULL,
-    post_examples JSONB DEFAULT '[]'::jsonb NOT NULL,
-    topics JSONB DEFAULT '[]'::jsonb NOT NULL,
-    adjectives JSONB DEFAULT '[]'::jsonb NOT NULL,
-    knowledge JSONB DEFAULT '[]'::jsonb NOT NULL,
-    plugins JSONB DEFAULT '[]'::jsonb NOT NULL,
-    settings JSONB DEFAULT '{}'::jsonb NOT NULL,
-    style JSONB DEFAULT '{}'::jsonb NOT NULL,
-    CONSTRAINT name_unique UNIQUE (name)
-);
+#### Core Schema Definition
+
+The core tables are defined in `@elizaos/plugin-sql/src/schema.ts`:
+
+```typescript
+// Example: Agents table definition using Drizzle ORM
+export const agentsTable = pgTable("agents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  enabled: boolean("enabled").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  name: text("name").notNull().unique(),
+  username: text("username"),
+  system: text("system").default(""),
+  bio: jsonb("bio").default([]),
+  messageExamples: jsonb("message_examples").default([]).notNull(),
+  postExamples: jsonb("post_examples").default([]).notNull(),
+  topics: jsonb("topics").default([]).notNull(),
+  adjectives: jsonb("adjectives").default([]).notNull(),
+  knowledge: jsonb("knowledge").default([]).notNull(),
+  plugins: jsonb("plugins").default([]).notNull(),
+  settings: jsonb("settings").default({}).notNull(),
+  style: jsonb("style").default({}).notNull(),
+});
 ```
 
-#### Memories Table
+#### Core Tables Overview
 
-```sql
-CREATE TABLE memories (
-    id UUID PRIMARY KEY,
-    type TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    content JSONB NOT NULL,
-    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    world_id UUID,
-    unique BOOLEAN DEFAULT true NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
+All core tables are dynamically created through the plugin-sql schema system. Here are the main tables:
 
-    -- Indexes for performance
-    INDEX idx_memories_type_room ON (type, room_id),
-    INDEX idx_memories_world_id ON (world_id),
-    INDEX idx_memories_metadata_type ON ((metadata->>'type')),
-    INDEX idx_memories_document_id ON ((metadata->>'documentId')),
-    INDEX idx_fragments_order ON ((metadata->>'documentId'), (metadata->>'position')),
-
-    -- Validation constraints
-    CONSTRAINT fragment_metadata_check CHECK (
-        CASE
-            WHEN metadata->>'type' = 'fragment' THEN
-                metadata ? 'documentId' AND metadata ? 'position'
-            ELSE true
-        END
-    ),
-    CONSTRAINT document_metadata_check CHECK (
-        CASE
-            WHEN metadata->>'type' = 'document' THEN
-                metadata ? 'timestamp'
-            ELSE true
-        END
-    )
-);
+```typescript
+// Memories table definition
+export const memoriesTable = pgTable("memories", {
+  id: uuid("id").primaryKey(),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  content: jsonb("content").notNull(),
+  entityId: uuid("entity_id").references(() => entitiesTable.id, { onDelete: "cascade" }),
+  agentId: uuid("agent_id").references(() => agentsTable.id, { onDelete: "cascade" }).notNull(),
+  roomId: uuid("room_id").references(() => roomsTable.id, { onDelete: "cascade" }),
+  worldId: uuid("world_id"),
+  unique: boolean("unique").default(true).notNull(),
+  metadata: jsonb("metadata").default({}).notNull(),
+}, (table) => ({
+  // Indexes defined programmatically
+  typeRoomIdx: index("idx_memories_type_room").on(table.type, table.roomId),
+  worldIdIdx: index("idx_memories_world_id").on(table.worldId),
+  metadataTypeIdx: index("idx_memories_metadata_type").on(sql`(${table.metadata}->>'type')`),
+  documentIdIdx: index("idx_memories_document_id").on(sql`(${table.metadata}->>'documentId')`),
+  fragmentOrderIdx: index("idx_fragments_order").on(
+    sql`(${table.metadata}->>'documentId')`,
+    sql`(${table.metadata}->>'position')`
+  ),
+}));
 ```
 
-#### Embeddings Table
+### Dynamic Table Creation
 
-```sql
-CREATE TABLE embeddings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    memory_id UUID REFERENCES memories(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    dim_384 VECTOR(384),
-    dim_512 VECTOR(512),
-    dim_768 VECTOR(768),
-    dim_1024 VECTOR(1024),
-    dim_1536 VECTOR(1536),
-    dim_3072 VECTOR(3072),
+All tables are created dynamically when the plugin-sql initializes. The schema is defined using Drizzle ORM's type-safe table definitions:
 
-    CONSTRAINT embedding_source_check CHECK (memory_id IS NOT NULL),
-    INDEX idx_embedding_memory ON (memory_id)
-);
+```typescript
+// Embeddings table with multi-dimensional vector support
+export const embeddingsTable = pgTable("embeddings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  memoryId: uuid("memory_id").references(() => memoriesTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  dim384: vector("dim_384", { dimensions: 384 }),
+  dim512: vector("dim_512", { dimensions: 512 }),
+  dim768: vector("dim_768", { dimensions: 768 }),
+  dim1024: vector("dim_1024", { dimensions: 1024 }),
+  dim1536: vector("dim_1536", { dimensions: 1536 }),
+  dim3072: vector("dim_3072", { dimensions: 3072 }),
+}, (table) => ({
+  memoryIdx: index("idx_embedding_memory").on(table.memoryId),
+}));
 ```
 
-#### Entities Table
-
-```sql
-CREATE TABLE entities (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
-    names TEXT[] NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP DEFAULT now() NOT NULL,
-
-    INDEX idx_entities_agent_id ON (agent_id),
-    INDEX idx_entities_names ON (names)
-);
+```typescript
+// Entities table for agent interactions
+export const entitiesTable = pgTable("entities", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  agentId: uuid("agent_id").references(() => agentsTable.id, { onDelete: "cascade" }).notNull(),
+  names: text("names").array().notNull(),
+  metadata: jsonb("metadata").default({}).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  agentIdIdx: index("idx_entities_agent_id").on(table.agentId),
+  namesIdx: index("idx_entities_names").using("gin", table.names),
+}));
 ```
 
-#### Components Table
+### Plugin Schema Extensions
 
-```sql
-CREATE TABLE components (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
-    type TEXT NOT NULL,
-    source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
-    world_id UUID,
-    state JSONB DEFAULT '{}' NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+Plugins can extend the database schema by exporting their own table definitions:
 
-    INDEX idx_components_entity_type ON (entity_id, type),
-    INDEX idx_components_world_id ON (world_id),
-    CONSTRAINT unique_component_per_entity UNIQUE (entity_id, type, world_id, source_entity_id)
-);
+```typescript
+// Example: A plugin extending the schema
+export const myPluginSchema = {
+  customTable: pgTable("my_plugin_custom", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    agentId: uuid("agent_id").references(() => agentsTable.id).notNull(),
+    customData: jsonb("custom_data").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  }),
+};
+
+// In the plugin definition
+export const myPlugin: Plugin = {
+  name: "@elizaos/plugin-custom",
+  schema: myPluginSchema,
+  init: async (_, runtime) => {
+    // Plugin initialization
+  },
+};
 ```
 
-#### Relationships Table
+### Complete Schema Reference
 
-```sql
-CREATE TABLE relationships (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    entity_a_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
-    entity_b_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
-    type TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
+The plugin-sql exports all core tables through its schema object. Key tables include:
 
-    INDEX idx_relationships_entity_a ON (entity_a_id),
-    INDEX idx_relationships_entity_b ON (entity_b_id),
-    INDEX idx_relationships_type ON (type),
-    CONSTRAINT unique_relationship UNIQUE (entity_a_id, entity_b_id, type)
-);
-```
+- **agents**: Agent configurations and settings
+- **memories**: All agent memories with embeddings support
+- **entities**: Users, agents, and other interactable entities  
+- **relationships**: Connections between entities
+- **tasks**: Agent task management
+- **rooms**: Conversation contexts
+- **worlds**: Server/environment contexts
+- **participants**: Room membership tracking
 
-#### Tasks Table
+### Accessing Schema Definitions
 
-```sql
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agent_id UUID REFERENCES agents(id) ON DELETE CASCADE NOT NULL,
-    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    world_id UUID,
-    status TEXT NOT NULL,
-    type TEXT NOT NULL,
-    description TEXT,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-    updated_at TIMESTAMP DEFAULT now() NOT NULL,
+```typescript
+import { schema } from '@elizaos/plugin-sql';
 
-    INDEX idx_tasks_agent_id ON (agent_id),
-    INDEX idx_tasks_status ON (status),
-    INDEX idx_tasks_type ON (type),
-    INDEX idx_tasks_world_id ON (world_id)
-);
-```
+// Access table definitions
+const { agentsTable, memoriesTable, entitiesTable } = schema;
 
-### Multi-Server Support Tables
-
-#### Message Servers Table
-
-```sql
-CREATE TABLE message_servers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    config JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-
-    CONSTRAINT unique_server_name UNIQUE (name)
-);
-```
-
-#### Channels Table
-
-```sql
-CREATE TABLE channels (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    server_id UUID REFERENCES message_servers(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-
-    INDEX idx_channels_server_id ON (server_id),
-    CONSTRAINT unique_channel_per_server UNIQUE (server_id, name)
-);
-```
-
-#### Messages Table
-
-```sql
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    channel_id UUID REFERENCES channels(id) ON DELETE CASCADE NOT NULL,
-    author_id UUID REFERENCES entities(id) ON DELETE CASCADE NOT NULL,
-    content JSONB NOT NULL,
-    metadata JSONB DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL,
-
-    INDEX idx_messages_channel_id ON (channel_id),
-    INDEX idx_messages_author_id ON (author_id),
-    INDEX idx_messages_created_at ON (created_at)
-);
+// Use in queries with Drizzle ORM
+const agents = await db.select().from(schema.agentsTable);
 ```
 
 ## Plugin Architecture
 
 ### SQL Plugin Structure
 
-The SQL plugin (`@elizaos/plugin-sql`) provides the core database functionality:
+The SQL plugin (`@elizaos/plugin-sql`) provides the core database functionality and MUST be loaded first in your plugin list:
 
 ```typescript
 export const plugin: Plugin = {
@@ -295,6 +230,13 @@ export const plugin: Plugin = {
   priority: 0,
   schema, // Exports all core tables
   init: async (_, runtime: IAgentRuntime) => {
+    // Check if adapter already exists
+    const existingAdapter = (runtime as any).databaseAdapter;
+    if (existingAdapter) {
+      logger.info("Database adapter already registered, skipping creation");
+      return;
+    }
+
     // Get configuration
     const postgresUrl = runtime.getSetting("POSTGRES_URL");
     const dataDir =
@@ -313,9 +255,14 @@ export const plugin: Plugin = {
 
     // Register adapter with runtime
     runtime.registerDatabaseAdapter(dbAdapter);
+    logger.info("Database adapter created and registered");
   },
 };
 ```
+
+<Callout type="warning">
+  Always ensure `@elizaos/plugin-sql` is loaded first and `@elizaos/plugin-bootstrap` is loaded last in your plugin list. The SQL plugin provides the database adapter that other plugins depend on.
+</Callout>
 
 ### Dynamic Schema Migration System
 
@@ -590,16 +537,24 @@ The plugin includes comprehensive test coverage:
 
 ### Indexing Strategy
 
-```sql
--- Memory search optimization
-CREATE INDEX idx_memories_type_room ON memories(type, room_id);
-CREATE INDEX idx_memories_metadata_type ON memories((metadata->>'type'));
+Indexes are defined programmatically within the table schemas and created automatically during migration:
 
--- Entity search optimization
-CREATE INDEX idx_entities_names ON entities USING GIN(names);
+```typescript
+// Indexes are defined in the table schema
+export const memoriesTable = pgTable("memories", {
+  // ... column definitions
+}, (table) => ({
+  // Performance indexes
+  typeRoomIdx: index("idx_memories_type_room").on(table.type, table.roomId),
+  metadataTypeIdx: index("idx_memories_metadata_type").on(sql`(${table.metadata}->>'type')`),
+  // Additional indexes as needed
+}));
 
--- Vector search optimization
-CREATE INDEX idx_embeddings_vector_384 ON embeddings USING ivfflat (dim_384 vector_cosine_ops);
+// Vector search indexes are created during migration
+await db.execute(sql`
+  CREATE INDEX IF NOT EXISTS idx_embeddings_vector_384 
+  ON embeddings USING ivfflat (dim_384 vector_cosine_ops)
+`);
 ```
 
 ### Query Optimization
