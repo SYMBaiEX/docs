@@ -1,0 +1,13 @@
+{
+  "title": "Core Concepts",
+  "pages": [
+    "index",
+    "architecture",
+    "agents",
+    "ai-models",
+    "communication",
+    "data-state",
+    "infrastructure",
+    "plugins"
+  ]
+}
