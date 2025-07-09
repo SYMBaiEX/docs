@@ -138,38 +138,122 @@ interface Character {
 
 ## Agent Runtime Integration
 
-Agents are managed through the `IAgentRuntime` interface, which provides:
+Agents are managed through the `IAgentRuntime` interface, which provides comprehensive functionality for agent operations:
 
-### Agent Management
+### Core Runtime Interface
 
 ```typescript
-// Create an agent
-const agent = await runtime.createAgent(characterConfig);
-
-// Get agent status
-const status = agent.status;
-
-// Update agent
-await runtime.updateAgent(agent.id, {
-  status: AgentStatus.ACTIVE,
-  enabled: true
-});
+interface IAgentRuntime {
+  // Character and agent management
+  character: Character;
+  agentId: UUID;
+  
+  // State management
+  composeState(message: Memory, additionalKeys?: string[]): Promise<State>;
+  
+  // Memory operations
+  addEmbeddingToMemory(memory: Memory): Promise<Memory>;
+  createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<Memory>;
+  getMemories(params: {
+    tableName: string;
+    roomId?: UUID;
+    agentId?: UUID;
+    count?: number;
+    unique?: boolean;
+  }): Promise<Memory[]>;
+  
+  // Message processing
+  processActions(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
+  processEvaluators(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
+  
+  // Model interaction
+  useModel(type: ModelType, params: any): Promise<any>;
+  
+  // Plugin management
+  registerAction(action: Action): void;
+  registerEvaluator(evaluator: Evaluator): void;
+  registerProvider(provider: Provider): void;
+  
+  // Task management
+  createTask(task: Task): Promise<Task>;
+  updateTask(id: UUID, updates: Partial<Task>): Promise<Task>;
+  deleteTask(id: UUID): Promise<void>;
+  registerTaskWorker(worker: TaskWorker): void;
+  getTaskWorker(name: string): TaskWorker | undefined;
+  
+  // Relationship management
+  createRelationship(relationship: Relationship): Promise<Relationship>;
+  updateRelationship(relationship: Relationship): Promise<Relationship>;
+  getRelationships(params: { entityId: UUID }): Promise<Relationship[]>;
+  
+  // Cache operations
+  getCache<T>(key: string): Promise<T | undefined>;
+  setCache<T>(key: string, value: T): Promise<void>;
+  
+  // Configuration
+  getConversationLength(): number;
+  getSetting(key: string): string | undefined;
+}
 ```
 
-### Character Integration
+### Message Processing Pipeline
 
-The runtime uses the Character configuration to initialize agent behavior:
+Agents process messages through a structured pipeline:
 
 ```typescript
-const runtime = new AgentRuntime({
-  character: characterConfig,
-  // ... other runtime options
-});
+async function processMessage(runtime: IAgentRuntime, message: Memory): Promise<any> {
+  // 1. Compose state from providers
+  const state = await runtime.composeState(message, [
+    'RECENT_MESSAGES',
+    'CHARACTER', 
+    'RELATIONSHIPS',
+    'TIME'
+  ]);
+  
+  // 2. Run evaluators to assess situation
+  const evaluationResults = await runtime.processEvaluators(runtime, message, state);
+  
+  // 3. Determine and execute actions
+  const actionResults = await runtime.processActions(runtime, message, state);
+  
+  // 4. Update memory with results
+  await runtime.createMemory({
+    agentId: runtime.agentId,
+    content: { text: response.text, actions: actions },
+    roomId: message.roomId,
+    entityId: message.entityId
+  }, 'messages');
+  
+  return actionResults;
+}
+```
 
-// Access character from runtime
-const character = runtime.character;
-console.log(character.name); // Agent name
-console.log(character.bio); // Agent biography
+### State Composition
+
+The runtime composes state from multiple providers:
+
+```typescript
+// State structure
+interface State {
+  agentName: string;
+  bio: string;
+  recentMessages: string;
+  relationships: Relationship[];
+  currentTime: string;
+  facts: Memory[];
+  // ... other provider data
+}
+
+// Compose state with specific providers
+const state = await runtime.composeState(message, [
+  'CHARACTER',        // Agent personality and bio
+  'RECENT_MESSAGES',  // Conversation history
+  'RELATIONSHIPS',    // Entity relationships
+  'TIME',            // Current timestamp
+  'FACTS',           // Known facts
+  'ANXIETY',         // Agent anxiety level
+  'CAPABILITIES'     // Available actions
+]);
 ```
 
 ## Practical Example

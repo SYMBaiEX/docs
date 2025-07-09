@@ -1,0 +1,949 @@
+---
+title: Core Actions
+description: Complete reference for the 12 essential bootstrap actions that provide foundational functionality for ElizaOS agents
+---
+
+# Core Actions Reference
+
+This document provides comprehensive documentation for the 12 core bootstrap actions that form the foundation of ElizaOS agent functionality. These actions are essential for agent operation and are automatically included in the bootstrap plugin.
+
+## Overview
+
+Core actions handle fundamental agent behaviors including:
+- **Communication**: Reply, send messages, ignore inappropriate content
+- **Room Management**: Follow, unfollow, mute, and unmute rooms
+- **Choice Handling**: Select options from task workflows
+- **Entity Management**: Update contact information and user roles
+- **Settings**: Configure agent and world settings
+- **Default Behaviors**: Handle cases where no specific action is needed
+
+## Action Structure
+
+All core actions follow the standard ElizaOS action interface:
+
+```typescript
+interface Action {
+  name: string;                    // Unique action identifier
+  similes: string[];              // Alternative names for the action
+  description: string;            // When and how to use the action
+  validate: (runtime, message, state?) => Promise<boolean>;
+  handler: (runtime, message, state?, options?, callback?, responses?) => Promise<void>;
+  examples: ActionExample[][];    // Conversation examples
+}
+```
+
+---
+
+## Choice Action
+
+**Action Name:** `CHOOSE_OPTION`
+
+**File:** `choice.ts`
+
+**Description:** Selects an option for a pending task that has multiple options available.
+
+### Properties
+
+- **Similes:** `SELECT_OPTION`, `SELECT`, `PICK`, `CHOOSE`
+- **Validation:** Requires ADMIN or OWNER role and pending tasks with `AWAITING_CHOICE` tag
+- **Handler:** Uses LLM to extract task ID and option from user message
+
+### Implementation Details
+
+```typescript
+export const choiceAction: Action = {
+  name: 'CHOOSE_OPTION',
+  similes: ['SELECT_OPTION', 'SELECT', 'PICK', 'CHOOSE'],
+  description: 'Selects an option for a pending task that has multiple options',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+    // Requires proper server role and pending tasks with options
+    const userRole = await getUserServerRole(runtime, message.entityId, room.serverId);
+    if (userRole !== 'OWNER' && userRole !== 'ADMIN') return false;
+    
+    const pendingTasks = await runtime.getTasks({
+      roomId: message.roomId,
+      tags: ['AWAITING_CHOICE'],
+    });
+    
+    return pendingTasks?.length > 0 && pendingTasks.some(task => task.metadata?.options);
+  }
+};
+```
+
+### Usage Examples
+
+```typescript
+// User selects a task option
+User: "post"
+Agent: "Selected option: post for task: Confirm Twitter Post"
+
+// User cancels a task
+User: "I choose cancel"
+Agent: "Task 'Confirm Twitter Post' has been cancelled."
+```
+
+### Template Processing
+
+The action uses an LLM template to extract task selection:
+
+```typescript
+const optionExtractionTemplate = `# Task: Extract selected task and option from user message
+
+# Available Tasks:
+{{#each tasks}}
+Task ID: {{taskId}} - {{name}}
+Available options:
+{{#each options}}
+- {{name}}: {{description}}
+{{/each}}
+- ABORT: Cancel this task
+{{/each}}
+
+# Instructions:
+1. Review the user's message and identify which task and option they are selecting
+2. Return the task ID and selected option name exactly as listed
+3. If no clear selection is made, return null for both fields
+
+Return in JSON format:
+{
+  "taskId": "string" | null,
+  "selectedOption": "OPTION_NAME" | null
+}`;
+```
+
+---
+
+## Follow Room Action
+
+**Action Name:** `FOLLOW_ROOM`
+
+**File:** `followRoom.ts`
+
+**Description:** Start following a channel with great interest, allowing the agent to chime in without needing explicit mentions.
+
+### Properties
+
+- **Similes:** `FOLLOW_CHAT`, `FOLLOW_CHANNEL`, `FOLLOW_CONVERSATION`, `FOLLOW_THREAD`
+- **Validation:** Checks for follow-related keywords and ensures room is not already followed or muted
+- **Handler:** Uses LLM to determine if following is appropriate, then sets participant state
+
+### Implementation Details
+
+```typescript
+export const followRoomAction: Action = {
+  name: 'FOLLOW_ROOM',
+  similes: ['FOLLOW_CHAT', 'FOLLOW_CHANNEL', 'FOLLOW_CONVERSATION', 'FOLLOW_THREAD'],
+  description: 'Start following this channel with great interest, chiming in without needing to be explicitly mentioned. Only do this if explicitly asked to.',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    const keywords = ['follow', 'participate', 'engage', 'listen', 'take interest', 'join'];
+    if (!keywords.some(keyword => message.content.text?.toLowerCase().includes(keyword))) {
+      return false;
+    }
+    
+    const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
+    return roomState !== 'FOLLOWED' && roomState !== 'MUTED';
+  }
+};
+```
+
+### Decision Template
+
+```typescript
+const shouldFollowTemplate = `# Task: Decide if {{agentName}} should start following this room
+
+{{recentMessages}}
+
+Should {{agentName}} start following this room, eagerly participating without explicit mentions?
+Respond with YES if:
+- The user has directly asked {{agentName}} to follow the conversation
+- The conversation topic is highly engaging and {{agentName}}'s input would add significant value
+- {{agentName}} has unique insights to contribute and users seem receptive
+
+Otherwise, respond with NO.`;
+```
+
+### Usage Examples
+
+```typescript
+// User requests following
+User: "hey eliza follow this channel"
+Agent: "Sure, I will now follow this room and chime in"
+
+// User asks for participation
+User: "eliza, please start participating in discussions in this channel"
+Agent: "Got it"
+```
+
+---
+
+## Ignore Action
+
+**Action Name:** `IGNORE`
+
+**File:** `ignore.ts`
+
+**Description:** Ignore the user in a conversation when they are aggressive, creepy, or when the conversation has naturally ended.
+
+### Properties
+
+- **Similes:** `STOP_TALKING`, `STOP_CHATTING`, `STOP_CONVERSATION`
+- **Validation:** Always returns true (available in all contexts)
+- **Handler:** Passes through agent's original response content via callback
+
+### Implementation Details
+
+```typescript
+export const ignoreAction: Action = {
+  name: 'IGNORE',
+  similes: ['STOP_TALKING', 'STOP_CHATTING', 'STOP_CONVERSATION'],
+  description: 'Call this action if ignoring the user. Use IGNORE when the user is aggressive, creepy, or the conversation has naturally ended.',
+  
+  validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+    return true; // Always available
+  },
+  
+  handler: async (runtime, message, state, options, callback, responses) => {
+    if (callback && responses?.[0]?.content) {
+      await callback(responses[0].content);
+    }
+    return true;
+  }
+};
+```
+
+### Usage Examples
+
+```typescript
+// Hostile user
+User: "Go screw yourself"
+Agent: [IGNORE action with empty text]
+
+// Natural conversation end
+User: "I gotta run, talk to you later"
+Agent: "See ya"
+User: "Cya"
+Agent: [IGNORE action - no need to continue]
+
+// Inappropriate content
+User: "wanna cyber"
+Agent: [IGNORE action with "that's inappropriate"]
+```
+
+---
+
+## Mute Room Action
+
+**Action Name:** `MUTE_ROOM`
+
+**File:** `muteRoom.ts`
+
+**Description:** Mute a room, ignoring all messages unless explicitly mentioned. Use when asked to stop responding or when being disruptive.
+
+### Properties
+
+- **Similes:** `MUTE_CHAT`, `MUTE_CONVERSATION`, `MUTE_ROOM`, `MUTE_THREAD`, `MUTE_CHANNEL`
+- **Validation:** Ensures room is not already muted
+- **Handler:** Uses LLM to determine if muting is appropriate, then sets participant state to 'MUTED'
+
+### Implementation Details
+
+```typescript
+export const muteRoomAction: Action = {
+  name: 'MUTE_ROOM',
+  similes: ['MUTE_CHAT', 'MUTE_CONVERSATION', 'MUTE_ROOM', 'MUTE_THREAD', 'MUTE_CHANNEL'],
+  description: "Mutes a room, ignoring all messages unless explicitly mentioned. Only do this if explicitly asked to, or if you're annoying people.",
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
+    return roomState !== 'MUTED';
+  }
+};
+```
+
+### Decision Template
+
+```typescript
+const shouldMuteTemplate = `# Task: Decide if {{agentName}} should mute this room
+
+{{recentMessages}}
+
+Should {{agentName}} mute this room and stop responding unless explicitly mentioned?
+
+Respond with YES if:
+- The user is being aggressive, rude, or inappropriate
+- The user has directly asked {{agentName}} to stop responding or be quiet
+- {{agentName}}'s responses are not well-received or are annoying the user(s)
+
+Otherwise, respond with NO.`;
+```
+
+### Usage Examples
+
+```typescript
+// User requests muting
+User: "eliza, please mute this channel. No need to respond here for now."
+Agent: "Got it"
+
+// User indicates too much participation
+User: "too many messages here eliza"
+Agent: "my bad ill mute"
+```
+
+---
+
+## None Action
+
+**Action Name:** `NONE`
+
+**File:** `none.ts`
+
+**Description:** Respond but perform no additional action. This is the default behavior when the agent is speaking without taking any specific action.
+
+### Properties
+
+- **Similes:** `NO_ACTION`, `NO_RESPONSE`, `NO_REACTION`
+- **Validation:** Always returns true (default action)
+- **Handler:** Simply returns true, indicating successful completion
+
+### Implementation Details
+
+```typescript
+export const noneAction: Action = {
+  name: 'NONE',
+  similes: ['NO_ACTION', 'NO_RESPONSE', 'NO_REACTION'],
+  description: 'Respond but perform no additional action. This is the default if the agent is speaking and not doing anything additional.',
+  
+  validate: async (_runtime: IAgentRuntime, _message: Memory) => {
+    return true;
+  },
+  
+  handler: async (_runtime: IAgentRuntime, _message: Memory): Promise<boolean> => {
+    return true;
+  }
+};
+```
+
+### Usage Examples
+
+```typescript
+// Regular conversation
+User: "Hey whats up"
+Agent: "oh hey" [NONE action]
+
+// Discussing topics
+User: "did u see some faster whisper just came out"
+Agent: "yeah but its a pain to get into node.js" [NONE action]
+
+// Casual interactions
+User: "u think aliens are real"
+Agent: "ya obviously" [NONE action]
+```
+
+---
+
+## Reply Action
+
+**Action Name:** `REPLY`
+
+**File:** `reply.ts`
+
+**Description:** Generate and send a reply to the current conversation using the LLM. This is the primary response mechanism for agents.
+
+### Properties
+
+- **Similes:** `GREET`, `REPLY_TO_MESSAGE`, `SEND_REPLY`, `RESPOND`, `RESPONSE`
+- **Validation:** Always returns true (core functionality)
+- **Handler:** Uses LLM to generate contextual responses based on conversation state
+
+### Implementation Details
+
+```typescript
+export const replyAction: Action = {
+  name: 'REPLY',
+  similes: ['GREET', 'REPLY_TO_MESSAGE', 'SEND_REPLY', 'RESPOND', 'RESPONSE'],
+  description: 'Replies to the current conversation with the text from the generated message. Default if the agent is responding with a message and no other action.',
+  
+  validate: async (_runtime: IAgentRuntime) => {
+    return true;
+  },
+  
+  handler: async (runtime, message, state, options, callback, responses) => {
+    const allProviders = responses?.flatMap(res => res.content?.providers ?? []) ?? [];
+    state = await runtime.composeState(message, [...allProviders, 'RECENT_MESSAGES']);
+    
+    const response = await runtime.useModel(ModelType.OBJECT_LARGE, {
+      prompt: replyTemplate,
+    });
+    
+    const responseContent = {
+      thought: response.thought,
+      text: response.message || '',
+      actions: ['REPLY'],
+    };
+    
+    await callback(responseContent);
+    return true;
+  }
+};
+```
+
+### Reply Template
+
+```typescript
+const replyTemplate = `# Task: Generate dialog for the character {{agentName}}.
+{{providers}}
+
+# Instructions: Write the next message for {{agentName}}.
+"thought" should be a short description of what the agent is thinking about and planning.
+"message" should be the next message for {{agentName}} which they will send to the conversation.
+
+Response format should be formatted in a valid JSON block:
+{
+    "thought": "<string>",
+    "message": "<string>"
+}`;
+```
+
+### Usage Examples
+
+```typescript
+// Greeting
+User: "Hello there!"
+Agent: "Hi! How can I help you today?" [REPLY action]
+
+// Answering questions
+User: "What's your favorite color?"
+Agent: "I really like deep shades of blue. They remind me of the ocean and the night sky." [REPLY action]
+
+// Helping with tasks
+User: "Could you help me solve this math problem?"
+Agent: "Of course! Let's work through it step by step." [REPLY action]
+```
+
+---
+
+## Update Role Action
+
+**Action Name:** `UPDATE_ROLE`
+
+**File:** `roles.ts`
+
+**Description:** Assigns a role (Admin, Owner, None) to a user or list of users in a channel. Requires proper permissions and world context.
+
+### Properties
+
+- **Similes:** `CHANGE_ROLE`, `SET_PERMISSIONS`, `ASSIGN_ROLE`, `MAKE_ADMIN`
+- **Validation:** Requires GROUP or WORLD channel type and valid server ID
+- **Handler:** Uses LLM to parse role assignments and validates permissions before updating
+
+### Implementation Details
+
+```typescript
+export const updateRoleAction: Action = {
+  name: 'UPDATE_ROLE',
+  similes: ['CHANGE_ROLE', 'SET_PERMISSIONS', 'ASSIGN_ROLE', 'MAKE_ADMIN'],
+  description: 'Assigns a role (Admin, Owner, None) to a user or list of users in a channel.',
+  
+  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const channelType = message.content.channelType as ChannelType;
+    const serverId = message.content.serverId as string;
+    
+    return (
+      (channelType === ChannelType.GROUP || channelType === ChannelType.WORLD) &&
+      !!serverId
+    );
+  }
+};
+```
+
+### Permission Logic
+
+```typescript
+const canModifyRole = (currentRole: Role, targetRole: Role | null, newRole: Role): boolean => {
+  // User's can't change their own role
+  if (targetRole === currentRole) return false;
+  
+  switch (currentRole) {
+    case Role.OWNER:
+      return true; // Owners can do everything
+    case Role.ADMIN:
+      return newRole !== Role.OWNER; // Admins can only create/modify users up to their level
+    case Role.NONE:
+    default:
+      return false; // Normal users can't modify roles
+  }
+};
+```
+
+### Usage Examples
+
+```typescript
+// Make user admin
+User: "Make Alice an ADMIN"
+Agent: "Updated Alice's role to ADMIN."
+
+// Assign multiple roles
+User: "Set @alice and @bob as admins"
+Agent: "Updated alice's role to ADMIN.\nUpdated bob's role to ADMIN."
+
+// Invalid request
+User: "Ban @troublemaker"
+Agent: "I cannot ban users."
+```
+
+---
+
+## Send Message Action
+
+**Action Name:** `SEND_MESSAGE`
+
+**File:** `sendMessage.ts`
+
+**Description:** Send a message to a user or room other than the current one. Supports cross-platform messaging.
+
+### Properties
+
+- **Similes:** `DM`, `MESSAGE`, `SEND_DM`, `POST_MESSAGE`
+- **Validation:** Checks for available message sources/components
+- **Handler:** Uses LLM to extract target information, then sends message via appropriate service
+
+### Implementation Details
+
+```typescript
+export const sendMessageAction: Action = {
+  name: 'SEND_MESSAGE',
+  similes: ['DM', 'MESSAGE', 'SEND_DM', 'POST_MESSAGE'],
+  description: 'Send a message to a user or room (other than the current one)',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const roomComponents = await runtime.getComponents(message.roomId, worldId, agentId);
+    const availableSources = new Set(roomComponents.map(c => c.type));
+    return availableSources.size > 0;
+  }
+};
+```
+
+### Target Extraction Template
+
+```typescript
+const targetExtractionTemplate = `# Task: Extract Target and Source Information
+
+# Recent Messages:
+{{recentMessages}}
+
+# Instructions:
+Analyze the conversation to identify:
+1. The target type (user or room)
+2. The target platform/source (e.g. telegram, discord, etc)
+3. Any identifying information about the target
+
+Return a JSON object with:
+{
+  "targetType": "user|room",
+  "source": "platform-name",
+  "identifiers": {
+    // Relevant identifiers for that target
+  }
+}`;
+```
+
+### Usage Examples
+
+```typescript
+// Send to user
+User: "Send a message to @dev_guru on telegram saying 'Hello!'"
+Agent: "Message sent to dev_guru on telegram."
+
+// Post to room
+User: "Post 'Important announcement!' in #announcements"
+Agent: "Message sent to announcements."
+
+// Direct message
+User: "DM Jimmy and tell him 'Meeting at 3pm'"
+Agent: "Message sent to Jimmy."
+```
+
+---
+
+## Update Settings Action
+
+**Action Name:** `UPDATE_SETTINGS`
+
+**File:** `settings.ts`
+
+**Description:** Save configuration settings during onboarding or update existing settings. Used for world/server configuration.
+
+### Properties
+
+- **Similes:** `UPDATE_SETTING`, `SAVE_SETTING`, `SET_CONFIGURATION`, `CONFIGURE`
+- **Validation:** Requires DM channel and user must be world owner with active settings
+- **Handler:** Complex state management for settings onboarding and configuration
+
+### Implementation Details
+
+```typescript
+export const updateSettingsAction: Action = {
+  name: 'UPDATE_SETTINGS',
+  similes: ['UPDATE_SETTING', 'SAVE_SETTING', 'SET_CONFIGURATION', 'CONFIGURE'],
+  description: 'Saves a configuration setting during the onboarding process, or update an existing setting. Use this when you are onboarding with a world owner or admin.',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    if (message.content.channelType !== ChannelType.DM) return false;
+    
+    const worlds = await findWorldsForOwner(runtime, message.entityId);
+    const world = worlds?.find(world => world.metadata?.settings);
+    
+    return !!world?.metadata?.settings;
+  }
+};
+```
+
+### State Management Functions
+
+```typescript
+// Get settings from world metadata
+export async function getWorldSettings(runtime: IAgentRuntime, serverId: string): Promise<WorldSettings | null> {
+  const worldId = createUniqueUuid(runtime, serverId);
+  const world = await runtime.getWorld(worldId);
+  return world?.metadata?.settings as WorldSettings || null;
+}
+
+// Update settings in world metadata
+export async function updateWorldSettings(runtime: IAgentRuntime, serverId: string, worldSettings: WorldSettings): Promise<boolean> {
+  const worldId = createUniqueUuid(runtime, serverId);
+  const world = await runtime.getWorld(worldId);
+  
+  if (!world) return false;
+  
+  world.metadata = world.metadata || {};
+  world.metadata.settings = worldSettings;
+  
+  await runtime.updateWorld(world);
+  return true;
+}
+```
+
+### Usage Examples
+
+```typescript
+// Set welcome channel
+User: "I want to set up the welcome channel to #general"
+Agent: "Perfect! I've updated your welcome channel to #general. Next, we should configure the automated greeting message."
+
+// Configure prefix
+User: "Let's set the bot prefix to !"
+Agent: "Great choice! I've set the command prefix to '!'. Now you can use commands like !help, !info, etc."
+
+// Complete onboarding
+User: "My server name is 'Gaming Lounge'"
+Agent: "Great! I've saved 'Gaming Lounge' as your server name. We've completed all the required settings! Your server is now fully configured."
+```
+
+---
+
+## Unfollow Room Action
+
+**Action Name:** `UNFOLLOW_ROOM`
+
+**File:** `unfollowRoom.ts`
+
+**Description:** Stop following a channel. Agent can still respond when explicitly mentioned but won't automatically chime in.
+
+### Properties
+
+- **Similes:** `UNFOLLOW_CHAT`, `UNFOLLOW_CONVERSATION`, `UNFOLLOW_ROOM`, `UNFOLLOW_THREAD`
+- **Validation:** Ensures room is currently in 'FOLLOWED' state
+- **Handler:** Uses LLM to determine if unfollowing is appropriate, then updates participant state
+
+### Implementation Details
+
+```typescript
+export const unfollowRoomAction: Action = {
+  name: 'UNFOLLOW_ROOM',
+  similes: ['UNFOLLOW_CHAT', 'UNFOLLOW_CONVERSATION', 'UNFOLLOW_ROOM', 'UNFOLLOW_THREAD'],
+  description: "Stop following this channel. You can still respond if explicitly mentioned, but you won't automatically chime in anymore.",
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
+    return roomState === 'FOLLOWED';
+  }
+};
+```
+
+### Decision Template
+
+```typescript
+const shouldUnfollowTemplate = `# Task: Decide if {{agentName}} should stop closely following this previously followed room
+
+{{recentMessages}}
+
+Should {{agentName}} stop closely following this previously followed room and only respond when mentioned?
+Respond with YES if:
+- The user has suggested that {{agentName}} is over-participating or being disruptive
+- {{agentName}}'s eagerness to contribute is not well-received by the users
+- The conversation has shifted to a topic where {{agentName}} has less to add
+
+Otherwise, respond with NO.`;
+```
+
+### Usage Examples
+
+```typescript
+// User requests unfollowing
+User: "Hey eliza stop participating in this channel for now"
+Agent: "Alright, I will stop chiming in"
+
+// User indicates too much participation
+User: "yo eliza chill on all the messages damn"
+Agent: "my bad, I'll step back"
+
+// Can still respond when mentioned
+User: "thoughts on the budget"
+[Agent doesn't respond automatically]
+User: "eliza should we increase it"
+Agent: "A small increase could work given our past results..."
+```
+
+---
+
+## Unmute Room Action
+
+**Action Name:** `UNMUTE_ROOM`
+
+**File:** `unmuteRoom.ts`
+
+**Description:** Unmute a room, allowing the agent to consider responding to messages again after being muted.
+
+### Properties
+
+- **Similes:** `UNMUTE_CHAT`, `UNMUTE_CONVERSATION`, `UNMUTE_ROOM`, `UNMUTE_THREAD`
+- **Validation:** Ensures room is currently in 'MUTED' state
+- **Handler:** Uses LLM to determine if unmuting is appropriate, then clears participant state
+
+### Implementation Details
+
+```typescript
+export const unmuteRoomAction: Action = {
+  name: 'UNMUTE_ROOM',
+  similes: ['UNMUTE_CHAT', 'UNMUTE_CONVERSATION', 'UNMUTE_ROOM', 'UNMUTE_THREAD'],
+  description: 'Unmutes a room, allowing the agent to consider responding to messages again.',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
+    return roomState === 'MUTED';
+  }
+};
+```
+
+### Decision Template
+
+```typescript
+const shouldUnmuteTemplate = `# Task: Decide if {{agentName}} should unmute this previously muted room
+
+{{recentMessages}}
+
+Should {{agentName}} unmute this previously muted room and start considering it for responses again?
+Respond with YES if:
+- The user has explicitly asked {{agentName}} to start responding again
+- The user seems to want to re-engage with {{agentName}} in a respectful manner
+- The tone of the conversation has improved and {{agentName}}'s input would be welcome
+
+Otherwise, respond with NO.`;
+```
+
+### Usage Examples
+
+```typescript
+// User requests unmuting
+User: "eliza, you can unmute this channel now"
+Agent: "Done"
+
+// User wants re-engagement
+User: "eliza, please unmute this room. We could use your input again."
+Agent: "Sounds good"
+
+// Casual request
+User: "unmute urself eliza"
+Agent: "unmuted"
+```
+
+---
+
+## Update Entity Action
+
+**Action Name:** `UPDATE_CONTACT`
+
+**File:** `updateEntity.ts`
+
+**Description:** Add or edit contact details for a person in the conversation. Used for relating entities across platforms.
+
+### Properties
+
+- **Similes:** `UPDATE_ENTITY`
+- **Validation:** Always returns true (core functionality)
+- **Handler:** Uses LLM to extract platform and contact information, then creates/updates entity components
+
+### Implementation Details
+
+```typescript
+export const updateEntityAction: Action = {
+  name: 'UPDATE_CONTACT',
+  similes: ['UPDATE_ENTITY'],
+  description: 'Add or edit contact details for a person you are talking to or observing in the conversation. Use this when you learn this information from the conversation about a contact.',
+  
+  validate: async (_runtime: IAgentRuntime, _message: Memory, _state?: State): Promise<boolean> => {
+    return true;
+  }
+};
+```
+
+### Component Template
+
+```typescript
+const componentTemplate = `# Task: Extract Source and Update Component Data
+
+{{recentMessages}}
+
+{{#if existingData}}
+# Existing Component Data:
+\`\`\`json
+{{existingData}}
+\`\`\`
+{{/if}}
+
+# Instructions:
+1. Analyze the conversation to identify:
+   - The source/platform being referenced (e.g. telegram, twitter, discord)
+   - Any specific component data being shared
+
+2. Generate updated component data that:
+   - Is specific to the identified platform/source
+   - Preserves existing data when appropriate
+   - Includes the new information from the conversation
+
+Return a JSON object with:
+{
+  "source": "platform-name",
+  "data": {
+    // Component-specific fields
+  }
+}`;
+```
+
+### Usage Examples
+
+```typescript
+// Update telegram info
+User: "Please update my telegram username to @dev_guru"
+Agent: "I've updated your telegram information."
+
+// Set twitter handle
+User: "Set Jimmy's twitter username to @jimmy_codes"
+Agent: "I've updated Jimmy's twitter information."
+
+// Update discord details
+User: "Update my discord username to dev_guru#1234"
+Agent: "I've updated your discord information."
+```
+
+---
+
+## Action Integration
+
+### Plugin Registration
+
+All core actions are exported from the bootstrap plugin:
+
+```typescript
+// packages/plugin-bootstrap/src/actions/index.ts
+export { choiceAction } from './choice';
+export { followRoomAction } from './followRoom';
+export { ignoreAction } from './ignore';
+export { muteRoomAction } from './muteRoom';
+export { noneAction } from './none';
+export { replyAction } from './reply';
+export { updateRoleAction } from './roles';
+export { sendMessageAction } from './sendMessage';
+export { updateSettingsAction } from './settings';
+export { unfollowRoomAction } from './unfollowRoom';
+export { unmuteRoomAction } from './unmuteRoom';
+export { updateEntityAction } from './updateEntity';
+```
+
+### Usage in Agents
+
+Actions are automatically available to agents through the bootstrap plugin:
+
+```typescript
+import { bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const agent = new Agent({
+  plugins: [bootstrapPlugin], // Includes all core actions
+  // ... other configuration
+});
+```
+
+### Action Selection
+
+The runtime automatically selects appropriate actions based on:
+1. **Validation**: Only actions that pass validation are considered
+2. **Context**: LLM evaluates which action best fits the conversation context
+3. **Priority**: Some actions (like REPLY) serve as fallbacks for general responses
+
+### Error Handling
+
+All core actions include comprehensive error handling:
+- **Validation errors**: Prevent action execution in inappropriate contexts
+- **Handler errors**: Gracefully handle runtime errors with user-friendly messages
+- **State errors**: Ensure consistent state management across action executions
+
+---
+
+## Best Practices
+
+### When to Use Each Action
+
+1. **REPLY**: Default for general conversation responses
+2. **IGNORE**: When users are hostile or conversation has ended
+3. **NONE**: When responding without taking specific action
+4. **FOLLOW_ROOM**: When explicitly asked to participate more actively
+5. **UNFOLLOW_ROOM**: When participation is unwanted or disruptive
+6. **MUTE_ROOM**: When asked to stop responding entirely
+7. **UNMUTE_ROOM**: When re-engagement is requested
+8. **CHOOSE_OPTION**: For task workflows with multiple options
+9. **SEND_MESSAGE**: For cross-platform or cross-room messaging
+10. **UPDATE_ROLE**: For permission management in groups
+11. **UPDATE_SETTINGS**: During onboarding or configuration
+12. **UPDATE_CONTACT**: When learning new contact information
+
+### Action Chaining
+
+Actions can be chained together for complex workflows:
+
+```typescript
+// Example: Reply with acknowledgment, then send message
+1. REPLY: "I'll send that message now"
+2. SEND_MESSAGE: Actually send the message
+3. REPLY: "Message sent successfully"
+```
+
+### Performance Considerations
+
+- Actions use different LLM models based on complexity:
+  - `ModelType.TEXT_SMALL`: Quick decisions and parsing
+  - `ModelType.TEXT_LARGE`: Complex response generation
+  - `ModelType.OBJECT_LARGE`: Structured data extraction
+
+- Validation is lightweight and runs frequently
+- Handlers include comprehensive error handling to prevent crashes
+
+### Security
+
+- Role-based validation for sensitive actions (UPDATE_ROLE, UPDATE_SETTINGS)
+- Input sanitization for all user-provided data
+- Graceful degradation when permissions are insufficient
+- Audit trails for administrative actions
+
+This comprehensive reference covers all 12 core bootstrap actions essential for ElizaOS agent operation. Each action is designed to handle specific aspects of agent behavior while maintaining consistency and reliability across the platform.

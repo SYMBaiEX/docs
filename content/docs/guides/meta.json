@@ -1,0 +1,8 @@
+{
+  "title": "Guides",
+  "pages": [
+    "monorepo-workflow",
+    "plugin-development-linking",
+    "standalone-vs-monorepo"
+  ]
+}

@@ -59,22 +59,23 @@ const character = {
 ### Runtime Knowledge Addition
 
 ```typescript
-// Add a single knowledge item
-await runtime.addKnowledge({
+import { v4 as generateUUID } from 'uuid';
+import { MemoryType } from '@elizaos/core';
+
+// Add a single knowledge item as a fact memory
+await runtime.createMemory({
   id: generateUUID(),
+  entityId: userId,
+  roomId: roomId,
   content: {
     text: "The user prefers morning meetings",
-    metadata: {
-      userId: userId,
-      confidence: 0.9
-    }
   },
   metadata: {
     type: MemoryType.DESCRIPTION,
     source: "user_preference",
     tags: ["preferences", "scheduling"]
   }
-});
+}, 'facts');
 
 // Bulk knowledge import
 const knowledgeItems = [
@@ -84,7 +85,15 @@ const knowledgeItems = [
 ];
 
 for (const item of knowledgeItems) {
-  await runtime.addKnowledge(item);
+  await runtime.createMemory({
+    ...item,
+    entityId: userId,
+    roomId: roomId,
+    metadata: {
+      type: MemoryType.DESCRIPTION,
+      source: "bulk_import"
+    }
+  }, 'facts');
 }
 ```
 
@@ -408,10 +417,14 @@ interface ConfidentKnowledge extends KnowledgeItem {
 async function addConfidentKnowledge(
   text: string, 
   confidence: number,
-  source: string
+  source: string,
+  entityId: UUID,
+  roomId: UUID
 ) {
-  await runtime.addKnowledge({
+  await runtime.createMemory({
     id: generateUUID(),
+    entityId,
+    roomId,
     content: { text },
     metadata: {
       type: MemoryType.DESCRIPTION,
@@ -419,7 +432,7 @@ async function addConfidentKnowledge(
       source,
       timestamp: Date.now()
     }
-  });
+  }, 'facts');
 }
 ```
 
@@ -469,15 +482,17 @@ class DomainKnowledgeSystem {
         const items = JSON.parse(content);
         
         for (const item of items) {
-          await this.runtime.addKnowledge({
+          await this.runtime.createMemory({
             id: generateUUID(),
+            entityId: this.runtime.agentId,
+            roomId: this.runtime.agentId, // Use agent ID as room ID for shared knowledge
             content: { text: item.text },
             metadata: {
               type: MemoryType.DESCRIPTION,
               source: file,
               tags: [this.domain, ...item.tags]
             }
-          });
+          }, 'facts');
         }
       }
     }
@@ -522,4 +537,4 @@ await medicalKnowledge.initialize();
 
 - [Memory System](./memory-system) - Core memory storage and retrieval
 - [State Management](./state-management) - Using knowledge in state composition
-- [Character Configuration](../agents/character-files) - Defining agent knowledge
+- [Character Definition](../agent-development/character-definition) - Defining agent knowledge

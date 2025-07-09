@@ -18,6 +18,7 @@ abstract class DatabaseAdapter<DB = unknown> implements IDatabaseAdapter {
   db: DB;
   
   abstract initialize(config?: any): Promise<void>;
+  abstract init(): Promise<void>;
   abstract runMigrations(migrationsPaths?: string[]): Promise<void>;
   abstract isReady(): Promise<boolean>;
   abstract close(): Promise<void>;
@@ -29,14 +30,34 @@ abstract class DatabaseAdapter<DB = unknown> implements IDatabaseAdapter {
   abstract updateEntity(entity: Entity): Promise<void>;
   
   // Component operations
-  abstract getComponent(entityId: UUID, type: string): Promise<Component | null>;
+  abstract getComponent(entityId: UUID, type: string, worldId?: UUID, sourceEntityId?: UUID): Promise<Component | null>;
   abstract createComponent(component: Component): Promise<boolean>;
   abstract updateComponent(component: Component): Promise<void>;
   
   // Memory operations
-  abstract getMemories(params: MemoryParams): Promise<Memory[]>;
-  abstract createMemory(memory: Memory, tableName: string): Promise<UUID>;
-  abstract searchMemories(params: SearchParams): Promise<Memory[]>;
+  abstract getMemories(params: {
+    entityId?: UUID;
+    agentId?: UUID;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    start?: number;
+    end?: number;
+    roomId?: UUID;
+    worldId?: UUID;
+  }): Promise<Memory[]>;
+  abstract createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID>;
+  abstract searchMemories(params: {
+    embedding: number[];
+    match_threshold?: number;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    query?: string;
+    roomId?: UUID;
+    worldId?: UUID;
+    entityId?: UUID;
+  }): Promise<Memory[]>;
   
   // ... additional operations
 }
@@ -205,6 +226,11 @@ class CustomDatabaseAdapter extends DatabaseAdapter<CustomDB> {
     this.db = await connectToCustomDB(config);
   }
   
+  async init(): Promise<void> {
+    // Initialize database connection
+    await this.initialize();
+  }
+  
   async getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null> {
     // Custom implementation
     const results = await this.db.query(
@@ -223,6 +249,9 @@ class CustomDatabaseAdapter extends DatabaseAdapter<CustomDB> {
 ### Entity Operations
 
 ```typescript
+import { v4 as generateUUID } from 'uuid';
+import type { Entity, Component, UUID } from '@elizaos/core';
+
 // Create an entity
 const entity: Entity = {
   id: generateUUID(),
@@ -498,16 +527,25 @@ class GameEntitySystem {
   
   async createPlayer(name: string, roomId: UUID): Promise<Entity> {
     // Create player entity
-    const player = await runtime.createEntity({
+    const player: Entity = {
+      id: generateUUID(),
       names: [name],
+      agentId: this.runtime.agentId,
       metadata: { type: "player" }
-    });
+    };
+    
+    await this.runtime.createEntity(player);
     
     // Add initial components
-    await runtime.createComponent({
+    await this.runtime.createComponent({
+      id: generateUUID(),
       entityId: player.id,
-      type: "stats",
+      agentId: this.runtime.agentId,
       roomId,
+      worldId: roomId,
+      sourceEntityId: this.runtime.agentId,
+      type: "stats",
+      createdAt: Date.now(),
       data: {
         health: 100,
         level: 1,
@@ -515,10 +553,15 @@ class GameEntitySystem {
       }
     });
     
-    await runtime.createComponent({
+    await this.runtime.createComponent({
+      id: generateUUID(),
       entityId: player.id,
-      type: "inventory",
+      agentId: this.runtime.agentId,
       roomId,
+      worldId: roomId,
+      sourceEntityId: this.runtime.agentId,
+      type: "inventory",
+      createdAt: Date.now(),
       data: {
         items: [],
         capacity: 20
@@ -529,7 +572,7 @@ class GameEntitySystem {
   }
   
   async getPlayerStats(playerId: UUID): Promise<any> {
-    const stats = await runtime.getComponent(playerId, "stats");
+    const stats = await this.runtime.getComponent(playerId, "stats");
     return stats?.data || null;
   }
   
@@ -537,11 +580,11 @@ class GameEntitySystem {
     playerId: UUID,
     updates: Partial<any>
   ): Promise<void> {
-    const stats = await runtime.getComponent(playerId, "stats");
+    const stats = await this.runtime.getComponent(playerId, "stats");
     if (!stats) throw new Error('Player stats not found');
     
     stats.data = { ...stats.data, ...updates };
-    await runtime.updateComponent(stats);
+    await this.runtime.updateComponent(stats);
   }
 }
 ```
@@ -550,4 +593,4 @@ class GameEntitySystem {
 
 - [Memory System](./memory-system) - Memory storage implementation
 - [State Management](./state-management) - State composition using database
-- [Plugin Development](../development/creating-plugins) - Creating database plugins
+- [Plugin System](../architecture/plugin-system) - Understanding the plugin architecture

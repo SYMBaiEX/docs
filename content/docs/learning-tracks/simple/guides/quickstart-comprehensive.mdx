@@ -1,0 +1,496 @@
+---
+title: "Comprehensive Quick Start Guide"
+description: "Complete beginner's guide to getting started with ElizaOS, from installation to deployment"
+---
+
+# Comprehensive Quick Start Guide
+
+Get up and running with ElizaOS in 15 minutes or less! This guide covers everything you need to know to create your first AI agent.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js** (v23.3.0 or higher)
+- **Bun** (v1.2.15 or higher) - [Install Bun](https://bun.sh/docs/installation)
+- **Git** for version control
+- A text editor (VS Code recommended)
+
+### Quick Environment Check
+
+```bash
+# Check your versions
+node --version    # Should be v23.3.0+
+bun --version     # Should be 1.2.15+
+git --version     # Any recent version
+```
+
+## Choose Your Path
+
+ElizaOS offers different approaches based on your needs:
+
+### 🚀 Path 1: Standalone Agent (Recommended for Beginners)
+**Best for:** Single agent, quick deployment, learning
+**Time:** 5-10 minutes
+
+### 🔧 Path 2: Plugin Development  
+**Best for:** Building reusable components, extending ElizaOS
+**Time:** 15-20 minutes
+
+### 🏗️ Path 3: Monorepo Development
+**Best for:** Multiple agents, core contributions, advanced features
+**Time:** 30+ minutes
+
+---
+
+## Path 1: Standalone Agent (Quickest Start)
+
+### Step 1: Install ElizaOS CLI
+
+```bash
+# Install globally
+npm install -g @elizaos/cli
+
+# Verify installation
+elizaos --version
+```
+
+### Step 2: Create Your First Agent
+
+```bash
+# Create a new agent project
+elizaos create -t project my-first-agent
+cd my-first-agent
+
+# The CLI will automatically:
+# - Create project structure
+# - Install dependencies
+# - Generate basic configuration
+```
+
+### Step 3: Configure Your Agent
+
+Edit the character file:
+
+```bash
+# Open your agent's character file
+code src/character.ts
+```
+
+Basic character configuration:
+```typescript
+// src/character.ts
+export const character = {
+  name: "Alex",
+  bio: "A helpful AI assistant that loves to chat and help users with their questions.",
+  
+  // Basic personality traits
+  personality: [
+    "helpful and friendly",
+    "curious about the world",
+    "patient and understanding",
+    "loves to learn new things"
+  ],
+  
+  // How the agent should behave
+  behavior: [
+    "Always be polite and respectful",
+    "Ask clarifying questions when needed",
+    "Provide helpful and accurate information",
+    "Maintain a positive attitude"
+  ],
+  
+  // Example conversations
+  knowledge: [
+    "I can help with general questions and conversations",
+    "I enjoy discussing technology, books, and current events",
+    "I'm here to assist and make your day better"
+  ]
+};
+```
+
+### Step 4: Set Up Environment Variables
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit with your API keys
+code .env
+```
+
+Essential environment variables:
+```bash
+# .env
+# Required: Choose your AI model provider
+OPENAI_API_KEY=your_openai_key_here
+# OR
+ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# Optional: Add platform integrations
+DISCORD_TOKEN=your_discord_token
+TWITTER_API_KEY=your_twitter_key
+```
+
+### Step 5: Run Your Agent
+
+```bash
+# Start development mode (with hot reload)
+elizaos dev
+
+# OR start production mode
+elizaos start
+```
+
+Your agent is now running! 🎉
+
+### Step 6: Test Your Agent
+
+Open another terminal and test your agent:
+
+```bash
+# Test with CLI
+elizaos test
+
+# Or interact directly (if using terminal client)
+# Your agent will respond to messages based on its character
+```
+
+---
+
+## Path 2: Plugin Development
+
+### Step 1: Create a Plugin
+
+```bash
+# Create a new plugin
+elizaos create -t plugin weather-bot
+cd plugin-weather-bot
+```
+
+### Step 2: Implement Your Plugin
+
+```typescript
+// src/plugin.ts
+import { Plugin } from '@elizaos/core';
+import { weatherAction } from './actions/weather';
+
+export const weatherPlugin: Plugin = {
+  name: 'weather',
+  version: '1.0.0',
+  description: 'Provides weather information',
+  
+  actions: [weatherAction],
+  providers: [],
+  evaluators: []
+};
+
+export default weatherPlugin;
+```
+
+### Step 3: Create an Action
+
+```typescript
+// src/actions/weather.ts
+import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+
+export const weatherAction: Action = {
+  name: 'GET_WEATHER',
+  similes: ['weather', 'forecast', 'temperature'],
+  description: 'Get weather information for a location',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    const text = message.content.text.toLowerCase();
+    return text.includes('weather') || text.includes('forecast');
+  },
+  
+  handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Simple weather response (integrate with real API)
+    const location = extractLocation(message.content.text);
+    
+    return {
+      text: `The weather in ${location} is sunny and 72°F. Perfect day to go outside!`,
+      content: {
+        weather: {
+          location,
+          temperature: 72,
+          condition: 'sunny'
+        }
+      }
+    };
+  },
+  
+  examples: [
+    [
+      {
+        user: "user",
+        content: { text: "What's the weather like in New York?" }
+      },
+      {
+        user: "agent", 
+        content: { text: "The weather in New York is sunny and 72°F. Perfect day to go outside!" }
+      }
+    ]
+  ]
+};
+
+function extractLocation(text: string): string {
+  // Simple location extraction logic
+  const match = text.match(/weather.*in\s+([A-Za-z\s]+)/i);
+  return match ? match[1].trim() : 'your area';
+}
+```
+
+### Step 4: Test Your Plugin
+
+```bash
+# Start development
+elizaos dev
+
+# Run tests
+elizaos test
+```
+
+---
+
+## Path 3: Monorepo Development
+
+### Step 1: Clone the Repository
+
+```bash
+# Clone ElizaOS repository
+git clone https://github.com/elizaos/eliza.git
+cd eliza
+
+# Install dependencies
+bun install
+
+# Build all packages
+bun run build
+```
+
+### Step 2: Create Your Package
+
+```bash
+# Create a new plugin in the monorepo
+cp -r packages/plugin-starter packages/plugin-myservice
+cd packages/plugin-myservice
+```
+
+### Step 3: Update Configuration
+
+```json
+// package.json
+{
+  "name": "@elizaos/plugin-myservice",
+  "description": "My custom service plugin",
+  "version": "1.0.16",
+  "dependencies": {
+    "@elizaos/core": "workspace:*"
+  }
+}
+```
+
+### Step 4: Develop in Monorepo
+
+```bash
+# Start full development environment
+bun run dev
+
+# Test your changes
+bun test --filter=./packages/plugin-myservice
+```
+
+---
+
+## Platform Integration
+
+### Discord Bot Setup
+
+1. **Create Discord Application**
+   - Go to [Discord Developer Portal](https://discord.com/developers/applications)
+   - Create new application
+   - Go to "Bot" section
+   - Create bot and copy token
+
+2. **Configure Environment**
+   ```bash
+   # .env
+   DISCORD_TOKEN=your_bot_token_here
+   DISCORD_APPLICATION_ID=your_application_id
+   ```
+
+3. **Add to Server**
+   - Generate invite link with bot permissions
+   - Add bot to your Discord server
+
+### Twitter Integration
+
+1. **Twitter Developer Account**
+   - Apply for Twitter Developer account
+   - Create new app and get API keys
+
+2. **Configure Environment**
+   ```bash
+   # .env
+   TWITTER_API_KEY=your_api_key
+   TWITTER_API_SECRET=your_api_secret
+   TWITTER_ACCESS_TOKEN=your_access_token
+   TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret
+   ```
+
+### Telegram Integration
+
+1. **Create Telegram Bot**
+   - Message @BotFather on Telegram
+   - Follow instructions to create bot
+   - Get bot token
+
+2. **Configure Environment**
+   ```bash
+   # .env
+   TELEGRAM_BOT_TOKEN=your_bot_token
+   ```
+
+---
+
+## Common Issues & Solutions
+
+### Issue: Permission Denied
+
+```bash
+# Fix: Install with proper permissions
+sudo npm install -g @elizaos/cli
+
+# Or use alternative installation
+npx @elizaos/cli create -t project my-agent
+```
+
+### Issue: Build Failures
+
+```bash
+# Clean and rebuild
+bun run clean
+bun install
+bun run build
+```
+
+### Issue: Missing Dependencies
+
+```bash
+# Check Node.js version
+node --version
+
+# Update if needed
+# Visit https://nodejs.org for latest version
+
+# Reinstall dependencies
+rm -rf node_modules bun.lockb
+bun install
+```
+
+### Issue: API Key Errors
+
+```bash
+# Check environment variables
+echo $OPENAI_API_KEY
+
+# Verify .env file exists and has correct format
+cat .env
+```
+
+---
+
+## Next Steps
+
+### For Standalone Agents
+1. **Customize Character**: Refine personality and behavior
+2. **Add Integrations**: Connect to Discord, Twitter, etc.
+3. **Deploy**: Use cloud services or VPS
+4. **Monitor**: Set up logging and monitoring
+
+### For Plugin Development
+1. **Add Features**: Implement more actions and providers
+2. **Write Tests**: Create comprehensive test suite
+3. **Documentation**: Document your plugin API
+4. **Publish**: Share with the community
+
+### For Monorepo Development
+1. **Explore Codebase**: Understand core architecture
+2. **Contribute**: Submit improvements to core
+3. **Advanced Features**: Build complex multi-agent systems
+4. **Community**: Join development discussions
+
+---
+
+## Learning Resources
+
+### Documentation
+- [Core Concepts](/docs/core-concepts/)
+- [API Reference](/docs/api/)
+- [Plugin Development](/docs/guides/plugin-development-linking)
+
+### Community
+- [Discord Server](https://discord.gg/eliza) - Get help and share projects
+- [GitHub Discussions](https://github.com/elizaos/eliza/discussions) - Technical discussions
+- [Twitter](https://twitter.com/eliza_OS) - Updates and announcements
+
+### Examples
+- [Example Agents](https://github.com/elizaos/eliza/tree/main/examples)
+- [Community Plugins](https://github.com/elizaos/plugins)
+- [Deployment Templates](https://github.com/elizaos/deployment-templates)
+
+---
+
+## Deployment Quick Reference
+
+### Local Development
+```bash
+elizaos dev      # Development with hot reload
+elizaos start    # Production start
+elizaos test     # Run tests
+```
+
+### Production Deployment
+```bash
+# Build for production
+bun run build
+
+# Start with PM2 (process manager)
+pm2 start dist/index.js --name "my-agent"
+
+# Or use Docker
+docker build -t my-agent .
+docker run -d --name my-agent my-agent
+```
+
+### Cloud Deployment
+- **Railway**: One-click deployment
+- **Vercel**: Serverless deployment
+- **AWS/GCP**: Container deployment
+- **Digital Ocean**: VPS deployment
+
+---
+
+## Troubleshooting Checklist
+
+Before asking for help, check:
+
+- [ ] Node.js version is v23.3.0+
+- [ ] Bun is installed and working
+- [ ] All dependencies are installed
+- [ ] Environment variables are set correctly
+- [ ] API keys are valid and have proper permissions
+- [ ] Character file is properly formatted
+- [ ] Build completed successfully
+
+## Get Help
+
+If you're stuck:
+
+1. **Check Documentation**: Search our docs for solutions
+2. **Community Discord**: Ask questions in #support
+3. **GitHub Issues**: Report bugs or request features
+4. **Examples**: Look at working examples for reference
+
+Welcome to ElizaOS! 🚀 Your AI agent journey starts here.

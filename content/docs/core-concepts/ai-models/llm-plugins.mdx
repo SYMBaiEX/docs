@@ -58,8 +58,8 @@ elizaOS supports various model types for different AI tasks:
 
 - **TEXT_SMALL**: Fast, lightweight models for simple tasks
 - **TEXT_LARGE**: Powerful models for complex reasoning
-- **TEXT_REASONING_SMALL**: Specialized for logical reasoning
-- **TEXT_REASONING_LARGE**: Advanced reasoning capabilities
+- **TEXT_REASONING_SMALL**: Specialized for logical reasoning (maps to 'REASONING_SMALL')
+- **TEXT_REASONING_LARGE**: Advanced reasoning capabilities (maps to 'REASONING_LARGE')
 - **TEXT_COMPLETION**: Text completion tasks
 
 ### Embedding Models
@@ -169,12 +169,12 @@ npm install @elizaos/plugin-openai
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-openai"],
-  "modelProvider": "openai"
+  "plugins": ["@elizaos/plugin-openai"]
 }
 
 // Environment variables
 OPENAI_API_KEY=your-api-key
+OPENAI_BASE_URL=https://api.openai.com/v1  // Optional
 ```
 
 **Supported Models:**
@@ -191,8 +191,7 @@ npm install @elizaos/plugin-anthropic
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-anthropic"],
-  "modelProvider": "anthropic"
+  "plugins": ["@elizaos/plugin-anthropic"]
 }
 
 // Environment variables
@@ -209,14 +208,18 @@ ANTHROPIC_API_KEY=your-api-key
 // Installation
 npm install @elizaos/plugin-ollama
 
+// Prerequisites
+// Install Ollama: https://ollama.ai
+// Pull models: ollama pull llama3.1
+
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-ollama"],
-  "modelProvider": "ollama"
+  "plugins": ["@elizaos/plugin-ollama"]
 }
 
 // Environment variables
 OLLAMA_API_ENDPOINT=http://localhost:11434
+OLLAMA_MODEL=llama3.1
 ```
 
 **Supported Models:**
@@ -231,8 +234,7 @@ npm install @elizaos/plugin-google-genai
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-google-genai"],
-  "modelProvider": "google"
+  "plugins": ["@elizaos/plugin-google-genai"]
 }
 
 // Environment variables
@@ -353,11 +355,11 @@ Use multiple providers for different model types:
 const character = {
   name: 'MyAgent',
   plugins: [
-    '@elizaos/plugin-openai',      // For embeddings
+    '@elizaos/plugin-sql',         // Always first
     '@elizaos/plugin-anthropic',   // For text generation
+    '@elizaos/plugin-openai',      // For embeddings and fallback
     '@elizaos/plugin-ollama',      // For local models
-  ],
-  modelProvider: 'anthropic', // Primary provider
+  ]
 };
 ```
 
@@ -459,6 +461,82 @@ class ModelClient {
     });
   }
 }
+```
+
+## Example: Starter Plugin from elizaOS Codebase
+
+```typescript
+// Based on the actual starter plugin from elizaOS
+const plugin: Plugin = {
+  name: 'starter',
+  description: 'A starter plugin for Eliza',
+  
+  models: {
+    [ModelType.TEXT_SMALL]: async (
+      _runtime,
+      { prompt, stopSequences = [] }: GenerateTextParams
+    ) => {
+      return 'Never gonna give you up, never gonna let you down, never gonna run around and desert you...';
+    },
+    
+    [ModelType.TEXT_LARGE]: async (
+      _runtime,
+      {
+        prompt,
+        stopSequences = [],
+        maxTokens = 8192,
+        temperature = 0.7,
+        frequencyPenalty = 0.7,
+        presencePenalty = 0.7,
+      }: GenerateTextParams
+    ) => {
+      return 'Never gonna make you cry, never gonna say goodbye, never gonna tell a lie and hurt you...';
+    },
+  },
+  
+  routes: [
+    {
+      name: 'helloworld',
+      path: '/helloworld',
+      type: 'GET',
+      handler: async (_req: any, res: any) => {
+        res.json({ message: 'Hello World!' });
+      },
+    },
+  ],
+  
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        console.log('MESSAGE_RECEIVED event received');
+        console.log(Object.keys(params));
+      },
+    ],
+  },
+};
+
+export default plugin;
+```
+
+## Environment Variable Patterns
+
+```typescript
+// Common elizaOS environment variable patterns
+const envConfig = {
+  // OpenAI
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  
+  // Anthropic
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  
+  // Ollama
+  OLLAMA_API_ENDPOINT: process.env.OLLAMA_API_ENDPOINT || 'http://localhost:11434',
+  OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.1',
+  
+  // Google
+  GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+};
 ```
 
 LLM plugins provide the foundation for AI model integration in elizaOS. By following these patterns and best practices, you can create robust, scalable model providers that work seamlessly with the elizaOS runtime system.

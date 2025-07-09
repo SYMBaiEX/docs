@@ -32,14 +32,12 @@ npm install @elizaos/plugin-openai
 // Character file
 {
   "name": "MyAgent",
-  "modelProvider": "openai",
-  "plugins": ["@elizaos/plugin-openai"],
-  "settings": {
-    "secrets": {
-      "OPENAI_API_KEY": "your-api-key"
-    }
-  }
+  "plugins": ["@elizaos/plugin-openai"]
 }
+
+// Environment variables
+OPENAI_API_KEY=your-api-key
+```
 ```
 
 **Environment Variables:**
@@ -77,14 +75,12 @@ npm install @elizaos/plugin-anthropic
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "anthropic",
-  "plugins": ["@elizaos/plugin-anthropic"],
-  "settings": {
-    "secrets": {
-      "ANTHROPIC_API_KEY": "your-api-key"
-    }
-  }
+  "plugins": ["@elizaos/plugin-anthropic"]
 }
+
+// Environment variables
+ANTHROPIC_API_KEY=your-api-key
+```
 ```
 
 **Environment Variables:**
@@ -118,14 +114,12 @@ npm install @elizaos/plugin-google-genai
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "google",
-  "plugins": ["@elizaos/plugin-google-genai"],
-  "settings": {
-    "secrets": {
-      "GOOGLE_GENERATIVE_AI_API_KEY": "your-api-key"
-    }
-  }
+  "plugins": ["@elizaos/plugin-google-genai"]
 }
+
+// Environment variables
+GOOGLE_GENERATIVE_AI_API_KEY=your-api-key
+```
 ```
 
 **Environment Variables:**
@@ -164,12 +158,13 @@ npm install @elizaos/plugin-ollama
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "ollama",
-  "plugins": ["@elizaos/plugin-ollama"],
-  "settings": {
-    "model": "llama3.1"
-  }
+  "plugins": ["@elizaos/plugin-ollama"]
 }
+
+// Environment variables
+OLLAMA_API_ENDPOINT=http://localhost:11434
+OLLAMA_MODEL=llama3.1
+```
 ```
 
 **Environment Variables:**
@@ -205,14 +200,12 @@ npm install @elizaos/plugin-heurist
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "heurist",
-  "plugins": ["@elizaos/plugin-heurist"],
-  "settings": {
-    "secrets": {
-      "HEURIST_API_KEY": "your-api-key"
-    }
-  }
+  "plugins": ["@elizaos/plugin-heurist"]
 }
+
+// Environment variables
+HEURIST_API_KEY=your-api-key
+```
 ```
 
 ### OpenRouter
@@ -228,14 +221,12 @@ npm install @elizaos/plugin-openrouter
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "openrouter",
-  "plugins": ["@elizaos/plugin-openrouter"],
-  "settings": {
-    "secrets": {
-      "OPENROUTER_API_KEY": "your-api-key"
-    }
-  }
+  "plugins": ["@elizaos/plugin-openrouter"]
 }
+
+// Environment variables
+OPENROUTER_API_KEY=your-api-key
+```
 ```
 
 **Environment Variables:**
@@ -243,17 +234,45 @@ npm install @elizaos/plugin-openrouter
 OPENROUTER_API_KEY=sk-or-...
 ```
 
+### Local AI
+
+The Local AI provider enables running AI models completely offline.
+
+**Installation:**
+```bash
+npm install @elizaos/plugin-local-ai
+```
+
+**Configuration:**
+```typescript
+{
+  "name": "MyAgent",
+  "plugins": ["@elizaos/plugin-local-ai"]
+}
+
+// Environment variables
+USE_LOCAL_AI=true
+```
+
+**Usage Example:**
+```typescript
+const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+  prompt: "Generate a response using local AI",
+  temperature: 0.7,
+  maxTokens: 1000
+});
+```
+
 ## Provider Selection Strategies
 
 ### Primary Provider
 
-Set a default provider for all model types:
+The ElizaOS runtime automatically selects the best available provider based on plugin order and priority:
 
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "openai",  // Primary provider
-  "plugins": ["@elizaos/plugin-openai"]
+  "plugins": ["@elizaos/plugin-openai"]  // Single provider
 }
 ```
 
@@ -264,9 +283,9 @@ Use different providers for different capabilities:
 ```typescript
 {
   "name": "MyAgent",
-  "modelProvider": "anthropic",  // Primary for text generation
   "plugins": [
-    "@elizaos/plugin-anthropic",  // Primary text generation
+    "@elizaos/plugin-sql",        // Always first
+    "@elizaos/plugin-anthropic",  // Text generation
     "@elizaos/plugin-openai",     // Embeddings and image generation
     "@elizaos/plugin-ollama"      // Local models for privacy
   ]
@@ -310,8 +329,7 @@ const getPlugins = () => {
 
 export const character = {
   name: 'MyAgent',
-  plugins: getPlugins(),
-  modelProvider: process.env.DEFAULT_MODEL_PROVIDER || 'openai'
+  plugins: getPlugins()
 };
 ```
 
@@ -442,6 +460,7 @@ async function generateWithFallback(runtime, prompt) {
 | **Ollama** | Privacy, no API costs, customizable | Local deployment, privacy-sensitive | Requires local resources |
 | **Heurist** | Decentralized, cost-effective | Blockchain apps, distributed systems | Limited model selection |
 | **OpenRouter** | Access to many models, unified API | Model comparison, flexibility | Third-party dependency |
+| **Local AI** | Complete privacy, no API calls | Offline deployment, sensitive data | Setup complexity, resource intensive |
 
 ## Cost Optimization
 

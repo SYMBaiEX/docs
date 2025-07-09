@@ -179,67 +179,31 @@ Rate from 1-10 and explain:
 ### Twitter Templates
 
 ```typescript
+// elizaOS uses unified templates across platforms for consistency
 const twitterTemplates = {
-  // Tweet generation
-  twitterPostTemplate: `
-    Generate a tweet as {{characterName}}.
-    
-    Character: {{bio}}
-    Topics: {{topics}}
-    Style: {{style}}
-    
-    Recent tweets: {{recentPosts}}
-    
-    Tweet (max 280 chars):
-  `,
+  // Tweet generation - uses the same messageHandlerTemplate but with platform-specific context
+  twitterPostTemplate: messageHandlerTemplate,
   
-  // Twitter response
-  twitterMessageHandlerTemplate: `
-    You are {{characterName}} responding to a tweet.
-    
-    Original tweet: {{message}}
-    Context: {{context}}
-    
-    Write a brief, engaging response:
-  `,
+  // Twitter response - uses the same messageHandlerTemplate
+  twitterMessageHandlerTemplate: messageHandlerTemplate,
   
-  // Twitter engagement decision
-  twitterShouldRespondTemplate: `
-    Should {{characterName}} respond to this tweet?
-    
-    Tweet: {{message}}
-    Author: {{senderName}}
-    
-    Consider engagement value. YES/NO:
-  `
+  // Twitter engagement decision - uses the same shouldRespondTemplate
+  twitterShouldRespondTemplate: shouldRespondTemplate
 };
+
+// Note: elizaOS provides platform-specific context through providers
+// rather than maintaining separate templates for each platform
 ```
 
 ### Discord Templates
 
 ```typescript
 const discordTemplates = {
-  // Discord message handler
-  discordMessageHandlerTemplate: `
-    You are {{characterName}} in Discord server "{{serverName}}".
-    
-    Channel: {{channelName}}
-    Recent messages: {{recentMessages}}
-    
-    Message: {{senderName}}: {{message}}
-    
-    Respond naturally:
-  `,
+  // Discord message handler - uses the same messageHandlerTemplate
+  discordMessageHandlerTemplate: messageHandlerTemplate,
   
-  // Discord auto-post
-  discordAutoPostTemplate: `
-    Create an engaging post for Discord channel "{{channelName}}".
-    
-    Character: {{characterName}}
-    Server activity: {{serverActivity}}
-    
-    Write something relevant and interesting:
-  `
+  // Discord auto-post - uses the same postCreationTemplate
+  discordAutoPostTemplate: postCreationTemplate
 };
 ```
 
@@ -247,27 +211,11 @@ const discordTemplates = {
 
 ```typescript
 const telegramTemplates = {
-  // Telegram message handler
-  telegramMessageHandlerTemplate: `
-    You are {{characterName}} in Telegram chat.
-    
-    Chat: {{chatName}}
-    Recent messages: {{recentMessages}}
-    
-    Message: {{senderName}}: {{message}}
-    
-    Respond appropriately:
-  `,
+  // Telegram message handler - uses the same messageHandlerTemplate
+  telegramMessageHandlerTemplate: messageHandlerTemplate,
   
-  // Telegram auto-post
-  telegramAutoPostTemplate: `
-    Create a post for Telegram channel "{{channelName}}".
-    
-    Character: {{characterName}}
-    Recent activity: {{recentActivity}}
-    
-    Write an engaging message:
-  `
+  // Telegram auto-post - uses the same postCreationTemplate
+  telegramAutoPostTemplate: postCreationTemplate
 };
 ```
 

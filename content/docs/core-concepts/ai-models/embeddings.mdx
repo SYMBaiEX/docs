@@ -28,13 +28,12 @@ npm install @elizaos/plugin-openai
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-openai"],
-  "settings": {
-    "secrets": {
-      "OPENAI_API_KEY": "sk-..."
-    }
-  }
+  "plugins": ["@elizaos/plugin-openai"]
 }
+
+// Environment variables
+OPENAI_API_KEY=sk-...
+```
 ```
 
 **Available Models:**
@@ -49,13 +48,12 @@ npm install @elizaos/plugin-google-genai
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-google-genai"],
-  "settings": {
-    "secrets": {
-      "GOOGLE_GENERATIVE_AI_API_KEY": "AI..."
-    }
-  }
+  "plugins": ["@elizaos/plugin-google-genai"]
 }
+
+// Environment variables
+GOOGLE_GENERATIVE_AI_API_KEY=AI...
+```
 ```
 
 **Available Models:**
@@ -72,11 +70,13 @@ ollama pull nomic-embed-text
 
 // Configuration
 {
-  "plugins": ["@elizaos/plugin-ollama"],
-  "settings": {
-    "embeddingModel": "nomic-embed-text"
-  }
+  "plugins": ["@elizaos/plugin-ollama"]
 }
+
+// Environment variables
+OLLAMA_API_ENDPOINT=http://localhost:11434
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+```
 ```
 
 **Available Models:**
@@ -210,23 +210,22 @@ Choose embedding models based on your needs:
 // High-quality embeddings (OpenAI)
 const character = {
   name: "MyAgent",
-  plugins: ["@elizaos/plugin-openai"],
-  settings: {
-    embeddingModel: "text-embedding-3-large", // Higher quality
-    secrets: {
-      OPENAI_API_KEY: "sk-..."
-    }
-  }
+  plugins: ["@elizaos/plugin-openai"]
 };
+
+// Environment variables for OpenAI
+// OPENAI_API_KEY=sk-...
+// OPENAI_EMBEDDING_MODEL=text-embedding-3-large
 
 // Fast local embeddings (Ollama)
 const localCharacter = {
   name: "LocalAgent",
-  plugins: ["@elizaos/plugin-ollama"],
-  settings: {
-    embeddingModel: "nomic-embed-text" // Local, fast
-  }
+  plugins: ["@elizaos/plugin-ollama"]
 };
+
+// Environment variables for Ollama
+// OLLAMA_API_ENDPOINT=http://localhost:11434
+// OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
 ### Dimension Management

@@ -1,0 +1,9 @@
+{
+  "title": "Advanced",
+  "pages": [
+    "database-adapters",
+    "deployment",
+    "tauri-desktop-app",
+    "tee-integration"
+  ]
+}

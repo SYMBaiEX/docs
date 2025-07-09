@@ -1,0 +1,534 @@
+---
+title: "Plugin Development & Linking"
+description: "Complete guide to developing plugins in the ElizaOS monorepo with proper linking and testing strategies"
+---
+
+# Plugin Development & Linking
+
+This guide covers the complete workflow for developing plugins within the ElizaOS monorepo, including proper linking strategies, testing approaches, and best practices for both standalone and monorepo-based plugin development.
+
+## Overview
+
+ElizaOS supports two main approaches for plugin development:
+
+1. **Monorepo Development**: Developing plugins within the main ElizaOS repository
+2. **Standalone Development**: Creating plugins as separate packages that depend on ElizaOS
+
+Both approaches have their advantages and are suitable for different scenarios.
+
+## Monorepo Plugin Development
+
+### Setting Up the Development Environment
+
+1. **Clone and Setup the Monorepo**
+   ```bash
+   git clone https://github.com/elizaos/eliza.git
+   cd eliza
+   bun install
+   bun run build
+   ```
+
+2. **Create a New Plugin in the Monorepo**
+   ```bash
+   # From the root of the monorepo
+   cp -r packages/plugin-starter packages/plugin-myservice
+   cd packages/plugin-myservice
+   ```
+
+3. **Update Plugin Configuration**
+   Edit `package.json`:
+   ```json
+   {
+     "name": "@elizaos/plugin-myservice",
+     "description": "My service integration for ElizaOS",
+     "version": "1.0.16",
+     "private": false,
+     "dependencies": {
+       "@elizaos/core": "workspace:*"
+     }
+   }
+   ```
+
+### Workspace Dependencies
+
+The monorepo uses Bun workspaces with the `workspace:*` protocol for internal dependencies:
+
+```json
+{
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "@elizaos/server": "workspace:*"
+  }
+}
+```
+
+**Key Benefits:**
+- Automatic linking to local packages
+- No need for manual linking commands
+- Always uses the latest local version
+- Supports hot reloading during development
+
+### Development Workflow
+
+1. **Start Development Environment**
+   ```bash
+   # From the monorepo root
+   bun run dev
+   ```
+   This starts the full development stack with hot reloading.
+
+2. **Build Individual Plugin**
+   ```bash
+   # From your plugin directory
+   bun run build
+   ```
+
+3. **Test Plugin Integration**
+   ```bash
+   # From your plugin directory
+   bun run test
+   
+   # Or from monorepo root
+   bun test --filter=./packages/plugin-myservice
+   ```
+
+### Linking Strategy in Monorepo
+
+The monorepo automatically handles linking through:
+
+1. **Bun Workspaces**: Automatically resolves `workspace:*` dependencies
+2. **Turbo Build Pipeline**: Ensures dependencies are built before dependents
+3. **TypeScript Path Mapping**: Resolves types across packages
+
+**Example Turbo Configuration:**
+```json
+{
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["@elizaos/core#build"],
+      "persistent": true
+    }
+  }
+}
+```
+
+### Testing in Monorepo
+
+1. **Component Tests**: Test individual plugin components
+   ```bash
+   bun run test:component
+   ```
+
+2. **Integration Tests**: Test plugin integration with core
+   ```bash
+   bun run test:integration
+   ```
+
+3. **E2E Tests**: Test complete scenarios
+   ```bash
+   bun run test:e2e
+   ```
+
+## Standalone Plugin Development
+
+### Initial Setup
+
+1. **Create Plugin from Template**
+   ```bash
+   elizaos create -t plugin myservice
+   cd plugin-myservice
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   bun install
+   ```
+
+3. **Start Development**
+   ```bash
+   elizaos dev
+   ```
+
+### Linking Strategies for Standalone Plugins
+
+#### Method 1: Using `elizaos dev` (Recommended)
+
+The `elizaos dev` command automatically handles linking:
+- Starts development server with hot reloading
+- Automatically links to installed ElizaOS packages
+- Rebuilds on file changes
+
+```bash
+elizaos dev
+```
+
+#### Method 2: Manual Linking (Advanced)
+
+For advanced scenarios, you can manually link packages:
+
+1. **Link Core Package**
+   ```bash
+   # In ElizaOS core directory
+   bun link
+   
+   # In your plugin directory
+   bun link @elizaos/core
+   ```
+
+2. **Verify Linking**
+   ```bash
+   # Check that core is properly linked
+   ls -la node_modules/@elizaos/core
+   ```
+
+#### Method 3: Local Development with `file:` Protocol
+
+For testing with local ElizaOS builds:
+
+```json
+{
+  "dependencies": {
+    "@elizaos/core": "file:../path/to/eliza/packages/core"
+  }
+}
+```
+
+### Development Workflow for Standalone Plugins
+
+1. **Development Mode**
+   ```bash
+   # Start with hot reloading
+   elizaos dev
+   
+   # Or manual start (requires rebuild after changes)
+   elizaos start
+   ```
+
+2. **Testing**
+   ```bash
+   # Run all tests
+   elizaos test
+   
+   # Run specific test types
+   elizaos test component
+   elizaos test e2e
+   ```
+
+3. **Building**
+   ```bash
+   bun run build
+   ```
+
+## Plugin Structure and Development
+
+### Basic Plugin Structure
+
+```
+plugin-myservice/
+├── src/
+│   ├── index.ts          # Main plugin export
+│   ├── plugin.ts         # Plugin implementation
+│   ├── actions/          # Action implementations
+│   ├── providers/        # Provider implementations
+│   └── services/         # Service implementations
+├── __tests__/            # Test files
+├── images/               # Plugin assets
+├── package.json          # Package configuration
+└── README.md            # Documentation
+```
+
+### Plugin Implementation
+
+```typescript
+// src/plugin.ts
+import { Plugin } from '@elizaos/core';
+
+export const myServicePlugin: Plugin = {
+  name: 'myservice',
+  version: '1.0.0',
+  description: 'My service integration',
+  actions: [
+    // Your actions here
+  ],
+  providers: [
+    // Your providers here
+  ],
+  evaluators: [
+    // Your evaluators here
+  ]
+};
+
+export default myServicePlugin;
+```
+
+### Action Implementation
+
+```typescript
+// src/actions/myAction.ts
+import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+
+export const myAction: Action = {
+  name: 'MY_ACTION',
+  similes: ['do something', 'perform action'],
+  description: 'Performs my custom action',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory) => {
+    // Validation logic
+    return true;
+  },
+  
+  handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Action implementation
+    return true;
+  },
+  
+  examples: [
+    [
+      {
+        user: "user",
+        content: { text: "Can you do something?" }
+      },
+      {
+        user: "agent",
+        content: { text: "I'll do something for you." }
+      }
+    ]
+  ]
+};
+```
+
+## Testing Strategies
+
+### Component Testing
+
+Test individual components in isolation:
+
+```typescript
+// __tests__/plugin.test.ts
+import { describe, it, expect } from 'bun:test';
+import { myServicePlugin } from '../src/plugin';
+
+describe('Plugin Configuration', () => {
+  it('should have correct plugin metadata', () => {
+    expect(myServicePlugin.name).toBe('myservice');
+    expect(myServicePlugin.version).toBe('1.0.0');
+  });
+  
+  it('should have required actions', () => {
+    expect(myServicePlugin.actions).toHaveLength(1);
+  });
+});
+```
+
+### Integration Testing
+
+Test plugin integration with ElizaOS core:
+
+```typescript
+// __tests__/integration.test.ts
+import { describe, it, expect } from 'bun:test';
+import { createRuntime } from '@elizaos/core';
+import { myServicePlugin } from '../src/plugin';
+
+describe('Plugin Integration', () => {
+  it('should integrate with runtime', async () => {
+    const runtime = createRuntime({
+      plugins: [myServicePlugin]
+    });
+    
+    // Test plugin loading
+    expect(runtime.plugins).toContain(myServicePlugin);
+  });
+});
+```
+
+### E2E Testing
+
+Test complete user scenarios:
+
+```typescript
+// __tests__/e2e/plugin.test.ts
+import { TestSuite } from '@elizaos/core';
+import { myAction } from '../../src/actions/myAction';
+
+export const MyServiceTestSuite: TestSuite = {
+  name: 'myservice_test_suite',
+  description: 'E2E tests for my service plugin',
+  tests: [
+    {
+      name: 'my_action_test',
+      fn: async (runtime) => {
+        const testMessage = {
+          content: { text: 'Can you do something?' }
+        };
+        
+        const response = await myAction.handler(runtime, testMessage, {});
+        
+        if (!response) {
+          throw new Error('Expected response from action');
+        }
+      }
+    }
+  ]
+};
+```
+
+## Publishing and Distribution
+
+### Publishing from Monorepo
+
+```bash
+# From monorepo root
+bun run release
+```
+
+This handles:
+- Version bumping across all packages
+- Building all packages
+- Publishing to npm
+- Tagging releases
+
+### Publishing Standalone Plugins
+
+```bash
+# Initial publication
+elizaos publish
+
+# Subsequent updates
+npm version patch
+npm publish
+git push origin main
+git push --tags
+```
+
+## Best Practices
+
+### 1. Dependency Management
+
+**Monorepo:**
+- Use `workspace:*` for internal dependencies
+- Pin external dependencies to specific versions
+- Use `peerDependencies` for shared dependencies
+
+**Standalone:**
+- Use exact versions for ElizaOS core dependencies
+- Test against multiple ElizaOS versions
+- Document compatibility requirements
+
+### 2. Development Workflow
+
+**Monorepo:**
+- Always run `bun run build` before testing
+- Use `bun run dev` for hot reloading
+- Test against other monorepo packages
+
+**Standalone:**
+- Use `elizaos dev` for development
+- Test plugin in isolation
+- Verify compatibility with published ElizaOS versions
+
+### 3. Testing Strategy
+
+- Write comprehensive unit tests for all components
+- Include integration tests for core interactions
+- Add E2E tests for complete user scenarios
+- Test error handling and edge cases
+
+### 4. Documentation
+
+- Document all plugin APIs
+- Include usage examples
+- Document configuration requirements
+- Provide troubleshooting guides
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Module Not Found Errors**
+   ```bash
+   # Clean and rebuild
+   bun run clean
+   bun install
+   bun run build
+   ```
+
+2. **Type Errors**
+   ```bash
+   # Check TypeScript configuration
+   bun run type-check
+   
+   # Verify ElizaOS types are available
+   bun run build
+   ```
+
+3. **Plugin Not Loading**
+   ```bash
+   # Verify plugin export
+   bun run test:component
+   
+   # Check plugin registration
+   elizaos plugins list
+   ```
+
+### Debug Mode
+
+Enable debug logging:
+```bash
+LOG_LEVEL=debug elizaos dev
+```
+
+## Advanced Topics
+
+### Custom Build Configuration
+
+```typescript
+// tsup.config.ts
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  outDir: 'dist',
+  clean: true,
+  format: ['esm'],
+  target: 'node18',
+  dts: true,
+  external: ['@elizaos/core'],
+  banner: {
+    js: '#!/usr/bin/env node'
+  }
+});
+```
+
+### Plugin Metadata
+
+```json
+{
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "API_KEY": {
+        "type": "string",
+        "description": "API key for the service",
+        "required": true
+      },
+      "ENDPOINT": {
+        "type": "string",
+        "description": "Service endpoint URL",
+        "default": "https://api.example.com"
+      }
+    }
+  }
+}
+```
+
+## Resources
+
+- [ElizaOS Plugin API Documentation](/docs/plugins/creating-plugins)
+- [Monorepo Workflow Guide](/docs/guides/monorepo-workflow)
+- [Standalone vs Monorepo Guide](/docs/guides/standalone-vs-monorepo)
+- [Testing Framework Documentation](/docs/core-concepts/infrastructure/testing)
