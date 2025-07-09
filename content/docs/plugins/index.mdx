@@ -5,9 +5,13 @@ description: Plugin development and ecosystem
 
 # Plugins
 
-ElizaOS plugins extend the capabilities of your agents with custom actions, providers, services, and more. The plugin system in v1.2.0 provides a comprehensive framework for building and distributing reusable functionality.
+ElizaOS plugins extend the capabilities of your agents with custom actions, providers, services, and
+more. The plugin system in v1.2.0 provides a comprehensive framework for building and distributing
+reusable functionality.
 
-The plugin ecosystem includes 130+ available plugins across various categories, from core functionality to specialized integrations, making it easy to extend your agents with powerful capabilities.
+The plugin ecosystem includes 130+ available plugins across various categories, from core
+functionality to specialized integrations, making it easy to extend your agents with powerful
+capabilities.
 
 ## Getting Started
 
@@ -55,7 +59,8 @@ elizaos plugins remove @elizaos/plugin-discord
 - [Plugin Registry](/docs/plugins/plugin-registry) - Complete catalog of available plugins
 - [Plugin Templates](/docs/plugins/plugin-templates) - Ready-to-use templates and examples
 - [Plugin Testing](/docs/plugins/plugin-testing) - Comprehensive testing strategies
-- [Plugin Development & Linking](/docs/guides/plugin-development-linking) - Advanced development workflows
+- [Plugin Development & Linking](/docs/guides/plugin-development-linking) - Advanced development
+  workflows
 
 ## Advanced Features
 
@@ -73,8 +78,8 @@ Plugins can depend on other plugins:
 
 ```typescript
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  dependencies: ['@elizaos/plugin-knowledge'],
+  name: "my-plugin",
+  dependencies: ["@elizaos/plugin-knowledge"],
   // ... other properties
 };
 ```
@@ -85,14 +90,14 @@ React to system events:
 
 ```typescript
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
+  name: "my-plugin",
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
         // Handle message received
-      }
-    ]
-  }
+      },
+    ],
+  },
 };
 ```
 

@@ -1,11 +1,13 @@
 ---
 title: "Comprehensive Quick Start Guide"
-description: "Complete beginner's guide to getting started with ElizaOS, from installation to deployment"
+description:
+  "Complete beginner's guide to getting started with ElizaOS, from installation to deployment"
 ---
 
 # Comprehensive Quick Start Guide
 
-Get up and running with ElizaOS in 15 minutes or less! This guide covers everything you need to know to create your first AI agent.
+Get up and running with ElizaOS in 15 minutes or less! This guide covers everything you need to know
+to create your first AI agent.
 
 ## Prerequisites
 
@@ -30,16 +32,16 @@ git --version     # Any recent version
 ElizaOS offers different approaches based on your needs:
 
 ### 🚀 Path 1: Standalone Agent (Recommended for Beginners)
-**Best for:** Single agent, quick deployment, learning
-**Time:** 5-10 minutes
 
-### 🔧 Path 2: Plugin Development  
-**Best for:** Building reusable components, extending ElizaOS
-**Time:** 15-20 minutes
+**Best for:** Single agent, quick deployment, learning **Time:** 5-10 minutes
+
+### 🔧 Path 2: Plugin Development
+
+**Best for:** Building reusable components, extending ElizaOS **Time:** 15-20 minutes
 
 ### 🏗️ Path 3: Monorepo Development
-**Best for:** Multiple agents, core contributions, advanced features
-**Time:** 30+ minutes
+
+**Best for:** Multiple agents, core contributions, advanced features **Time:** 30+ minutes
 
 ---
 
@@ -78,34 +80,35 @@ code src/character.ts
 ```
 
 Basic character configuration:
+
 ```typescript
 // src/character.ts
 export const character = {
   name: "Alex",
   bio: "A helpful AI assistant that loves to chat and help users with their questions.",
-  
+
   // Basic personality traits
   personality: [
     "helpful and friendly",
     "curious about the world",
     "patient and understanding",
-    "loves to learn new things"
+    "loves to learn new things",
   ],
-  
+
   // How the agent should behave
   behavior: [
     "Always be polite and respectful",
     "Ask clarifying questions when needed",
     "Provide helpful and accurate information",
-    "Maintain a positive attitude"
+    "Maintain a positive attitude",
   ],
-  
+
   // Example conversations
   knowledge: [
     "I can help with general questions and conversations",
     "I enjoy discussing technology, books, and current events",
-    "I'm here to assist and make your day better"
-  ]
+    "I'm here to assist and make your day better",
+  ],
 };
 ```
 
@@ -120,6 +123,7 @@ code .env
 ```
 
 Essential environment variables:
+
 ```bash
 # .env
 # Required: Choose your AI model provider
@@ -172,17 +176,18 @@ cd plugin-weather-bot
 
 ```typescript
 // src/plugin.ts
-import { Plugin } from '@elizaos/core';
-import { weatherAction } from './actions/weather';
+import { Plugin } from "@elizaos/core";
+
+import { weatherAction } from "./actions/weather";
 
 export const weatherPlugin: Plugin = {
-  name: 'weather',
-  version: '1.0.0',
-  description: 'Provides weather information',
-  
+  name: "weather",
+  version: "1.0.0",
+  description: "Provides weather information",
+
   actions: [weatherAction],
   providers: [],
-  evaluators: []
+  evaluators: [],
 };
 
 export default weatherPlugin;
@@ -192,52 +197,52 @@ export default weatherPlugin;
 
 ```typescript
 // src/actions/weather.ts
-import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { Action, IAgentRuntime, Memory, State } from "@elizaos/core";
 
 export const weatherAction: Action = {
-  name: 'GET_WEATHER',
-  similes: ['weather', 'forecast', 'temperature'],
-  description: 'Get weather information for a location',
-  
+  name: "GET_WEATHER",
+  similes: ["weather", "forecast", "temperature"],
+  description: "Get weather information for a location",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const text = message.content.text.toLowerCase();
-    return text.includes('weather') || text.includes('forecast');
+    return text.includes("weather") || text.includes("forecast");
   },
-  
+
   handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     // Simple weather response (integrate with real API)
     const location = extractLocation(message.content.text);
-    
+
     return {
       text: `The weather in ${location} is sunny and 72°F. Perfect day to go outside!`,
       content: {
         weather: {
           location,
           temperature: 72,
-          condition: 'sunny'
-        }
-      }
+          condition: "sunny",
+        },
+      },
     };
   },
-  
+
   examples: [
     [
       {
         user: "user",
-        content: { text: "What's the weather like in New York?" }
+        content: { text: "What's the weather like in New York?" },
       },
       {
-        user: "agent", 
-        content: { text: "The weather in New York is sunny and 72°F. Perfect day to go outside!" }
-      }
-    ]
-  ]
+        user: "agent",
+        content: { text: "The weather in New York is sunny and 72°F. Perfect day to go outside!" },
+      },
+    ],
+  ],
 };
 
 function extractLocation(text: string): string {
   // Simple location extraction logic
   const match = text.match(/weather.*in\s+([A-Za-z\s]+)/i);
-  return match ? match[1].trim() : 'your area';
+  return match ? match[1].trim() : "your area";
 }
 ```
 
@@ -314,6 +319,7 @@ bun test --filter=./packages/plugin-myservice
    - Create bot and copy token
 
 2. **Configure Environment**
+
    ```bash
    # .env
    DISCORD_TOKEN=your_bot_token_here
@@ -404,18 +410,21 @@ cat .env
 ## Next Steps
 
 ### For Standalone Agents
+
 1. **Customize Character**: Refine personality and behavior
 2. **Add Integrations**: Connect to Discord, Twitter, etc.
 3. **Deploy**: Use cloud services or VPS
 4. **Monitor**: Set up logging and monitoring
 
 ### For Plugin Development
+
 1. **Add Features**: Implement more actions and providers
 2. **Write Tests**: Create comprehensive test suite
 3. **Documentation**: Document your plugin API
 4. **Publish**: Share with the community
 
 ### For Monorepo Development
+
 1. **Explore Codebase**: Understand core architecture
 2. **Contribute**: Submit improvements to core
 3. **Advanced Features**: Build complex multi-agent systems
@@ -426,16 +435,19 @@ cat .env
 ## Learning Resources
 
 ### Documentation
+
 - [Core Concepts](/docs/core-concepts/)
 - [API Reference](/docs/api/)
 - [Plugin Development](/docs/guides/plugin-development-linking)
 
 ### Community
+
 - [Discord Server](https://discord.gg/eliza) - Get help and share projects
 - [GitHub Discussions](https://github.com/elizaos/eliza/discussions) - Technical discussions
 - [Twitter](https://twitter.com/eliza_OS) - Updates and announcements
 
 ### Examples
+
 - [Example Agents](https://github.com/elizaos/eliza/tree/main/examples)
 - [Community Plugins](https://github.com/elizaos/plugins)
 - [Deployment Templates](https://github.com/elizaos/deployment-templates)
@@ -445,6 +457,7 @@ cat .env
 ## Deployment Quick Reference
 
 ### Local Development
+
 ```bash
 elizaos dev      # Development with hot reload
 elizaos start    # Production start
@@ -452,6 +465,7 @@ elizaos test     # Run tests
 ```
 
 ### Production Deployment
+
 ```bash
 # Build for production
 bun run build
@@ -465,6 +479,7 @@ docker run -d --name my-agent my-agent
 ```
 
 ### Cloud Deployment
+
 - **Railway**: One-click deployment
 - **Vercel**: Serverless deployment
 - **AWS/GCP**: Container deployment

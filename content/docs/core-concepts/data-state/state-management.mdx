@@ -1,11 +1,15 @@
 ---
 title: State Management
-description: Learn about ElizaOS state management system, including state structure, state values, and enhanced state interfaces.
+description:
+  Learn about ElizaOS state management system, including state structure, state values, and enhanced
+  state interfaces.
 ---
 
 # State Management
 
-ElizaOS provides a robust state management system that maintains conversational context and agent state throughout interactions. The state system is designed to be flexible, extensible, and type-safe.
+ElizaOS provides a robust state management system that maintains conversational context and agent
+state throughout interactions. The state system is designed to be flexible, extensible, and
+type-safe.
 
 ## State Interface
 
@@ -28,12 +32,14 @@ export interface State {
 
 - **`values`**: A key-value store for general state variables, often populated by providers
 - **`data`**: Another key-value store for more structured or internal data
-- **`text`**: A string representation of the current context, often a summary or concatenated history
+- **`text`**: A string representation of the current context, often a summary or concatenated
+  history
 - **Dynamic properties**: Additional properties can be added via the index signature
 
 ## Enhanced State System
 
-ElizaOS provides an enhanced state system with better type safety through the `EnhancedState` interface:
+ElizaOS provides an enhanced state system with better type safety through the `EnhancedState`
+interface:
 
 ```typescript
 export interface EnhancedState {
@@ -60,20 +66,22 @@ export type StateArray = StateValue[];
 
 ### State Composition
 
-State is composed dynamically by aggregating data from multiple providers. The `composeState` method orchestrates this process:
+State is composed dynamically by aggregating data from multiple providers. The `composeState` method
+orchestrates this process:
 
 ```typescript
 const state = await runtime.composeState(
-  message,           // The current message
-  includeList,       // Optional list of providers to include
-  onlyInclude,       // Whether to only use includeList providers
-  skipCache          // Whether to skip the state cache
+  message, // The current message
+  includeList, // Optional list of providers to include
+  onlyInclude, // Whether to only use includeList providers
+  skipCache // Whether to skip the state cache
 );
 ```
 
 ## Providers
 
-Providers are the primary mechanism for populating state with relevant data. Each provider can contribute values, data, and text to the composed state.
+Providers are the primary mechanism for populating state with relevant data. Each provider can
+contribute values, data, and text to the composed state.
 
 ### Provider Interface
 
@@ -114,18 +122,18 @@ const weatherProvider: Provider = {
   get: async (runtime, message, state) => {
     const location = state.values.userLocation || "New York";
     const weather = await fetchWeatherData(location);
-    
+
     return {
       values: {
         temperature: weather.temp,
-        conditions: weather.conditions
+        conditions: weather.conditions,
       },
       data: {
-        fullWeatherData: weather
+        fullWeatherData: weather,
       },
-      text: `Current weather in ${location}: ${weather.temp}°F, ${weather.conditions}`
+      text: `Current weather in ${location}: ${weather.temp}°F, ${weather.conditions}`,
     };
-  }
+  },
 };
 
 // Register the provider
@@ -144,7 +152,8 @@ const cachedState = await runtime.stateCache.get(message.id);
 const freshState = await runtime.composeState(message, null, false, true);
 ```
 
-The cache is keyed by message ID and helps avoid redundant provider calls for the same message context.
+The cache is keyed by message ID and helps avoid redundant provider calls for the same message
+context.
 
 ## Using State in Actions
 
@@ -157,20 +166,20 @@ const myAction: Action = {
     // Access provider data
     const temperature = state.values.temperature;
     const userPreference = state.values.userTemperatureUnit || "F";
-    
+
     // Access structured data
     const fullWeather = state.data.providers?.WEATHER?.data?.fullWeatherData;
-    
+
     // Use state text for context
     const contextText = state.text;
-    
+
     // Make decisions based on state
     if (temperature > 90) {
       return { text: "It's very hot today! Stay hydrated." };
     }
-    
+
     return { text: `Current temperature: ${temperature}°${userPreference}` };
-  }
+  },
 };
 ```
 
@@ -181,14 +190,14 @@ Providers can specify a `position` property to control their execution order:
 ```typescript
 const criticalProvider: Provider = {
   name: "CRITICAL_DATA",
-  position: -10,  // Negative positions run first
-  get: async () => ({ values: { critical: true } })
+  position: -10, // Negative positions run first
+  get: async () => ({ values: { critical: true } }),
 };
 
 const supplementalProvider: Provider = {
   name: "SUPPLEMENTAL",
-  position: 10,   // Positive positions run later
-  get: async () => ({ values: { extra: "data" } })
+  position: 10, // Positive positions run later
+  get: async () => ({ values: { extra: "data" } }),
 };
 ```
 
@@ -196,7 +205,8 @@ const supplementalProvider: Provider = {
 
 ### Dynamic Providers
 
-Dynamic providers are not automatically included in state composition and must be explicitly requested:
+Dynamic providers are not automatically included in state composition and must be explicitly
+requested:
 
 ```typescript
 const dynamicProvider: Provider = {
@@ -206,7 +216,7 @@ const dynamicProvider: Provider = {
     // Only called when explicitly included
     const data = await expensiveApiCall();
     return { values: { apiData: data } };
-  }
+  },
 };
 
 // Must explicitly include dynamic providers
@@ -221,7 +231,7 @@ Private providers are not displayed in the regular provider list and must be cal
 const privateProvider: Provider = {
   name: "INTERNAL_DEBUG",
   private: true,
-  get: async () => ({ values: { debug: getDebugInfo() } })
+  get: async () => ({ values: { debug: getDebugInfo() } }),
 };
 ```
 
@@ -259,12 +269,12 @@ const resilientProvider: Provider = {
       return { values: { external: data } };
     } catch (error) {
       runtime.logger.error("External API failed:", error);
-      return { 
+      return {
         values: { externalError: true },
-        text: "External data unavailable"
+        text: "External data unavailable",
       };
     }
-  }
+  },
 };
 ```
 
@@ -286,18 +296,18 @@ const userProfileProvider: Provider = {
   get: async (runtime, message) => {
     const userId = message.entityId;
     const profile = await runtime.getEntity(userId);
-    
+
     return {
       values: {
         userName: profile?.names[0] || "User",
-        userId: userId
+        userId: userId,
       },
       data: {
-        fullProfile: profile
+        fullProfile: profile,
       },
-      text: `User: ${profile?.names[0] || "Unknown"}`
+      text: `User: ${profile?.names[0] || "Unknown"}`,
     };
-  }
+  },
 };
 
 // User preferences provider
@@ -306,14 +316,14 @@ const preferencesProvider: Provider = {
   get: async (runtime, message, state) => {
     const userId = state.values.userId;
     const prefs = await runtime.getComponent(userId, "preferences");
-    
+
     return {
       values: {
         language: prefs?.data?.language || "en",
-        timezone: prefs?.data?.timezone || "UTC"
-      }
+        timezone: prefs?.data?.timezone || "UTC",
+      },
     };
-  }
+  },
 };
 
 // Register providers
@@ -326,11 +336,11 @@ const greetingAction: Action = {
   handler: async (runtime, message, state) => {
     const { userName, language } = state.values;
     const greeting = getLocalizedGreeting(language);
-    
+
     return {
-      text: `${greeting}, ${userName}!`
+      text: `${greeting}, ${userName}!`,
     };
-  }
+  },
 };
 ```
 

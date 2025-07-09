@@ -5,7 +5,10 @@ description: System architecture and design patterns of ElizaOS
 
 # Overview
 
-ElizaOS is built with a modular, extensible architecture that supports agent-based computing, plugin extensibility, and real-time communication. The system is designed around a core runtime that manages agent lifecycle, memory, and execution while providing a flexible plugin system for customization.
+ElizaOS is built with a modular, extensible architecture that supports agent-based computing, plugin
+extensibility, and real-time communication. The system is designed around a core runtime that
+manages agent lifecycle, memory, and execution while providing a flexible plugin system for
+customization.
 
 ## System Architecture
 
@@ -14,7 +17,8 @@ ElizaOS is built with a modular, extensible architecture that supports agent-bas
 The heart of ElizaOS is the **AgentRuntime** class, which provides:
 
 - **Agent Lifecycle Management**: Initialization, execution, and cleanup of agent instances
-- **Memory Management**: Persistent storage and retrieval of conversation history, facts, and knowledge
+- **Memory Management**: Persistent storage and retrieval of conversation history, facts, and
+  knowledge
 - **State Composition**: Dynamic state building from multiple providers and data sources
 - **Action Processing**: Execution of agent actions and response generation
 - **Plugin Integration**: Loading and management of plugins that extend agent capabilities
@@ -25,6 +29,7 @@ The heart of ElizaOS is the **AgentRuntime** class, which provides:
 ElizaOS uses a distributed architecture with clear separation between client and server:
 
 **Server Components (`@elizaos/server`)**:
+
 - **HTTP API**: Express.js-based REST endpoints for agent management and system operations
 - **WebSocket Server**: Real-time communication using Socket.IO for live chat and notifications
 - **Agent Management**: Multi-agent support with isolated runtime environments
@@ -32,6 +37,7 @@ ElizaOS uses a distributed architecture with clear separation between client and
 - **Authentication**: Middleware for secure access control
 
 **Client Components (`@elizaos/client`)**:
+
 - **React Application**: Modern web interface built with React 19 and TypeScript
 - **Real-time Chat**: WebSocket-based chat interface with message streaming
 - **Agent Management**: UI for creating, configuring, and monitoring agents
@@ -43,6 +49,7 @@ ElizaOS uses a distributed architecture with clear separation between client and
 The plugin architecture enables extensibility through standardized interfaces:
 
 **Plugin Structure**:
+
 ```typescript
 interface Plugin {
   name: string;
@@ -55,6 +62,7 @@ interface Plugin {
 ```
 
 **Core Plugin Types**:
+
 - **Actions**: Executable behaviors that agents can perform
 - **Evaluators**: Decision-making components for response evaluation
 - **Providers**: Data and service integration adapters
@@ -78,6 +86,7 @@ packages/
 ### Package Organization
 
 **Core Package** (`@elizaos/core`):
+
 - `runtime.ts`: AgentRuntime class and core execution logic
 - `types/`: TypeScript type definitions for all system components
 - `database.ts`: Database adapter interfaces and implementations
@@ -87,6 +96,7 @@ packages/
 - `services.ts`: Service registry and lifecycle management
 
 **CLI Package** (`@elizaos/cli`):
+
 - Command implementations for project management
 - Template system for project and plugin creation
 - Development server with hot reloading
@@ -94,6 +104,7 @@ packages/
 - Build and deployment utilities
 
 **Client Package** (`@elizaos/client`):
+
 - React components for agent interaction
 - Real-time communication hooks
 - State management with React Context
@@ -101,6 +112,7 @@ packages/
 - Memory and knowledge visualization
 
 **Server Package** (`@elizaos/server`):
+
 - Express.js server with middleware
 - WebSocket handlers for real-time communication
 - Multi-agent runtime management
@@ -178,4 +190,5 @@ packages/
 - **Environment Management**: Hierarchical configuration with secret management
 - **Monitoring**: Built-in health checks and performance metrics
 
-This architecture provides a solid foundation for building sophisticated AI agents while maintaining flexibility, performance, and reliability.
+This architecture provides a solid foundation for building sophisticated AI agents while maintaining
+flexibility, performance, and reliability.

@@ -1,15 +1,20 @@
 ---
 title: Core Actions
-description: Complete reference for the 12 essential bootstrap actions that provide foundational functionality for ElizaOS agents
+description:
+  Complete reference for the 12 essential bootstrap actions that provide foundational functionality
+  for ElizaOS agents
 ---
 
 # Core Actions Reference
 
-This document provides comprehensive documentation for the 12 core bootstrap actions that form the foundation of ElizaOS agent functionality. These actions are essential for agent operation and are automatically included in the bootstrap plugin.
+This document provides comprehensive documentation for the 12 core bootstrap actions that form the
+foundation of ElizaOS agent functionality. These actions are essential for agent operation and are
+automatically included in the bootstrap plugin.
 
 ## Overview
 
 Core actions handle fundamental agent behaviors including:
+
 - **Communication**: Reply, send messages, ignore inappropriate content
 - **Room Management**: Follow, unfollow, mute, and unmute rooms
 - **Choice Handling**: Select options from task workflows
@@ -23,12 +28,12 @@ All core actions follow the standard ElizaOS action interface:
 
 ```typescript
 interface Action {
-  name: string;                    // Unique action identifier
-  similes: string[];              // Alternative names for the action
-  description: string;            // When and how to use the action
+  name: string; // Unique action identifier
+  similes: string[]; // Alternative names for the action
+  description: string; // When and how to use the action
   validate: (runtime, message, state?) => Promise<boolean>;
   handler: (runtime, message, state?, options?, callback?, responses?) => Promise<void>;
-  examples: ActionExample[][];    // Conversation examples
+  examples: ActionExample[][]; // Conversation examples
 }
 ```
 
@@ -52,22 +57,22 @@ interface Action {
 
 ```typescript
 export const choiceAction: Action = {
-  name: 'CHOOSE_OPTION',
-  similes: ['SELECT_OPTION', 'SELECT', 'PICK', 'CHOOSE'],
-  description: 'Selects an option for a pending task that has multiple options',
-  
+  name: "CHOOSE_OPTION",
+  similes: ["SELECT_OPTION", "SELECT", "PICK", "CHOOSE"],
+  description: "Selects an option for a pending task that has multiple options",
+
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
     // Requires proper server role and pending tasks with options
     const userRole = await getUserServerRole(runtime, message.entityId, room.serverId);
-    if (userRole !== 'OWNER' && userRole !== 'ADMIN') return false;
-    
+    if (userRole !== "OWNER" && userRole !== "ADMIN") return false;
+
     const pendingTasks = await runtime.getTasks({
       roomId: message.roomId,
-      tags: ['AWAITING_CHOICE'],
+      tags: ["AWAITING_CHOICE"],
     });
-    
-    return pendingTasks?.length > 0 && pendingTasks.some(task => task.metadata?.options);
-  }
+
+    return pendingTasks?.length > 0 && pendingTasks.some((task) => task.metadata?.options);
+  },
 };
 ```
 
@@ -75,12 +80,12 @@ export const choiceAction: Action = {
 
 ```typescript
 // User selects a task option
-User: "post"
-Agent: "Selected option: post for task: Confirm Twitter Post"
+User: "post";
+Agent: "Selected option: post for task: Confirm Twitter Post";
 
 // User cancels a task
-User: "I choose cancel"
-Agent: "Task 'Confirm Twitter Post' has been cancelled."
+User: "I choose cancel";
+Agent: "Task 'Confirm Twitter Post' has been cancelled.";
 ```
 
 ### Template Processing
@@ -120,31 +125,34 @@ Return in JSON format:
 
 **File:** `followRoom.ts`
 
-**Description:** Start following a channel with great interest, allowing the agent to chime in without needing explicit mentions.
+**Description:** Start following a channel with great interest, allowing the agent to chime in
+without needing explicit mentions.
 
 ### Properties
 
 - **Similes:** `FOLLOW_CHAT`, `FOLLOW_CHANNEL`, `FOLLOW_CONVERSATION`, `FOLLOW_THREAD`
-- **Validation:** Checks for follow-related keywords and ensures room is not already followed or muted
+- **Validation:** Checks for follow-related keywords and ensures room is not already followed or
+  muted
 - **Handler:** Uses LLM to determine if following is appropriate, then sets participant state
 
 ### Implementation Details
 
 ```typescript
 export const followRoomAction: Action = {
-  name: 'FOLLOW_ROOM',
-  similes: ['FOLLOW_CHAT', 'FOLLOW_CHANNEL', 'FOLLOW_CONVERSATION', 'FOLLOW_THREAD'],
-  description: 'Start following this channel with great interest, chiming in without needing to be explicitly mentioned. Only do this if explicitly asked to.',
-  
+  name: "FOLLOW_ROOM",
+  similes: ["FOLLOW_CHAT", "FOLLOW_CHANNEL", "FOLLOW_CONVERSATION", "FOLLOW_THREAD"],
+  description:
+    "Start following this channel with great interest, chiming in without needing to be explicitly mentioned. Only do this if explicitly asked to.",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
-    const keywords = ['follow', 'participate', 'engage', 'listen', 'take interest', 'join'];
-    if (!keywords.some(keyword => message.content.text?.toLowerCase().includes(keyword))) {
+    const keywords = ["follow", "participate", "engage", "listen", "take interest", "join"];
+    if (!keywords.some((keyword) => message.content.text?.toLowerCase().includes(keyword))) {
       return false;
     }
-    
+
     const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
-    return roomState !== 'FOLLOWED' && roomState !== 'MUTED';
-  }
+    return roomState !== "FOLLOWED" && roomState !== "MUTED";
+  },
 };
 ```
 
@@ -168,12 +176,12 @@ Otherwise, respond with NO.`;
 
 ```typescript
 // User requests following
-User: "hey eliza follow this channel"
-Agent: "Sure, I will now follow this room and chime in"
+User: "hey eliza follow this channel";
+Agent: "Sure, I will now follow this room and chime in";
 
 // User asks for participation
-User: "eliza, please start participating in discussions in this channel"
-Agent: "Got it"
+User: "eliza, please start participating in discussions in this channel";
+Agent: "Got it";
 ```
 
 ---
@@ -184,7 +192,8 @@ Agent: "Got it"
 
 **File:** `ignore.ts`
 
-**Description:** Ignore the user in a conversation when they are aggressive, creepy, or when the conversation has naturally ended.
+**Description:** Ignore the user in a conversation when they are aggressive, creepy, or when the
+conversation has naturally ended.
 
 ### Properties
 
@@ -196,20 +205,21 @@ Agent: "Got it"
 
 ```typescript
 export const ignoreAction: Action = {
-  name: 'IGNORE',
-  similes: ['STOP_TALKING', 'STOP_CHATTING', 'STOP_CONVERSATION'],
-  description: 'Call this action if ignoring the user. Use IGNORE when the user is aggressive, creepy, or the conversation has naturally ended.',
-  
+  name: "IGNORE",
+  similes: ["STOP_TALKING", "STOP_CHATTING", "STOP_CONVERSATION"],
+  description:
+    "Call this action if ignoring the user. Use IGNORE when the user is aggressive, creepy, or the conversation has naturally ended.",
+
   validate: async (_runtime: IAgentRuntime, _message: Memory) => {
     return true; // Always available
   },
-  
+
   handler: async (runtime, message, state, options, callback, responses) => {
     if (callback && responses?.[0]?.content) {
       await callback(responses[0].content);
     }
     return true;
-  }
+  },
 };
 ```
 
@@ -239,26 +249,29 @@ Agent: [IGNORE action with "that's inappropriate"]
 
 **File:** `muteRoom.ts`
 
-**Description:** Mute a room, ignoring all messages unless explicitly mentioned. Use when asked to stop responding or when being disruptive.
+**Description:** Mute a room, ignoring all messages unless explicitly mentioned. Use when asked to
+stop responding or when being disruptive.
 
 ### Properties
 
 - **Similes:** `MUTE_CHAT`, `MUTE_CONVERSATION`, `MUTE_ROOM`, `MUTE_THREAD`, `MUTE_CHANNEL`
 - **Validation:** Ensures room is not already muted
-- **Handler:** Uses LLM to determine if muting is appropriate, then sets participant state to 'MUTED'
+- **Handler:** Uses LLM to determine if muting is appropriate, then sets participant state to
+  'MUTED'
 
 ### Implementation Details
 
 ```typescript
 export const muteRoomAction: Action = {
-  name: 'MUTE_ROOM',
-  similes: ['MUTE_CHAT', 'MUTE_CONVERSATION', 'MUTE_ROOM', 'MUTE_THREAD', 'MUTE_CHANNEL'],
-  description: "Mutes a room, ignoring all messages unless explicitly mentioned. Only do this if explicitly asked to, or if you're annoying people.",
-  
+  name: "MUTE_ROOM",
+  similes: ["MUTE_CHAT", "MUTE_CONVERSATION", "MUTE_ROOM", "MUTE_THREAD", "MUTE_CHANNEL"],
+  description:
+    "Mutes a room, ignoring all messages unless explicitly mentioned. Only do this if explicitly asked to, or if you're annoying people.",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
-    return roomState !== 'MUTED';
-  }
+    return roomState !== "MUTED";
+  },
 };
 ```
 
@@ -283,12 +296,12 @@ Otherwise, respond with NO.`;
 
 ```typescript
 // User requests muting
-User: "eliza, please mute this channel. No need to respond here for now."
-Agent: "Got it"
+User: "eliza, please mute this channel. No need to respond here for now.";
+Agent: "Got it";
 
 // User indicates too much participation
-User: "too many messages here eliza"
-Agent: "my bad ill mute"
+User: "too many messages here eliza";
+Agent: "my bad ill mute";
 ```
 
 ---
@@ -299,7 +312,8 @@ Agent: "my bad ill mute"
 
 **File:** `none.ts`
 
-**Description:** Respond but perform no additional action. This is the default behavior when the agent is speaking without taking any specific action.
+**Description:** Respond but perform no additional action. This is the default behavior when the
+agent is speaking without taking any specific action.
 
 ### Properties
 
@@ -311,17 +325,18 @@ Agent: "my bad ill mute"
 
 ```typescript
 export const noneAction: Action = {
-  name: 'NONE',
-  similes: ['NO_ACTION', 'NO_RESPONSE', 'NO_REACTION'],
-  description: 'Respond but perform no additional action. This is the default if the agent is speaking and not doing anything additional.',
-  
+  name: "NONE",
+  similes: ["NO_ACTION", "NO_RESPONSE", "NO_REACTION"],
+  description:
+    "Respond but perform no additional action. This is the default if the agent is speaking and not doing anything additional.",
+
   validate: async (_runtime: IAgentRuntime, _message: Memory) => {
     return true;
   },
-  
+
   handler: async (_runtime: IAgentRuntime, _message: Memory): Promise<boolean> => {
     return true;
-  }
+  },
 };
 ```
 
@@ -349,7 +364,8 @@ Agent: "ya obviously" [NONE action]
 
 **File:** `reply.ts`
 
-**Description:** Generate and send a reply to the current conversation using the LLM. This is the primary response mechanism for agents.
+**Description:** Generate and send a reply to the current conversation using the LLM. This is the
+primary response mechanism for agents.
 
 ### Properties
 
@@ -361,31 +377,32 @@ Agent: "ya obviously" [NONE action]
 
 ```typescript
 export const replyAction: Action = {
-  name: 'REPLY',
-  similes: ['GREET', 'REPLY_TO_MESSAGE', 'SEND_REPLY', 'RESPOND', 'RESPONSE'],
-  description: 'Replies to the current conversation with the text from the generated message. Default if the agent is responding with a message and no other action.',
-  
+  name: "REPLY",
+  similes: ["GREET", "REPLY_TO_MESSAGE", "SEND_REPLY", "RESPOND", "RESPONSE"],
+  description:
+    "Replies to the current conversation with the text from the generated message. Default if the agent is responding with a message and no other action.",
+
   validate: async (_runtime: IAgentRuntime) => {
     return true;
   },
-  
+
   handler: async (runtime, message, state, options, callback, responses) => {
-    const allProviders = responses?.flatMap(res => res.content?.providers ?? []) ?? [];
-    state = await runtime.composeState(message, [...allProviders, 'RECENT_MESSAGES']);
-    
+    const allProviders = responses?.flatMap((res) => res.content?.providers ?? []) ?? [];
+    state = await runtime.composeState(message, [...allProviders, "RECENT_MESSAGES"]);
+
     const response = await runtime.useModel(ModelType.OBJECT_LARGE, {
       prompt: replyTemplate,
     });
-    
+
     const responseContent = {
       thought: response.thought,
-      text: response.message || '',
-      actions: ['REPLY'],
+      text: response.message || "",
+      actions: ["REPLY"],
     };
-    
+
     await callback(responseContent);
     return true;
-  }
+  },
 };
 ```
 
@@ -430,7 +447,8 @@ Agent: "Of course! Let's work through it step by step." [REPLY action]
 
 **File:** `roles.ts`
 
-**Description:** Assigns a role (Admin, Owner, None) to a user or list of users in a channel. Requires proper permissions and world context.
+**Description:** Assigns a role (Admin, Owner, None) to a user or list of users in a channel.
+Requires proper permissions and world context.
 
 ### Properties
 
@@ -442,19 +460,16 @@ Agent: "Of course! Let's work through it step by step." [REPLY action]
 
 ```typescript
 export const updateRoleAction: Action = {
-  name: 'UPDATE_ROLE',
-  similes: ['CHANGE_ROLE', 'SET_PERMISSIONS', 'ASSIGN_ROLE', 'MAKE_ADMIN'],
-  description: 'Assigns a role (Admin, Owner, None) to a user or list of users in a channel.',
-  
+  name: "UPDATE_ROLE",
+  similes: ["CHANGE_ROLE", "SET_PERMISSIONS", "ASSIGN_ROLE", "MAKE_ADMIN"],
+  description: "Assigns a role (Admin, Owner, None) to a user or list of users in a channel.",
+
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const channelType = message.content.channelType as ChannelType;
     const serverId = message.content.serverId as string;
-    
-    return (
-      (channelType === ChannelType.GROUP || channelType === ChannelType.WORLD) &&
-      !!serverId
-    );
-  }
+
+    return (channelType === ChannelType.GROUP || channelType === ChannelType.WORLD) && !!serverId;
+  },
 };
 ```
 
@@ -464,7 +479,7 @@ export const updateRoleAction: Action = {
 const canModifyRole = (currentRole: Role, targetRole: Role | null, newRole: Role): boolean => {
   // User's can't change their own role
   if (targetRole === currentRole) return false;
-  
+
   switch (currentRole) {
     case Role.OWNER:
       return true; // Owners can do everything
@@ -481,16 +496,16 @@ const canModifyRole = (currentRole: Role, targetRole: Role | null, newRole: Role
 
 ```typescript
 // Make user admin
-User: "Make Alice an ADMIN"
-Agent: "Updated Alice's role to ADMIN."
+User: "Make Alice an ADMIN";
+Agent: "Updated Alice's role to ADMIN.";
 
 // Assign multiple roles
-User: "Set @alice and @bob as admins"
-Agent: "Updated alice's role to ADMIN.\nUpdated bob's role to ADMIN."
+User: "Set @alice and @bob as admins";
+Agent: "Updated alice's role to ADMIN.\nUpdated bob's role to ADMIN.";
 
 // Invalid request
-User: "Ban @troublemaker"
-Agent: "I cannot ban users."
+User: "Ban @troublemaker";
+Agent: "I cannot ban users.";
 ```
 
 ---
@@ -501,7 +516,8 @@ Agent: "I cannot ban users."
 
 **File:** `sendMessage.ts`
 
-**Description:** Send a message to a user or room other than the current one. Supports cross-platform messaging.
+**Description:** Send a message to a user or room other than the current one. Supports
+cross-platform messaging.
 
 ### Properties
 
@@ -513,15 +529,15 @@ Agent: "I cannot ban users."
 
 ```typescript
 export const sendMessageAction: Action = {
-  name: 'SEND_MESSAGE',
-  similes: ['DM', 'MESSAGE', 'SEND_DM', 'POST_MESSAGE'],
-  description: 'Send a message to a user or room (other than the current one)',
-  
+  name: "SEND_MESSAGE",
+  similes: ["DM", "MESSAGE", "SEND_DM", "POST_MESSAGE"],
+  description: "Send a message to a user or room (other than the current one)",
+
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const roomComponents = await runtime.getComponents(message.roomId, worldId, agentId);
-    const availableSources = new Set(roomComponents.map(c => c.type));
+    const availableSources = new Set(roomComponents.map((c) => c.type));
     return availableSources.size > 0;
-  }
+  },
 };
 ```
 
@@ -553,16 +569,16 @@ Return a JSON object with:
 
 ```typescript
 // Send to user
-User: "Send a message to @dev_guru on telegram saying 'Hello!'"
-Agent: "Message sent to dev_guru on telegram."
+User: "Send a message to @dev_guru on telegram saying 'Hello!'";
+Agent: "Message sent to dev_guru on telegram.";
 
 // Post to room
-User: "Post 'Important announcement!' in #announcements"
-Agent: "Message sent to announcements."
+User: "Post 'Important announcement!' in #announcements";
+Agent: "Message sent to announcements.";
 
 // Direct message
-User: "DM Jimmy and tell him 'Meeting at 3pm'"
-Agent: "Message sent to Jimmy."
+User: "DM Jimmy and tell him 'Meeting at 3pm'";
+Agent: "Message sent to Jimmy.";
 ```
 
 ---
@@ -573,7 +589,8 @@ Agent: "Message sent to Jimmy."
 
 **File:** `settings.ts`
 
-**Description:** Save configuration settings during onboarding or update existing settings. Used for world/server configuration.
+**Description:** Save configuration settings during onboarding or update existing settings. Used for
+world/server configuration.
 
 ### Properties
 
@@ -585,18 +602,19 @@ Agent: "Message sent to Jimmy."
 
 ```typescript
 export const updateSettingsAction: Action = {
-  name: 'UPDATE_SETTINGS',
-  similes: ['UPDATE_SETTING', 'SAVE_SETTING', 'SET_CONFIGURATION', 'CONFIGURE'],
-  description: 'Saves a configuration setting during the onboarding process, or update an existing setting. Use this when you are onboarding with a world owner or admin.',
-  
+  name: "UPDATE_SETTINGS",
+  similes: ["UPDATE_SETTING", "SAVE_SETTING", "SET_CONFIGURATION", "CONFIGURE"],
+  description:
+    "Saves a configuration setting during the onboarding process, or update an existing setting. Use this when you are onboarding with a world owner or admin.",
+
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     if (message.content.channelType !== ChannelType.DM) return false;
-    
+
     const worlds = await findWorldsForOwner(runtime, message.entityId);
-    const world = worlds?.find(world => world.metadata?.settings);
-    
+    const world = worlds?.find((world) => world.metadata?.settings);
+
     return !!world?.metadata?.settings;
-  }
+  },
 };
 ```
 
@@ -604,22 +622,29 @@ export const updateSettingsAction: Action = {
 
 ```typescript
 // Get settings from world metadata
-export async function getWorldSettings(runtime: IAgentRuntime, serverId: string): Promise<WorldSettings | null> {
+export async function getWorldSettings(
+  runtime: IAgentRuntime,
+  serverId: string
+): Promise<WorldSettings | null> {
   const worldId = createUniqueUuid(runtime, serverId);
   const world = await runtime.getWorld(worldId);
-  return world?.metadata?.settings as WorldSettings || null;
+  return (world?.metadata?.settings as WorldSettings) || null;
 }
 
 // Update settings in world metadata
-export async function updateWorldSettings(runtime: IAgentRuntime, serverId: string, worldSettings: WorldSettings): Promise<boolean> {
+export async function updateWorldSettings(
+  runtime: IAgentRuntime,
+  serverId: string,
+  worldSettings: WorldSettings
+): Promise<boolean> {
   const worldId = createUniqueUuid(runtime, serverId);
   const world = await runtime.getWorld(worldId);
-  
+
   if (!world) return false;
-  
+
   world.metadata = world.metadata || {};
   world.metadata.settings = worldSettings;
-  
+
   await runtime.updateWorld(world);
   return true;
 }
@@ -629,16 +654,16 @@ export async function updateWorldSettings(runtime: IAgentRuntime, serverId: stri
 
 ```typescript
 // Set welcome channel
-User: "I want to set up the welcome channel to #general"
-Agent: "Perfect! I've updated your welcome channel to #general. Next, we should configure the automated greeting message."
+User: "I want to set up the welcome channel to #general";
+Agent: "Perfect! I've updated your welcome channel to #general. Next, we should configure the automated greeting message.";
 
 // Configure prefix
-User: "Let's set the bot prefix to !"
-Agent: "Great choice! I've set the command prefix to '!'. Now you can use commands like !help, !info, etc."
+User: "Let's set the bot prefix to !";
+Agent: "Great choice! I've set the command prefix to '!'. Now you can use commands like !help, !info, etc.";
 
 // Complete onboarding
-User: "My server name is 'Gaming Lounge'"
-Agent: "Great! I've saved 'Gaming Lounge' as your server name. We've completed all the required settings! Your server is now fully configured."
+User: "My server name is 'Gaming Lounge'";
+Agent: "Great! I've saved 'Gaming Lounge' as your server name. We've completed all the required settings! Your server is now fully configured.";
 ```
 
 ---
@@ -649,7 +674,8 @@ Agent: "Great! I've saved 'Gaming Lounge' as your server name. We've completed a
 
 **File:** `unfollowRoom.ts`
 
-**Description:** Stop following a channel. Agent can still respond when explicitly mentioned but won't automatically chime in.
+**Description:** Stop following a channel. Agent can still respond when explicitly mentioned but
+won't automatically chime in.
 
 ### Properties
 
@@ -661,14 +687,15 @@ Agent: "Great! I've saved 'Gaming Lounge' as your server name. We've completed a
 
 ```typescript
 export const unfollowRoomAction: Action = {
-  name: 'UNFOLLOW_ROOM',
-  similes: ['UNFOLLOW_CHAT', 'UNFOLLOW_CONVERSATION', 'UNFOLLOW_ROOM', 'UNFOLLOW_THREAD'],
-  description: "Stop following this channel. You can still respond if explicitly mentioned, but you won't automatically chime in anymore.",
-  
+  name: "UNFOLLOW_ROOM",
+  similes: ["UNFOLLOW_CHAT", "UNFOLLOW_CONVERSATION", "UNFOLLOW_ROOM", "UNFOLLOW_THREAD"],
+  description:
+    "Stop following this channel. You can still respond if explicitly mentioned, but you won't automatically chime in anymore.",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
-    return roomState === 'FOLLOWED';
-  }
+    return roomState === "FOLLOWED";
+  },
 };
 ```
 
@@ -714,7 +741,8 @@ Agent: "A small increase could work given our past results..."
 
 **File:** `unmuteRoom.ts`
 
-**Description:** Unmute a room, allowing the agent to consider responding to messages again after being muted.
+**Description:** Unmute a room, allowing the agent to consider responding to messages again after
+being muted.
 
 ### Properties
 
@@ -726,14 +754,14 @@ Agent: "A small increase could work given our past results..."
 
 ```typescript
 export const unmuteRoomAction: Action = {
-  name: 'UNMUTE_ROOM',
-  similes: ['UNMUTE_CHAT', 'UNMUTE_CONVERSATION', 'UNMUTE_ROOM', 'UNMUTE_THREAD'],
-  description: 'Unmutes a room, allowing the agent to consider responding to messages again.',
-  
+  name: "UNMUTE_ROOM",
+  similes: ["UNMUTE_CHAT", "UNMUTE_CONVERSATION", "UNMUTE_ROOM", "UNMUTE_THREAD"],
+  description: "Unmutes a room, allowing the agent to consider responding to messages again.",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const roomState = await runtime.getParticipantUserState(roomId, runtime.agentId);
-    return roomState === 'MUTED';
-  }
+    return roomState === "MUTED";
+  },
 };
 ```
 
@@ -757,16 +785,16 @@ Otherwise, respond with NO.`;
 
 ```typescript
 // User requests unmuting
-User: "eliza, you can unmute this channel now"
-Agent: "Done"
+User: "eliza, you can unmute this channel now";
+Agent: "Done";
 
 // User wants re-engagement
-User: "eliza, please unmute this room. We could use your input again."
-Agent: "Sounds good"
+User: "eliza, please unmute this room. We could use your input again.";
+Agent: "Sounds good";
 
 // Casual request
-User: "unmute urself eliza"
-Agent: "unmuted"
+User: "unmute urself eliza";
+Agent: "unmuted";
 ```
 
 ---
@@ -777,25 +805,28 @@ Agent: "unmuted"
 
 **File:** `updateEntity.ts`
 
-**Description:** Add or edit contact details for a person in the conversation. Used for relating entities across platforms.
+**Description:** Add or edit contact details for a person in the conversation. Used for relating
+entities across platforms.
 
 ### Properties
 
 - **Similes:** `UPDATE_ENTITY`
 - **Validation:** Always returns true (core functionality)
-- **Handler:** Uses LLM to extract platform and contact information, then creates/updates entity components
+- **Handler:** Uses LLM to extract platform and contact information, then creates/updates entity
+  components
 
 ### Implementation Details
 
 ```typescript
 export const updateEntityAction: Action = {
-  name: 'UPDATE_CONTACT',
-  similes: ['UPDATE_ENTITY'],
-  description: 'Add or edit contact details for a person you are talking to or observing in the conversation. Use this when you learn this information from the conversation about a contact.',
-  
+  name: "UPDATE_CONTACT",
+  similes: ["UPDATE_ENTITY"],
+  description:
+    "Add or edit contact details for a person you are talking to or observing in the conversation. Use this when you learn this information from the conversation about a contact.",
+
   validate: async (_runtime: IAgentRuntime, _message: Memory, _state?: State): Promise<boolean> => {
     return true;
-  }
+  },
 };
 ```
 
@@ -836,16 +867,16 @@ Return a JSON object with:
 
 ```typescript
 // Update telegram info
-User: "Please update my telegram username to @dev_guru"
-Agent: "I've updated your telegram information."
+User: "Please update my telegram username to @dev_guru";
+Agent: "I've updated your telegram information.";
 
 // Set twitter handle
-User: "Set Jimmy's twitter username to @jimmy_codes"
-Agent: "I've updated Jimmy's twitter information."
+User: "Set Jimmy's twitter username to @jimmy_codes";
+Agent: "I've updated Jimmy's twitter information.";
 
 // Update discord details
-User: "Update my discord username to dev_guru#1234"
-Agent: "I've updated your discord information."
+User: "Update my discord username to dev_guru#1234";
+Agent: "I've updated your discord information.";
 ```
 
 ---
@@ -858,18 +889,18 @@ All core actions are exported from the bootstrap plugin:
 
 ```typescript
 // packages/plugin-bootstrap/src/actions/index.ts
-export { choiceAction } from './choice';
-export { followRoomAction } from './followRoom';
-export { ignoreAction } from './ignore';
-export { muteRoomAction } from './muteRoom';
-export { noneAction } from './none';
-export { replyAction } from './reply';
-export { updateRoleAction } from './roles';
-export { sendMessageAction } from './sendMessage';
-export { updateSettingsAction } from './settings';
-export { unfollowRoomAction } from './unfollowRoom';
-export { unmuteRoomAction } from './unmuteRoom';
-export { updateEntityAction } from './updateEntity';
+export { choiceAction } from "./choice";
+export { followRoomAction } from "./followRoom";
+export { ignoreAction } from "./ignore";
+export { muteRoomAction } from "./muteRoom";
+export { noneAction } from "./none";
+export { replyAction } from "./reply";
+export { updateRoleAction } from "./roles";
+export { sendMessageAction } from "./sendMessage";
+export { updateSettingsAction } from "./settings";
+export { unfollowRoomAction } from "./unfollowRoom";
+export { unmuteRoomAction } from "./unmuteRoom";
+export { updateEntityAction } from "./updateEntity";
 ```
 
 ### Usage in Agents
@@ -877,7 +908,7 @@ export { updateEntityAction } from './updateEntity';
 Actions are automatically available to agents through the bootstrap plugin:
 
 ```typescript
-import { bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 
 const agent = new Agent({
   plugins: [bootstrapPlugin], // Includes all core actions
@@ -888,6 +919,7 @@ const agent = new Agent({
 ### Action Selection
 
 The runtime automatically selects appropriate actions based on:
+
 1. **Validation**: Only actions that pass validation are considered
 2. **Context**: LLM evaluates which action best fits the conversation context
 3. **Priority**: Some actions (like REPLY) serve as fallbacks for general responses
@@ -895,6 +927,7 @@ The runtime automatically selects appropriate actions based on:
 ### Error Handling
 
 All core actions include comprehensive error handling:
+
 - **Validation errors**: Prevent action execution in inappropriate contexts
 - **Handler errors**: Gracefully handle runtime errors with user-friendly messages
 - **State errors**: Ensure consistent state management across action executions
@@ -946,4 +979,6 @@ Actions can be chained together for complex workflows:
 - Graceful degradation when permissions are insufficient
 - Audit trails for administrative actions
 
-This comprehensive reference covers all 12 core bootstrap actions essential for ElizaOS agent operation. Each action is designed to handle specific aspects of agent behavior while maintaining consistency and reliability across the platform.
+This comprehensive reference covers all 12 core bootstrap actions essential for ElizaOS agent
+operation. Each action is designed to handle specific aspects of agent behavior while maintaining
+consistency and reliability across the platform.

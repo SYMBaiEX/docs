@@ -5,11 +5,14 @@ description: Working with templates and prompts in elizaOS for consistent AI int
 
 # Templates & Prompts
 
-Templates and prompts are the foundation of AI interactions in elizaOS. They provide structured, consistent ways to communicate with AI models while maintaining flexibility for different contexts and use cases.
+Templates and prompts are the foundation of AI interactions in elizaOS. They provide structured,
+consistent ways to communicate with AI models while maintaining flexibility for different contexts
+and use cases.
 
 ## Overview
 
 elizaOS uses templates to:
+
 - **Standardize interactions**: Ensure consistent AI behavior across different contexts
 - **Context injection**: Dynamically insert relevant information into prompts
 - **Personalization**: Adapt responses based on character traits and settings
@@ -23,6 +26,7 @@ elizaOS uses templates to:
 elizaOS supports several template types for different use cases:
 
 #### String Templates
+
 Simple text templates with placeholder substitution:
 
 ```typescript
@@ -30,16 +34,18 @@ const template = "Hello {{name}}, how can I help you today?";
 ```
 
 #### Function Templates
+
 Dynamic templates that generate content based on state:
 
 ```typescript
 const template = ({ state }) => {
-  const timeOfDay = new Date().getHours() < 12 ? 'morning' : 'evening';
+  const timeOfDay = new Date().getHours() < 12 ? "morning" : "evening";
   return `Good ${timeOfDay}, ${state.senderName}!`;
 };
 ```
 
 #### Conditional Templates
+
 Templates that adapt based on conditions:
 
 ```typescript
@@ -73,7 +79,7 @@ const character = {
       
       Respond to: {{message}}
     `,
-    
+
     // Evaluation template
     evaluationTemplate: `
       Evaluate if you should respond to this message:
@@ -83,12 +89,12 @@ const character = {
       
       Respond with YES or NO:
     `,
-    
+
     // Custom template
     customTemplate: ({ state }) => {
       return `Custom response for ${state.senderName}`;
-    }
-  }
+    },
+  },
 };
 ```
 
@@ -183,12 +189,12 @@ Rate from 1-10 and explain:
 const twitterTemplates = {
   // Tweet generation - uses the same messageHandlerTemplate but with platform-specific context
   twitterPostTemplate: messageHandlerTemplate,
-  
+
   // Twitter response - uses the same messageHandlerTemplate
   twitterMessageHandlerTemplate: messageHandlerTemplate,
-  
+
   // Twitter engagement decision - uses the same shouldRespondTemplate
-  twitterShouldRespondTemplate: shouldRespondTemplate
+  twitterShouldRespondTemplate: shouldRespondTemplate,
 };
 
 // Note: elizaOS provides platform-specific context through providers
@@ -201,9 +207,9 @@ const twitterTemplates = {
 const discordTemplates = {
   // Discord message handler - uses the same messageHandlerTemplate
   discordMessageHandlerTemplate: messageHandlerTemplate,
-  
+
   // Discord auto-post - uses the same postCreationTemplate
-  discordAutoPostTemplate: postCreationTemplate
+  discordAutoPostTemplate: postCreationTemplate,
 };
 ```
 
@@ -213,9 +219,9 @@ const discordTemplates = {
 const telegramTemplates = {
   // Telegram message handler - uses the same messageHandlerTemplate
   telegramMessageHandlerTemplate: messageHandlerTemplate,
-  
+
   // Telegram auto-post - uses the same postCreationTemplate
-  telegramAutoPostTemplate: postCreationTemplate
+  telegramAutoPostTemplate: postCreationTemplate,
 };
 ```
 
@@ -234,21 +240,21 @@ const standardVariables = {
   adjectives: "Character traits",
   topics: "Known topics",
   style: "Communication style",
-  
+
   // Context information
   senderName: "Message sender",
   message: "Current message",
   recentMessages: "Recent conversation",
-  
+
   // Platform information
   channelName: "Channel/room name",
   serverName: "Server name",
   chatName: "Chat name",
-  
+
   // Dynamic content
   timestamp: "Current time",
   context: "Additional context",
-  knowledge: "Relevant knowledge"
+  knowledge: "Relevant knowledge",
 };
 ```
 
@@ -258,16 +264,16 @@ Add custom variables through providers:
 
 ```typescript
 const customProvider = {
-  name: 'CUSTOM_PROVIDER',
+  name: "CUSTOM_PROVIDER",
   get: async (runtime, message, state) => {
     return {
       values: {
         customVariable: "Custom value",
         dynamicData: await fetchDynamicData(),
-        processedContent: processContent(message.content)
-      }
+        processedContent: processContent(message.content),
+      },
     };
-  }
+  },
 };
 ```
 
@@ -279,9 +285,7 @@ Templates use `{{variable}}` syntax for substitution:
 
 ```typescript
 const template = "Hello {{name}}, today is {{date}}";
-const processed = template
-  .replace('{{name}}', 'Alice')
-  .replace('{{date}}', '2024-01-15');
+const processed = template.replace("{{name}}", "Alice").replace("{{date}}", "2024-01-15");
 ```
 
 ### Function Template Processing
@@ -314,15 +318,15 @@ const result = compiledTemplate(variables);
 ```typescript
 const conditionalTemplate = ({ state }) => {
   let content = "You are {{characterName}}.";
-  
+
   if (state.isFirstMessage) {
     content += "\nThis is our first conversation.";
   }
-  
+
   if (state.hasKnowledge) {
     content += "\nRelevant knowledge: {{knowledge}}";
   }
-  
+
   return content;
 };
 ```
@@ -338,13 +342,13 @@ const baseTemplate = `
 `;
 
 const chatTemplate = baseTemplate.replace(
-  '{{specificInstructions}}',
-  'Respond conversationally to: {{message}}'
+  "{{specificInstructions}}",
+  "Respond conversationally to: {{message}}"
 );
 
 const postTemplate = baseTemplate.replace(
-  '{{specificInstructions}}',
-  'Create an engaging post about: {{topic}}'
+  "{{specificInstructions}}",
+  "Create an engaging post about: {{topic}}"
 );
 ```
 
@@ -352,7 +356,7 @@ const postTemplate = baseTemplate.replace(
 
 ```typescript
 const composeTemplate = (parts) => {
-  return parts.filter(Boolean).join('\n\n');
+  return parts.filter(Boolean).join("\n\n");
 };
 
 const composedTemplate = composeTemplate([
@@ -360,7 +364,7 @@ const composedTemplate = composeTemplate([
   "# Bio\n{{bio}}",
   state.hasLore ? "# Lore\n{{lore}}" : null,
   "# Message\n{{message}}",
-  "# Response\nRespond as {{characterName}}:"
+  "# Response\nRespond as {{characterName}}:",
 ]);
 ```
 
@@ -371,23 +375,23 @@ const composedTemplate = composeTemplate([
 ```typescript
 class TemplateRegistry {
   private templates = new Map();
-  
+
   register(name: string, template: string | Function) {
     this.templates.set(name, template);
   }
-  
+
   get(name: string) {
     return this.templates.get(name);
   }
-  
+
   process(name: string, variables: any) {
     const template = this.get(name);
-    if (typeof template === 'function') {
+    if (typeof template === "function") {
       return template(variables);
     }
     return this.substituteVariables(template, variables);
   }
-  
+
   private substituteVariables(template: string, variables: any) {
     return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return variables[key] || match;
@@ -402,16 +406,16 @@ class TemplateRegistry {
 const templateVersions = {
   v1: {
     messageHandler: "Simple template",
-    shouldRespond: "Basic decision logic"
+    shouldRespond: "Basic decision logic",
   },
-  
+
   v2: {
     messageHandler: "Enhanced template with context",
-    shouldRespond: "Improved decision logic"
-  }
+    shouldRespond: "Improved decision logic",
+  },
 };
 
-const getTemplate = (name: string, version = 'v2') => {
+const getTemplate = (name: string, version = "v2") => {
   return templateVersions[version][name];
 };
 ```
@@ -421,21 +425,21 @@ const getTemplate = (name: string, version = 'v2') => {
 ```typescript
 const validateTemplate = (template: string) => {
   const issues = [];
-  
+
   // Check for required variables
-  const requiredVars = ['characterName', 'message'];
+  const requiredVars = ["characterName", "message"];
   for (const req of requiredVars) {
     if (!template.includes(`{{${req}}}`)) {
       issues.push(`Missing required variable: ${req}`);
     }
   }
-  
+
   // Check for unclosed variables
   const unclosed = template.match(/\{\{[^}]*$/);
   if (unclosed) {
-    issues.push('Unclosed template variable');
+    issues.push("Unclosed template variable");
   }
-  
+
   return issues;
 };
 ```
@@ -448,11 +452,11 @@ const validateTemplate = (template: string) => {
 class TemplateCache {
   private cache = new Map();
   private maxSize = 100;
-  
+
   get(key: string) {
     return this.cache.get(key);
   }
-  
+
   set(key: string, value: string) {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
@@ -468,11 +472,11 @@ class TemplateCache {
 ```typescript
 const precompileTemplates = (templates: Record<string, string>) => {
   const compiled = {};
-  
+
   for (const [name, template] of Object.entries(templates)) {
     compiled[name] = compileTemplate(template);
   }
-  
+
   return compiled;
 };
 ```
@@ -486,13 +490,13 @@ const precompileTemplates = (templates: Record<string, string>) => {
 const messageTemplates = {
   handler: "Message handling template",
   shouldRespond: "Response decision template",
-  evaluation: "Message evaluation template"
+  evaluation: "Message evaluation template",
 };
 
 const postTemplates = {
   twitter: "Twitter post template",
   discord: "Discord post template",
-  telegram: "Telegram post template"
+  telegram: "Telegram post template",
 };
 ```
 
@@ -514,14 +518,14 @@ const template = `
 ```typescript
 /**
  * Message Handler Template
- * 
+ *
  * Variables:
  * - characterName: The agent's name
  * - bio: Character biography
  * - message: Current message content
  * - senderName: Message sender
  * - recentMessages: Recent conversation history
- * 
+ *
  * Purpose: Generate contextual responses to messages
  */
 const messageHandlerTemplate = `...`;
@@ -534,7 +538,7 @@ const safeTemplateProcessing = (template: string, variables: any) => {
   try {
     return processTemplate(template, variables);
   } catch (error) {
-    console.error('Template processing failed:', error);
+    console.error("Template processing failed:", error);
     return "I'm sorry, I encountered an error processing your message.";
   }
 };
@@ -545,15 +549,15 @@ const safeTemplateProcessing = (template: string, variables: any) => {
 ### Unit Testing
 
 ```typescript
-describe('Template Processing', () => {
-  it('should substitute variables correctly', () => {
+describe("Template Processing", () => {
+  it("should substitute variables correctly", () => {
     const template = "Hello {{name}}";
     const variables = { name: "Alice" };
     const result = processTemplate(template, variables);
     expect(result).toBe("Hello Alice");
   });
-  
-  it('should handle missing variables', () => {
+
+  it("should handle missing variables", () => {
     const template = "Hello {{name}} {{missing}}";
     const variables = { name: "Alice" };
     const result = processTemplate(template, variables);
@@ -565,18 +569,18 @@ describe('Template Processing', () => {
 ### Integration Testing
 
 ```typescript
-describe('Template Integration', () => {
-  it('should generate appropriate responses', async () => {
+describe("Template Integration", () => {
+  it("should generate appropriate responses", async () => {
     const runtime = createTestRuntime();
     const template = "You are {{characterName}}. Respond to: {{message}}";
-    
+
     const response = await runtime.useModel(ModelType.TEXT_LARGE, {
       prompt: processTemplate(template, {
         characterName: "TestAgent",
-        message: "Hello"
-      })
+        message: "Hello",
+      }),
     });
-    
+
     expect(response).toContain("TestAgent");
   });
 });
@@ -587,6 +591,7 @@ describe('Template Integration', () => {
 ### Common Issues
 
 1. **Variable not substituted**
+
    ```typescript
    // Check variable name spelling
    const template = "Hello {{name}}"; // Correct
@@ -594,6 +599,7 @@ describe('Template Integration', () => {
    ```
 
 2. **Template function errors**
+
    ```typescript
    const template = ({ state }) => {
      // Always check if state exists
@@ -610,7 +616,7 @@ describe('Template Integration', () => {
    const expensiveTemplate = ({ state }) => {
      const cached = templateCache.get(state.key);
      if (cached) return cached;
-     
+
      const result = expensiveOperation(state);
      templateCache.set(state.key, result);
      return result;
@@ -621,12 +627,12 @@ describe('Template Integration', () => {
 
 ```typescript
 const debugTemplate = (template: string, variables: any) => {
-  console.log('Template:', template);
-  console.log('Variables:', variables);
-  
+  console.log("Template:", template);
+  console.log("Variables:", variables);
+
   const result = processTemplate(template, variables);
-  console.log('Result:', result);
-  
+  console.log("Result:", result);
+
   return result;
 };
 ```
@@ -652,13 +658,16 @@ const newTemplate = ({ state }) => {
 ```typescript
 const migrateTemplates = (oldTemplates: any) => {
   const newTemplates = {};
-  
+
   for (const [name, template] of Object.entries(oldTemplates)) {
     newTemplates[name] = upgradeTemplate(template);
   }
-  
+
   return newTemplates;
 };
 ```
 
-Templates and prompts are essential for creating consistent, context-aware AI interactions in elizaOS. By leveraging the template system effectively, you can build agents that provide personalized, relevant responses while maintaining consistent behavior across different platforms and scenarios.
+Templates and prompts are essential for creating consistent, context-aware AI interactions in
+elizaOS. By leveraging the template system effectively, you can build agents that provide
+personalized, relevant responses while maintaining consistent behavior across different platforms
+and scenarios.

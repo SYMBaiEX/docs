@@ -1,11 +1,14 @@
 ---
 title: CLI Tools
-description: Complete guide to ElizaOS CLI commands and development utilities with actual implementation details
+description:
+  Complete guide to ElizaOS CLI commands and development utilities with actual implementation
+  details
 ---
 
 # CLI Tools
 
-The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to manage your ElizaOS projects and plugins, from local development to cloud deployment. It includes:
+The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to manage your ElizaOS
+projects and plugins, from local development to cloud deployment. It includes:
 
 - Project scaffolding and initialization
 - Plugin development and management
@@ -16,7 +19,8 @@ The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to man
 
 ## CLI Architecture
 
-The CLI is built with a command-based architecture located in `/home/cid/eliza/packages/cli/src/commands/`:
+The CLI is built with a command-based architecture located in
+`/home/cid/eliza/packages/cli/src/commands/`:
 
 ```
 commands/
@@ -44,27 +48,27 @@ The create command uses actual templates from the codebase:
 // From /home/cid/eliza/packages/cli/src/commands/create/actions/creators.ts
 export async function createProject(options: CreateProjectOptions) {
   const { name, dir, type, skipPrompts } = options;
-  
+
   // Template selection logic
   const templateMap = {
-    'project': 'project-starter',
-    'plugin': 'plugin-starter',
-    'agent': 'agent-starter',
-    'tee': 'tee-starter'
+    project: "project-starter",
+    plugin: "plugin-starter",
+    agent: "agent-starter",
+    tee: "tee-starter",
   };
-  
-  const template = templateMap[type] || 'project-starter';
-  
+
+  const template = templateMap[type] || "project-starter";
+
   // Copy template with replacements
   await copyTemplate(template, targetDir, {
     replacements: {
       PROJECTNAME: name,
       DESCRIPTION: `A new ElizaOS ${type}`,
       AUTHOR: await getGitUser(),
-      YEAR: new Date().getFullYear().toString()
-    }
+      YEAR: new Date().getFullYear().toString(),
+    },
   });
-  
+
   // Post-creation setup
   await setupProject(targetDir, type);
 }
@@ -82,27 +86,27 @@ export async function runComponentTests(
   projectInfo: ProjectInfo
 ): Promise<TestResult> {
   const { name, skipBuild, port } = options;
-  
+
   // TypeScript validation
   const tscValidator = new TypeScriptValidator();
   const validationResult = await tscValidator.validate(testPath);
-  
+
   if (!validationResult.success) {
-    logger.error('TypeScript validation failed');
+    logger.error("TypeScript validation failed");
     return { success: false, failed: true };
   }
-  
+
   // Run Bun tests
-  const testCommand = ['bun', 'test'];
-  if (name) testCommand.push('--grep', name);
-  if (port) testCommand.push('--port', port.toString());
-  
+  const testCommand = ["bun", "test"];
+  if (name) testCommand.push("--grep", name);
+  if (port) testCommand.push("--port", port.toString());
+
   const result = await runCommand(testCommand, { cwd: testPath });
-  
+
   return {
     success: result.exitCode === 0,
     failed: result.exitCode !== 0,
-    output: result.stdout + result.stderr
+    output: result.stdout + result.stderr,
   };
 }
 ```
@@ -146,6 +150,7 @@ elizaos create [name] [options]
 ```
 
 **Options:**
+
 - `--dir <dir>` - Target directory (default: `.`)
 - `--yes, -y` - Skip prompts, use defaults
 - `--type <type>` - Type: 'project', 'plugin', 'agent', 'tee'
@@ -166,12 +171,14 @@ elizaos dev [options]
 ```
 
 **Options:**
+
 - `-c, --configure` - Reconfigure services
 - `--character [paths...]` - Character files to load
 - `-b, --build` - Build before starting
 - `-p, --port <port>` - Server port
 
 **Features:**
+
 - File change detection with auto-restart
 - Detailed logging
 - Multiple character support
@@ -202,6 +209,7 @@ elizaos plugins generate [options]
 ```
 
 **Add Plugin Options:**
+
 - `-s, --skip-env-prompt` - Skip environment setup
 - `--skip-verification` - Skip import verification
 - `-b, --branch <name>` - Source branch
@@ -230,6 +238,7 @@ elizaos agent set --name <name> --config <json>
 ```
 
 **Agent Start Options:**
+
 - `--path <path>` - Local character file
 - `--remote-character <url>` - Remote character URL
 - `-r, --remote-url <url>` - Runtime URL
@@ -244,12 +253,14 @@ elizaos start [options]
 ```
 
 **Options:**
+
 - `-c, --configure` - Force reconfiguration
 - `--character [paths...]` - Character files
 - `-b, --build` - Build before starting
 - `-p, --port <port>` - Server port
 
 **Character Loading:**
+
 ```bash
 # Multiple files
 elizaos start --character char1.json char2.json
@@ -280,6 +291,7 @@ elizaos test --port <port>
 ```
 
 **Test Types:**
+
 - **Component** - Unit and integration tests
 - **E2E** - End-to-end runtime tests
 - **All** - Both component and E2E
@@ -321,6 +333,7 @@ elizaos publish --dry-run
 ```
 
 **Publishing Requirements:**
+
 - Valid `package.json`
 - Logo image (400x400px)
 - Banner image (1280x640px)
@@ -353,6 +366,7 @@ elizaos monorepo [options]
 ```
 
 **Options:**
+
 - `-b, --branch <branch>` - Source branch (default: develop)
 - `-d, --dir <directory>` - Target directory
 
@@ -370,6 +384,7 @@ The `@elizaos/autodoc` package generates documentation automatically:
 ```
 
 **Features:**
+
 - TypeScript AST parsing
 - AI-powered documentation generation
 - Git integration
@@ -488,22 +503,26 @@ elizaos start --build
 ### Development Workflow
 
 1. **Create Project**
+
    ```bash
    elizaos create my-project
    cd my-project
    ```
 
 2. **Install Plugins**
+
    ```bash
    elizaos plugins add @elizaos/plugin-openai
    ```
 
 3. **Development**
+
    ```bash
    elizaos dev
    ```
 
 4. **Testing**
+
    ```bash
    elizaos test
    ```
@@ -516,25 +535,28 @@ elizaos start --build
 ### Plugin Development
 
 1. **Create Plugin**
+
    ```bash
    elizaos create my-plugin --type plugin
    ```
 
 2. **Implement Plugin**
+
    ```typescript
    export const myPlugin: Plugin = {
-     name: 'plugin-my-plugin',
-     description: 'Description',
+     name: "plugin-my-plugin",
+     description: "Description",
      config: {
        API_KEY: process.env.MY_API_KEY,
      },
      async init(config) {
        // Plugin logic
-     }
+     },
    };
    ```
 
 3. **Test Plugin**
+
    ```bash
    elizaos test
    ```

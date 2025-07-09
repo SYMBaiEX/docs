@@ -1,15 +1,19 @@
 ---
 title: "Runtime System"
-description: "Complete guide to the ElizaOS runtime system architecture, lifecycle management, and service orchestration"
+description:
+  "Complete guide to the ElizaOS runtime system architecture, lifecycle management, and service
+  orchestration"
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { TypeTable } from 'fumadocs-ui/components/type-table';
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { TypeTable } from "fumadocs-ui/components/type-table";
 
 # Runtime System
 
-The ElizaOS runtime system is built around the `AgentRuntime` class, which serves as the core orchestrator for all agent operations. This comprehensive system provides a flexible, event-driven framework that manages plugins, services, models, memory, and the complete agent lifecycle.
+The ElizaOS runtime system is built around the `AgentRuntime` class, which serves as the core
+orchestrator for all agent operations. This comprehensive system provides a flexible, event-driven
+framework that manages plugins, services, models, memory, and the complete agent lifecycle.
 
 ## Architecture Overview
 
@@ -27,7 +31,8 @@ The runtime system consists of several key components working together:
 
 ### AgentRuntime Class
 
-The `AgentRuntime` class implements the `IAgentRuntime` interface and serves as the primary execution environment:
+The `AgentRuntime` class implements the `IAgentRuntime` interface and serves as the primary
+execution environment:
 
 ```typescript
 export class AgentRuntime implements IAgentRuntime {
@@ -39,20 +44,20 @@ export class AgentRuntime implements IAgentRuntime {
   readonly providers: Provider[] = [];
   readonly plugins: Plugin[] = [];
   private isInitialized = false;
-  
+
   // Service management
   services = new Map<ServiceTypeName, Service>();
   private serviceTypes = new Map<ServiceTypeName, typeof Service>();
-  
+
   // Model handling
   models = new Map<string, ModelHandler[]>();
-  
+
   // Event system
   events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
-  
+
   // State management
   stateCache = new Map<UUID, State>();
-  
+
   // Run tracking for debugging
   private currentRunId?: UUID;
   private currentActionContext?: ActionContext;
@@ -75,29 +80,29 @@ interface IAgentRuntime extends IDatabaseAdapter {
   services: Map<ServiceTypeName, Service>;
   events: Map<string, ((params: any) => Promise<void>)[]>;
   routes: Route[];
-  
+
   // Core methods
   registerPlugin(plugin: Plugin): Promise<void>;
   initialize(): Promise<void>;
   stop(): Promise<void>;
-  
+
   // Service management
   getService<T extends Service>(serviceName: ServiceTypeName): T | null;
   registerService(serviceDef: typeof Service): Promise<void>;
-  
+
   // Model handling
   useModel<T extends ModelTypeName>(
     modelType: T,
     params: ModelParamsMap[T],
     provider?: string
   ): Promise<ModelResultMap[T]>;
-  
+
   // State composition
   composeState(message: Memory, includeList?: string[]): Promise<State>;
-  
+
   // Connection management
   ensureConnection(params: ConnectionParams): Promise<void>;
-  
+
   // Event system
   emitEvent(event: string | string[], params: any): Promise<void>;
   registerEvent(event: string, handler: EventHandler): void;
@@ -117,12 +122,13 @@ const runtime = new AgentRuntime({
   plugins: [sqlPlugin, corePlugin],
   adapter: databaseAdapter,
   settings: runtimeSettings,
-  allAvailablePlugins: availablePlugins
+  allAvailablePlugins: availablePlugins,
 });
 ```
 
 <Callout type="info">
-The runtime constructor sets up basic properties but doesn't initialize services or plugins. Always call `initialize()` before using the runtime.
+  The runtime constructor sets up basic properties but doesn't initialize services or plugins.
+  Always call `initialize()` before using the runtime.
 </Callout>
 
 ### 2. Initialization Process
@@ -138,41 +144,27 @@ async initialize(): Promise<void> {
     return;
   }
 
-  // Step 1: Register all plugins
-  const pluginRegistrationPromises = [];
-  for (const plugin of this.characterPlugins) {
-    if (plugin) {
-      pluginRegistrationPromises.push(this.registerPlugin(plugin));
-    }
-  }
-  await Promise.all(pluginRegistrationPromises);
+// Step 1: Register all plugins const pluginRegistrationPromises = []; for (const plugin of
+this.characterPlugins) { if (plugin) { pluginRegistrationPromises.push(this.registerPlugin(plugin));
+} } await Promise.all(pluginRegistrationPromises);
 
-  // Step 2: Initialize database adapter
-  if (!this.adapter) {
-    throw new Error('Database adapter not initialized');
-  }
-  await this.adapter.init();
+// Step 2: Initialize database adapter if (!this.adapter) { throw new Error('Database adapter not
+initialized'); } await this.adapter.init();
 
-  // Step 3: Run plugin migrations
-  await this.runPluginMigrations();
+// Step 3: Run plugin migrations await this.runPluginMigrations();
 
-  // Step 4: Create agent entity
-  const existingAgent = await this.ensureAgentExists(this.character);
-  
-  // Step 5: Setup room and participants
-  await this.setupRoomAndParticipants();
+// Step 4: Create agent entity const existingAgent = await this.ensureAgentExists(this.character);
 
-  // Step 6: Initialize embedding dimensions
-  await this.ensureEmbeddingDimension();
+// Step 5: Setup room and participants await this.setupRoomAndParticipants();
 
-  // Step 7: Initialize queued services
-  for (const service of this.servicesInitQueue) {
-    await this.registerService(service);
-  }
+// Step 6: Initialize embedding dimensions await this.ensureEmbeddingDimension();
 
-  this.isInitialized = true;
-}
-```
+// Step 7: Initialize queued services for (const service of this.servicesInitQueue) { await
+this.registerService(service); }
+
+this.isInitialized = true; }
+
+````
 </Tab>
 <Tab value="Plugin Registration">
 ```typescript
@@ -225,7 +217,8 @@ async registerPlugin(plugin: Plugin): Promise<void> {
     });
   }
 }
-```
+````
+
 </Tab>
 <Tab value="Database Setup">
 ```typescript
@@ -234,47 +227,27 @@ async setupDatabase(): Promise<void> {
   // Initialize database adapter
   await this.adapter.init();
 
-  // Run plugin migrations
-  await this.runPluginMigrations();
+// Run plugin migrations await this.runPluginMigrations();
 
-  // Create agent entity
-  const existingAgent = await this.ensureAgentExists(this.character);
-  
-  // Create agent entity if not exists
-  let agentEntity = await this.getEntityById(this.agentId);
-  if (!agentEntity) {
-    await this.createEntity({
-      id: this.agentId,
-      names: [this.character.name],
-      metadata: {},
-      agentId: existingAgent.id,
-    });
-  }
+// Create agent entity const existingAgent = await this.ensureAgentExists(this.character);
 
-  // Setup default room
-  const room = await this.getRoom(this.agentId);
-  if (!room) {
-    await this.createRoom({
-      id: this.agentId,
-      name: this.character.name,
-      source: 'elizaos',
-      type: ChannelType.SELF,
-      channelId: this.agentId,
-      serverId: this.agentId,
-      worldId: this.agentId,
-    });
-  }
+// Create agent entity if not exists let agentEntity = await this.getEntityById(this.agentId); if
+(!agentEntity) { await this.createEntity({ id: this.agentId, names: [this.character.name], metadata:
+{}, agentId: existingAgent.id, }); }
 
-  // Add agent as participant
-  await this.ensureParticipantInRoom(this.agentId, this.agentId);
-}
-```
+// Setup default room const room = await this.getRoom(this.agentId); if (!room) { await
+this.createRoom({ id: this.agentId, name: this.character.name, source: 'elizaos', type:
+ChannelType.SELF, channelId: this.agentId, serverId: this.agentId, worldId: this.agentId, }); }
+
+// Add agent as participant await this.ensureParticipantInRoom(this.agentId, this.agentId); }
+
+````
 </Tab>
 <Tab value="Service Initialization">
 ```typescript
 async registerService(serviceDef: typeof Service): Promise<void> {
   const serviceType = serviceDef.serviceType as ServiceTypeName;
-  
+
   if (!serviceType) {
     this.logger.warn(`Service ${serviceDef.name} missing serviceType`);
     return;
@@ -289,19 +262,20 @@ async registerService(serviceDef: typeof Service): Promise<void> {
     const serviceInstance = await serviceDef.start(this);
     this.services.set(serviceType, serviceInstance);
     this.serviceTypes.set(serviceType, serviceDef);
-    
+
     // Register send handlers if available
     if (typeof serviceDef.registerSendHandlers === 'function') {
       serviceDef.registerSendHandlers(this, serviceInstance);
     }
-    
+
     this.logger.debug(`Service ${serviceType} registered successfully`);
   } catch (error) {
     this.logger.error(`Failed to register service ${serviceType}:`, error);
     throw error;
   }
 }
-```
+````
+
 </Tab>
 </Tabs>
 
@@ -318,7 +292,7 @@ async runPluginMigrations(): Promise<void> {
   }
 
   const pluginsWithSchemas = this.plugins.filter(p => p.schema);
-  
+
   for (const plugin of pluginsWithSchemas) {
     if (plugin.schema) {
       this.logger.info(`Running migrations for plugin: ${plugin.name}`);
@@ -344,7 +318,7 @@ The runtime provides a type-safe service system:
 // Service registration
 async registerService(serviceDef: typeof Service): Promise<void> {
   const serviceType = serviceDef.serviceType as ServiceTypeName;
-  
+
   if (this.services.has(serviceType)) {
     this.logger.warn(`Service ${serviceType} already registered`);
     return;
@@ -395,12 +369,10 @@ if (twitterService) {
   await twitterService.sendMessage(content);
 }
 
-// Check if service exists
-if (runtime.hasService('discord')) {
-  const discord = runtime.getService('discord');
-  await discord.processMessage(message);
-}
-```
+// Check if service exists if (runtime.hasService('discord')) { const discord =
+runtime.getService('discord'); await discord.processMessage(message); }
+
+````
 </Tab>
 <Tab value="Type-Safe Access">
 ```typescript
@@ -418,7 +390,8 @@ interface CustomService extends Service {
 
 const customService = runtime.getTypedService<CustomService>('custom');
 await customService?.customMethod();
-```
+````
+
 </Tab>
 <Tab value="Service Discovery">
 ```typescript
@@ -426,17 +399,14 @@ await customService?.customMethod();
 const serviceTypes = runtime.getRegisteredServiceTypes();
 console.log('Available services:', serviceTypes);
 
-// Get all services
-const allServices = runtime.getAllServices();
-for (const [serviceName, service] of allServices) {
-  console.log(`Service ${serviceName}: ${service.constructor.name}`);
-}
+// Get all services const allServices = runtime.getAllServices(); for (const [serviceName, service]
+of allServices) { console.log(`Service ${serviceName}: ${service.constructor.name}`); }
 
-// Check service availability
-const requiredServices = ['twitter', 'discord', 'telegram'];
-const availableServices = requiredServices.filter(s => runtime.hasService(s));
-console.log('Available required services:', availableServices);
-```
+// Check service availability const requiredServices = ['twitter', 'discord', 'telegram']; const
+availableServices = requiredServices.filter(s => runtime.hasService(s)); console.log('Available
+required services:', availableServices);
+
+````
 </Tab>
 </Tabs>
 
@@ -454,7 +424,7 @@ registerModel(
   priority?: number
 ) {
   const modelKey = typeof modelType === 'string' ? modelType : ModelType[modelType];
-  
+
   if (!this.models.has(modelKey)) {
     this.models.set(modelKey, []);
   }
@@ -475,7 +445,7 @@ registerModel(
     return a.registrationOrder - b.registrationOrder;
   });
 }
-```
+````
 
 ### Model Usage with Run ID Tracking
 
@@ -489,7 +459,7 @@ async useModel<T extends ModelTypeName, R = ModelResultMap[T]>(
 ): Promise<R> {
   const modelKey = typeof modelType === 'string' ? modelType : ModelType[modelType];
   const model = this.getModel(modelKey, provider);
-  
+
   if (!model) {
     throw new Error(`No handler found for model type: ${modelKey}`);
   }
@@ -603,7 +573,7 @@ async composeState(
       try {
         const result = await provider.get(this, message, cachedState);
         const duration = Date.now() - start;
-        
+
         this.logger.debug(`${provider.name} Provider took ${duration}ms`);
         return { ...result, providerName: provider.name };
       } catch (error) {
@@ -647,28 +617,19 @@ async createMemory(memory: Memory, tableName: string, unique?: boolean): Promise
   return await this.adapter.createMemory(memory, tableName, unique);
 }
 
-async addEmbeddingToMemory(memory: Memory): Promise<Memory> {
-  if (memory.embedding) {
-    return memory;
-  }
-  
-  const memoryText = memory.content.text;
-  if (!memoryText) {
-    throw new Error('Cannot generate embedding: Memory content is empty');
-  }
-  
-  try {
-    memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, {
-      text: memoryText,
-    });
-  } catch (error) {
-    this.logger.error('Failed to generate embedding:', error);
-    memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, null);
-  }
-  
-  return memory;
+async addEmbeddingToMemory(memory: Memory): Promise<Memory> { if (memory.embedding) { return memory;
 }
-```
+
+const memoryText = memory.content.text; if (!memoryText) { throw new Error('Cannot generate
+embedding: Memory content is empty'); }
+
+try { memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, { text: memoryText, }); }
+catch (error) { this.logger.error('Failed to generate embedding:', error); memory.embedding = await
+this.useModel(ModelType.TEXT_EMBEDDING, null); }
+
+return memory; }
+
+````
 </Tab>
 <Tab value="Search Memory">
 ```typescript
@@ -684,12 +645,12 @@ async searchMemories(params: {
   tableName: string;
 }): Promise<Memory[]> {
   const memories = await this.adapter.searchMemories(params);
-  
+
   // Re-rank results if query provided
   if (params.query) {
     return await this.rerankMemories(params.query, memories);
   }
-  
+
   return memories;
 }
 
@@ -698,13 +659,14 @@ async rerankMemories(query: string, memories: Memory[]): Promise<Memory[]> {
     title: memory.id,
     content: memory.content.text,
   }));
-  
+
   const bm25 = new BM25(docs);
   const results = bm25.search(query, memories.length);
-  
+
   return results.map(result => memories[result.index]);
 }
-```
+````
+
 </Tab>
 <Tab value="Memory with Embeddings">
 ```typescript
@@ -732,24 +694,20 @@ async getRelevantMemories(
   return memories;
 }
 
-// Clear all agent memories
-async clearAllAgentMemories(): Promise<void> {
-  this.logger.info(`Clearing all memories for agent ${this.character.name}`);
-  
-  const allMemories = await this.getAllMemories();
-  const memoryIds = allMemories.map(memory => memory.id);
-  
-  if (memoryIds.length === 0) {
-    this.logger.info('No memories found to delete');
-    return;
-  }
-  
-  this.logger.info(`Found ${memoryIds.length} memories to delete`);
-  await this.adapter.deleteManyMemories(memoryIds);
-  
-  this.logger.info(`Successfully cleared all ${memoryIds.length} memories`);
-}
-```
+// Clear all agent memories async clearAllAgentMemories(): Promise<void> {
+this.logger.info(`Clearing all memories for agent ${this.character.name}`);
+
+const allMemories = await this.getAllMemories(); const memoryIds = allMemories.map(memory =>
+memory.id);
+
+if (memoryIds.length === 0) { this.logger.info('No memories found to delete'); return; }
+
+this.logger.info(`Found ${memoryIds.length} memories to delete`); await
+this.adapter.deleteManyMemories(memoryIds);
+
+this.logger.info(`Successfully cleared all ${memoryIds.length} memories`); }
+
+````
 </Tab>
 </Tabs>
 
@@ -772,11 +730,11 @@ async processActions(
     }
 
     const actions = response.content.actions;
-    
+
     for (const responseAction of actions) {
       // Find matching action
       const action = this.findAction(responseAction);
-      
+
       if (action && action.handler) {
         // Start tracking this action's execution
         const actionId = uuidv4() as UUID;
@@ -788,7 +746,7 @@ async processActions(
 
         try {
           await action.handler(this, message, state, {}, callback, responses);
-          
+
           // Log action execution with collected prompts
           await this.adapter.log({
             entityId: message.entityId,
@@ -807,7 +765,7 @@ async processActions(
           });
         } catch (error) {
           this.logger.error('Action execution failed:', error);
-          
+
           // Create error memory
           const actionMemory: Memory = {
             id: uuidv4() as UUID,
@@ -832,12 +790,12 @@ async processActions(
 
 private findAction(responseAction: string): Action | undefined {
   const normalizedResponseAction = responseAction.toLowerCase().replace('_', '');
-  
+
   // Try exact match first
   let action = this.actions.find(
     a => a.name.toLowerCase().replace('_', '') === normalizedResponseAction
   );
-  
+
   if (!action) {
     // Try partial match
     action = this.actions.find(
@@ -845,7 +803,7 @@ private findAction(responseAction: string): Action | undefined {
            normalizedResponseAction.includes(a.name.toLowerCase().replace('_', ''))
     );
   }
-  
+
   if (!action) {
     // Try similes
     for (const _action of this.actions) {
@@ -859,10 +817,10 @@ private findAction(responseAction: string): Action | undefined {
       }
     }
   }
-  
+
   return action;
 }
-```
+````
 
 ### Action Context for Debugging
 
@@ -909,13 +867,13 @@ getEvent(event: string): ((params: any) => Promise<void>)[] | undefined {
 
 async emitEvent(event: string | string[], params: any) {
   const events = Array.isArray(event) ? event : [event];
-  
+
   for (const eventName of events) {
     const eventHandlers = this.events.get(eventName);
     if (!eventHandlers) {
       continue;
     }
-    
+
     try {
       await Promise.all(eventHandlers.map(handler => handler(params)));
     } catch (error) {
@@ -929,25 +887,28 @@ async emitEvent(event: string | string[], params: any) {
 
 ```typescript
 // Register event handler
-runtime.registerEvent('user_joined', async (params) => {
-  console.log('User joined:', params.userId);
-  await runtime.createMemory({
-    id: uuidv4(),
-    content: { text: `User ${params.userName} joined the room` },
-    entityId: params.userId,
-    roomId: params.roomId,
-  }, 'messages');
+runtime.registerEvent("user_joined", async (params) => {
+  console.log("User joined:", params.userId);
+  await runtime.createMemory(
+    {
+      id: uuidv4(),
+      content: { text: `User ${params.userName} joined the room` },
+      entityId: params.userId,
+      roomId: params.roomId,
+    },
+    "messages"
+  );
 });
 
 // Emit event
-await runtime.emitEvent('user_joined', {
-  userId: 'user-123',
-  userName: 'Alice',
-  roomId: 'room-456'
+await runtime.emitEvent("user_joined", {
+  userId: "user-123",
+  userName: "Alice",
+  roomId: "room-456",
 });
 
 // Multiple events
-await runtime.emitEvent(['user_joined', 'activity_logged'], params);
+await runtime.emitEvent(["user_joined", "activity_logged"], params);
 ```
 
 ## Connection Management
@@ -1082,10 +1043,10 @@ async ensureConnections(entities, rooms, source, world): Promise<void> {
   // Add participants in batches
   const firstRoom = rooms[0];
   await this.ensureParticipantInRoom(this.agentId, firstRoom.id);
-  
+
   const entityIdsInFirstRoom = await this.getParticipantsForRoom(firstRoom.id);
   const missingIdsInRoom = entityIds.filter(id => !entityIdsInFirstRoom.includes(id));
-  
+
   if (missingIdsInRoom.length) {
     await this.addParticipantsRoom(missingIdsInRoom, firstRoom.id);
   }
@@ -1101,7 +1062,7 @@ The runtime provides mechanisms for graceful shutdown:
 ```typescript
 async stop(): Promise<void> {
   this.logger.debug(`Stopping runtime for character ${this.character.name}`);
-  
+
   // Stop all services
   for (const [serviceName, service] of this.services) {
     this.logger.debug(`Stopping service ${serviceName}`);
@@ -1124,10 +1085,10 @@ async stop(): Promise<void> {
   // Clear caches
   this.stateCache.clear();
   this.events.clear();
-  
+
   // Reset initialization state
   this.isInitialized = false;
-  
+
   this.logger.info('Runtime stopped successfully');
 }
 ```
@@ -1152,7 +1113,7 @@ export class Semaphore {
       this.permits -= 1;
       return Promise.resolve();
     }
-    
+
     return new Promise<void>((resolve) => {
       this.waiting.push(resolve);
     });
@@ -1226,12 +1187,14 @@ try {
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   if (
-    errorMessage.includes('API key') ||
-    errorMessage.includes('environment variables') ||
-    errorMessage.includes('Invalid plugin configuration')
+    errorMessage.includes("API key") ||
+    errorMessage.includes("environment variables") ||
+    errorMessage.includes("Invalid plugin configuration")
   ) {
     console.warn(`Plugin ${plugin.name} requires configuration: ${errorMessage}`);
-    console.warn('Please check your environment variables and ensure all required API keys are set.');
+    console.warn(
+      "Please check your environment variables and ensure all required API keys are set."
+    );
   } else {
     throw error;
   }
@@ -1257,8 +1220,8 @@ The runtime provides comprehensive debug logging:
 const runtime = new AgentRuntime({
   // ... other options
   settings: {
-    LOG_LEVEL: 'debug'
-  }
+    LOG_LEVEL: "debug",
+  },
 });
 
 // Debug logs include:
@@ -1318,15 +1281,15 @@ await this.addParticipantsRoom(entityIds, roomId);
 ### 1. Initialization
 
 <Callout type="info">
-Always initialize the runtime before using it and handle initialization errors gracefully.
+  Always initialize the runtime before using it and handle initialization errors gracefully.
 </Callout>
 
 ```typescript
 try {
   await runtime.initialize();
-  console.log('Runtime initialized successfully');
+  console.log("Runtime initialized successfully");
 } catch (error) {
-  console.error('Failed to initialize runtime:', error);
+  console.error("Failed to initialize runtime:", error);
   process.exit(1);
 }
 ```
@@ -1352,8 +1315,8 @@ Properly manage resources and implement cleanup:
 
 ```typescript
 // Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down gracefully...');
+process.on("SIGINT", async () => {
+  console.log("Shutting down gracefully...");
   await runtime.stop();
   process.exit(0);
 });
@@ -1377,7 +1340,7 @@ Use type-safe service access:
 
 ```typescript
 // Type-safe service access
-const service = runtime.getTypedService<MyService>('myService');
+const service = runtime.getTypedService<MyService>("myService");
 if (service) {
   await service.performOperation();
 }
@@ -1396,7 +1359,7 @@ if (service) {
 ```typescript
 // Check if required environment variables are set
 if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required');
+  throw new Error("OPENAI_API_KEY environment variable is required");
 }
 ```
 
@@ -1422,12 +1385,12 @@ const plugins = [
 
 ```typescript
 // Check if service is registered
-if (!runtime.hasService('myService')) {
-  console.error('Service not registered. Check plugin configuration.');
+if (!runtime.hasService("myService")) {
+  console.error("Service not registered. Check plugin configuration.");
 }
 
 // List available services
-console.log('Available services:', runtime.getRegisteredServiceTypes());
+console.log("Available services:", runtime.getRegisteredServiceTypes());
 ```
 
 #### 4. Memory Issues
@@ -1455,9 +1418,12 @@ for (let i = 0; i < entities.length; i += batchSize) {
 // Check if model is registered
 const model = runtime.getModel(ModelType.COMPLETION);
 if (!model) {
-  console.error('No completion model registered');
+  console.error("No completion model registered");
   // Register a model or check plugin configuration
 }
 ```
 
-The runtime system provides a robust foundation for building intelligent agents with comprehensive lifecycle management, service orchestration, and debugging capabilities. By following the patterns and best practices outlined in this documentation, you can build reliable and scalable ElizaOS applications.
+The runtime system provides a robust foundation for building intelligent agents with comprehensive
+lifecycle management, service orchestration, and debugging capabilities. By following the patterns
+and best practices outlined in this documentation, you can build reliable and scalable ElizaOS
+applications.

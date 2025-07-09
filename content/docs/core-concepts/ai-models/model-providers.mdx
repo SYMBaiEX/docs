@@ -1,15 +1,21 @@
 ---
 title: Model Providers
-description: Working with different AI model providers in elizaOS v1.2.0 with enhanced plugin-based architecture
+description:
+  Working with different AI model providers in elizaOS v1.2.0 with enhanced plugin-based
+  architecture
 ---
 
 # Model Providers
 
-Model providers in elizaOS v1.2.0 abstract the complexity of working with different AI services, allowing you to seamlessly switch between providers or use multiple providers simultaneously. Each provider implements a standardized interface while handling the specifics of their respective APIs, with enhanced plugin-based architecture for better flexibility and control.
+Model providers in elizaOS v1.2.0 abstract the complexity of working with different AI services,
+allowing you to seamlessly switch between providers or use multiple providers simultaneously. Each
+provider implements a standardized interface while handling the specifics of their respective APIs,
+with enhanced plugin-based architecture for better flexibility and control.
 
 ## Overview
 
 The model provider system enables:
+
 - **Unified API**: Single interface for all AI models
 - **Runtime switching**: Change providers without code modifications
 - **Multi-provider support**: Use different providers for different model types
@@ -21,7 +27,8 @@ The model provider system enables:
 
 ## v1.2.0 Plugin-Based Architecture
 
-In v1.2.0, model providers are implemented as plugins that register model handlers with the runtime. This provides better modularity and allows for more sophisticated model routing.
+In v1.2.0, model providers are implemented as plugins that register model handlers with the runtime.
+This provides better modularity and allows for more sophisticated model routing.
 
 ### Model Handler Registration
 
@@ -29,48 +36,48 @@ Plugins now register model handlers for specific model types:
 
 ```typescript
 export const openaiPlugin: Plugin = {
-  name: 'openai',
-  description: 'OpenAI model integration',
-  version: '1.2.0',
-  
+  name: "openai",
+  description: "OpenAI model integration",
+  version: "1.2.0",
+
   // Register model handlers
   models: {
     [ModelType.TEXT_LARGE]: async (runtime: IAgentRuntime, params) => {
       const client = createOpenAIClient(runtime);
       const response = await client.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: params.prompt }],
+        model: "gpt-4",
+        messages: [{ role: "user", content: params.prompt }],
         temperature: params.temperature || 0.7,
-        max_tokens: params.maxTokens || 1500
+        max_tokens: params.maxTokens || 1500,
       });
       return response.choices[0].message.content;
     },
-    
+
     [ModelType.TEXT_EMBEDDING]: async (runtime: IAgentRuntime, params) => {
       const client = createOpenAIClient(runtime);
       const response = await client.embeddings.create({
-        model: 'text-embedding-3-large',
-        input: params.text
+        model: "text-embedding-3-large",
+        input: params.text,
       });
       return response.data[0].embedding;
     },
-    
+
     [ModelType.IMAGE_GENERATION]: async (runtime: IAgentRuntime, params) => {
       const client = createOpenAIClient(runtime);
       const response = await client.images.generate({
-        model: 'dall-e-3',
+        model: "dall-e-3",
         prompt: params.prompt,
-        size: params.size || '1024x1024'
+        size: params.size || "1024x1024",
       });
       return response.data[0].url;
-    }
+    },
   },
-  
+
   // Plugin configuration
   config: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    OPENAI_API_BASE: process.env.OPENAI_API_BASE
-  }
+    OPENAI_API_BASE: process.env.OPENAI_API_BASE,
+  },
 };
 ```
 
@@ -89,8 +96,8 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
     requestId: uuidv4(),
     runId: runtime.runId,
     requiresStreaming: false,
-    prioritizeLatency: true
-  }
+    prioritizeLatency: true,
+  },
 });
 ```
 
@@ -100,24 +107,24 @@ Plugins can declare their capabilities for better routing:
 
 ```typescript
 export const enhancedOpenAIPlugin: Plugin = {
-  name: 'openai',
+  name: "openai",
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
       // Handler implementation
-    }
+    },
   },
-  
+
   // Declare capabilities (new in v1.2.0)
   capabilities: {
     [ModelType.TEXT_LARGE]: {
       supportsStreaming: true,
       maxTokens: 4096,
-      supportedFormats: ['text', 'json'],
+      supportedFormats: ["text", "json"],
       costPerToken: 0.00003,
       averageLatency: 2000, // ms
-      reliabilityScore: 0.99
-    }
-  }
+      reliabilityScore: 0.99,
+    },
+  },
 };
 ```
 
@@ -130,16 +137,16 @@ Multiple plugins can register handlers for the same model type, with priority-ba
 runtime.registerModel(
   ModelType.TEXT_LARGE,
   openaiHandler,
-  'openai',
-  1000  // High priority
+  "openai",
+  1000 // High priority
 );
 
 // Lower priority Anthropic plugin
 runtime.registerModel(
   ModelType.TEXT_LARGE,
   anthropicHandler,
-  'anthropic',
-  900   // Lower priority
+  "anthropic",
+  900 // Lower priority
 );
 
 // Runtime selects highest priority handler
@@ -153,11 +160,13 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, params);
 The OpenAI provider offers access to GPT models, embeddings, and DALL-E image generation.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-openai
 ```
 
 **Configuration:**
+
 ```typescript
 // Character file
 {
@@ -168,40 +177,46 @@ npm install @elizaos/plugin-openai
 // Environment variables
 OPENAI_API_KEY=your-api-key
 ```
-```
+
+````
 
 **Environment Variables:**
 ```bash
 OPENAI_API_KEY=sk-...
 OPENAI_API_BASE=https://api.openai.com/v1  # Optional
-```
+````
 
 **Supported Models:**
+
 - **Text Generation**: GPT-4, GPT-4 Turbo, GPT-3.5-turbo
 - **Embeddings**: text-embedding-3-large, text-embedding-3-small
 - **Image Generation**: DALL-E 3, DALL-E 2
 - **Audio**: Whisper (transcription), TTS (text-to-speech)
 
 **Usage Example:**
+
 ```typescript
 // Automatic model selection based on modelProvider
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Explain quantum computing",
   temperature: 0.7,
-  maxTokens: 1000
+  maxTokens: 1000,
 });
 ```
 
 ### Anthropic (Claude)
 
-The Anthropic provider provides access to Claude models known for their safety and reasoning capabilities.
+The Anthropic provider provides access to Claude models known for their safety and reasoning
+capabilities.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-anthropic
 ```
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -211,23 +226,26 @@ npm install @elizaos/plugin-anthropic
 // Environment variables
 ANTHROPIC_API_KEY=your-api-key
 ```
-```
+
+````
 
 **Environment Variables:**
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
-```
+````
 
 **Supported Models:**
+
 - **Text Generation**: Claude-3 Opus, Claude-3 Sonnet, Claude-3 Haiku
 - **Vision**: Claude-3 Vision (image description)
 
 **Usage Example:**
+
 ```typescript
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Analyze this code for potential issues",
   temperature: 0.3,
-  maxTokens: 2000
+  maxTokens: 2000,
 });
 ```
 
@@ -236,11 +254,13 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
 The Google Gemini provider offers access to Google's multimodal AI models.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-google-genai
 ```
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -250,24 +270,27 @@ npm install @elizaos/plugin-google-genai
 // Environment variables
 GOOGLE_GENERATIVE_AI_API_KEY=your-api-key
 ```
-```
+
+````
 
 **Environment Variables:**
 ```bash
 GOOGLE_GENERATIVE_AI_API_KEY=AI...
-```
+````
 
 **Supported Models:**
+
 - **Text Generation**: Gemini Pro, Gemini Flash
 - **Embeddings**: text-embedding-004
 - **Vision**: Gemini Pro Vision
 
 **Usage Example:**
+
 ```typescript
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Write a creative story about AI",
   temperature: 0.8,
-  maxTokens: 1500
+  maxTokens: 1500,
 });
 ```
 
@@ -276,15 +299,18 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
 The Ollama provider enables running open-source models locally.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-ollama
 ```
 
 **Prerequisites:**
+
 1. Install Ollama: https://ollama.ai
 2. Pull models: `ollama pull llama3.1`
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -295,25 +321,28 @@ npm install @elizaos/plugin-ollama
 OLLAMA_API_ENDPOINT=http://localhost:11434
 OLLAMA_MODEL=llama3.1
 ```
-```
+
+````
 
 **Environment Variables:**
 ```bash
 OLLAMA_API_ENDPOINT=http://localhost:11434
 OLLAMA_MODEL=llama3.1
-```
+````
 
 **Supported Models:**
+
 - **Text Generation**: Llama 3.1, Mistral, CodeLlama, Phi-3
 - **Embeddings**: nomic-embed-text, all-minilm
 - **Vision**: llava, moondream
 
 **Usage Example:**
+
 ```typescript
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Explain machine learning concepts",
   temperature: 0.6,
-  maxTokens: 1000
+  maxTokens: 1000,
 });
 ```
 
@@ -322,11 +351,13 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
 The Heurist provider offers decentralized AI inference.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-heurist
 ```
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -336,7 +367,8 @@ npm install @elizaos/plugin-heurist
 // Environment variables
 HEURIST_API_KEY=your-api-key
 ```
-```
+
+````
 
 ### OpenRouter
 
@@ -345,9 +377,10 @@ The OpenRouter provider gives access to multiple models through a unified API.
 **Installation:**
 ```bash
 npm install @elizaos/plugin-openrouter
-```
+````
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -357,23 +390,26 @@ npm install @elizaos/plugin-openrouter
 // Environment variables
 OPENROUTER_API_KEY=your-api-key
 ```
-```
+
+````
 
 **Environment Variables:**
 ```bash
 OPENROUTER_API_KEY=sk-or-...
-```
+````
 
 ### Local AI
 
 The Local AI provider enables running AI models completely offline.
 
 **Installation:**
+
 ```bash
 npm install @elizaos/plugin-local-ai
 ```
 
 **Configuration:**
+
 ```typescript
 {
   "name": "MyAgent",
@@ -385,11 +421,12 @@ USE_LOCAL_AI=true
 ```
 
 **Usage Example:**
+
 ```typescript
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Generate a response using local AI",
   temperature: 0.7,
-  maxTokens: 1000
+  maxTokens: 1000,
 });
 ```
 
@@ -397,7 +434,8 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
 
 ### Primary Provider
 
-The ElizaOS runtime automatically selects the best available provider based on plugin order and priority:
+The ElizaOS runtime automatically selects the best available provider based on plugin order and
+priority:
 
 ```typescript
 {
@@ -429,9 +467,9 @@ Control provider selection through plugin priority:
 ```typescript
 // Higher priority plugins are selected first
 const plugins = [
-  { name: '@elizaos/plugin-openai', priority: 1000 },
-  { name: '@elizaos/plugin-anthropic', priority: 900 },
-  { name: '@elizaos/plugin-ollama', priority: 500 }
+  { name: "@elizaos/plugin-openai", priority: 1000 },
+  { name: "@elizaos/plugin-anthropic", priority: 900 },
+  { name: "@elizaos/plugin-ollama", priority: 500 },
 ];
 ```
 
@@ -441,25 +479,25 @@ Load providers based on environment variables:
 
 ```typescript
 const getPlugins = () => {
-  const plugins = ['@elizaos/plugin-sql'];
-  
+  const plugins = ["@elizaos/plugin-sql"];
+
   // Add providers based on available API keys
   if (process.env.OPENAI_API_KEY) {
-    plugins.push('@elizaos/plugin-openai');
+    plugins.push("@elizaos/plugin-openai");
   }
   if (process.env.ANTHROPIC_API_KEY) {
-    plugins.push('@elizaos/plugin-anthropic');
+    plugins.push("@elizaos/plugin-anthropic");
   }
   if (process.env.OLLAMA_API_ENDPOINT) {
-    plugins.push('@elizaos/plugin-ollama');
+    plugins.push("@elizaos/plugin-ollama");
   }
-  
+
   return plugins;
 };
 
 export const character = {
-  name: 'MyAgent',
-  plugins: getPlugins()
+  name: "MyAgent",
+  plugins: getPlugins(),
 };
 ```
 
@@ -514,12 +552,12 @@ Different providers may have unique configuration options:
       "organization": "org-123",
       "project": "proj-456"
     },
-    
+
     // Anthropic specific
     "anthropic": {
       "version": "2023-06-01"
     },
-    
+
     // Ollama specific
     "ollama": {
       "host": "localhost:11434",
@@ -537,15 +575,19 @@ Select providers programmatically with enhanced context:
 
 ```typescript
 // In your action or provider
-const response = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Generate response",
-  temperature: 0.7,
-  context: {
-    requestId: uuidv4(),
-    runId: runtime.runId,
-    actionContext: runtime.currentActionContext
-  }
-}, 'anthropic'); // Force specific provider
+const response = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Generate response",
+    temperature: 0.7,
+    context: {
+      requestId: uuidv4(),
+      runId: runtime.runId,
+      actionContext: runtime.currentActionContext,
+    },
+  },
+  "anthropic"
+); // Force specific provider
 ```
 
 ### Provider Availability Check
@@ -556,14 +598,14 @@ Check if a provider is available with enhanced capabilities:
 const textLargeHandler = runtime.getModel(ModelType.TEXT_LARGE);
 if (textLargeHandler) {
   const capabilities = runtime.getModelCapabilities(ModelType.TEXT_LARGE);
-  
+
   console.log(`Provider: ${textLargeHandler.provider}`);
   console.log(`Max tokens: ${capabilities.maxTokens}`);
   console.log(`Supports streaming: ${capabilities.supportsStreaming}`);
-  
+
   const response = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt: "Generate response",
-    maxTokens: Math.min(1000, capabilities.maxTokens)
+    maxTokens: Math.min(1000, capabilities.maxTokens),
   });
 }
 ```
@@ -576,61 +618,65 @@ Implement automatic fallbacks with capability-aware selection:
 async function generateWithFallback(runtime, prompt, requirements = {}) {
   const modelType = ModelType.TEXT_LARGE;
   const availableHandlers = runtime.getModelHandlers(modelType);
-  
+
   // Sort by capability score
   const sortedHandlers = availableHandlers.sort((a, b) => {
     const scoreA = calculateCapabilityScore(a.capabilities, requirements);
     const scoreB = calculateCapabilityScore(b.capabilities, requirements);
     return scoreB - scoreA;
   });
-  
+
   for (const handler of sortedHandlers) {
     try {
-      return await runtime.useModel(modelType, {
-        prompt,
-        temperature: 0.7,
-        context: {
-          requestId: uuidv4(),
-          runId: runtime.runId,
-          preferredProvider: handler.provider
-        }
-      }, handler.provider);
+      return await runtime.useModel(
+        modelType,
+        {
+          prompt,
+          temperature: 0.7,
+          context: {
+            requestId: uuidv4(),
+            runId: runtime.runId,
+            preferredProvider: handler.provider,
+          },
+        },
+        handler.provider
+      );
     } catch (error) {
       console.warn(`Provider ${handler.provider} failed:`, error.message);
-      
+
       // Log failure for monitoring
-      await runtime.emitEvent('model_provider_failed', {
+      await runtime.emitEvent("model_provider_failed", {
         provider: handler.provider,
         modelType,
         error: error.message,
-        runId: runtime.runId
+        runId: runtime.runId,
       });
-      
+
       continue;
     }
   }
-  
-  throw new Error('All providers failed');
+
+  throw new Error("All providers failed");
 }
 
 function calculateCapabilityScore(capabilities, requirements) {
   let score = 0;
-  
+
   if (requirements.prioritizeLatency && capabilities.averageLatency < 3000) {
     score += 10;
   }
-  
+
   if (requirements.prioritizeCost && capabilities.costPerToken < 0.0001) {
     score += 5;
   }
-  
+
   if (requirements.requiresStreaming && capabilities.supportsStreaming) {
     score += 15;
   }
-  
+
   // Reliability bonus
   score += capabilities.reliabilityScore * 10;
-  
+
   return score;
 }
 ```
@@ -642,7 +688,7 @@ Track model performance across providers:
 ```typescript
 class ModelPerformanceMonitor {
   private metrics: Map<string, ModelMetrics> = new Map();
-  
+
   async trackModelCall(
     provider: string,
     modelType: ModelType,
@@ -658,37 +704,37 @@ class ModelPerformanceMonitor {
       totalCalls: 0,
       successfulCalls: 0,
       averageLatency: 0,
-      totalTokens: 0
+      totalTokens: 0,
     };
-    
+
     existing.totalCalls++;
     if (success) {
       existing.successfulCalls++;
     }
-    
+
     const latency = endTime - startTime;
     existing.averageLatency = (existing.averageLatency + latency) / 2;
-    
+
     if (tokenCount) {
       existing.totalTokens += tokenCount;
     }
-    
+
     this.metrics.set(key, existing);
   }
-  
+
   getMetrics(): ModelMetrics[] {
     return Array.from(this.metrics.values());
   }
-  
+
   getBestProvider(modelType: ModelType): string | null {
     const providers = Array.from(this.metrics.values())
-      .filter(m => m.modelType === modelType)
+      .filter((m) => m.modelType === modelType)
       .sort((a, b) => {
         const scoreA = (a.successfulCalls / a.totalCalls) * 100 - a.averageLatency;
         const scoreB = (b.successfulCalls / b.totalCalls) * 100 - b.averageLatency;
         return scoreB - scoreA;
       });
-    
+
     return providers[0]?.provider || null;
   }
 }
@@ -696,15 +742,15 @@ class ModelPerformanceMonitor {
 
 ## Provider Comparison
 
-| Provider | Strengths | Best For | Limitations |
-|----------|-----------|----------|-------------|
-| **OpenAI** | Most advanced models, comprehensive API | Production apps, complex reasoning | Cost, API dependency |
-| **Anthropic** | Safety-focused, excellent reasoning | Content analysis, code review | Limited model variety |
-| **Google Gemini** | Fast, multimodal, competitive pricing | Real-time apps, mixed media | Newer ecosystem |
-| **Ollama** | Privacy, no API costs, customizable | Local deployment, privacy-sensitive | Requires local resources |
-| **Heurist** | Decentralized, cost-effective | Blockchain apps, distributed systems | Limited model selection |
-| **OpenRouter** | Access to many models, unified API | Model comparison, flexibility | Third-party dependency |
-| **Local AI** | Complete privacy, no API calls | Offline deployment, sensitive data | Setup complexity, resource intensive |
+| Provider          | Strengths                               | Best For                             | Limitations                          |
+| ----------------- | --------------------------------------- | ------------------------------------ | ------------------------------------ |
+| **OpenAI**        | Most advanced models, comprehensive API | Production apps, complex reasoning   | Cost, API dependency                 |
+| **Anthropic**     | Safety-focused, excellent reasoning     | Content analysis, code review        | Limited model variety                |
+| **Google Gemini** | Fast, multimodal, competitive pricing   | Real-time apps, mixed media          | Newer ecosystem                      |
+| **Ollama**        | Privacy, no API costs, customizable     | Local deployment, privacy-sensitive  | Requires local resources             |
+| **Heurist**       | Decentralized, cost-effective           | Blockchain apps, distributed systems | Limited model selection              |
+| **OpenRouter**    | Access to many models, unified API      | Model comparison, flexibility        | Third-party dependency               |
+| **Local AI**      | Complete privacy, no API calls          | Offline deployment, sensitive data   | Setup complexity, resource intensive |
 
 ## Cost Optimization
 
@@ -715,12 +761,12 @@ Choose appropriate model sizes:
 ```typescript
 // Use smaller models for simple tasks
 const simpleResponse = await runtime.useModel(ModelType.TEXT_SMALL, {
-  prompt: "Summarize in one sentence"
+  prompt: "Summarize in one sentence",
 });
 
 // Use larger models for complex reasoning
 const complexResponse = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Analyze this complex problem"
+  prompt: "Analyze this complex problem",
 });
 ```
 
@@ -732,7 +778,7 @@ Monitor usage across providers:
 const costTracker = {
   openai: { requests: 0, tokens: 0 },
   anthropic: { requests: 0, tokens: 0 },
-  ollama: { requests: 0, tokens: 0 }
+  ollama: { requests: 0, tokens: 0 },
 };
 
 // Track usage in your application
@@ -749,8 +795,8 @@ function trackUsage(provider, tokens) {
 Always have backup providers:
 
 ```typescript
-const primaryProviders = ['openai', 'anthropic'];
-const fallbackProviders = ['ollama', 'local-ai'];
+const primaryProviders = ["openai", "anthropic"];
+const fallbackProviders = ["ollama", "local-ai"];
 ```
 
 ### 2. Environment-Specific Configuration
@@ -759,15 +805,15 @@ Use different providers for different environments:
 
 ```typescript
 const getProviderConfig = () => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     return {
-      modelProvider: 'openai',
-      plugins: ['@elizaos/plugin-openai', '@elizaos/plugin-anthropic']
+      modelProvider: "openai",
+      plugins: ["@elizaos/plugin-openai", "@elizaos/plugin-anthropic"],
     };
   } else {
     return {
-      modelProvider: 'ollama',
-      plugins: ['@elizaos/plugin-ollama']
+      modelProvider: "ollama",
+      plugins: ["@elizaos/plugin-ollama"],
     };
   }
 };
@@ -779,19 +825,31 @@ Use different providers for different model types:
 
 ```typescript
 // OpenAI for embeddings
-const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: "Sample text"
-}, 'openai');
+const embedding = await runtime.useModel(
+  ModelType.TEXT_EMBEDDING,
+  {
+    text: "Sample text",
+  },
+  "openai"
+);
 
 // Anthropic for reasoning
-const reasoning = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Analyze this data"
-}, 'anthropic');
+const reasoning = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Analyze this data",
+  },
+  "anthropic"
+);
 
 // Ollama for privacy-sensitive tasks
-const privateTask = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Process confidential data"
-}, 'ollama');
+const privateTask = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Process confidential data",
+  },
+  "ollama"
+);
 ```
 
 ### 4. Configuration Validation
@@ -801,14 +859,14 @@ Validate provider configurations on startup:
 ```typescript
 export const validateProviderConfig = (character) => {
   const requiredVars = {
-    openai: ['OPENAI_API_KEY'],
-    anthropic: ['ANTHROPIC_API_KEY'],
-    google: ['GOOGLE_GENERATIVE_AI_API_KEY']
+    openai: ["OPENAI_API_KEY"],
+    anthropic: ["ANTHROPIC_API_KEY"],
+    google: ["GOOGLE_GENERATIVE_AI_API_KEY"],
   };
-  
+
   const provider = character.modelProvider;
   const required = requiredVars[provider];
-  
+
   if (required) {
     for (const envVar of required) {
       if (!process.env[envVar]) {
@@ -844,37 +902,46 @@ Enable debug logging:
 
 ```typescript
 // Set environment variable
-LOG_LEVEL=debug
+LOG_LEVEL = debug;
 
 // Or in code
-runtime.logger.debug('Provider selection:', {
+runtime.logger.debug("Provider selection:", {
   modelType: ModelType.TEXT_LARGE,
-  availableProviders: Object.keys(runtime.models)
+  availableProviders: Object.keys(runtime.models),
 });
 ```
 
-The model provider system in elizaOS v1.2.0 offers enhanced flexibility and reliability for AI model integration. By understanding the different providers and their capabilities, you can build robust agents that leverage the best models for each task while maintaining fallback options for reliability.
+The model provider system in elizaOS v1.2.0 offers enhanced flexibility and reliability for AI model
+integration. By understanding the different providers and their capabilities, you can build robust
+agents that leverage the best models for each task while maintaining fallback options for
+reliability.
 
 ## v1.2.0 Key Improvements
 
 ### Plugin-Based Architecture
+
 - **Modular Design**: Providers are now plugins that can be independently developed and maintained
 - **Dynamic Registration**: Model handlers are registered at runtime with priority-based selection
 - **Enhanced Capabilities**: Providers can declare their capabilities for smart routing
 
 ### Advanced Model Routing
-- **Capability-Aware Selection**: Runtime automatically selects the best provider based on requirements
+
+- **Capability-Aware Selection**: Runtime automatically selects the best provider based on
+  requirements
 - **Context Tracking**: All model calls include rich context for debugging and monitoring
 - **Performance Monitoring**: Built-in performance tracking and optimization
 
 ### Enhanced Debugging
+
 - **Run ID Tracking**: All model calls are tracked with unique run IDs
 - **Action Context**: Model calls include action context for better debugging
 - **Event Emission**: Model provider failures and successes are emitted as events
 
 ### Better Fallback Mechanisms
+
 - **Smart Fallbacks**: Fallbacks are based on capability scores rather than fixed order
 - **Automatic Retry**: Built-in retry logic with exponential backoff
 - **Health Monitoring**: Continuous monitoring of provider health and performance
 
-These improvements make the model provider system more robust, observable, and efficient while maintaining the ease of use that makes elizaOS agents powerful and flexible.
+These improvements make the model provider system more robust, observable, and efficient while
+maintaining the ease of use that makes elizaOS agents powerful and flexible.

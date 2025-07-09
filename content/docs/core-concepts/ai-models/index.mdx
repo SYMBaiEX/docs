@@ -5,7 +5,9 @@ description: Understanding the AI and language model system in ElizaOS
 
 # Overview
 
-ElizaOS provides a comprehensive AI and language model system that supports multiple model providers, types, and configurations. The system is designed to be flexible, allowing agents to work with various AI models seamlessly through a unified interface.
+ElizaOS provides a comprehensive AI and language model system that supports multiple model
+providers, types, and configurations. The system is designed to be flexible, allowing agents to work
+with various AI models seamlessly through a unified interface.
 
 ## Core Components
 
@@ -14,6 +16,7 @@ ElizaOS provides a comprehensive AI and language model system that supports mult
 Model-specific plugins that provide standardized interfaces for different AI providers:
 
 **Supported Providers**:
+
 - **OpenAI**: GPT-4, GPT-3.5, DALL-E, Whisper, text-embedding-ada-002
 - **Anthropic**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
 - **Google**: Gemini Pro, Gemini Pro Vision, PaLM 2
@@ -23,6 +26,7 @@ Model-specific plugins that provide standardized interfaces for different AI pro
 - **Heurist**: Specialized model providers
 
 **Plugin Architecture**:
+
 ```typescript
 interface ModelPlugin {
   name: string;
@@ -38,6 +42,7 @@ interface ModelPlugin {
 A unified provider system that handles model selection, configuration, and failover:
 
 **Provider Features**:
+
 - **Automatic Failover**: Switch to backup providers on failure
 - **Load Balancing**: Distribute requests across multiple providers
 - **Rate Limiting**: Respect provider API limits
@@ -45,6 +50,7 @@ A unified provider system that handles model selection, configuration, and failo
 - **Performance Monitoring**: Track response times and success rates
 
 **Configuration Example**:
+
 ```json
 {
   "providers": {
@@ -64,6 +70,7 @@ A unified provider system that handles model selection, configuration, and failo
 The core API for interacting with different model types:
 
 **Model Types**:
+
 - **Text Generation**: Chat completions, text completion, structured outputs
 - **Embedding**: Vector representations for semantic search
 - **Image Generation**: DALL-E, Midjourney, Stable Diffusion
@@ -72,13 +79,14 @@ The core API for interacting with different model types:
 - **Object Generation**: Structured data generation
 
 **Usage Example**:
+
 ```typescript
 const response = await useModel({
   runtime,
   model: ModelType.TEXT,
   prompt: "Generate a response about AI",
   temperature: 0.7,
-  maxTokens: 1000
+  maxTokens: 1000,
 });
 ```
 
@@ -87,6 +95,7 @@ const response = await useModel({
 Vector embedding generation and management for semantic search and memory retrieval:
 
 **Embedding Features**:
+
 - **Multiple Providers**: OpenAI, Cohere, Hugging Face, local models
 - **Batch Processing**: Efficient batch embedding generation
 - **Caching**: Local caching for frequently used embeddings
@@ -94,6 +103,7 @@ Vector embedding generation and management for semantic search and memory retrie
 - **Dimension Reduction**: PCA and t-SNE for visualization
 
 **Memory Integration**:
+
 - **Semantic Search**: Find relevant memories based on meaning
 - **Knowledge Retrieval**: Access relevant information from knowledge base
 - **Context Building**: Build conversation context from similar interactions
@@ -104,6 +114,7 @@ Vector embedding generation and management for semantic search and memory retrie
 Structured prompt management system for consistent AI interactions:
 
 **Template Features**:
+
 - **Variable Substitution**: Dynamic content injection
 - **Context Injection**: Automatic context building
 - **Conditional Logic**: Template branching and conditions
@@ -111,20 +122,23 @@ Structured prompt management system for consistent AI interactions:
 - **Validation**: Schema-based template validation
 
 **Template Example**:
+
 ```handlebars
-# Character Context
-You are {{character.name}}, {{character.bio}}
+# Character Context You are
+{{character.name}},
+{{character.bio}}
 
 # Recent Conversation
 {{#each recentMessages}}
-{{sender}}: {{content}}
+  {{sender}}:
+  {{content}}
 {{/each}}
 
 # Instructions
 {{#if isDirectMessage}}
-Respond directly to the user's message.
+  Respond directly to the user's message.
 {{else}}
-Respond in the context of the group conversation.
+  Respond in the context of the group conversation.
 {{/if}}
 ```
 
@@ -133,6 +147,7 @@ Respond in the context of the group conversation.
 ### Configuration Management
 
 **Environment Variables**:
+
 ```bash
 # Primary providers
 OPENAI_API_KEY=your_openai_key
@@ -152,20 +167,22 @@ MAX_RETRIES=3
 ### Runtime Model Selection
 
 **Dynamic Selection**:
+
 - **Capability-based**: Choose models based on required capabilities
 - **Cost-aware**: Select most cost-effective option
 - **Performance-based**: Route to fastest available provider
 - **Availability**: Automatic failover when providers are unavailable
 
 **Selection Logic**:
+
 ```typescript
 const model = await selectModel({
   type: ModelType.TEXT,
-  capabilities: ['conversation', 'reasoning'],
+  capabilities: ["conversation", "reasoning"],
   constraints: {
     maxCost: 0.01,
-    maxLatency: 5000
-  }
+    maxLatency: 5000,
+  },
 });
 ```
 
@@ -174,6 +191,7 @@ const model = await selectModel({
 ### Structured Outputs
 
 **JSON Schema Validation**:
+
 ```typescript
 const result = await useModel({
   runtime,
@@ -183,36 +201,39 @@ const result = await useModel({
     type: "object",
     properties: {
       entities: { type: "array", items: { type: "string" } },
-      sentiment: { type: "string", enum: ["positive", "negative", "neutral"] }
-    }
-  }
+      sentiment: { type: "string", enum: ["positive", "negative", "neutral"] },
+    },
+  },
 });
 ```
 
 ### Multi-Modal Processing
 
 **Image + Text**:
+
 ```typescript
 const response = await useModel({
   runtime,
   model: ModelType.VISION,
   prompt: "Describe this image",
-  image: imageBuffer
+  image: imageBuffer,
 });
 ```
 
 **Audio Processing**:
+
 ```typescript
 const transcription = await useModel({
   runtime,
   model: ModelType.SPEECH_TO_TEXT,
-  audio: audioBuffer
+  audio: audioBuffer,
 });
 ```
 
 ### Custom Model Integration
 
 **Plugin Development**:
+
 ```typescript
 const customPlugin: ModelPlugin = {
   name: "custom-provider",
@@ -221,12 +242,12 @@ const customPlugin: ModelPlugin = {
     {
       name: "custom-model",
       type: ModelType.TEXT,
-      endpoint: "https://api.custom-provider.com/v1/chat"
-    }
+      endpoint: "https://api.custom-provider.com/v1/chat",
+    },
   ],
   handler: async (params) => {
     // Custom implementation
-  }
+  },
 };
 ```
 
@@ -311,4 +332,5 @@ Explore the following sections to understand how to work with AI models in Eliza
 - **[Embedding Setup](./embeddings)** - Vector embedding configuration
 - **[Templates & Prompts](./templates)** - Prompt management system
 
-This comprehensive AI model system provides the foundation for sophisticated agent interactions while maintaining flexibility, performance, and cost-effectiveness.
+This comprehensive AI model system provides the foundation for sophisticated agent interactions
+while maintaining flexibility, performance, and cost-effectiveness.

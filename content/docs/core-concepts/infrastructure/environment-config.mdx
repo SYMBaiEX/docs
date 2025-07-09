@@ -1,11 +1,14 @@
 ---
 title: Environment Configuration
-description: Managing environment variables and configuration in ElizaOS with actual implementation details
+description:
+  Managing environment variables and configuration in ElizaOS with actual implementation details
 ---
 
 # Environment Configuration
 
-ElizaOS uses environment variables for configuration across different deployment environments. The system provides comprehensive tools for managing, validating, and securing environment configurations.
+ElizaOS uses environment variables for configuration across different deployment environments. The
+system provides comprehensive tools for managing, validating, and securing environment
+configurations.
 
 ## Environment Service Implementation
 
@@ -19,7 +22,7 @@ export class EnvFileService {
   private filePath: string;
 
   constructor(filePath?: string) {
-    this.filePath = filePath || '';
+    this.filePath = filePath || "";
   }
 
   async initialize(): Promise<void> {
@@ -37,13 +40,13 @@ export class EnvFileService {
         return result;
       }
 
-      const content = await fs.readFile(this.filePath, 'utf-8');
-      const lines = content.split('\n');
+      const content = await fs.readFile(this.filePath, "utf-8");
+      const lines = content.split("\n");
 
       for (const line of lines) {
         const trimmedLine = line.trim();
-        if (trimmedLine && !trimmedLine.startsWith('#')) {
-          const separatorIndex = trimmedLine.indexOf('=');
+        if (trimmedLine && !trimmedLine.startsWith("#")) {
+          const separatorIndex = trimmedLine.indexOf("=");
           if (separatorIndex > 0) {
             const key = trimmedLine.substring(0, separatorIndex).trim();
             const value = trimmedLine.substring(separatorIndex + 1).trim();
@@ -74,17 +77,17 @@ export class EnvFileService {
         logger.info(`Created backup at ${backupPath}`);
       }
 
-      let content = '';
+      let content = "";
       const varsCopy = { ...vars };
 
       if (preserveComments) {
         // Preserve existing comments
         const existingEntries = await this.readWithComments();
-        
+
         for (const entry of existingEntries) {
           if (Object.prototype.hasOwnProperty.call(varsCopy, entry.key)) {
             if (entry.comment) {
-              content += `# ${entry.comment.replace(/\n/g, '\n# ')}\n`;
+              content += `# ${entry.comment.replace(/\n/g, "\n# ")}\n`;
             }
             content += `${entry.key}=${varsCopy[entry.key]}\n`;
             delete varsCopy[entry.key];
@@ -94,7 +97,7 @@ export class EnvFileService {
 
       // Write remaining variables
       for (const [key, value] of Object.entries(varsCopy)) {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           content += `${key}=${value}\n`;
 
           if (updateProcessEnv) {
@@ -103,7 +106,7 @@ export class EnvFileService {
         }
       }
 
-      await fs.writeFile(this.filePath, content, 'utf-8');
+      await fs.writeFile(this.filePath, content, "utf-8");
       logger.info(`Environment variables saved to ${this.filePath}`);
     } catch (error) {
       logger.error(`Error writing environment file: ${error}`);
@@ -119,13 +122,13 @@ export class EnvFileService {
         return { valid: true, errors: [] };
       }
 
-      const content = await fs.readFile(this.filePath, 'utf-8');
-      const lines = content.split('\n');
+      const content = await fs.readFile(this.filePath, "utf-8");
+      const lines = content.split("\n");
 
       lines.forEach((line, index) => {
         const trimmedLine = line.trim();
-        if (trimmedLine && !trimmedLine.startsWith('#')) {
-          const separatorIndex = trimmedLine.indexOf('=');
+        if (trimmedLine && !trimmedLine.startsWith("#")) {
+          const separatorIndex = trimmedLine.indexOf("=");
           if (separatorIndex < 1) {
             errors.push(`Line ${index + 1}: Invalid format (missing '=' separator)`);
           } else {
@@ -169,7 +172,7 @@ export async function loadConfig(): Promise<AgentConfig> {
       };
     }
 
-    const content = await fs.readFile(configPath, 'utf8');
+    const content = await fs.readFile(configPath, "utf8");
     return JSON.parse(content) as AgentConfig;
   } catch (error) {
     logger.warn(`Error loading configuration: ${error}`);
@@ -190,7 +193,7 @@ export async function saveConfig(config: AgentConfig): Promise<void> {
     }
 
     config.lastUpdated = new Date().toISOString();
-    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
     logger.info(`Configuration saved to ${configPath}`);
   } catch (error) {
     logger.error(`Error saving configuration: ${error}`);
@@ -358,14 +361,14 @@ Plugins can define required environment variables:
 ```typescript
 // Plugin automatically receives configured environment
 export const plugin: Plugin = {
-  name: 'my-plugin',
+  name: "my-plugin",
   config: {
     API_KEY: process.env.MY_PLUGIN_API_KEY,
-    ENDPOINT: process.env.MY_PLUGIN_ENDPOINT || 'https://api.example.com'
+    ENDPOINT: process.env.MY_PLUGIN_ENDPOINT || "https://api.example.com",
   },
   async init(config) {
     // Config contains resolved environment values
-  }
+  },
 };
 ```
 
@@ -374,14 +377,14 @@ export const plugin: Plugin = {
 ### Schema Validation
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
 // Define configuration schema
 const configSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   DATABASE_URL: z.string().url(),
   SERVER_PORT: z.string().regex(/^\d+$/),
-  NODE_ENV: z.enum(['development', 'production', 'test'])
+  NODE_ENV: z.enum(["development", "production", "test"]),
 });
 
 // Validate environment
@@ -392,16 +395,12 @@ const config = configSchema.parse(process.env);
 
 ```typescript
 // Define required variables
-const required = [
-  'OPENAI_API_KEY',
-  'DATABASE_URL',
-  'JWT_SECRET'
-];
+const required = ["OPENAI_API_KEY", "DATABASE_URL", "JWT_SECRET"];
 
 // Check for missing variables
-const missing = required.filter(key => !process.env[key]);
+const missing = required.filter((key) => !process.env[key]);
 if (missing.length > 0) {
-  throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
 }
 ```
 
@@ -410,6 +409,7 @@ if (missing.length > 0) {
 ### Sensitive Data
 
 1. **Never Commit Secrets**
+
    ```bash
    # .gitignore
    .env
@@ -418,6 +418,7 @@ if (missing.length > 0) {
    ```
 
 2. **Use Strong Secrets**
+
    ```bash
    # Generate secure secrets
    openssl rand -base64 32
@@ -487,7 +488,7 @@ DATABASE_URL=postgresql://prod-server/elizaos
 ### EnvFileService
 
 ```typescript
-import { EnvFileService } from '@elizaos/cli/services';
+import { EnvFileService } from "@elizaos/cli/services";
 
 const envService = new EnvFileService();
 
@@ -495,10 +496,10 @@ const envService = new EnvFileService();
 await envService.load();
 
 // Get variable
-const apiKey = envService.get('API_KEY');
+const apiKey = envService.get("API_KEY");
 
 // Set variable
-envService.set('NEW_VAR', 'value');
+envService.set("NEW_VAR", "value");
 
 // Save changes
 await envService.save();
@@ -507,18 +508,18 @@ await envService.save();
 ### Configuration Manager
 
 ```typescript
-import { ConfigManager } from '@elizaos/core';
+import { ConfigManager } from "@elizaos/core";
 
 const config = new ConfigManager({
-  envFile: '.env',
-  validate: true
+  envFile: ".env",
+  validate: true,
 });
 
 // Access configuration
-const dbUrl = config.get('DATABASE_URL');
+const dbUrl = config.get("DATABASE_URL");
 
 // Check if variable exists
-if (config.has('OPTIONAL_VAR')) {
+if (config.has("OPTIONAL_VAR")) {
   // Use optional variable
 }
 ```
@@ -529,7 +530,7 @@ if (config.has('OPTIONAL_VAR')) {
 
 ```typescript
 // Update configuration at runtime
-process.env.LOG_LEVEL = 'debug';
+process.env.LOG_LEVEL = "debug";
 
 // Reload configuration
 await config.reload();
@@ -540,8 +541,8 @@ await config.reload();
 ```typescript
 // Use environment for feature flags
 const features = {
-  newUI: process.env.FEATURE_NEW_UI === 'true',
-  betaApi: process.env.FEATURE_BETA_API === 'true'
+  newUI: process.env.FEATURE_NEW_UI === "true",
+  betaApi: process.env.FEATURE_BETA_API === "true",
 };
 
 if (features.newUI) {
@@ -555,7 +556,7 @@ if (features.newUI) {
 
 ```typescript
 // Load environment-specific config
-const env = process.env.NODE_ENV || 'development';
+const env = process.env.NODE_ENV || "development";
 const configPath = `.env.${env}`;
 
 if (existsSync(configPath)) {
@@ -581,28 +582,31 @@ NODE_ENV=production elizaos start
 ### Common Issues
 
 1. **Variable Not Loading**
+
    ```bash
    # Check file exists
    ls -la .env
-   
+
    # Verify permissions
    chmod 600 .env
    ```
 
 2. **Wrong Environment**
+
    ```bash
    # Check current environment
    echo $NODE_ENV
-   
+
    # Force environment
    NODE_ENV=development elizaos start
    ```
 
 3. **Variable Conflicts**
+
    ```bash
    # Check all sources
    elizaos env list --all
-   
+
    # Clear and reload
    elizaos env reset
    ```
@@ -612,7 +616,7 @@ NODE_ENV=production elizaos start
 ```typescript
 // Debug environment loading
 if (process.env.DEBUG) {
-  console.log('Environment:', {
+  console.log("Environment:", {
     NODE_ENV: process.env.NODE_ENV,
     API_URL: process.env.API_URL,
     // Don't log sensitive data
@@ -625,31 +629,34 @@ if (process.env.DEBUG) {
 ### Organization
 
 1. **Group Related Variables**
+
    ```bash
    # Database
    DB_HOST=localhost
    DB_PORT=5432
    DB_NAME=elizaos
-   
+
    # API Keys
    OPENAI_API_KEY=sk-...
    ANTHROPIC_API_KEY=sk-ant-...
    ```
 
 2. **Use Descriptive Names**
+
    ```bash
    # Good
    DATABASE_CONNECTION_POOL_SIZE=10
-   
+
    # Bad
    POOL=10
    ```
 
 3. **Document Variables**
+
    ```bash
    # Maximum number of database connections
    DATABASE_POOL_SIZE=10
-   
+
    # API endpoint for external service
    EXTERNAL_API_URL=https://api.example.com
    ```
@@ -660,13 +667,13 @@ if (process.env.DEBUG) {
 // Validate early
 const validateEnvironment = () => {
   const errors = [];
-  
+
   if (!process.env.API_KEY) {
-    errors.push('API_KEY is required');
+    errors.push("API_KEY is required");
   }
-  
+
   if (errors.length > 0) {
-    throw new Error(`Environment validation failed:\n${errors.join('\n')}`);
+    throw new Error(`Environment validation failed:\n${errors.join("\n")}`);
   }
 };
 

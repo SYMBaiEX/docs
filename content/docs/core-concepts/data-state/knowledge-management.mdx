@@ -1,11 +1,15 @@
 ---
 title: Knowledge Management
-description: How ElizaOS manages agent knowledge, facts, and document processing for intelligent context retrieval with actual implementation details
+description:
+  How ElizaOS manages agent knowledge, facts, and document processing for intelligent context
+  retrieval with actual implementation details
 ---
 
 # Knowledge Management
 
-ElizaOS knowledge management system provides agents with the ability to store, organize, and retrieve structured knowledge. This includes facts about users, documents, and domain-specific information that can be used to enhance conversations and decision-making.
+ElizaOS knowledge management system provides agents with the ability to store, organize, and
+retrieve structured knowledge. This includes facts about users, documents, and domain-specific
+information that can be used to enhance conversations and decision-making.
 
 ## Knowledge Types
 
@@ -19,8 +23,8 @@ interface KnowledgeItem {
 }
 
 enum KnowledgeScope {
-  SHARED = 'shared',   // Accessible across agents
-  PRIVATE = 'private'  // Agent-specific knowledge
+  SHARED = "shared", // Accessible across agents
+  PRIVATE = "private", // Agent-specific knowledge
 }
 ```
 
@@ -37,63 +41,69 @@ const character = {
     // Direct knowledge items
     {
       text: "The company was founded in 2020",
-      tags: ["company", "history"]
+      tags: ["company", "history"],
     },
     {
       text: "Our main product is an AI platform",
-      tags: ["product", "business"]
+      tags: ["product", "business"],
     },
-    
+
     // Reference to knowledge files
     "path/to/knowledge-base.json",
-    
+
     // Directory of knowledge files
     {
       directory: "knowledge/domain-specific",
-      shared: true  // Make available to all agents
-    }
-  ]
+      shared: true, // Make available to all agents
+    },
+  ],
 };
 ```
 
 ### Runtime Knowledge Addition
 
 ```typescript
-import { v4 as generateUUID } from 'uuid';
-import { MemoryType } from '@elizaos/core';
+import { MemoryType } from "@elizaos/core";
+import { v4 as generateUUID } from "uuid";
 
 // Add a single knowledge item as a fact memory
-await runtime.createMemory({
-  id: generateUUID(),
-  entityId: userId,
-  roomId: roomId,
-  content: {
-    text: "The user prefers morning meetings",
+await runtime.createMemory(
+  {
+    id: generateUUID(),
+    entityId: userId,
+    roomId: roomId,
+    content: {
+      text: "The user prefers morning meetings",
+    },
+    metadata: {
+      type: MemoryType.DESCRIPTION,
+      source: "user_preference",
+      tags: ["preferences", "scheduling"],
+    },
   },
-  metadata: {
-    type: MemoryType.DESCRIPTION,
-    source: "user_preference",
-    tags: ["preferences", "scheduling"]
-  }
-}, 'facts');
+  "facts"
+);
 
 // Bulk knowledge import
 const knowledgeItems = [
   { content: { text: "Fact 1" } },
   { content: { text: "Fact 2" } },
-  { content: { text: "Fact 3" } }
+  { content: { text: "Fact 3" } },
 ];
 
 for (const item of knowledgeItems) {
-  await runtime.createMemory({
-    ...item,
-    entityId: userId,
-    roomId: roomId,
-    metadata: {
-      type: MemoryType.DESCRIPTION,
-      source: "bulk_import"
-    }
-  }, 'facts');
+  await runtime.createMemory(
+    {
+      ...item,
+      entityId: userId,
+      roomId: roomId,
+      metadata: {
+        type: MemoryType.DESCRIPTION,
+        source: "bulk_import",
+      },
+    },
+    "facts"
+  );
 }
 ```
 
@@ -105,41 +115,47 @@ Large documents are automatically chunked and embedded:
 
 ```typescript
 async function processKnowledgeDocument(filePath: string) {
-  const content = await fs.readFile(filePath, 'utf-8');
+  const content = await fs.readFile(filePath, "utf-8");
   const documentId = generateUUID();
-  
+
   // Create main document entry
-  await runtime.createMemory({
-    content: {
-      text: path.basename(filePath),
-      fullText: content,
-      source: filePath
+  await runtime.createMemory(
+    {
+      content: {
+        text: path.basename(filePath),
+        fullText: content,
+        source: filePath,
+      },
+      metadata: {
+        type: MemoryType.DOCUMENT,
+        source: "filesystem",
+        timestamp: Date.now(),
+      },
     },
-    metadata: {
-      type: MemoryType.DOCUMENT,
-      source: "filesystem",
-      timestamp: Date.now()
-    }
-  }, 'documents');
-  
+    "documents"
+  );
+
   // Process chunks for semantic search
   const chunks = chunkDocument(content);
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
     const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-      text: chunk.text
+      text: chunk.text,
     });
-    
-    await runtime.createMemory({
-      content: { text: chunk.text },
-      embedding,
-      metadata: {
-        type: MemoryType.FRAGMENT,
-        documentId,
-        position: i,
-        source: filePath
-      }
-    }, 'fragments');
+
+    await runtime.createMemory(
+      {
+        content: { text: chunk.text },
+        embedding,
+        metadata: {
+          type: MemoryType.FRAGMENT,
+          documentId,
+          position: i,
+          source: filePath,
+        },
+      },
+      "fragments"
+    );
   }
 }
 ```
@@ -157,18 +173,18 @@ class KnowledgeExtractor {
       
       Text: ${text}
       
-      Format each fact as: { "fact": "...", "confidence": 0.0-1.0, "tags": [] }`
+      Format each fact as: { "fact": "...", "confidence": 0.0-1.0, "tags": [] }`,
     });
-    
+
     const facts = JSON.parse(extraction);
-    return facts.map(f => ({
+    return facts.map((f) => ({
       id: generateUUID(),
       content: { text: f.fact },
       metadata: {
         type: MemoryType.DESCRIPTION,
         confidence: f.confidence,
-        tags: f.tags
-      }
+        tags: f.tags,
+      },
     }));
   }
 }
@@ -187,28 +203,26 @@ const factsProvider: Provider = {
     // Get recent facts about the user
     const userFacts = await runtime.getMemories({
       entityId: message.entityId,
-      tableName: 'facts',
+      tableName: "facts",
       count: 10,
-      unique: true
+      unique: true,
     });
-    
+
     // Search for relevant facts based on message
     const relevantFacts = await runtime.searchMemories({
       query: message.content.text,
-      tableName: 'facts',
+      tableName: "facts",
       count: 5,
-      match_threshold: 0.7
+      match_threshold: 0.7,
     });
-    
-    const facts = [...userFacts, ...relevantFacts]
-      .map(f => f.content.text)
-      .join('\n');
-    
+
+    const facts = [...userFacts, ...relevantFacts].map((f) => f.content.text).join("\n");
+
     return {
-      values: { facts: facts.split('\n') },
-      text: facts
+      values: { facts: facts.split("\n") },
+      text: facts,
     };
-  }
+  },
 };
 ```
 
@@ -218,20 +232,18 @@ const factsProvider: Provider = {
 // Search for specific knowledge
 const results = await runtime.searchMemories({
   query: "What are the company policies on remote work?",
-  tableName: 'documents',
+  tableName: "documents",
   count: 3,
-  match_threshold: 0.8
+  match_threshold: 0.8,
 });
 
 // Get knowledge with specific tags
-const taggedKnowledge = await runtime.getMemories({
-  tableName: 'facts',
-  count: 50
-}).then(memories => 
-  memories.filter(m => 
-    m.metadata?.tags?.includes('policy')
-  )
-);
+const taggedKnowledge = await runtime
+  .getMemories({
+    tableName: "facts",
+    count: 50,
+  })
+  .then((memories) => memories.filter((m) => m.metadata?.tags?.includes("policy")));
 ```
 
 ## Knowledge Organization
@@ -250,26 +262,24 @@ interface KnowledgeHierarchy {
 class KnowledgeOrganizer {
   async buildHierarchy(domain: string): Promise<KnowledgeHierarchy> {
     // Get all facts for domain
-    const facts = await runtime.getMemories({
-      tableName: 'facts',
-      count: 1000
-    }).then(memories => 
-      memories.filter(m => 
-        m.metadata?.tags?.includes(domain)
-      )
-    );
-    
+    const facts = await runtime
+      .getMemories({
+        tableName: "facts",
+        count: 1000,
+      })
+      .then((memories) => memories.filter((m) => m.metadata?.tags?.includes(domain)));
+
     // Group by subtopics
     const grouped = this.groupByTags(facts);
-    
+
     return {
       topic: domain,
       subtopics: this.buildSubtopics(grouped),
-      facts: facts.map(f => ({
+      facts: facts.map((f) => ({
         id: f.id,
         content: f.content,
-        metadata: f.metadata
-      }))
+        metadata: f.metadata,
+      })),
     };
   }
 }
@@ -287,23 +297,21 @@ await runtime.createRelationship({
   tags: ["related", "prerequisite"],
   metadata: {
     relationshipType: "requires",
-    strength: 0.8
-  }
+    strength: 0.8,
+  },
 });
 
 // Query related knowledge
 async function getRelatedKnowledge(factId: UUID) {
   const relationships = await runtime.getRelationships({
     entityId: factId,
-    tags: ["related"]
+    tags: ["related"],
   });
-  
+
   const relatedFacts = await Promise.all(
-    relationships.map(r => 
-      runtime.getMemoryById(r.targetEntityId)
-    )
+    relationships.map((r) => runtime.getMemoryById(r.targetEntityId))
   );
-  
+
   return relatedFacts.filter(Boolean);
 }
 ```
@@ -317,15 +325,15 @@ const KNOWLEDGE_CACHE_PREFIX = CacheKeyPrefix.KNOWLEDGE;
 
 async function getCachedKnowledge(key: string): Promise<any> {
   const cacheKey = `${KNOWLEDGE_CACHE_PREFIX}:${key}`;
-  
+
   // Check cache first
   const cached = await runtime.getCache(cacheKey);
   if (cached) return cached;
-  
+
   // Load and cache knowledge
   const knowledge = await loadKnowledge(key);
   await runtime.setCache(cacheKey, knowledge);
-  
+
   return knowledge;
 }
 ```
@@ -337,18 +345,18 @@ Cache embeddings for faster retrieval:
 ```typescript
 async function getCachedEmbedding(text: string): Promise<number[]> {
   const cached = await runtime.getCachedEmbeddings({
-    query_table_name: 'knowledge_embeddings',
+    query_table_name: "knowledge_embeddings",
     query_input: text,
-    query_field_name: 'text',
-    query_field_sub_name: 'content',
+    query_field_name: "text",
+    query_field_sub_name: "content",
     query_match_count: 1,
-    query_threshold: 0.99 // Very high threshold for exact matches
+    query_threshold: 0.99, // Very high threshold for exact matches
   });
-  
+
   if (cached.length > 0) {
     return cached[0].embedding;
   }
-  
+
   // Generate new embedding
   return await runtime.useModel(ModelType.TEXT_EMBEDDING, { text });
 }
@@ -363,14 +371,14 @@ class KnowledgeValidator {
   validateFact(fact: string): boolean {
     // Check minimum length
     if (fact.length < 10) return false;
-    
+
     // Check for actual content
-    if (fact.trim().split(' ').length < 3) return false;
-    
+    if (fact.trim().split(" ").length < 3) return false;
+
     // Check for placeholders
-    const placeholders = ['TODO', 'FIXME', 'XXX'];
-    if (placeholders.some(p => fact.includes(p))) return false;
-    
+    const placeholders = ["TODO", "FIXME", "XXX"];
+    if (placeholders.some((p) => fact.includes(p))) return false;
+
     return true;
   }
 }
@@ -381,13 +389,13 @@ class KnowledgeValidator {
 ```typescript
 async function deduplicateKnowledge() {
   const allFacts = await runtime.getMemories({
-    tableName: 'facts',
-    count: 10000
+    tableName: "facts",
+    count: 10000,
   });
-  
+
   const seen = new Map<string, Memory>();
   const duplicates: UUID[] = [];
-  
+
   for (const fact of allFacts) {
     const normalized = fact.content.text.toLowerCase().trim();
     if (seen.has(normalized)) {
@@ -396,7 +404,7 @@ async function deduplicateKnowledge() {
       seen.set(normalized, fact);
     }
   }
-  
+
   if (duplicates.length > 0) {
     await runtime.deleteManyMemories(duplicates);
   }
@@ -415,24 +423,27 @@ interface ConfidentKnowledge extends KnowledgeItem {
 }
 
 async function addConfidentKnowledge(
-  text: string, 
+  text: string,
   confidence: number,
   source: string,
   entityId: UUID,
   roomId: UUID
 ) {
-  await runtime.createMemory({
-    id: generateUUID(),
-    entityId,
-    roomId,
-    content: { text },
-    metadata: {
-      type: MemoryType.DESCRIPTION,
-      confidence,
-      source,
-      timestamp: Date.now()
-    }
-  }, 'facts');
+  await runtime.createMemory(
+    {
+      id: generateUUID(),
+      entityId,
+      roomId,
+      content: { text },
+      metadata: {
+        type: MemoryType.DESCRIPTION,
+        confidence,
+        source,
+        timestamp: Date.now(),
+      },
+    },
+    "facts"
+  );
 }
 ```
 
@@ -446,90 +457,86 @@ class DomainKnowledgeSystem {
     private runtime: IAgentRuntime,
     private domain: string
   ) {}
-  
+
   async initialize() {
     // Load base knowledge
     await this.loadBaseKnowledge();
-    
+
     // Set up knowledge provider
     this.runtime.registerProvider({
       name: `${this.domain.toUpperCase()}_KNOWLEDGE`,
       get: async (runtime, message) => {
-        const knowledge = await this.getRelevantKnowledge(
-          message.content.text
-        );
-        
+        const knowledge = await this.getRelevantKnowledge(message.content.text);
+
         return {
           values: {
-            [`${this.domain}Knowledge`]: knowledge
+            [`${this.domain}Knowledge`]: knowledge,
           },
-          text: knowledge.map(k => k.content.text).join('\n')
+          text: knowledge.map((k) => k.content.text).join("\n"),
         };
-      }
+      },
     });
   }
-  
+
   private async loadBaseKnowledge() {
     const knowledgeDir = `knowledge/${this.domain}`;
     const files = await fs.readdir(knowledgeDir);
-    
+
     for (const file of files) {
-      if (file.endsWith('.json')) {
-        const content = await fs.readFile(
-          path.join(knowledgeDir, file),
-          'utf-8'
-        );
+      if (file.endsWith(".json")) {
+        const content = await fs.readFile(path.join(knowledgeDir, file), "utf-8");
         const items = JSON.parse(content);
-        
+
         for (const item of items) {
-          await this.runtime.createMemory({
-            id: generateUUID(),
-            entityId: this.runtime.agentId,
-            roomId: this.runtime.agentId, // Use agent ID as room ID for shared knowledge
-            content: { text: item.text },
-            metadata: {
-              type: MemoryType.DESCRIPTION,
-              source: file,
-              tags: [this.domain, ...item.tags]
-            }
-          }, 'facts');
+          await this.runtime.createMemory(
+            {
+              id: generateUUID(),
+              entityId: this.runtime.agentId,
+              roomId: this.runtime.agentId, // Use agent ID as room ID for shared knowledge
+              content: { text: item.text },
+              metadata: {
+                type: MemoryType.DESCRIPTION,
+                source: file,
+                tags: [this.domain, ...item.tags],
+              },
+            },
+            "facts"
+          );
         }
       }
     }
   }
-  
+
   async getRelevantKnowledge(query: string): Promise<Memory[]> {
     // Get domain-specific knowledge
     const domainKnowledge = await this.runtime.searchMemories({
       query,
-      tableName: 'facts',
+      tableName: "facts",
       count: 5,
-      match_threshold: 0.7
+      match_threshold: 0.7,
     });
-    
+
     // Filter by domain tag
-    return domainKnowledge.filter(k =>
-      k.metadata?.tags?.includes(this.domain)
-    );
+    return domainKnowledge.filter((k) => k.metadata?.tags?.includes(this.domain));
   }
-  
+
   async updateKnowledge(factId: UUID, updates: Partial<Content>) {
     const existing = await this.runtime.getMemoryById(factId);
-    if (!existing) throw new Error('Knowledge not found');
-    
+    if (!existing) throw new Error("Knowledge not found");
+
     await this.runtime.updateMemory({
       id: factId,
       content: { ...existing.content, ...updates },
       metadata: {
         ...existing.metadata,
-        updatedAt: Date.now()
-      }
+        updatedAt: Date.now(),
+      },
     });
   }
 }
 
 // Usage
-const medicalKnowledge = new DomainKnowledgeSystem(runtime, 'medical');
+const medicalKnowledge = new DomainKnowledgeSystem(runtime, "medical");
 await medicalKnowledge.initialize();
 ```
 

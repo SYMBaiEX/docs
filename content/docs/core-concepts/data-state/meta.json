@@ -1,10 +1,4 @@
 {
   "title": "Data & State Management",
-  "pages": [
-    "index",
-    "state-management",
-    "memory-system",
-    "knowledge-management",
-    "database"
-  ]
+  "pages": ["index", "state-management", "memory-system", "knowledge-management", "database"]
 }

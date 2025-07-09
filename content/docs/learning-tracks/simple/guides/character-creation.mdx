@@ -45,20 +45,24 @@ The `plugins` array must include these three plugins in this **exact order**:
 3. **`@elizaos/plugin-bootstrap`** - Core messaging and interaction capabilities
 
 ⚠️ **SECURITY WARNING**: Incorrect plugin ordering can cause:
+
 - Database connection failures
 - Memory leaks
 - Undefined behavior
 - Agent crashes
 
 ❌ **WRONG ORDER** (will fail):
+
 ```json
 "plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-sql"]
 ```
 
 ✅ **CORRECT ORDER**:
+
 ```json
 "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
 ```
+
 </Callout>
 
 ## 🎨 Step-by-Step Character Creation
@@ -322,7 +326,14 @@ Show how your agent should respond using the proper message format:
   "style": {
     "all": ["technical", "precise", "educational", "cautious", "innovative"]
   },
-  "topics": ["DeFi", "blockchain", "smart contracts", "yield farming", "liquidity pools", "tokenomics"],
+  "topics": [
+    "DeFi",
+    "blockchain",
+    "smart contracts",
+    "yield farming",
+    "liquidity pools",
+    "tokenomics"
+  ],
   "adjectives": ["analytical", "security-focused", "experienced", "methodical", "forward-thinking"],
   "messageExamples": [
     [
@@ -377,7 +388,14 @@ Show how your agent should respond using the proper message format:
   "style": {
     "all": ["academic", "precise", "methodical", "evidence-based", "collaborative"]
   },
-  "topics": ["machine learning", "deep learning", "NLP", "AI safety", "research methodology", "academic writing"],
+  "topics": [
+    "machine learning",
+    "deep learning",
+    "NLP",
+    "AI safety",
+    "research methodology",
+    "academic writing"
+  ],
   "adjectives": ["rigorous", "analytical", "thorough", "objective", "insightful"],
   "messageExamples": [
     [
@@ -468,9 +486,8 @@ CHARACTER.helper.EXPERTISE=general
 
 Choose traits that match your vision:
 
-**Friendly Types**: warm, welcoming, cheerful, kind, caring
-**Professional Types**: efficient, knowledgeable, reliable, focused
-**Creative Types**: imaginative, artistic, whimsical, inspiring
+**Friendly Types**: warm, welcoming, cheerful, kind, caring **Professional Types**: efficient,
+knowledgeable, reliable, focused **Creative Types**: imaginative, artistic, whimsical, inspiring
 **Fun Types**: playful, humorous, witty, entertaining, silly
 
 ### Voice & Tone
@@ -512,18 +529,18 @@ Save your character file as:
 </Files>
 
 <Tabs items={["Basic Structure", "Advanced Structure", "Multi-Character"]}>
-<Tab value="Basic Structure">
-```
+  <Tab value="Basic Structure">
+    ```
 my-agent/
 ├── agent/
 │   └── character.json
 ├── .env
 ├── package.json
 └── README.md
-```
-</Tab>
-<Tab value="Advanced Structure">
-```
+    ```
+  </Tab>
+  <Tab value="Advanced Structure">
+    ```
 my-agent/
 ├── agent/
 │   ├── character.json
@@ -535,10 +552,10 @@ my-agent/
 ├── tsconfig.json
 └── src/
     └── index.ts
-```
-</Tab>
-<Tab value="Multi-Character">
-```
+    ```
+  </Tab>
+  <Tab value="Multi-Character">
+    ```
 my-agents/
 ├── characters/
 │   ├── assistant.json
@@ -549,8 +566,8 @@ my-agents/
 └── knowledge/
     ├── shared/
     └── specific/
-```
-</Tab>
+    ```
+  </Tab>
 </Tabs>
 
 ## 🔄 Testing Your Character
@@ -604,17 +621,13 @@ my-agents/
 
 ## ❓ Common Questions
 
-**Q: Can I change personality later?**
-A: Yes! Just edit the file and restart.
+**Q: Can I change personality later?** A: Yes! Just edit the file and restart.
 
-**Q: How many traits should I use?**
-A: 3-7 traits work best. Too many can be confusing.
+**Q: How many traits should I use?** A: 3-7 traits work best. Too many can be confusing.
 
-**Q: Can I use emojis?**
-A: Yes! Add them in bio or examples for more personality.
+**Q: Can I use emojis?** A: Yes! Add them in bio or examples for more personality.
 
-**Q: What if my agent sounds generic?**
-A: Add more specific examples and unique phrases!
+**Q: What if my agent sounds generic?** A: Add more specific examples and unique phrases!
 
 ## 🔒 Security & Performance Considerations
 
@@ -639,6 +652,7 @@ ANTHROPIC_API_KEY=sk-ant-your-key
   }
 }
 ```
+
 </Callout>
 
 ### Performance Optimization
@@ -663,12 +677,14 @@ bun run test-character character.json
 ### Common Security Pitfalls
 
 ❌ **Don't**:
+
 - Share character files with embedded secrets
 - Use broad permissions in plugin settings
 - Include sensitive information in bio/lore
 - Store credentials in version control
 
 ✅ **Do**:
+
 - Use environment variables for secrets
 - Implement proper access controls
 - Review plugin permissions regularly
@@ -679,20 +695,24 @@ bun run test-character character.json
 ### Common Errors & Solutions
 
 #### "Plugin order error"
-**Error**: `Plugin @elizaos/plugin-bootstrap must come after @elizaos/plugin-sql`
-**Solution**: Ensure correct plugin order: SQL → Model Provider → Bootstrap
+
+**Error**: `Plugin @elizaos/plugin-bootstrap must come after @elizaos/plugin-sql` **Solution**:
+Ensure correct plugin order: SQL → Model Provider → Bootstrap
 
 #### "Invalid messageExamples format"
-**Error**: `messageExamples must be array of conversation arrays`
-**Solution**: Use proper object format with `name` and `content.text` fields
+
+**Error**: `messageExamples must be array of conversation arrays` **Solution**: Use proper object
+format with `name` and `content.text` fields
 
 #### "Character validation failed"
-**Error**: `Bio must be string or array of strings`
-**Solution**: Check bio format - use either string or array of strings
+
+**Error**: `Bio must be string or array of strings` **Solution**: Check bio format - use either
+string or array of strings
 
 #### "Model provider not found"
-**Error**: `No model provider plugin found`
-**Solution**: Include exactly one model provider plugin in correct position
+
+**Error**: `No model provider plugin found` **Solution**: Include exactly one model provider plugin
+in correct position
 
 ### Debugging Tools
 
@@ -710,6 +730,7 @@ bun run test-examples character.json
 ### Performance Issues
 
 If your agent is slow:
+
 1. Reduce bio array length
 2. Limit message examples
 3. Check plugin count
@@ -724,4 +745,5 @@ Now that you have a character:
 2. Connect to Discord or Twitter
 3. Deploy your agent online
 
-Remember: The best characters feel real and consistent. Have fun creating your unique AI personality! 🎉
+Remember: The best characters feel real and consistent. Have fun creating your unique AI
+personality! 🎉

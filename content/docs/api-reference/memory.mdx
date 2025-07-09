@@ -5,7 +5,9 @@ description: Comprehensive API documentation for agent memory and knowledge mana
 
 # Memory API
 
-The Memory API provides comprehensive memory management capabilities for agents, including memory storage, retrieval, search, and room-based organization. All memory endpoints are prefixed with `/api/memory`.
+The Memory API provides comprehensive memory management capabilities for agents, including memory
+storage, retrieval, search, and room-based organization. All memory endpoints are prefixed with
+`/api/memory`.
 
 ## Overview
 
@@ -42,15 +44,18 @@ GET /api/memory/agents/:agentId/memories
 Gets all memories for an agent with optional filtering.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `tableName` (string) - Memory table to query (default: "messages")
 - `includeEmbedding` (boolean) - Include embedding vectors (default: false)
 - `channelId` (UUID) - Filter by channel (converted to unique roomId)
 - `roomId` (UUID) - Filter by room (backward compatibility)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -72,7 +77,9 @@ Gets all memories for an agent with optional filtering.
 ```
 
 **Notes:**
-- channelId is automatically converted to agent-specific roomId using `createUniqueUuid(runtime, channelId)`
+
+- channelId is automatically converted to agent-specific roomId using
+  `createUniqueUuid(runtime, channelId)`
 - Embedding vectors are excluded by default for performance
 
 ### Update Agent Memory
@@ -84,10 +91,12 @@ PATCH /api/memory/agents/:agentId/memories/:memoryId
 Updates an existing memory.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -100,6 +109,7 @@ Updates an existing memory.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -119,10 +129,12 @@ GET /api/memory/agents/:agentId/memories/:memoryId
 Gets a specific memory by ID.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -154,10 +166,12 @@ PATCH /api/memory/agents/:agentId/memories/:memoryId
 Updates an existing memory.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -172,6 +186,7 @@ Updates an existing memory.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -200,9 +215,11 @@ GET /api/memory/agents/:agentId/memories
 Lists all memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of memories (default: 50, max: 200)
 - `offset` (number) - Pagination offset (default: 0)
 - `type` (string) - Filter by memory type
@@ -212,6 +229,7 @@ Lists all memories for an agent.
 - `sortOrder` (string) - Sort order (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -249,10 +267,12 @@ DELETE /api/memory/agents/:agentId/memories/:memoryId
 Removes a specific memory.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -266,9 +286,11 @@ DELETE /api/memory/agents/:agentId/memories
 Removes all memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -288,10 +310,12 @@ DELETE /api/memory/agents/:agentId/memories/all/:roomId
 Removes all memories for an agent in a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -307,16 +331,19 @@ GET /api/memory/agents/:agentId/rooms/:roomId/memories
 Gets all memories for an agent in a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of memories to return (default: 20)
 - `before` (number) - Timestamp for pagination (default: current time)
 - `includeEmbedding` (boolean) - Include embedding vectors (default: false)
 - `tableName` (string) - Memory table to query (default: "messages")
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -346,10 +373,12 @@ POST /api/memory/agents/:agentId/rooms/:roomId/memories
 Creates a memory specifically for a room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -365,6 +394,7 @@ Creates a memory specifically for a room.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -389,14 +419,17 @@ DELETE /api/memory/agents/:agentId/rooms/:roomId/memories
 Clears all memories for an agent in a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
+
 - `confirm` (string) - Must be "true" to execute
 - `type` (string) - Optional: only clear memories of specific type
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -418,14 +451,17 @@ GET /api/memory/agents/:agentId/rooms
 Lists all rooms for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of rooms (default: 50)
 - `hasMemories` (boolean) - Filter rooms with memories
 - `sortBy` (string) - Sort field (name, createdAt, memoryCount)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -456,10 +492,12 @@ GET /api/memory/agents/:agentId/rooms/:roomId
 Gets detailed information about a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -498,9 +536,11 @@ POST /api/memory/agents/:agentId/rooms
 Creates a new room for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Room Name",
@@ -516,6 +556,7 @@ Creates a new room for an agent.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -541,10 +582,12 @@ PATCH /api/memory/agents/:agentId/rooms/:roomId
 Updates room information.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Room Name",
@@ -557,6 +600,7 @@ Updates room information.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -583,13 +627,16 @@ DELETE /api/memory/agents/:agentId/rooms/:roomId
 Deletes a room and all associated memories.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
+
 - `confirm` (string) - Must be "true" to execute
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -605,10 +652,12 @@ GET /api/memory/groups
 Lists all memory groups.
 
 **Query Parameters:**
+
 - `limit` (number) - Number of groups (default: 50)
 - `agentId` (UUID) - Filter by agent participation
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -635,6 +684,7 @@ POST /api/memory/groups
 Creates a new memory group.
 
 **Request Body:**
+
 ```json
 {
   "name": "Group Name",
@@ -647,6 +697,7 @@ Creates a new memory group.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -669,14 +720,17 @@ GET /api/memory/groups/:groupId/memories
 Gets all memories for a group.
 
 **Parameters:**
+
 - `groupId` (UUID) - Group identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of memories (default: 50)
 - `agentId` (UUID) - Filter by agent
 - `type` (string) - Filter by memory type
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -711,10 +765,12 @@ POST /api/memory/groups/:groupId/agents/:agentId
 Adds an agent to a memory group.
 
 **Parameters:**
+
 - `groupId` (UUID) - Group identifier
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -735,10 +791,12 @@ DELETE /api/memory/groups/:groupId/agents/:agentId
 Removes an agent from a memory group.
 
 **Parameters:**
+
 - `groupId` (UUID) - Group identifier
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -754,13 +812,16 @@ GET /api/memory/agents/:agentId/stats
 Gets memory statistics for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `period` (string) - Time period (day, week, month, year)
 - `roomId` (UUID) - Filter by room
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -797,13 +858,16 @@ GET /api/memory/agents/:agentId/insights
 Gets memory insights and patterns.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of insights (default: 10)
 - `type` (string) - Insight type (trend, pattern, anomaly)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -842,14 +906,17 @@ GET /api/memory/agents/:agentId/export
 Exports all memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `format` (string) - Export format (json, csv, xml)
 - `roomId` (UUID) - Filter by room
 - `type` (string) - Filter by memory type
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -872,17 +939,21 @@ POST /api/memory/agents/:agentId/import
 Imports memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Memory file (JSON, CSV, or XML)
 
 **Query Parameters:**
+
 - `overwrite` (boolean) - Overwrite existing memories (default: false)
 - `validate` (boolean) - Validate before import (default: true)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -905,9 +976,11 @@ GET /api/memory/imports/:importId/status
 Gets the status of a memory import.
 
 **Parameters:**
+
 - `importId` (UUID) - Import identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -944,6 +1017,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_ID` - Invalid UUID format
 - `NOT_FOUND` - Resource not found
 - `INVALID_REQUEST` - Invalid request parameters
@@ -955,6 +1029,7 @@ Common error codes:
 ## Rate Limiting
 
 Memory endpoints are subject to rate limiting:
+
 - Standard operations: 100 requests per minute
 - Memory creation: 60 requests per minute
 - Memory search: 30 requests per minute

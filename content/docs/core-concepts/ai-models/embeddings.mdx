@@ -5,11 +5,14 @@ description: Setting up and using embeddings in elizaOS for semantic search and 
 
 # Embedding Setup
 
-Embeddings are vector representations of text that capture semantic meaning, enabling powerful features like semantic search, memory retrieval, and content similarity analysis. elizaOS provides comprehensive embedding support through its model provider system.
+Embeddings are vector representations of text that capture semantic meaning, enabling powerful
+features like semantic search, memory retrieval, and content similarity analysis. elizaOS provides
+comprehensive embedding support through its model provider system.
 
 ## Overview
 
 Embeddings in elizaOS are used for:
+
 - **Memory search**: Finding relevant memories based on semantic similarity
 - **Knowledge retrieval**: Searching through knowledge bases and documents
 - **Content similarity**: Comparing and clustering text content
@@ -22,6 +25,7 @@ Embeddings in elizaOS are used for:
 elizaOS supports multiple embedding providers through its plugin system:
 
 #### OpenAI Embeddings
+
 ```typescript
 // Installation
 npm install @elizaos/plugin-openai
@@ -34,7 +38,8 @@ npm install @elizaos/plugin-openai
 // Environment variables
 OPENAI_API_KEY=sk-...
 ```
-```
+
+````
 
 **Available Models:**
 - `text-embedding-3-large` (3072 dimensions)
@@ -53,8 +58,9 @@ npm install @elizaos/plugin-google-genai
 
 // Environment variables
 GOOGLE_GENERATIVE_AI_API_KEY=AI...
-```
-```
+````
+
+````
 
 **Available Models:**
 - `text-embedding-004` (768 dimensions)
@@ -76,8 +82,9 @@ ollama pull nomic-embed-text
 // Environment variables
 OLLAMA_API_ENDPOINT=http://localhost:11434
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-```
-```
+````
+
+````
 
 **Available Models:**
 - `nomic-embed-text` (768 dimensions)
@@ -98,20 +105,18 @@ const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
 
 console.log(embedding); // [0.123, -0.456, 0.789, ...]
 console.log(embedding.length); // 1536 (for OpenAI ada-002)
-```
+````
 
 ### Alternative Parameter Formats
 
 ```typescript
 // Using object parameter
 const embedding1 = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: "Sample text"
+  text: "Sample text",
 });
 
 // Using string parameter
-const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, 
-  "Sample text"
-);
+const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, "Sample text");
 
 // Using null (for dimension testing)
 const embedding3 = await runtime.useModel(ModelType.TEXT_EMBEDDING, null);
@@ -129,7 +134,7 @@ const memory = {
   content: { text: "User asked about the weather today" },
   entityId: userId,
   roomId: roomId,
-  worldId: worldId
+  worldId: worldId,
 };
 
 // This automatically generates and attaches embeddings
@@ -145,19 +150,19 @@ const memory = {
   content: { text: "Important conversation about project plans" },
   entityId: userId,
   roomId: roomId,
-  worldId: worldId
+  worldId: worldId,
 };
 
 // Generate embedding
 const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: memory.content.text
+  text: memory.content.text,
 });
 
 // Attach embedding to memory
 memory.embedding = embedding;
 
 // Store in database
-await runtime.createMemory(memory, 'messages');
+await runtime.createMemory(memory, "messages");
 ```
 
 ## Semantic Search
@@ -170,16 +175,16 @@ const searchQuery = "What did we discuss about the project?";
 
 // Generate embedding for search query
 const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: searchQuery
+  text: searchQuery,
 });
 
 // Search memories using embedding
 const similarMemories = await runtime.searchMemories({
   embedding: queryEmbedding,
-  match_threshold: 0.8,    // Similarity threshold (0-1)
-  count: 10,               // Number of results
-  roomId: roomId,          // Optional: limit to specific room
-  tableName: 'messages'    // Memory table to search
+  match_threshold: 0.8, // Similarity threshold (0-1)
+  count: 10, // Number of results
+  roomId: roomId, // Optional: limit to specific room
+  tableName: "messages", // Memory table to search
 });
 
 console.log(similarMemories);
@@ -193,10 +198,10 @@ const searchResults = await runtime.searchMemories({
   match_threshold: 0.7,
   count: 20,
   roomId: roomId,
-  unique: true,           // Only return unique memories
-  worldId: worldId,       // Optional: limit to specific world
-  entityId: userId,       // Optional: limit to specific entity
-  tableName: 'messages'
+  unique: true, // Only return unique memories
+  worldId: worldId, // Optional: limit to specific world
+  entityId: userId, // Optional: limit to specific entity
+  tableName: "messages",
 });
 ```
 
@@ -210,7 +215,7 @@ Choose embedding models based on your needs:
 // High-quality embeddings (OpenAI)
 const character = {
   name: "MyAgent",
-  plugins: ["@elizaos/plugin-openai"]
+  plugins: ["@elizaos/plugin-openai"],
 };
 
 // Environment variables for OpenAI
@@ -220,7 +225,7 @@ const character = {
 // Fast local embeddings (Ollama)
 const localCharacter = {
   name: "LocalAgent",
-  plugins: ["@elizaos/plugin-ollama"]
+  plugins: ["@elizaos/plugin-ollama"],
 };
 
 // Environment variables for Ollama
@@ -250,15 +255,15 @@ const embeddingCache = new Map();
 
 async function getCachedEmbedding(text: string) {
   const cacheKey = `embed:${text}`;
-  
+
   if (embeddingCache.has(cacheKey)) {
     return embeddingCache.get(cacheKey);
   }
-  
+
   const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: text
+    text: text,
   });
-  
+
   embeddingCache.set(cacheKey, embedding);
   return embedding;
 }
@@ -269,19 +274,13 @@ async function getCachedEmbedding(text: string) {
 ```typescript
 // Process multiple texts efficiently
 async function embedMultipleTexts(texts: string[]) {
-  const promises = texts.map(text => 
-    runtime.useModel(ModelType.TEXT_EMBEDDING, { text })
-  );
-  
+  const promises = texts.map((text) => runtime.useModel(ModelType.TEXT_EMBEDDING, { text }));
+
   return await Promise.all(promises);
 }
 
 // Usage
-const texts = [
-  "First document to embed",
-  "Second document to embed",
-  "Third document to embed"
-];
+const texts = ["First document to embed", "Second document to embed", "Third document to embed"];
 
 const embeddings = await embedMultipleTexts(texts);
 ```
@@ -294,20 +293,20 @@ const embeddings = await embedMultipleTexts(texts);
 // Create knowledge base with embeddings
 const createKnowledgeBase = async (documents: string[]) => {
   const knowledgeItems = [];
-  
+
   for (const doc of documents) {
     const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-      text: doc
+      text: doc,
     });
-    
+
     knowledgeItems.push({
       id: uuidv4(),
       content: { text: doc },
       embedding: embedding,
-      agentId: runtime.agentId
+      agentId: runtime.agentId,
     });
   }
-  
+
   // Store in knowledge base
   for (const item of knowledgeItems) {
     await runtime.createKnowledge(item);
@@ -317,14 +316,14 @@ const createKnowledgeBase = async (documents: string[]) => {
 // Search knowledge base
 const searchKnowledge = async (query: string) => {
   const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: query
+    text: query,
   });
-  
+
   return await runtime.searchKnowledge({
     agentId: runtime.agentId,
     embedding: queryEmbedding,
     match_threshold: 0.7,
-    match_count: 5
+    match_count: 5,
   });
 };
 ```
@@ -336,20 +335,20 @@ const searchKnowledge = async (query: string) => {
 const processDocument = async (document: string) => {
   // Split document into chunks
   const chunks = splitIntoChunks(document, 1000); // 1000 char chunks
-  
+
   const embeddedChunks = [];
-  
+
   for (const chunk of chunks) {
     const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-      text: chunk
+      text: chunk,
     });
-    
+
     embeddedChunks.push({
       text: chunk,
-      embedding: embedding
+      embedding: embedding,
     });
   }
-  
+
   return embeddedChunks;
 };
 
@@ -373,7 +372,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
   const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
   const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
   const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  
+
   return dotProduct / (magnitudeA * magnitudeB);
 }
 
@@ -381,7 +380,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 const compareTexts = async (text1: string, text2: string) => {
   const embedding1 = await runtime.useModel(ModelType.TEXT_EMBEDDING, { text: text1 });
   const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, { text: text2 });
-  
+
   const similarity = cosineSimilarity(embedding1, embedding2);
   return similarity;
 };
@@ -392,20 +391,20 @@ const compareTexts = async (text1: string, text2: string) => {
 ```typescript
 // Common similarity thresholds
 const SIMILARITY_THRESHOLDS = {
-  VERY_SIMILAR: 0.9,    // Nearly identical
-  SIMILAR: 0.8,         // Clearly related
+  VERY_SIMILAR: 0.9, // Nearly identical
+  SIMILAR: 0.8, // Clearly related
   SOMEWHAT_SIMILAR: 0.7, // Possibly related
-  DIFFERENT: 0.6,       // Probably different
-  VERY_DIFFERENT: 0.5   // Definitely different
+  DIFFERENT: 0.6, // Probably different
+  VERY_DIFFERENT: 0.5, // Definitely different
 };
 
 // Classify similarity
 function classifySimilarity(similarity: number): string {
-  if (similarity >= SIMILARITY_THRESHOLDS.VERY_SIMILAR) return 'very_similar';
-  if (similarity >= SIMILARITY_THRESHOLDS.SIMILAR) return 'similar';
-  if (similarity >= SIMILARITY_THRESHOLDS.SOMEWHAT_SIMILAR) return 'somewhat_similar';
-  if (similarity >= SIMILARITY_THRESHOLDS.DIFFERENT) return 'different';
-  return 'very_different';
+  if (similarity >= SIMILARITY_THRESHOLDS.VERY_SIMILAR) return "very_similar";
+  if (similarity >= SIMILARITY_THRESHOLDS.SIMILAR) return "similar";
+  if (similarity >= SIMILARITY_THRESHOLDS.SOMEWHAT_SIMILAR) return "somewhat_similar";
+  if (similarity >= SIMILARITY_THRESHOLDS.DIFFERENT) return "different";
+  return "very_different";
 }
 ```
 
@@ -418,19 +417,19 @@ function classifySimilarity(similarity: number): string {
 const rerankResults = async (query: string, results: any[]) => {
   // First, get embedding-based results
   const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: query
+    text: query,
   });
-  
+
   const embeddingResults = await runtime.searchMemories({
     embedding: queryEmbedding,
     match_threshold: 0.5,
     count: 50,
-    tableName: 'messages'
+    tableName: "messages",
   });
-  
+
   // Then rerank using BM25 for better relevance
   const rerankedResults = await runtime.rerankMemories(query, embeddingResults);
-  
+
   return rerankedResults.slice(0, 10); // Top 10 results
 };
 ```
@@ -441,27 +440,25 @@ const rerankResults = async (query: string, results: any[]) => {
 // Combine text and image embeddings (conceptual)
 const createMultiModalEmbedding = async (text: string, imageUrl?: string) => {
   const textEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: text
+    text: text,
   });
-  
+
   let combinedEmbedding = textEmbedding;
-  
+
   if (imageUrl) {
     // Image description as proxy for image embedding
     const imageDescription = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, {
-      imageUrl: imageUrl
+      imageUrl: imageUrl,
     });
-    
+
     const imageTextEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-      text: imageDescription.description
+      text: imageDescription.description,
     });
-    
+
     // Combine embeddings (weighted average)
-    combinedEmbedding = textEmbedding.map((val, i) => 
-      (val * 0.7) + (imageTextEmbedding[i] * 0.3)
-    );
+    combinedEmbedding = textEmbedding.map((val, i) => val * 0.7 + imageTextEmbedding[i] * 0.3);
   }
-  
+
   return combinedEmbedding;
 };
 ```
@@ -475,24 +472,24 @@ const createMultiModalEmbedding = async (text: string, imageUrl?: string) => {
 const configs = {
   // High accuracy, higher cost
   production: {
-    provider: 'openai',
-    model: 'text-embedding-3-large',
-    dimensions: 3072
+    provider: "openai",
+    model: "text-embedding-3-large",
+    dimensions: 3072,
   },
-  
+
   // Balanced performance
   balanced: {
-    provider: 'openai',
-    model: 'text-embedding-3-small',
-    dimensions: 1536
+    provider: "openai",
+    model: "text-embedding-3-small",
+    dimensions: 1536,
   },
-  
+
   // Privacy-focused, local
   local: {
-    provider: 'ollama',
-    model: 'nomic-embed-text',
-    dimensions: 768
-  }
+    provider: "ollama",
+    model: "nomic-embed-text",
+    dimensions: 768,
+  },
 };
 ```
 
@@ -502,15 +499,15 @@ const configs = {
 // Preprocess text for better embeddings
 function preprocessText(text: string): string {
   return text
-    .toLowerCase()                    // Normalize case
-    .replace(/\s+/g, ' ')            // Normalize whitespace
-    .replace(/[^\w\s]/g, '')         // Remove special chars
-    .trim();                         // Remove leading/trailing spaces
+    .toLowerCase() // Normalize case
+    .replace(/\s+/g, " ") // Normalize whitespace
+    .replace(/[^\w\s]/g, "") // Remove special chars
+    .trim(); // Remove leading/trailing spaces
 }
 
 // Use preprocessed text for embeddings
 const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: preprocessText(inputText)
+  text: preprocessText(inputText),
 });
 ```
 
@@ -523,12 +520,12 @@ function validateEmbedding(embedding: number[]): boolean {
   if (!embedding || embedding.length === 0) {
     return false;
   }
-  
+
   // Check for NaN values
-  if (embedding.some(val => isNaN(val))) {
+  if (embedding.some((val) => isNaN(val))) {
     return false;
   }
-  
+
   // Check magnitude (should not be zero)
   const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
   return magnitude > 0;
@@ -540,14 +537,18 @@ function validateEmbedding(embedding: number[]): boolean {
 ```typescript
 // Robust embedding generation with fallbacks
 async function generateEmbeddingWithFallback(text: string) {
-  const providers = ['openai', 'google', 'ollama'];
-  
+  const providers = ["openai", "google", "ollama"];
+
   for (const provider of providers) {
     try {
-      const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-        text: text
-      }, provider);
-      
+      const embedding = await runtime.useModel(
+        ModelType.TEXT_EMBEDDING,
+        {
+          text: text,
+        },
+        provider
+      );
+
       if (validateEmbedding(embedding)) {
         return embedding;
       }
@@ -555,8 +556,8 @@ async function generateEmbeddingWithFallback(text: string) {
       console.warn(`Embedding failed with ${provider}:`, error.message);
     }
   }
-  
-  throw new Error('All embedding providers failed');
+
+  throw new Error("All embedding providers failed");
 }
 ```
 
@@ -565,39 +566,42 @@ async function generateEmbeddingWithFallback(text: string) {
 ### Common Issues
 
 1. **Embedding dimension mismatch**
+
    ```typescript
    // Ensure consistent embedding dimensions
    const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-     text: "test"
+     text: "test",
    });
-   console.log('Embedding dimensions:', embedding.length);
+   console.log("Embedding dimensions:", embedding.length);
    ```
 
 2. **Memory search returns no results**
+
    ```typescript
    // Check similarity threshold
    const results = await runtime.searchMemories({
      embedding: queryEmbedding,
      match_threshold: 0.5, // Lower threshold for more results
      count: 10,
-     tableName: 'messages'
+     tableName: "messages",
    });
    ```
 
 3. **Slow embedding generation**
+
    ```typescript
    // Use caching for repeated text
    const cache = new Map();
-   
+
    async function cachedEmbedding(text: string) {
      if (cache.has(text)) {
        return cache.get(text);
      }
-     
+
      const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-       text: text
+       text: text,
      });
-     
+
      cache.set(text, embedding);
      return embedding;
    }
@@ -611,24 +615,23 @@ const debugEmbeddings = async () => {
   try {
     // Test embedding generation
     const testEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-      text: "test"
+      text: "test",
     });
-    
-    console.log('Embedding provider working:', testEmbedding.length > 0);
-    console.log('Embedding dimensions:', testEmbedding.length);
-    
+
+    console.log("Embedding provider working:", testEmbedding.length > 0);
+    console.log("Embedding dimensions:", testEmbedding.length);
+
     // Test similarity search
     const searchResults = await runtime.searchMemories({
       embedding: testEmbedding,
       match_threshold: 0.5,
       count: 1,
-      tableName: 'messages'
+      tableName: "messages",
     });
-    
-    console.log('Search working:', searchResults.length >= 0);
-    
+
+    console.log("Search working:", searchResults.length >= 0);
   } catch (error) {
-    console.error('Embedding debug failed:', error);
+    console.error("Embedding debug failed:", error);
   }
 };
 ```
@@ -641,26 +644,28 @@ const debugEmbeddings = async () => {
 // Old text-based search
 const oldSearch = async (query: string) => {
   return await runtime.getMemories({
-    tableName: 'messages',
+    tableName: "messages",
     roomId: roomId,
-    count: 10
+    count: 10,
   });
 };
 
 // New embedding-based search
 const newSearch = async (query: string) => {
   const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: query
+    text: query,
   });
-  
+
   return await runtime.searchMemories({
     embedding: queryEmbedding,
     match_threshold: 0.7,
     count: 10,
     roomId: roomId,
-    tableName: 'messages'
+    tableName: "messages",
   });
 };
 ```
 
-Embeddings provide powerful semantic understanding capabilities to elizaOS agents. By properly configuring and utilizing embeddings, you can create more intelligent, context-aware agents that understand the meaning behind text rather than just matching keywords.
+Embeddings provide powerful semantic understanding capabilities to elizaOS agents. By properly
+configuring and utilizing embeddings, you can create more intelligent, context-aware agents that
+understand the meaning behind text rather than just matching keywords.

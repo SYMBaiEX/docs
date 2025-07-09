@@ -1,22 +1,25 @@
 ---
 title: "Deployment Guide"
-description: "Complete guide to deploying ElizaOS agents to various platforms including cloud services, VPS, and containerized environments"
+description:
+  "Complete guide to deploying ElizaOS agents to various platforms including cloud services, VPS,
+  and containerized environments"
 ---
 
 # Deployment Guide
 
-This comprehensive guide covers deploying ElizaOS agents to production environments, from simple cloud deployments to complex containerized systems.
+This comprehensive guide covers deploying ElizaOS agents to production environments, from simple
+cloud deployments to complex containerized systems.
 
 ## Deployment Options Overview
 
-| Platform | Difficulty | Cost | Scalability | Best For |
-|----------|------------|------|-------------|----------|
-| **Railway** | Easy | Low | Medium | Quick prototypes |
-| **Vercel** | Easy | Low | High | Serverless agents |
-| **Heroku** | Easy | Medium | Medium | Traditional apps |
-| **AWS/GCP** | Hard | Variable | High | Enterprise |
-| **Digital Ocean** | Medium | Low | Medium | VPS hosting |
-| **Docker** | Medium | Variable | High | Containerized apps |
+| Platform          | Difficulty | Cost     | Scalability | Best For           |
+| ----------------- | ---------- | -------- | ----------- | ------------------ |
+| **Railway**       | Easy       | Low      | Medium      | Quick prototypes   |
+| **Vercel**        | Easy       | Low      | High        | Serverless agents  |
+| **Heroku**        | Easy       | Medium   | Medium      | Traditional apps   |
+| **AWS/GCP**       | Hard       | Variable | High        | Enterprise         |
+| **Digital Ocean** | Medium     | Low      | Medium      | VPS hosting        |
+| **Docker**        | Medium     | Variable | High        | Containerized apps |
 
 ## Prerequisites
 
@@ -48,6 +51,7 @@ Railway offers the easiest deployment experience with automatic builds and deplo
 ### Step 2: Add Railway Configuration
 
 Create `railway.toml`:
+
 ```toml
 [build]
 builder = "nixpacks"
@@ -99,6 +103,7 @@ Best for agents that don't need persistent state.
 ### Step 1: Configure for Serverless
 
 Create `vercel.json`:
+
 ```json
 {
   "version": 2,
@@ -124,21 +129,19 @@ Create `vercel.json`:
 
 ```typescript
 // src/index.ts - Serverless handler
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { createAgent } from './agent';
+import { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+import { createAgent } from "./agent";
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const agent = await createAgent();
-  
+
   // Handle webhook requests
-  if (req.method === 'POST') {
+  if (req.method === "POST") {
     await agent.handleMessage(req.body);
     res.status(200).json({ success: true });
   } else {
-    res.status(200).json({ status: 'Agent is running' });
+    res.status(200).json({ status: "Agent is running" });
   }
 }
 ```
@@ -210,19 +213,22 @@ sudo nano .env
 ### Step 4: Configure PM2
 
 Create `ecosystem.config.js`:
+
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'eliza-agent',
-    script: 'dist/index.js',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production'
-    }
-  }]
+  apps: [
+    {
+      name: "eliza-agent",
+      script: "dist/index.js",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "production",
+      },
+    },
+  ],
 };
 ```
 
@@ -288,7 +294,7 @@ CMD ["bun", "start"]
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 
 services:
   eliza-agent:
@@ -302,7 +308,7 @@ services:
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
-    
+
   # Optional: Add database
   postgres:
     image: postgres:15
@@ -355,37 +361,37 @@ spec:
         app: eliza-agent
     spec:
       containers:
-      - name: eliza-agent
-        image: your-registry/eliza-agent:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: eliza-secrets
-              key: openai-api-key
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: eliza-agent
+          image: your-registry/eliza-agent:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: eliza-secrets
+                  key: openai-api-key
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 
 ---
 apiVersion: v1
@@ -396,8 +402,8 @@ spec:
   selector:
     app: eliza-agent
   ports:
-  - port: 80
-    targetPort: 3000
+    - port: 80
+      targetPort: 3000
   type: LoadBalancer
 ```
 
@@ -483,19 +489,19 @@ NODE_ENV=production
 ```typescript
 // src/health.ts
 export function setupHealthCheck(app: Express) {
-  app.get('/health', (req, res) => {
+  app.get("/health", (req, res) => {
     res.json({
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     });
   });
-  
-  app.get('/ready', (req, res) => {
+
+  app.get("/ready", (req, res) => {
     // Check if agent is ready to receive requests
     res.json({
-      status: 'ready',
-      timestamp: new Date().toISOString()
+      status: "ready",
+      timestamp: new Date().toISOString(),
     });
   });
 }
@@ -505,18 +511,15 @@ export function setupHealthCheck(app: Express) {
 
 ```typescript
 // src/logger.ts
-import winston from 'winston';
+import winston from "winston";
 
 export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
+  level: process.env.LOG_LEVEL || "info",
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: 'logs/app.log' })
-  ]
+    new winston.transports.File({ filename: "logs/app.log" }),
+  ],
 });
 ```
 
@@ -561,10 +564,10 @@ server {
 server {
     listen 443 ssl;
     server_name yourdomain.com;
-    
+
     ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    
+
     location / {
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
@@ -594,22 +597,22 @@ kubectl scale deployment eliza-agent --replicas=5
 
 ```typescript
 // src/performance.ts
-import cluster from 'cluster';
-import os from 'os';
+import cluster from "cluster";
+import os from "os";
 
 if (cluster.isMaster) {
   // Fork workers
   for (let i = 0; i < os.cpus().length; i++) {
     cluster.fork();
   }
-  
-  cluster.on('exit', (worker) => {
+
+  cluster.on("exit", (worker) => {
     console.log(`Worker ${worker.process.pid} died`);
     cluster.fork();
   });
 } else {
   // Worker process
-  require('./index.js');
+  require("./index.js");
 }
 ```
 

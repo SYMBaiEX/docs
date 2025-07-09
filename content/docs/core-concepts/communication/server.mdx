@@ -1,11 +1,14 @@
 ---
 title: "Server Architecture"
-description: "Complete guide to ElizaOS server architecture, AgentServer class, and lifecycle management"
+description:
+  "Complete guide to ElizaOS server architecture, AgentServer class, and lifecycle management"
 ---
 
 # Server Architecture
 
-The ElizaOS server architecture centers around the `AgentServer` class, which provides a complete HTTP server with Socket.IO support, REST API endpoints, and multi-agent runtime management. The server handles all communication between agents, clients, and external systems.
+The ElizaOS server architecture centers around the `AgentServer` class, which provides a complete
+HTTP server with Socket.IO support, REST API endpoints, and multi-agent runtime management. The
+server handles all communication between agents, clients, and external systems.
 
 ## AgentServer Class
 
@@ -37,13 +40,13 @@ export class AgentServer {
 ### Basic Setup
 
 ```typescript
-import { AgentServer } from '@elizaos/server';
+import { AgentServer } from "@elizaos/server";
 
 const server = new AgentServer();
 await server.initialize({
-  dataDir: './data',
-  postgresUrl: 'postgresql://localhost/eliza',
-  middlewares: [customMiddleware]
+  dataDir: "./data",
+  postgresUrl: "postgresql://localhost/eliza",
+  middlewares: [customMiddleware],
 });
 
 await server.start(3000);
@@ -95,19 +98,21 @@ contentSecurityPolicy: {
 // API Key Authentication
 const serverAuthToken = process.env.ELIZA_SERVER_AUTH_TOKEN;
 if (serverAuthToken) {
-  app.use('/api', apiKeyAuthMiddleware);
+  app.use("/api", apiKeyAuthMiddleware);
 }
 ```
 
 ### CORS Configuration
 
 ```typescript
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-KEY']
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-API-KEY"],
+  })
+);
 ```
 
 ## Agent Management
@@ -199,24 +204,24 @@ async deleteMessage(messageId: UUID): Promise<void>
 ### Agent-Specific Media
 
 ```typescript
-app.get('/media/uploads/agents/:agentId/:filename', (req, res) => {
+app.get("/media/uploads/agents/:agentId/:filename", (req, res) => {
   const agentId = req.params.agentId;
   const filename = req.params.filename;
-  
+
   // UUID validation
   if (!uuidRegex.test(agentId)) {
-    return res.status(400).json({ error: 'Invalid agent ID format' });
+    return res.status(400).json({ error: "Invalid agent ID format" });
   }
-  
+
   // Path traversal protection
   const sanitizedFilename = basename(filename);
   const agentUploadsPath = join(uploadsBasePath, agentId);
   const filePath = join(agentUploadsPath, sanitizedFilename);
-  
+
   if (!filePath.startsWith(agentUploadsPath)) {
-    return res.status(403).json({ error: 'Access denied' });
+    return res.status(403).json({ error: "Access denied" });
   }
-  
+
   res.sendFile(filePath);
 });
 ```
@@ -224,7 +229,7 @@ app.get('/media/uploads/agents/:agentId/:filename', (req, res) => {
 ### Channel-Specific Media
 
 ```typescript
-app.get('/media/uploads/channels/:channelId/:filename', (req, res) => {
+app.get("/media/uploads/channels/:channelId/:filename", (req, res) => {
   // Similar security validation as agent media
   // Serves channel-specific uploaded files
 });
@@ -239,7 +244,7 @@ export function createPluginRouteHandler(agents: Map<UUID, IAgentRuntime>): expr
   return (req, res, next) => {
     const agentIdFromQuery = req.query.agentId as UUID;
     const reqPath = req.path;
-    
+
     if (agentIdFromQuery && validateUuid(agentIdFromQuery)) {
       const runtime = agents.get(agentIdFromQuery);
       if (runtime) {
@@ -252,7 +257,7 @@ export function createPluginRouteHandler(agents: Map<UUID, IAgentRuntime>): expr
         }
       }
     }
-    
+
     // Global plugin route matching
     for (const [_, runtime] of agents) {
       for (const route of runtime.routes) {
@@ -262,7 +267,7 @@ export function createPluginRouteHandler(agents: Map<UUID, IAgentRuntime>): expr
         }
       }
     }
-    
+
     next();
   };
 }
@@ -274,13 +279,13 @@ export function createPluginRouteHandler(agents: Map<UUID, IAgentRuntime>): expr
 
 ```typescript
 export function isWebUIEnabled(): boolean {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === "production";
   const uiEnabledEnv = process.env.ELIZA_UI_ENABLE;
-  
-  if (uiEnabledEnv !== undefined && uiEnabledEnv.trim() !== '') {
+
+  if (uiEnabledEnv !== undefined && uiEnabledEnv.trim() !== "") {
     return parseBooleanFromText(uiEnabledEnv);
   }
-  
+
   // Default: enabled in dev, disabled in prod
   return !isProduction;
 }
@@ -290,7 +295,7 @@ export function isWebUIEnabled(): boolean {
 
 ```typescript
 if (this.isWebUIEnabled) {
-  const clientPath = path.resolve(__dirname, '../../cli/dist');
+  const clientPath = path.resolve(__dirname, "../../cli/dist");
   this.app.use(express.static(clientPath, staticOptions));
 }
 ```
@@ -306,12 +311,12 @@ private registerSignalHandlers(): void {
     for (const [id, agent] of this.agents.entries()) {
       await agent.stop();
     }
-    
+
     // Close database
     if (this.database) {
       await this.database.close();
     }
-    
+
     // Close server
     if (this.server) {
       this.server.close(() => {
@@ -319,7 +324,7 @@ private registerSignalHandlers(): void {
       });
     }
   };
-  
+
   process.on('SIGTERM', gracefulShutdown);
   process.on('SIGINT', gracefulShutdown);
 }
@@ -333,9 +338,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({
     success: false,
     error: {
-      message: err.message || 'Internal Server Error',
-      code: err.code || 500
-    }
+      message: err.message || "Internal Server Error",
+      code: err.code || 500,
+    },
   });
 });
 ```
@@ -366,26 +371,31 @@ EXPRESS_MAX_PAYLOAD=2mb
 ## Best Practices
 
 ### 1. Agent Registration
+
 - Always validate agent configuration before registration
 - Handle plugin registration errors gracefully
 - Ensure proper cleanup on agent removal
 
 ### 2. Security
+
 - Use HTTPS in production
 - Implement proper authentication for sensitive endpoints
 - Validate all user inputs and file paths
 - Use environment-specific CSP configurations
 
 ### 3. Performance
+
 - Implement proper rate limiting
 - Use connection pooling for database operations
 - Enable compression for static assets
 - Monitor memory usage with multiple agents
 
 ### 4. Monitoring
+
 - Log all critical operations
 - Track agent lifecycle events
 - Monitor database connection health
 - Implement health check endpoints
 
-The AgentServer provides a robust foundation for multi-agent communication and management, with comprehensive security, scalability, and extensibility features built-in.
+The AgentServer provides a robust foundation for multi-agent communication and management, with
+comprehensive security, scalability, and extensibility features built-in.

@@ -1,11 +1,14 @@
 ---
 title: Testing
-description: Comprehensive testing strategies and tools in ElizaOS with actual implementation details
+description:
+  Comprehensive testing strategies and tools in ElizaOS with actual implementation details
 ---
 
 # Testing
 
-ElizaOS provides a comprehensive testing framework that covers unit tests, integration tests, end-to-end tests, and shell script testing. The testing infrastructure ensures code quality, reliability, and maintainability across the entire platform.
+ElizaOS provides a comprehensive testing framework that covers unit tests, integration tests,
+end-to-end tests, and shell script testing. The testing infrastructure ensures code quality,
+reliability, and maintainability across the entire platform.
 
 ## Testing Architecture
 
@@ -24,18 +27,18 @@ export async function runAllTests(
   if (!options.skipBuild) {
     const componentResult = await runComponentTests(testPath, options, projectInfo);
     if (componentResult.failed) {
-      logger.error('Component tests failed. Continuing to e2e tests...');
+      logger.error("Component tests failed. Continuing to e2e tests...");
     }
   }
 
   // Run e2e tests
   const e2eResult = await runE2eTests(testPath, options, projectInfo);
   if (e2eResult.failed) {
-    logger.error('E2E tests failed.');
+    logger.error("E2E tests failed.");
     process.exit(1);
   }
 
-  logger.success('All tests passed successfully!');
+  logger.success("All tests passed successfully!");
   process.exit(0);
 }
 ```
@@ -71,14 +74,14 @@ export class TestHealthMonitor {
   getHealth(): HealthStatus {
     const checks = Array.from(this.healthChecks.entries()).map(([name, check]) => ({
       name,
-      status: check.isHealthy ? 'healthy' : 'unhealthy',
+      status: check.isHealthy ? "healthy" : "unhealthy",
       lastCheck: check.lastCheck,
-      error: check.error
+      error: check.error,
     }));
 
     return {
-      overall: checks.every(c => c.status === 'healthy') ? 'healthy' : 'unhealthy',
-      checks
+      overall: checks.every((c) => c.status === "healthy") ? "healthy" : "unhealthy",
+      checks,
     };
   }
 
@@ -90,7 +93,7 @@ export class TestHealthMonitor {
         check.error = null;
       } catch (error) {
         check.isHealthy = false;
-        check.error = error instanceof Error ? error.message : 'Unknown error';
+        check.error = error instanceof Error ? error.message : "Unknown error";
         check.lastCheck = new Date();
       }
     }
@@ -115,7 +118,7 @@ export class TimeoutManager {
   async withTimeout<T>(
     operation: () => Promise<T>,
     timeout: number = this.defaultTimeout,
-    timeoutMessage: string = 'Operation timed out'
+    timeoutMessage: string = "Operation timed out"
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
@@ -175,19 +178,20 @@ Test individual components in isolation:
 
 ```typescript
 // Example unit test
-import { describe, it, expect } from 'bun:test';
-import { validateProjectName } from '@/src/utils/validation';
+import { describe, expect, it } from "bun:test";
 
-describe('validateProjectName', () => {
-  it('should accept valid project names', () => {
-    const result = validateProjectName('my-project');
+import { validateProjectName } from "@/src/utils/validation";
+
+describe("validateProjectName", () => {
+  it("should accept valid project names", () => {
+    const result = validateProjectName("my-project");
     expect(result.isValid).toBe(true);
   });
 
-  it('should reject invalid characters', () => {
-    const result = validateProjectName('my project!');
+  it("should reject invalid characters", () => {
+    const result = validateProjectName("my project!");
     expect(result.isValid).toBe(false);
-    expect(result.error).toContain('invalid characters');
+    expect(result.error).toContain("invalid characters");
   });
 });
 ```
@@ -198,14 +202,15 @@ Test component interactions:
 
 ```typescript
 // Plugin integration test
-import { describe, it, expect } from 'bun:test';
-import { loadPlugin } from '@/src/utils/plugin-utils';
+import { describe, expect, it } from "bun:test";
 
-describe('Plugin Loading', () => {
-  it('should load and initialize plugin', async () => {
-    const plugin = await loadPlugin('@elizaos/plugin-openai');
+import { loadPlugin } from "@/src/utils/plugin-utils";
+
+describe("Plugin Loading", () => {
+  it("should load and initialize plugin", async () => {
+    const plugin = await loadPlugin("@elizaos/plugin-openai");
     expect(plugin).toBeDefined();
-    expect(plugin.name).toBe('plugin-openai');
+    expect(plugin.name).toBe("plugin-openai");
   });
 });
 ```
@@ -216,17 +221,18 @@ Test complete workflows:
 
 ```typescript
 // E2E test example
-import { describe, it, expect } from 'bun:test';
-import { startServer, createAgent } from './test-utils';
+import { describe, expect, it } from "bun:test";
 
-describe('Agent Chat E2E', () => {
-  it('should handle complete conversation', async () => {
+import { createAgent, startServer } from "./test-utils";
+
+describe("Agent Chat E2E", () => {
+  it("should handle complete conversation", async () => {
     const server = await startServer();
     const agent = await createAgent();
-    
-    const response = await agent.chat('Hello');
-    expect(response).toContain('Hi');
-    
+
+    const response = await agent.chat("Hello");
+    expect(response).toContain("Hi");
+
     await server.stop();
   });
 });
@@ -294,7 +300,7 @@ project/
 
 ```typescript
 // Automatic port allocation
-import { getAvailablePort } from '@/src/utils/port-utils';
+import { getAvailablePort } from "@/src/utils/port-utils";
 
 const port = await getAvailablePort(3000);
 // Returns available port starting from 3000
@@ -304,7 +310,7 @@ const port = await getAvailablePort(3000);
 
 ```typescript
 // Cleanup utilities
-import { cleanupProcesses } from '@/src/utils/test-utils';
+import { cleanupProcesses } from "@/src/utils/test-utils";
 
 afterAll(async () => {
   await cleanupProcesses();
@@ -315,7 +321,7 @@ afterAll(async () => {
 
 ```typescript
 // Configurable timeouts
-import { TimeoutManager } from '@/src/utils/testing/timeout-manager';
+import { TimeoutManager } from "@/src/utils/testing/timeout-manager";
 
 const manager = new TimeoutManager();
 await manager.runWithTimeout(async () => {
@@ -391,12 +397,12 @@ bats tests/bats/commands/start.bats
 
 ```typescript
 // test-setup.ts
-import { beforeAll, afterAll } from 'bun:test';
+import { afterAll, beforeAll } from "bun:test";
 
 beforeAll(() => {
   // Global setup
-  process.env.NODE_ENV = 'test';
-  process.env.QUIET_MODE = 'true';
+  process.env.NODE_ENV = "test";
+  process.env.QUIET_MODE = "true";
 });
 
 afterAll(() => {
@@ -420,9 +426,9 @@ afterAll(() => {
 ### Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 
-describe('Feature Name', () => {
+describe("Feature Name", () => {
   let testContext;
 
   beforeEach(() => {
@@ -435,14 +441,14 @@ describe('Feature Name', () => {
     testContext.cleanup();
   });
 
-  describe('Specific Functionality', () => {
-    it('should perform expected behavior', () => {
+  describe("Specific Functionality", () => {
+    it("should perform expected behavior", () => {
       // Arrange
       const input = prepareInput();
-      
+
       // Act
       const result = performAction(input);
-      
+
       // Assert
       expect(result).toBe(expectedValue);
     });
@@ -453,25 +459,23 @@ describe('Feature Name', () => {
 ### Async Testing
 
 ```typescript
-it('should handle async operations', async () => {
+it("should handle async operations", async () => {
   const promise = asyncOperation();
-  await expect(promise).resolves.toBe('success');
+  await expect(promise).resolves.toBe("success");
 });
 
-it('should handle errors', async () => {
+it("should handle errors", async () => {
   const promise = failingOperation();
-  await expect(promise).rejects.toThrow('Expected error');
+  await expect(promise).rejects.toThrow("Expected error");
 });
 ```
 
 ### Mocking
 
 ```typescript
-import { mock } from 'bun:test';
+import { mock } from "bun:test";
 
-const mockFetch = mock(() => 
-  Promise.resolve({ json: () => ({ data: 'mocked' }) })
-);
+const mockFetch = mock(() => Promise.resolve({ json: () => ({ data: "mocked" }) }));
 
 globalThis.fetch = mockFetch;
 ```
@@ -481,15 +485,15 @@ globalThis.fetch = mockFetch;
 ### Plugin Testing
 
 ```typescript
-describe('Plugin', () => {
-  it('should export required interface', () => {
+describe("Plugin", () => {
+  it("should export required interface", () => {
     expect(plugin.name).toBeDefined();
     expect(plugin.description).toBeDefined();
     expect(plugin.init).toBeInstanceOf(Function);
   });
 
-  it('should initialize correctly', async () => {
-    const config = { API_KEY: 'test-key' };
+  it("should initialize correctly", async () => {
+    const config = { API_KEY: "test-key" };
     const initialized = await plugin.init(config);
     expect(initialized).toBeDefined();
   });
@@ -499,15 +503,15 @@ describe('Plugin', () => {
 ### Character Testing
 
 ```typescript
-describe('Character', () => {
-  it('should have valid structure', () => {
+describe("Character", () => {
+  it("should have valid structure", () => {
     expect(character.name).toBeDefined();
     expect(character.plugins).toBeInstanceOf(Array);
     expect(character.settings).toBeInstanceOf(Object);
   });
 
-  it('should load from file', async () => {
-    const loaded = await loadCharacter('test.json');
+  it("should load from file", async () => {
+    const loaded = await loadCharacter("test.json");
     expect(loaded).toMatchObject({ name: expect.any(String) });
   });
 });
@@ -516,7 +520,7 @@ describe('Character', () => {
 ### API Testing
 
 ```typescript
-describe('API Endpoints', () => {
+describe("API Endpoints", () => {
   let server;
 
   beforeAll(async () => {
@@ -527,7 +531,7 @@ describe('API Endpoints', () => {
     await server.close();
   });
 
-  it('should respond to health check', async () => {
+  it("should respond to health check", async () => {
     const response = await fetch(`${server.url}/health`);
     expect(response.status).toBe(200);
   });
@@ -570,16 +574,16 @@ jobs:
 ### Load Testing
 
 ```typescript
-describe('Performance', () => {
-  it('should handle concurrent requests', async () => {
+describe("Performance", () => {
+  it("should handle concurrent requests", async () => {
     const requests = Array.from({ length: 100 }, () =>
-      fetch('/api/chat', { method: 'POST', body: 'test' })
+      fetch("/api/chat", { method: "POST", body: "test" })
     );
-    
+
     const start = Date.now();
     await Promise.all(requests);
     const duration = Date.now() - start;
-    
+
     expect(duration).toBeLessThan(5000);
   });
 });
@@ -588,16 +592,16 @@ describe('Performance', () => {
 ### Memory Testing
 
 ```typescript
-it('should not leak memory', async () => {
+it("should not leak memory", async () => {
   const initialMemory = process.memoryUsage().heapUsed;
-  
+
   for (let i = 0; i < 1000; i++) {
     await processLargeData();
   }
-  
+
   global.gc(); // Force garbage collection
   const finalMemory = process.memoryUsage().heapUsed;
-  
+
   expect(finalMemory).toBeLessThan(initialMemory * 1.5);
 });
 ```
@@ -633,14 +637,14 @@ bun test --grep "specific test name"
 
 ```typescript
 // Good test names
-it('should return user data when valid ID provided');
-it('should throw error when ID is invalid');
-it('should cache results for subsequent calls');
+it("should return user data when valid ID provided");
+it("should throw error when ID is invalid");
+it("should cache results for subsequent calls");
 
 // Poor test names
-it('test user');
-it('works');
-it('error case');
+it("test user");
+it("works");
+it("error case");
 ```
 
 ### Test Isolation
@@ -662,8 +666,8 @@ let sharedState; // Avoid!
 ```typescript
 // Be specific with assertions
 expect(result).toEqual({
-  status: 'success',
-  data: { id: 1, name: 'Test' }
+  status: "success",
+  data: { id: 1, name: "Test" },
 });
 
 // Not just
@@ -675,13 +679,13 @@ expect(result).toBeDefined();
 ```typescript
 // Use factories for test data
 const createTestUser = (overrides = {}) => ({
-  id: 'test-id',
-  name: 'Test User',
-  email: 'test@example.com',
-  ...overrides
+  id: "test-id",
+  name: "Test User",
+  email: "test@example.com",
+  ...overrides,
 });
 
-const user = createTestUser({ name: 'Custom Name' });
+const user = createTestUser({ name: "Custom Name" });
 ```
 
 ## Troubleshooting
@@ -689,15 +693,17 @@ const user = createTestUser({ name: 'Custom Name' });
 ### Common Issues
 
 1. **Port Already in Use**
+
    ```bash
    # Kill processes on port
    lsof -ti:3000 | xargs kill -9
    ```
 
 2. **Test Timeouts**
+
    ```typescript
    // Increase timeout for specific test
-   it('long running test', async () => {
+   it("long running test", async () => {
      // test code
    }, 60000); // 60 second timeout
    ```
@@ -705,7 +711,7 @@ const user = createTestUser({ name: 'Custom Name' });
 3. **Flaky Tests**
    ```typescript
    // Add retries for unstable tests
-   it.retry(3)('might fail occasionally', async () => {
+   it.retry(3)("might fail occasionally", async () => {
      // test code
    });
    ```

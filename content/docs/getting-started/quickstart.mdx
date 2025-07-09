@@ -7,8 +7,8 @@ description: Create your first agent in minutes
 
 Create your first AI agent in under 5 minutes with the ElizaOS CLI.
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
 
 ## Prerequisites
 
@@ -20,7 +20,8 @@ Before you begin, ensure you have:
 - **Windows Users**: WSL 2 required
 
 <Callout type="info">
-Complete installation instructions are available in the [Installation Guide](/docs/getting-started/installation).
+  Complete installation instructions are available in the [Installation
+  Guide](/docs/getting-started/installation).
 </Callout>
 
 ## Step 1: Install the CLI
@@ -50,6 +51,7 @@ elizaos create my-first-agent --type project
 ```
 
 The CLI will prompt you to choose:
+
 - **Project Type**: Select `project` (full ElizaOS application)
 - **Database**: Select `pglite` (lightweight, no setup required) or `postgres` (production-ready)
 - **Model Provider**: Select `openai` (most reliable for beginners)
@@ -110,6 +112,7 @@ elizaos start --build
 ```
 
 Your agent will start and be available at:
+
 - **Web Interface**: http://localhost:3000 (or your configured port)
 - **Console**: Interactive chat in your terminal
 - **API**: RESTful API endpoints for agent management
@@ -148,7 +151,11 @@ Now that your agent is running, you can:
   <Card title="Connect to Discord" href="/docs/core-concepts/communication" icon="🔗">
     Set up Discord integration for your agent
   </Card>
-  <Card title="Customize Personality" href="/docs/core-concepts/agent-development/character-definition" icon="🎭">
+  <Card
+    title="Customize Personality"
+    href="/docs/core-concepts/agent-development/character-definition"
+    icon="🎭"
+  >
     Define your agent's personality and behavior
   </Card>
   <Card title="Development Workflow" href="/docs/getting-started/configuration" icon="⚙️">
@@ -198,23 +205,27 @@ elizaos plugins remove @elizaos/plugin-discord
 ### Common Issues
 
 **Agent won't start?**
+
 - Verify your API key is correctly set: `elizaos env list`
 - Check that Node.js v23.3.0 (exact version) is installed: `node --version`
 - Ensure port 3000 is available or use `--port` option
 - Try building first: `elizaos start --build`
 
 **Agent not responding?**
+
 - Check the console for error messages
 - Verify your API key is valid and has credits
 - Try restarting with `elizaos start --configure`
 - Check database connection: `elizaos env test-db`
 
 **CLI or dependency issues?**
+
 - Update the CLI: `bun update -g @elizaos/cli`
 - Check for updates: `elizaos update --check`
 - Reinstall dependencies: `bun install`
 
 **Plugin problems?**
+
 - List installed plugins: `elizaos plugins installed-plugins`
 - Remove problematic plugin: `elizaos plugins remove <plugin-name>`
 - Check plugin compatibility with v1.2.0
@@ -223,7 +234,8 @@ elizaos plugins remove @elizaos/plugin-discord
 
 - **Environment Check**: `elizaos env check`
 - **CLI Help**: `elizaos --help` or `elizaos <command> --help`
-- **Troubleshooting Guide**: [Check our comprehensive guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
+- **Troubleshooting Guide**:
+  [Check our comprehensive guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
 - **Community**: [Join the Discord community](https://discord.gg/elizaos)
 - **FAQ**: [Review frequently asked questions](/docs/faq)
 
@@ -241,4 +253,6 @@ elizaos plugins remove @elizaos/plugin-discord
 
 ### Ready for More?
 
-Explore the [configuration guide](/docs/getting-started/configuration) to learn about advanced features, or dive into [plugin development](/docs/plugins/creating-plugins) to extend your agent's capabilities.
+Explore the [configuration guide](/docs/getting-started/configuration) to learn about advanced
+features, or dive into [plugin development](/docs/plugins/creating-plugins) to extend your agent's
+capabilities.

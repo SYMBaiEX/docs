@@ -5,7 +5,8 @@ description: File uploads and media handling capabilities
 
 # Media API
 
-The Media API provides comprehensive file upload and media handling capabilities for agents and channels. All media endpoints are prefixed with `/api/media`.
+The Media API provides comprehensive file upload and media handling capabilities for agents and
+channels. All media endpoints are prefixed with `/api/media`.
 
 ## Overview
 
@@ -41,19 +42,24 @@ POST /api/media/agents/:agentId/upload
 Uploads a media file for a specific agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Media file (max 10MB)
 
 **Supported file types:**
+
 - **Images**: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/bmp`
 - **Audio**: `audio/mpeg`, `audio/wav`, `audio/ogg`, `audio/m4a`, `audio/flac`
 - **Video**: `video/mp4`, `video/webm`, `video/avi`, `video/mov`
-- **Documents**: `application/pdf`, `text/plain`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- **Documents**: `application/pdf`, `text/plain`, `application/msword`,
+  `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -77,9 +83,11 @@ GET /api/media/agents/:agentId/files
 Lists all media files uploaded for a specific agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of files to return (default: 50)
 - `offset` (number) - Pagination offset (default: 0)
 - `type` (string) - Filter by file type (image, audio, video, document)
@@ -87,6 +95,7 @@ Lists all media files uploaded for a specific agent.
 - `sortOrder` (string) - Sort order (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -121,10 +130,12 @@ DELETE /api/media/agents/:agentId/files/:fileId
 Deletes a specific media file for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `fileId` (UUID) - File identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -140,13 +151,16 @@ POST /api/media/channels/:channelId/upload
 Uploads a media file to a specific channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Media file (max 10MB)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -162,6 +176,7 @@ Uploads a media file to a specific channel.
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/media/channels/{channelId}/upload \
   -F "file=@image.jpg" \
@@ -177,15 +192,18 @@ GET /api/media/channels/:channelId/files
 Lists all media files uploaded to a specific channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of files to return (default: 50)
 - `type` (string) - Filter by file type (image, audio, video, document)
 - `uploadedBy` (UUID) - Filter by uploader ID
 - `since` (string) - ISO timestamp for files uploaded since
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -221,10 +239,12 @@ DELETE /api/media/channels/:channelId/files/:fileId
 Deletes a specific media file from a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 - `fileId` (UUID) - File identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -240,9 +260,11 @@ GET /api/media/files/:fileId
 Gets detailed information about a specific file.
 
 **Parameters:**
+
 - `fileId` (UUID) - File identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -278,9 +300,11 @@ GET /api/media/files/:fileId/download
 Downloads a specific file.
 
 **Parameters:**
+
 - `fileId` (UUID) - File identifier
 
 **Response:**
+
 - Content-Type: Original file MIME type
 - Content-Disposition: `attachment; filename="original-filename.ext"`
 - Body: File content
@@ -294,13 +318,16 @@ GET /api/media/files/:fileId/thumbnail
 Gets a thumbnail for image and video files.
 
 **Parameters:**
+
 - `fileId` (UUID) - File identifier
 
 **Query Parameters:**
+
 - `size` (number) - Thumbnail size in pixels (default: 150, max: 500)
 - `format` (string) - Thumbnail format (jpeg, png, webp)
 
 **Response:**
+
 - Content-Type: `image/jpeg`, `image/png`, or `image/webp`
 - Body: Thumbnail image data
 
@@ -313,9 +340,11 @@ DELETE /api/media/files/:fileId
 Deletes a specific file permanently.
 
 **Parameters:**
+
 - `fileId` (UUID) - File identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -331,6 +360,7 @@ POST /api/media/process/optimize
 Optimizes an image file for web delivery.
 
 **Request Body:**
+
 ```json
 {
   "fileId": "file-uuid",
@@ -345,6 +375,7 @@ Optimizes an image file for web delivery.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -373,6 +404,7 @@ POST /api/media/process/video
 Processes a video file for web delivery.
 
 **Request Body:**
+
 ```json
 {
   "fileId": "file-uuid",
@@ -387,6 +419,7 @@ Processes a video file for web delivery.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -407,9 +440,11 @@ GET /api/media/process/status/:jobId
 Gets the status of a media processing job.
 
 **Parameters:**
+
 - `jobId` (UUID) - Processing job identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -440,11 +475,13 @@ GET /api/media/stats
 Gets overall media usage statistics.
 
 **Query Parameters:**
+
 - `period` (string) - Time period (day, week, month, year)
 - `agentId` (UUID) - Filter by specific agent
 - `channelId` (UUID) - Filter by specific channel
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -487,9 +524,11 @@ GET /api/media/agents/:agentId/stats
 Gets media usage statistics for a specific agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -523,17 +562,13 @@ GET /api/media/settings
 Gets current media storage configuration.
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "maxFileSize": 10485760,
-    "allowedTypes": [
-      "image/jpeg",
-      "image/png",
-      "audio/mpeg",
-      "video/mp4"
-    ],
+    "allowedTypes": ["image/jpeg", "image/png", "audio/mpeg", "video/mp4"],
     "storage": {
       "type": "local",
       "path": ".eliza/data/uploads",
@@ -558,23 +593,18 @@ PATCH /api/media/settings
 Updates media storage configuration.
 
 **Request Body:**
+
 ```json
 {
   "maxFileSize": 20971520,
-  "allowedTypes": [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "audio/mpeg",
-    "audio/wav",
-    "video/mp4"
-  ],
+  "allowedTypes": ["image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "video/mp4"],
   "quotaPerAgent": 2147483648,
   "quotaPerChannel": 10737418240
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -613,6 +643,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_ID` - Invalid UUID format
 - `NOT_FOUND` - File or resource not found
 - `INVALID_REQUEST` - Invalid request parameters
@@ -625,6 +656,7 @@ Common error codes:
 ## Rate Limiting
 
 Media endpoints are subject to rate limiting:
+
 - File uploads: 10 requests per minute per agent/channel
 - File downloads: 100 requests per minute
 - Processing operations: 5 requests per minute
@@ -678,20 +710,20 @@ curl http://localhost:3000/api/media/files/{fileId}/download \
 // Upload file with progress tracking
 const uploadFile = async (file, agentId) => {
   const formData = new FormData();
-  formData.append('file', file);
-  
+  formData.append("file", file);
+
   const response = await fetch(`/api/media/agents/${agentId}/upload`, {
-    method: 'POST',
+    method: "POST",
     body: formData,
     headers: {
-      'X-API-KEY': 'your-api-key'
-    }
+      "X-API-KEY": "your-api-key",
+    },
   });
-  
+
   const result = await response.json();
-  
+
   if (result.success) {
-    console.log('File uploaded:', result.data.url);
+    console.log("File uploaded:", result.data.url);
     return result.data;
   } else {
     throw new Error(result.error.message);
@@ -699,15 +731,15 @@ const uploadFile = async (file, agentId) => {
 };
 
 // Usage
-const fileInput = document.getElementById('file-input');
-fileInput.addEventListener('change', async (event) => {
+const fileInput = document.getElementById("file-input");
+fileInput.addEventListener("change", async (event) => {
   const file = event.target.files[0];
   if (file) {
     try {
-      const uploadResult = await uploadFile(file, 'agent-uuid');
-      console.log('Upload successful:', uploadResult);
+      const uploadResult = await uploadFile(file, "agent-uuid");
+      console.log("Upload successful:", uploadResult);
     } catch (error) {
-      console.error('Upload failed:', error.message);
+      console.error("Upload failed:", error.message);
     }
   }
 });
@@ -718,32 +750,33 @@ fileInput.addEventListener('change', async (event) => {
 ```javascript
 // Process uploaded image
 const processImage = async (fileId) => {
-  const response = await fetch('/api/media/process/optimize', {
-    method: 'POST',
+  const response = await fetch("/api/media/process/optimize", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': 'your-api-key'
+      "Content-Type": "application/json",
+      "X-API-KEY": "your-api-key",
     },
     body: JSON.stringify({
       fileId: fileId,
       options: {
         quality: 85,
-        format: 'jpeg',
+        format: "jpeg",
         maxWidth: 1920,
         maxHeight: 1080,
-        progressive: true
-      }
-    })
+        progressive: true,
+      },
+    }),
   });
-  
+
   const result = await response.json();
-  
+
   if (result.success) {
     const optimizedFile = result.data.optimizedFile;
-    console.log('Image optimized:', optimizedFile.url);
-    console.log('Size reduced by:', (1 - result.data.optimizedFile.compressionRatio) * 100 + '%');
+    console.log("Image optimized:", optimizedFile.url);
+    console.log("Size reduced by:", (1 - result.data.optimizedFile.compressionRatio) * 100 + "%");
   }
 };
 ```
 
-*Note: The Media API is designed to be extensible. Additional processing capabilities and storage backends can be added through plugins.*
+_Note: The Media API is designed to be extensible. Additional processing capabilities and storage
+backends can be added through plugins._

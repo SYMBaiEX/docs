@@ -5,11 +5,13 @@ description: Comprehensive technical overview of the ElizaOS architecture
 
 # ElizaOS Architecture Overview
 
-This document provides a comprehensive technical overview of the ElizaOS architecture, designed for developers who want to understand the system's internals and build upon it.
+This document provides a comprehensive technical overview of the ElizaOS architecture, designed for
+developers who want to understand the system's internals and build upon it.
 
 ## 🏗️ System Architecture
 
-ElizaOS follows a modular, plugin-based architecture that enables flexible AI agent creation and deployment across multiple platforms.
+ElizaOS follows a modular, plugin-based architecture that enables flexible AI agent creation and
+deployment across multiple platforms.
 
 ```mermaid
 graph TB
@@ -186,7 +188,7 @@ interface State {
    ```typescript
    interface Task {
      name: string;
-     schedule: CronExpression | 'periodic' | 'once';
+     schedule: CronExpression | "periodic" | "once";
      execute: (context: Context) => Promise<void>;
    }
    ```
@@ -219,7 +221,7 @@ ElizaOS abstracts platform-specific concepts into a unified model:
 interface Room {
   id: UUID; // Platform-agnostic ID
   platformId: string; // Platform-specific ID
-  type: 'discord' | 'twitter' | 'telegram' | 'direct';
+  type: "discord" | "twitter" | "telegram" | "direct";
   members: UUID[];
   metadata: Map<string, any>;
 }
@@ -460,15 +462,15 @@ abstract class BaseService implements IService {
 
 ```typescript
 // Event emitter pattern
-runtime.on('message:received', async (message) => {
+runtime.on("message:received", async (message) => {
   await processMessage(message);
 });
 
-runtime.on('memory:created', async (memory) => {
+runtime.on("memory:created", async (memory) => {
   await indexMemory(memory);
 });
 
-runtime.on('goal:completed', async (goal) => {
+runtime.on("goal:completed", async (goal) => {
   await evaluateGoal(goal);
 });
 ```

@@ -5,15 +5,17 @@ description: Complete configuration guide for ElizaOS v1.2.0
 
 # Configuration
 
-This guide covers comprehensive configuration for ElizaOS v1.2.0, including environment setup, development workflows, project types, and best practices.
+This guide covers comprehensive configuration for ElizaOS v1.2.0, including environment setup,
+development workflows, project types, and best practices.
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { Cards, Card } from 'fumadocs-ui/components/card';
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
 <Callout type="info">
-ElizaOS v1.2.0 introduces enhanced configuration management with interactive tools, improved environment handling, and streamlined development workflows.
+  ElizaOS v1.2.0 introduces enhanced configuration management with interactive tools, improved
+  environment handling, and streamlined development workflows.
 </Callout>
 
 ## Environment Configuration
@@ -102,63 +104,27 @@ ElizaOS v1.2.0 supports four distinct project types:
 
 ### Project Type Selection
 
-<Tabs items={['Project', 'Plugin', 'Agent', 'TEE']}>
+<Tabs items={["Project", "Plugin", "Agent", "TEE"]}>
   <Tab value="Project">
-    **Full ElizaOS Application**
-    
-    - Complete agent framework with all features
-    - Web interface and API endpoints
-    - Database integration and persistence
-    - Plugin system support
-    - Multi-platform connections
-    
-    ```bash
-    elizaos create my-agent --type project
-    ```
-    
-    **Use when**: Building a complete AI agent application
+    **Full ElizaOS Application** - Complete agent framework with all features - Web interface and
+    API endpoints - Database integration and persistence - Plugin system support - Multi-platform
+    connections ```bash elizaos create my-agent --type project ``` **Use when**: Building a complete
+    AI agent application
   </Tab>
   <Tab value="Plugin">
-    **Plugin Development**
-    
-    - Extend ElizaOS with custom functionality
-    - Reusable components for the community
-    - Action, provider, and evaluator development
-    - Testing and publishing support
-    
-    ```bash
-    elizaos create my-plugin --type plugin
-    ```
-    
-    **Use when**: Creating extensions for ElizaOS
+    **Plugin Development** - Extend ElizaOS with custom functionality - Reusable components for the
+    community - Action, provider, and evaluator development - Testing and publishing support ```bash
+    elizaos create my-plugin --type plugin ``` **Use when**: Creating extensions for ElizaOS
   </Tab>
   <Tab value="Agent">
-    **Agent Character Definition**
-    
-    - Standalone character JSON files
-    - Personality and behavior configuration
-    - Quick agent prototyping
-    - Simple deployment scenarios
-    
-    ```bash
-    elizaos create my-character --type agent
-    ```
-    
-    **Use when**: Defining agent personalities and behaviors
+    **Agent Character Definition** - Standalone character JSON files - Personality and behavior
+    configuration - Quick agent prototyping - Simple deployment scenarios ```bash elizaos create
+    my-character --type agent ``` **Use when**: Defining agent personalities and behaviors
   </Tab>
   <Tab value="TEE">
-    **Trusted Execution Environment**
-    
-    - Secure, decentralized agent deployment
-    - Blockchain integration support
-    - Privacy-preserving computations
-    - Distributed agent networks
-    
-    ```bash
-    elizaos create my-tee-agent --type tee
-    ```
-    
-    **Use when**: Deploying secure, decentralized agents
+    **Trusted Execution Environment** - Secure, decentralized agent deployment - Blockchain
+    integration support - Privacy-preserving computations - Distributed agent networks ```bash
+    elizaos create my-tee-agent --type tee ``` **Use when**: Deploying secure, decentralized agents
   </Tab>
 </Tabs>
 
@@ -166,46 +132,46 @@ ElizaOS v1.2.0 supports four distinct project types:
 
 Each project type has its own structure:
 
-<Tabs items={['Project Structure', 'Plugin Structure', 'Agent Structure']}>
+<Tabs items={["Project Structure", "Plugin Structure", "Agent Structure"]}>
   <Tab value="Project Structure">
     ```
-    my-agent/
-    ├── .env                    # Environment variables
-    ├── .env.example            # Environment template
-    ├── package.json            # Dependencies and scripts
-    ├── tsconfig.json          # TypeScript configuration
-    ├── characters/            # Agent character definitions
-    │   └── default.json       # Default character
-    ├── knowledge/             # Knowledge base files
-    ├── src/                   # Source code
-    │   ├── index.ts           # Main entry point
-    │   └── plugins/           # Custom plugins
-    ├── tests/                 # Test files
-    └── docs/                  # Documentation
+my-agent/
+├── .env                    # Environment variables
+├── .env.example           # Environment template
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript configuration
+├── characters/            # Agent character definitions
+│   └── default.json       # Default character
+├── knowledge/             # Knowledge base files
+├── src/                   # Source code
+│   ├── index.ts          # Main entry point
+│   └── plugins/          # Custom plugins
+├── tests/                 # Test files
+└── docs/                  # Documentation
     ```
   </Tab>
   <Tab value="Plugin Structure">
     ```
-    plugin-my-plugin/
-    ├── package.json           # Plugin metadata
-    ├── tsconfig.json          # TypeScript configuration
-    ├── src/
-    │   ├── index.ts           # Plugin entry point
-    │   ├── actions/           # Custom actions
-    │   ├── providers/         # Custom providers
-    │   └── evaluators/        # Custom evaluators
-    ├── tests/                 # Plugin tests
-    ├── examples/              # Usage examples
-    └── README.md              # Plugin documentation
+plugin-my-plugin/
+├── package.json           # Plugin metadata
+├── tsconfig.json          # TypeScript configuration
+├── src/
+│   ├── index.ts          # Plugin entry point
+│   ├── actions/          # Custom actions
+│   ├── providers/        # Custom providers
+│   └── evaluators/       # Custom evaluators
+├── tests/                 # Plugin tests
+├── examples/              # Usage examples
+└── README.md              # Plugin documentation
     ```
   </Tab>
   <Tab value="Agent Structure">
     ```
-    my-character/
-    ├── character.json         # Agent definition
-    ├── knowledge/             # Knowledge files
-    ├── prompts/               # Custom prompts
-    └── config/                # Configuration files
+my-character/
+├── character.json         # Agent definition
+├── knowledge/             # Knowledge files
+├── prompts/               # Custom prompts
+└── config/                # Configuration files
     ```
   </Tab>
 </Tabs>
@@ -214,75 +180,66 @@ Each project type has its own structure:
 
 ### Development Commands
 
-<Tabs items={['Development', 'Testing', 'Deployment']}>
+<Tabs items={["Development", "Testing", "Deployment"]}>
   <Tab value="Development">
     ```bash
-    # Start development server with hot-reload
-    elizaos dev
-    
-    # Start with specific character
-    elizaos dev --character characters/my-agent.json
-    
-    # Start with build
-    elizaos dev --build
-    
-    # Start on custom port
-    elizaos dev --port 8080
-    
-    # Reconfigure services
-    elizaos dev --configure
-    ```
-    
-    **Development Features:**
-    - Hot-reload on file changes
-    - Detailed logging and debugging
-    - Live configuration updates
-    - Real-time error reporting
+# Start development server with hot-reload
+elizaos dev
+
+# Start with specific character
+elizaos dev --character characters/my-agent.json
+
+# Start with build
+elizaos dev --build
+
+# Start on custom port
+elizaos dev --port 8080
+
+# Reconfigure services
+elizaos dev --configure
+```
+    **Development Features:** - Hot-reload on file changes - Detailed logging and debugging - Live
+    configuration updates - Real-time error reporting
   </Tab>
   <Tab value="Testing">
     ```bash
-    # Run all tests
-    elizaos test
-    
-    # Run component tests
-    elizaos test component
-    
-    # Run end-to-end tests
-    elizaos test e2e
-    
-    # Run tests with coverage
-    elizaos test --coverage
-    
-    # Run specific test file
-    elizaos test --file my-test.spec.ts
+# Run all tests
+elizaos test
+
+# Run component tests
+elizaos test component
+
+# Run end-to-end tests
+elizaos test e2e
+
+# Run tests with coverage
+elizaos test --coverage
+
+# Run specific test file
+elizaos test --file my-test.spec.ts
     ```
     
-    **Testing Features:**
-    - Unit and integration tests
-    - Component testing framework
-    - End-to-end testing support
-    - Coverage reporting
+    **Testing Features:** - Unit and
+    integration tests - Component testing framework - End-to-end testing support - Coverage
+    reporting
   </Tab>
   <Tab value="Deployment">
     ```bash
-    # Build for production
-    elizaos start --build
-    
-    # Start production server
-    elizaos start
-    
-    # Background process
-    nohup elizaos start > elizaos.log 2>&1 &
-    
-    # With environment file
-    elizaos start --env production
+# Build for production
+elizaos start --build
+
+# Start production server
+elizaos start
+
+# Background process
+nohup elizaos start > elizaos.log 2>&1 &
+
+# With environment file
+elizaos start --env production
     ```
     
-    **Deployment Features:**
-    - Production optimizations
-    - Environment-specific configs
-    - Background process support
-    - Logging and monitoring
+    **Deployment Features:** - Production optimizations -
+    Environment-specific configs - Background process support - Logging and monitoring
   </Tab>
 </Tabs>
 
@@ -326,46 +283,30 @@ elizaos update --packages
 
 ### Plugin Selection Guide
 
-<Tabs items={['Communication', 'AI Models', 'Blockchain', 'Utilities']}>
+<Tabs items={["Communication", "AI Models", "Blockchain", "Utilities"]}>
   <Tab value="Communication">
-    **Platform Integrations**
-    
-    - `@elizaos/plugin-discord` - Discord bot functionality
-    - `@elizaos/plugin-telegram` - Telegram integration
-    - `@elizaos/plugin-twitter` - Twitter/X platform
-    - `@elizaos/plugin-slack` - Slack workspace integration
-    
-    **When to use**: Connect your agent to messaging platforms
+    **Platform Integrations** - `@elizaos/plugin-discord` - Discord bot functionality -
+    `@elizaos/plugin-telegram` - Telegram integration - `@elizaos/plugin-twitter` - Twitter/X
+    platform - `@elizaos/plugin-slack` - Slack workspace integration **When to use**: Connect your
+    agent to messaging platforms
   </Tab>
   <Tab value="AI Models">
-    **Model Providers**
-    
-    - `@elizaos/plugin-openai` - OpenAI models (GPT-4, etc.)
-    - `@elizaos/plugin-anthropic` - Claude models
-    - `@elizaos/plugin-google` - Google AI models
-    - `@elizaos/plugin-ollama` - Local model support
-    
-    **When to use**: Integrate different AI model providers
+    **Model Providers** - `@elizaos/plugin-openai` - OpenAI models (GPT-4, etc.) -
+    `@elizaos/plugin-anthropic` - Claude models - `@elizaos/plugin-google` - Google AI models -
+    `@elizaos/plugin-ollama` - Local model support **When to use**: Integrate different AI model
+    providers
   </Tab>
   <Tab value="Blockchain">
-    **Blockchain Integrations**
-    
-    - `@elizaos/plugin-ethereum` - Ethereum blockchain
-    - `@elizaos/plugin-solana` - Solana blockchain
-    - `@elizaos/plugin-defi` - DeFi protocols
-    - `@elizaos/plugin-nft` - NFT marketplace integration
-    
-    **When to use**: Build blockchain-enabled agents
+    **Blockchain Integrations** - `@elizaos/plugin-ethereum` - Ethereum blockchain -
+    `@elizaos/plugin-solana` - Solana blockchain - `@elizaos/plugin-defi` - DeFi protocols -
+    `@elizaos/plugin-nft` - NFT marketplace integration **When to use**: Build blockchain-enabled
+    agents
   </Tab>
   <Tab value="Utilities">
-    **Utility Plugins**
-    
-    - `@elizaos/plugin-image` - Image generation and processing
-    - `@elizaos/plugin-search` - Web search capabilities
-    - `@elizaos/plugin-calendar` - Calendar and scheduling
-    - `@elizaos/plugin-files` - File system operations
-    
-    **When to use**: Add specific functionality to your agent
+    **Utility Plugins** - `@elizaos/plugin-image` - Image generation and processing -
+    `@elizaos/plugin-search` - Web search capabilities - `@elizaos/plugin-calendar` - Calendar and
+    scheduling - `@elizaos/plugin-files` - File system operations **When to use**: Add specific
+    functionality to your agent
   </Tab>
 </Tabs>
 
@@ -396,45 +337,45 @@ ELIZA_SERVER_AUTH_TOKEN=your_auth_token_here
 
 ### Platform Integration Variables
 
-<Tabs items={['Discord', 'Telegram', 'Twitter', 'Blockchain']}>
+<Tabs items={["Discord", "Telegram", "Twitter", "Blockchain"]}>
   <Tab value="Discord">
     ```bash
-    # Discord Configuration
-    DISCORD_APPLICATION_ID=your_discord_app_id
-    DISCORD_API_TOKEN=your_discord_bot_token
-    DISCORD_ENABLE_SLASH_COMMANDS=true
-    DISCORD_ENABLE_VOICE=false
-    ```
+# Discord Configuration
+DISCORD_APPLICATION_ID=your_discord_app_id
+DISCORD_API_TOKEN=your_discord_bot_token
+DISCORD_ENABLE_SLASH_COMMANDS=true
+DISCORD_ENABLE_VOICE=false
+```
   </Tab>
   <Tab value="Telegram">
     ```bash
-    # Telegram Configuration
-    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-    TELEGRAM_ENABLE_GROUPS=true
-    TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
-    ```
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_ENABLE_GROUPS=true
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
+```
   </Tab>
   <Tab value="Twitter">
     ```bash
-    # Twitter Configuration
-    TWITTER_USERNAME=your_twitter_username
-    TWITTER_PASSWORD=your_twitter_password
-    TWITTER_EMAIL=your_twitter_email
-    TWITTER_ENABLE_POST_GENERATION=true
-    TWITTER_POST_IMMEDIATELY=false
-    ```
+# Twitter Configuration
+TWITTER_USERNAME=your_twitter_username
+TWITTER_PASSWORD=your_twitter_password
+TWITTER_EMAIL=your_twitter_email
+TWITTER_ENABLE_POST_GENERATION=true
+TWITTER_POST_IMMEDIATELY=false
+```
   </Tab>
   <Tab value="Blockchain">
     ```bash
-    # Ethereum Configuration
-    EVM_PRIVATE_KEY=your_ethereum_private_key
-    EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key
-    EVM_CHAINS=mainnet,sepolia,base,arbitrum
-    
-    # Solana Configuration
-    SOLANA_PRIVATE_KEY=your_solana_private_key
-    SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-    ```
+# Ethereum Configuration
+EVM_PRIVATE_KEY=your_ethereum_private_key
+EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key
+EVM_CHAINS=mainnet,sepolia,base,arbitrum
+
+# Solana Configuration
+SOLANA_PRIVATE_KEY=your_solana_private_key
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+```
   </Tab>
 </Tabs>
 
@@ -609,119 +550,42 @@ elizaos publish
 
 ### Common Configuration Issues
 
-<Tabs items={['Environment', 'Database', 'Plugins', 'CLI']}>
+<Tabs items={["Environment", "Database", "Plugins", "CLI"]}>
   <Tab value="Environment">
-    **API Key Issues**
-    
-    ```bash
-    # Check if API key is loaded
-    elizaos env list | grep OPENAI_API_KEY
-    
-    # Test API key validity
-    elizaos env test-keys
-    
-    # Common issues:
-    # - Extra spaces or quotes in .env
-    # - Wrong API key format
-    # - Insufficient API credits
-    ```
-    
-    **Environment Loading Issues**
-    
-    ```bash
-    # Check .env file format
-    cat .env | head -5
-    
-    # Test environment loading
-    node -e "console.log(process.env.OPENAI_API_KEY)"
-    
-    # Reset environment
-    elizaos env reset
-    ```
+    **API Key Issues** ```bash # Check if API key is loaded elizaos env list | grep OPENAI_API_KEY #
+    Test API key validity elizaos env test-keys # Common issues: # - Extra spaces or quotes in .env
+    # - Wrong API key format # - Insufficient API credits ``` **Environment Loading Issues** ```bash
+    # Check .env file format cat .env | head -5 # Test environment loading node -e
+    "console.log(process.env.OPENAI_API_KEY)" # Reset environment elizaos env reset ```
   </Tab>
   <Tab value="Database">
-    **Database Connection Issues**
-    
-    ```bash
-    # Test database connection
-    elizaos env test-db
-    
-    # Check database URL
-    elizaos env list | grep POSTGRES_URL
-    
-    # Switch to PGLite for development
-    echo "PGLITE_DATA_DIR=./data/pglite" >> .env
-    ```
-    
-    **Database Migration Issues**
-    
-    ```bash
-    # Reset database
-    rm -rf ./data/pglite
-    
-    # Recreate database
-    elizaos start --build
-    ```
+    **Database Connection Issues** ```bash # Test database connection elizaos env test-db # Check
+    database URL elizaos env list | grep POSTGRES_URL # Switch to PGLite for development echo
+    "PGLITE_DATA_DIR=./data/pglite" >> .env ``` **Database Migration Issues** ```bash # Reset
+    database rm -rf ./data/pglite # Recreate database elizaos start --build ```
   </Tab>
   <Tab value="Plugins">
-    **Plugin Installation Issues**
-    
-    ```bash
-    # List installed plugins
-    elizaos plugins installed-plugins
-    
-    # Remove problematic plugin
-    elizaos plugins remove @elizaos/plugin-name
-    
-    # Update all plugins
-    elizaos update --packages
-    ```
-    
-    **Plugin Compatibility Issues**
-    
-    ```bash
-    # Check plugin versions
-    elizaos plugins list --all
-    
-    # Install specific version
-    elizaos plugins add @elizaos/plugin-name@1.2.0
-    ```
+    **Plugin Installation Issues** ```bash # List installed plugins elizaos plugins
+    installed-plugins # Remove problematic plugin elizaos plugins remove @elizaos/plugin-name #
+    Update all plugins elizaos update --packages ``` **Plugin Compatibility Issues** ```bash # Check
+    plugin versions elizaos plugins list --all # Install specific version elizaos plugins add
+    @elizaos/plugin-name@1.2.0 ```
   </Tab>
   <Tab value="CLI">
-    **CLI Issues**
-    
-    ```bash
-    # Update CLI
-    bun update -g @elizaos/cli
-    
-    # Check CLI version
-    elizaos --version
-    
-    # Get help
-    elizaos --help
-    ```
-    
-    **Permission Issues**
-    
-    ```bash
-    # Fix permissions
-    sudo chown -R $(whoami) ~/.bun
-    
-    # Or use sudo for global install
-    sudo bun install -g @elizaos/cli
-    ```
+    **CLI Issues** ```bash # Update CLI bun update -g @elizaos/cli # Check CLI version elizaos
+    --version # Get help elizaos --help ``` **Permission Issues** ```bash # Fix permissions sudo
+    chown -R $(whoami) ~/.bun # Or use sudo for global install sudo bun install -g @elizaos/cli ```
   </Tab>
 </Tabs>
 
 ### Getting Help
 
-<Callout type="info">
-Need help with configuration? Use these resources:
-</Callout>
+<Callout type="info">Need help with configuration? Use these resources:</Callout>
 
 - **CLI Help**: `elizaos --help` or `elizaos <command> --help`
 - **Environment Check**: `elizaos env check`
-- **Troubleshooting Guide**: [Full troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
+- **Troubleshooting Guide**:
+  [Full troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
 - **Community**: [Discord support](https://discord.gg/elizaos)
 - **GitHub**: [Report issues](https://github.com/elizaOS/eliza/issues)
 

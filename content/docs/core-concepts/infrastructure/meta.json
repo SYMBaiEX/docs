@@ -1,10 +1,4 @@
 {
   "title": "Infrastructure",
-  "pages": [
-    "index",
-    "cli-tools", 
-    "environment-config",
-    "testing",
-    "services"
-  ]
+  "pages": ["index", "cli-tools", "environment-config", "testing", "services"]
 }

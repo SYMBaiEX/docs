@@ -5,11 +5,14 @@ description: "Comprehensive guide to the ElizaOS monorepo structure and build sy
 
 # Project Structure
 
-ElizaOS is built as a comprehensive monorepo using modern development tools and practices. This document provides a detailed overview of the project structure, build system, and development workflow.
+ElizaOS is built as a comprehensive monorepo using modern development tools and practices. This
+document provides a detailed overview of the project structure, build system, and development
+workflow.
 
 ## Repository Overview
 
-The ElizaOS project is organized as a monorepo containing multiple packages that work together to provide a complete AI agent framework:
+The ElizaOS project is organized as a monorepo containing multiple packages that work together to
+provide a complete AI agent framework:
 
 ```
 eliza/
@@ -57,10 +60,7 @@ The project uses **Bun** (v1.2.15) as the primary package manager with workspace
 ```json
 {
   "packageManager": "bun@1.2.15",
-  "workspaces": [
-    "packages/*",
-    "plugin-specification/*"
-  ]
+  "workspaces": ["packages/*", "plugin-specification/*"]
 }
 ```
 
@@ -288,16 +288,16 @@ Each package uses `tsup` for building:
 
 ```typescript
 // tsup.config.ts
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ['src/index.ts'],
-  format: ['esm'],
+  entry: ["src/index.ts"],
+  format: ["esm"],
   dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
-  outDir: 'dist',
+  outDir: "dist",
 });
 ```
 
@@ -340,15 +340,15 @@ The development server uses file watching for hot reloading:
 
 ```javascript
 // scripts/dev-watch.js
-import { watch } from 'chokidar';
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
+import { watch } from "chokidar";
 
-const watcher = watch('packages/*/src/**/*.ts', {
+const watcher = watch("packages/*/src/**/*.ts", {
   ignored: /node_modules/,
-  persistent: true
+  persistent: true,
 });
 
-watcher.on('change', (path) => {
+watcher.on("change", (path) => {
   console.log(`File changed: ${path}`);
   // Rebuild and restart
 });
@@ -381,15 +381,15 @@ Plugin development follows a structured approach:
 The project uses barrel exports for clean imports:
 
 ```typescript
-// packages/core/src/index.ts
-export * from './runtime';
-export * from './types';
-export * from './actions';
-export * from './database';
 // ...
-
 // Usage
-import { AgentRuntime, type Plugin } from '@elizaos/core';
+import { AgentRuntime, type Plugin } from "@elizaos/core";
+
+// packages/core/src/index.ts
+export * from "./runtime";
+export * from "./types";
+export * from "./actions";
+export * from "./database";
 ```
 
 ### Type Organization
@@ -441,7 +441,7 @@ export default defineConfig({
   splitting: true,
   treeshake: true,
   minify: false,
-  external: ['@elizaos/core'],
+  external: ["@elizaos/core"],
 });
 ```
 
@@ -516,4 +516,6 @@ jobs:
 - **Garbage Collection**: Proper cleanup of resources
 - **Connection Pooling**: Database connections are pooled
 
-The ElizaOS project structure provides a solid foundation for building, testing, and deploying AI agents while maintaining code quality and developer productivity through modern tooling and best practices.
+The ElizaOS project structure provides a solid foundation for building, testing, and deploying AI
+agents while maintaining code quality and developer productivity through modern tooling and best
+practices.

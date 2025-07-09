@@ -1,11 +1,14 @@
 ---
 title: "Standalone vs Monorepo Development"
-description: "Comprehensive guide to choosing between standalone and monorepo development approaches for ElizaOS plugins and projects"
+description:
+  "Comprehensive guide to choosing between standalone and monorepo development approaches for
+  ElizaOS plugins and projects"
 ---
 
 # Standalone vs Monorepo Development
 
-This guide helps you choose the right development approach for your ElizaOS project and provides detailed workflows for both standalone and monorepo development.
+This guide helps you choose the right development approach for your ElizaOS project and provides
+detailed workflows for both standalone and monorepo development.
 
 ## Overview
 
@@ -14,27 +17,29 @@ ElizaOS supports two primary development approaches:
 1. **Standalone Development**: Creating independent projects that depend on ElizaOS packages
 2. **Monorepo Development**: Contributing to or extending the ElizaOS monorepo directly
 
-Each approach has distinct advantages and is suited for different types of projects and development scenarios.
+Each approach has distinct advantages and is suited for different types of projects and development
+scenarios.
 
 ## Quick Decision Matrix
 
-| Factor | Standalone | Monorepo |
-|--------|------------|----------|
-| **Learning Curve** | Lower | Higher |
-| **Setup Time** | Quick (5 minutes) | Longer (30+ minutes) |
-| **Deployment** | Simple | Complex |
-| **Customization** | Limited | Extensive |
-| **Plugin Development** | Ideal | Good |
-| **Core Contributions** | Not possible | Required |
-| **Team Size** | Small to Medium | Large |
-| **Build Time** | Fast | Slow |
-| **Dependency Management** | Simple | Complex |
+| Factor                    | Standalone        | Monorepo             |
+| ------------------------- | ----------------- | -------------------- |
+| **Learning Curve**        | Lower             | Higher               |
+| **Setup Time**            | Quick (5 minutes) | Longer (30+ minutes) |
+| **Deployment**            | Simple            | Complex              |
+| **Customization**         | Limited           | Extensive            |
+| **Plugin Development**    | Ideal             | Good                 |
+| **Core Contributions**    | Not possible      | Required             |
+| **Team Size**             | Small to Medium   | Large                |
+| **Build Time**            | Fast              | Slow                 |
+| **Dependency Management** | Simple            | Complex              |
 
 ## Standalone Development
 
 ### When to Choose Standalone
 
 **✅ Choose Standalone When:**
+
 - Building a single plugin or bot
 - Rapid prototyping or proof of concept
 - Small team or solo development
@@ -44,6 +49,7 @@ Each approach has distinct advantages and is suited for different types of proje
 - Need quick iteration cycles
 
 **❌ Avoid Standalone When:**
+
 - Contributing to ElizaOS core
 - Building multiple interconnected plugins
 - Need to modify core functionality
@@ -120,36 +126,40 @@ my-plugin/
 ### Standalone Development Workflow
 
 1. **Development**
+
    ```bash
    # Hot reload development
    elizaos dev
-   
+
    # Manual start (rebuild required after changes)
    elizaos start
    ```
 
 2. **Testing**
+
    ```bash
    # Run all tests
    elizaos test
-   
+
    # Component tests only
    elizaos test component
-   
+
    # E2E tests only
    elizaos test e2e
    ```
 
 3. **Building**
+
    ```bash
    bun run build
    ```
 
 4. **Publishing**
+
    ```bash
    # Initial publish
    elizaos publish
-   
+
    # Updates
    npm version patch
    npm publish
@@ -178,6 +188,7 @@ my-plugin/
 ### When to Choose Monorepo
 
 **✅ Choose Monorepo When:**
+
 - Contributing to ElizaOS core
 - Building multiple interconnected plugins
 - Need to modify core functionality
@@ -187,6 +198,7 @@ my-plugin/
 - Need cutting-edge features
 
 **❌ Avoid Monorepo When:**
+
 - Building simple plugins
 - Quick prototyping
 - Small team or solo development
@@ -254,10 +266,11 @@ eliza/
 ### Monorepo Development Workflow
 
 1. **Development Environment**
+
    ```bash
    # Start full development stack
    bun run dev
-   
+
    # Start specific services
    bun run start:app      # Desktop app
    bun run start:client   # Web client
@@ -265,10 +278,11 @@ eliza/
    ```
 
 2. **Building**
+
    ```bash
    # Build all packages
    bun run build
-   
+
    # Build specific packages
    bun run build:core
    bun run build:cli
@@ -276,10 +290,11 @@ eliza/
    ```
 
 3. **Testing**
+
    ```bash
    # Run all tests
    bun test
-   
+
    # Test specific packages
    bun run test:core
    bun run test:client
@@ -287,11 +302,12 @@ eliza/
    ```
 
 4. **Package Management**
+
    ```bash
    # Add dependencies to specific package
    cd packages/my-plugin
    bun add some-package
-   
+
    # Add workspace dependency
    bun add @elizaos/core@workspace:*
    ```
@@ -379,6 +395,7 @@ git push origin feature/my-feature
 ### Standalone Best Practices
 
 1. **Pin Dependencies**: Use exact versions for stability
+
    ```json
    {
      "dependencies": {
@@ -395,6 +412,7 @@ git push origin feature/my-feature
 ### Monorepo Best Practices
 
 1. **Workspace Dependencies**: Use workspace protocol
+
    ```json
    {
      "dependencies": {
@@ -413,11 +431,13 @@ git push origin feature/my-feature
 ### Build Performance
 
 **Standalone:**
+
 - Fast incremental builds
 - Only your code compilation
 - Quick development cycles
 
 **Monorepo:**
+
 - Slower initial builds
 - Turbo caching optimization
 - Parallel build execution
@@ -425,11 +445,13 @@ git push origin feature/my-feature
 ### Runtime Performance
 
 **Standalone:**
+
 - Smaller bundle sizes
 - Faster startup time
 - Efficient resource usage
 
 **Monorepo:**
+
 - Larger bundle sizes
 - More features available
 - Potential memory overhead
@@ -439,12 +461,14 @@ git push origin feature/my-feature
 ### Standalone Examples
 
 1. **Simple Plugin**
+
    ```bash
    elizaos create -t plugin weather
    # Integrates with weather API
    ```
 
 2. **Discord Bot**
+
    ```bash
    elizaos create -t project discord-bot
    # Standalone Discord integration
@@ -459,6 +483,7 @@ git push origin feature/my-feature
 ### Monorepo Examples
 
 1. **Core Feature Addition**
+
    ```bash
    # Add new core functionality
    cd packages/core
@@ -466,6 +491,7 @@ git push origin feature/my-feature
    ```
 
 2. **Multi-Plugin System**
+
    ```bash
    # Create interconnected plugins
    packages/plugin-auth/
@@ -519,7 +545,8 @@ Choose your development approach based on:
 - **Customization requirements**
 - **Long-term maintenance plans**
 
-Both approaches are valid and supported. Start with the approach that best fits your immediate needs, knowing that migration is possible as your project evolves.
+Both approaches are valid and supported. Start with the approach that best fits your immediate
+needs, knowing that migration is possible as your project evolves.
 
 ## Resources
 

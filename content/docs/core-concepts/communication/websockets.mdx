@@ -5,13 +5,17 @@ description: "Real-time communication with Socket.IO in ElizaOS"
 
 # WebSocket Communication
 
-ElizaOS provides real-time communication capabilities through WebSocket connections, enabling instant message delivery, channel management, and live system monitoring. The WebSocket implementation is built on Socket.IO and integrated with the central message bus through the `SocketIORouter` class.
+ElizaOS provides real-time communication capabilities through WebSocket connections, enabling
+instant message delivery, channel management, and live system monitoring. The WebSocket
+implementation is built on Socket.IO and integrated with the central message bus through the
+`SocketIORouter` class.
 
 ## Architecture
 
 ### SocketIORouter Class
 
-The `SocketIORouter` class manages WebSocket connections and routes messages between clients and the central message bus:
+The `SocketIORouter` class manages WebSocket connections and routes messages between clients and the
+central message bus:
 
 ```typescript
 export class SocketIORouter {
@@ -27,7 +31,7 @@ export class SocketIORouter {
 The WebSocket server is automatically initialized when the AgentServer starts:
 
 ```typescript
-import { AgentServer } from '@elizaos/server';
+import { AgentServer } from "@elizaos/server";
 
 const server = new AgentServer();
 await server.initialize();
@@ -42,8 +46,8 @@ The server configuration includes:
 ```typescript
 const io = new SocketIOServer(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
+    origin: "*",
+    methods: ["GET", "POST"],
   },
 });
 ```
@@ -54,17 +58,17 @@ const io = new SocketIOServer(server, {
 
 ```javascript
 // Client-side connection
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const socket = io('http://localhost:3000');
+const socket = io("http://localhost:3000");
 
-socket.on('connect', () => {
-  console.log('Connected to elizaOS WebSocket server');
-  console.log('Socket ID:', socket.id);
+socket.on("connect", () => {
+  console.log("Connected to elizaOS WebSocket server");
+  console.log("Socket ID:", socket.id);
 });
 
-socket.on('connection_established', (data) => {
-  console.log('Server confirmed connection:', data);
+socket.on("connection_established", (data) => {
+  console.log("Server confirmed connection:", data);
   // Output: { message: 'Connected to Eliza Socket.IO server', socketId: 'abc123' }
 });
 ```
@@ -72,11 +76,11 @@ socket.on('connection_established', (data) => {
 ### Disconnection Handling
 
 ```javascript
-socket.on('disconnect', (reason) => {
-  console.log('Disconnected:', reason);
-  
+socket.on("disconnect", (reason) => {
+  console.log("Disconnected:", reason);
+
   // Handle different disconnect reasons
-  if (reason === 'io server disconnect') {
+  if (reason === "io server disconnect") {
     // Server initiated disconnect, reconnect manually
     socket.connect();
   }
@@ -90,8 +94,8 @@ The WebSocket server supports several message types defined in `SOCKET_MESSAGE_T
 
 ```typescript
 enum SOCKET_MESSAGE_TYPE {
-  ROOM_JOINING = 'room_joining',
-  SEND_MESSAGE = 'send_message'
+  ROOM_JOINING = "room_joining",
+  SEND_MESSAGE = "send_message",
 }
 ```
 
@@ -116,26 +120,26 @@ The SocketIORouter handles these core events:
 ```javascript
 // Join a channel/room
 socket.emit(SOCKET_MESSAGE_TYPE.ROOM_JOINING, {
-  channelId: '550e8400-e29b-41d4-a716-446655440000',
-  agentId: '550e8400-e29b-41d4-a716-446655440001',  // Optional
-  entityId: '550e8400-e29b-41d4-a716-446655440002',
-  serverId: '00000000-0000-0000-0000-000000000000',
+  channelId: "550e8400-e29b-41d4-a716-446655440000",
+  agentId: "550e8400-e29b-41d4-a716-446655440001", // Optional
+  entityId: "550e8400-e29b-41d4-a716-446655440002",
+  serverId: "00000000-0000-0000-0000-000000000000",
   metadata: {
     isDm: false,
-    channelType: 'GROUP'
-  }
+    channelType: "GROUP",
+  },
 });
 
 // Alternative: Use roomId for backward compatibility
 socket.emit(SOCKET_MESSAGE_TYPE.ROOM_JOINING, {
-  roomId: '550e8400-e29b-41d4-a716-446655440000',  // Same as channelId
-  entityId: '550e8400-e29b-41d4-a716-446655440002',
-  serverId: '00000000-0000-0000-0000-000000000000'
+  roomId: "550e8400-e29b-41d4-a716-446655440000", // Same as channelId
+  entityId: "550e8400-e29b-41d4-a716-446655440002",
+  serverId: "00000000-0000-0000-0000-000000000000",
 });
 
 // Listen for join confirmation
-socket.on('channel_joined', (data) => {
-  console.log('Successfully joined channel:', data);
+socket.on("channel_joined", (data) => {
+  console.log("Successfully joined channel:", data);
   // {
   //   message: 'Socket abc123 successfully joined channel 550e8400-e29b-41d4-a716-446655440000',
   //   channelId: '550e8400-e29b-41d4-a716-446655440000',
@@ -145,14 +149,15 @@ socket.on('channel_joined', (data) => {
 });
 
 // Backward compatibility event
-socket.on('room_joined', (data) => {
-  console.log('Room joined (legacy):', data);
+socket.on("room_joined", (data) => {
+  console.log("Room joined (legacy):", data);
 });
 ```
 
 ### ENTITY_JOINED Event
 
-When joining a channel with `entityId`, the server emits an `ENTITY_JOINED` event for world/entity creation:
+When joining a channel with `entityId`, the server emits an `ENTITY_JOINED` event for world/entity
+creation:
 
 ```javascript
 // Server-side event emission (automatic)
@@ -164,9 +169,9 @@ runtime.emitEvent(EventType.ENTITY_JOINED, {
   metadata: {
     type: isDm ? ChannelType.DM : ChannelType.GROUP,
     isDm,
-    ...metadata
+    ...metadata,
   },
-  source: 'socketio'
+  source: "socketio",
 });
 ```
 
@@ -174,10 +179,10 @@ runtime.emitEvent(EventType.ENTITY_JOINED, {
 
 ```typescript
 enum ChannelType {
-  DM = 'DM',
-  GROUP = 'GROUP',
-  VOICE_DM = 'VOICE_DM',
-  FEED = 'FEED'
+  DM = "DM",
+  GROUP = "GROUP",
+  VOICE_DM = "VOICE_DM",
+  FEED = "FEED",
 }
 ```
 
@@ -188,34 +193,34 @@ enum ChannelType {
 ```javascript
 // Send a message to a channel
 socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
-  channelId: '550e8400-e29b-41d4-a716-446655440000',
-  serverId: '00000000-0000-0000-0000-000000000000',
-  senderId: '550e8400-e29b-41d4-a716-446655440001',
-  senderName: 'John Doe',
-  message: 'Hello, how can you help me?',
-  messageId: 'client-msg-123', // Client-generated ID for tracking
-  source: 'web_client',
+  channelId: "550e8400-e29b-41d4-a716-446655440000",
+  serverId: "00000000-0000-0000-0000-000000000000",
+  senderId: "550e8400-e29b-41d4-a716-446655440001",
+  senderName: "John Doe",
+  message: "Hello, how can you help me?",
+  messageId: "client-msg-123", // Client-generated ID for tracking
+  source: "web_client",
   metadata: {
     isDm: false,
-    channelType: 'GROUP',
-    targetUserId: '550e8400-e29b-41d4-a716-446655440002' // For DM channels
+    channelType: "GROUP",
+    targetUserId: "550e8400-e29b-41d4-a716-446655440002", // For DM channels
   },
   attachments: [
     {
-      url: 'https://example.com/image.jpg',
-      contentType: 'image/jpeg',
-      title: 'Screenshot'
-    }
-  ]
+      url: "https://example.com/image.jpg",
+      contentType: "image/jpeg",
+      title: "Screenshot",
+    },
+  ],
 });
 
 // Alternative: Use roomId for backward compatibility
 socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
-  roomId: '550e8400-e29b-41d4-a716-446655440000',
-  serverId: '00000000-0000-0000-0000-000000000000',
-  senderId: '550e8400-e29b-41d4-a716-446655440001',
-  senderName: 'John Doe',
-  message: 'Hello, how can you help me?'
+  roomId: "550e8400-e29b-41d4-a716-446655440000",
+  serverId: "00000000-0000-0000-0000-000000000000",
+  senderId: "550e8400-e29b-41d4-a716-446655440001",
+  senderName: "John Doe",
+  message: "Hello, how can you help me?",
 });
 ```
 
@@ -226,19 +231,20 @@ If a channel doesn't exist, the server automatically creates it:
 ```javascript
 // For DM channels
 socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
-  channelId: 'new-dm-channel-id',
-  serverId: '00000000-0000-0000-0000-000000000000',
-  senderId: 'user-id-1',
-  message: 'Hello in new DM!',
+  channelId: "new-dm-channel-id",
+  serverId: "00000000-0000-0000-0000-000000000000",
+  senderId: "user-id-1",
+  message: "Hello in new DM!",
   metadata: {
     isDm: true,
-    channelType: 'DM',
-    targetUserId: 'user-id-2'  // Second participant
-  }
+    channelType: "DM",
+    targetUserId: "user-id-2", // Second participant
+  },
 });
 ```
 
 The server will:
+
 1. Check if channel exists
 2. Create channel if it doesn't exist
 3. Set up participants (for DM channels)
@@ -250,8 +256,8 @@ The server will:
 
 ```javascript
 // Listen for message acknowledgment
-socket.on('messageAck', (data) => {
-  console.log('Message acknowledged:', data);
+socket.on("messageAck", (data) => {
+  console.log("Message acknowledged:", data);
   // {
   //   clientMessageId: 'client-msg-123',
   //   messageId: '550e8400-e29b-41d4-a716-446655440002',
@@ -265,8 +271,8 @@ socket.on('messageAck', (data) => {
 
 ```javascript
 // Listen for incoming messages
-socket.on('messageBroadcast', (message) => {
-  console.log('New message received:', message);
+socket.on("messageBroadcast", (message) => {
+  console.log("New message received:", message);
   // {
   //   id: '550e8400-e29b-41d4-a716-446655440002',
   //   senderId: '550e8400-e29b-41d4-a716-446655440001',
@@ -285,8 +291,8 @@ socket.on('messageBroadcast', (message) => {
 });
 
 // Listen for message completion
-socket.on('messageComplete', (data) => {
-  console.log('Message processing complete:', data);
+socket.on("messageComplete", (data) => {
+  console.log("Message processing complete:", data);
   // {
   //   channelId: '550e8400-e29b-41d4-a716-446655440000',
   //   serverId: '00000000-0000-0000-0000-000000000000'
@@ -300,12 +306,12 @@ For custom message types, use the generic `message` event:
 
 ```javascript
 // Send generic message
-socket.emit('message', {
+socket.emit("message", {
   type: SOCKET_MESSAGE_TYPE.SEND_MESSAGE,
   payload: {
-    channelId: '550e8400-e29b-41d4-a716-446655440000',
-    message: 'Hello from generic handler'
-  }
+    channelId: "550e8400-e29b-41d4-a716-446655440000",
+    message: "Hello from generic handler",
+  },
 });
 
 // The server will route this to the appropriate handler
@@ -317,8 +323,8 @@ socket.emit('message', {
 
 ```javascript
 // Listen for message errors
-socket.on('messageError', (error) => {
-  console.error('Message error:', error);
+socket.on("messageError", (error) => {
+  console.error("Message error:", error);
   // { error: 'channelId is required for joining.' }
 });
 ```
@@ -326,12 +332,12 @@ socket.on('messageError', (error) => {
 ### Socket Errors
 
 ```javascript
-socket.on('error', (error) => {
-  console.error('Socket error:', error);
+socket.on("error", (error) => {
+  console.error("Socket error:", error);
 });
 
-socket.on('connect_error', (error) => {
-  console.error('Connection error:', error);
+socket.on("connect_error", (error) => {
+  console.error("Connection error:", error);
 });
 ```
 
@@ -343,10 +349,10 @@ The WebSocket server provides real-time log streaming capabilities:
 
 ```javascript
 // Subscribe to log stream
-socket.emit('subscribe_logs');
+socket.emit("subscribe_logs");
 
-socket.on('log_subscription_confirmed', (data) => {
-  console.log('Log subscription:', data);
+socket.on("log_subscription_confirmed", (data) => {
+  console.log("Log subscription:", data);
   // { subscribed: true, message: 'Successfully subscribed to log stream' }
 });
 ```
@@ -355,8 +361,8 @@ socket.on('log_subscription_confirmed', (data) => {
 
 ```javascript
 // Listen for log entries
-socket.on('log_stream', (logData) => {
-  console.log('Log entry:', logData);
+socket.on("log_stream", (logData) => {
+  console.log("Log entry:", logData);
   // {
   //   type: 'log_entry',
   //   payload: {
@@ -373,13 +379,13 @@ socket.on('log_stream', (logData) => {
 
 ```javascript
 // Update log filters
-socket.emit('update_log_filters', {
-  agentName: 'Alice',
-  level: 'info'
+socket.emit("update_log_filters", {
+  agentName: "Alice",
+  level: "info",
 });
 
-socket.on('log_filters_updated', (response) => {
-  console.log('Log filters updated:', response);
+socket.on("log_filters_updated", (response) => {
+  console.log("Log filters updated:", response);
   // { success: true, filters: { agentName: 'Alice', level: 'info' } }
 });
 ```
@@ -388,10 +394,10 @@ socket.on('log_filters_updated', (response) => {
 
 ```javascript
 // Unsubscribe from log stream
-socket.emit('unsubscribe_logs');
+socket.emit("unsubscribe_logs");
 
-socket.on('log_subscription_confirmed', (data) => {
-  console.log('Log unsubscription:', data);
+socket.on("log_subscription_confirmed", (data) => {
+  console.log("Log unsubscription:", data);
   // { subscribed: false, message: 'Successfully unsubscribed from log stream' }
 });
 ```
@@ -403,14 +409,14 @@ The WebSocket server automatically creates channels when messages are sent to no
 ```javascript
 // Send message to non-existent channel
 socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
-  channelId: 'new-channel-id',
-  serverId: '00000000-0000-0000-0000-000000000000',
-  senderId: 'user-id',
-  message: 'Hello in new channel',
+  channelId: "new-channel-id",
+  serverId: "00000000-0000-0000-0000-000000000000",
+  senderId: "user-id",
+  message: "Hello in new channel",
   metadata: {
     isDm: true,
-    targetUserId: 'another-user-id'
-  }
+    targetUserId: "another-user-id",
+  },
 });
 
 // Server will:
@@ -444,24 +450,24 @@ class WebSocketManager {
     this.socket = io(serverUrl);
     this.setupEventHandlers();
   }
-  
+
   setupEventHandlers() {
-    this.socket.on('connect', () => {
-      console.log('Connected to elizaOS server');
+    this.socket.on("connect", () => {
+      console.log("Connected to elizaOS server");
       this.rejoinChannels();
     });
-    
-    this.socket.on('disconnect', (reason) => {
-      console.log('Disconnected:', reason);
-      if (reason === 'io server disconnect') {
+
+    this.socket.on("disconnect", (reason) => {
+      console.log("Disconnected:", reason);
+      if (reason === "io server disconnect") {
         this.socket.connect();
       }
     });
   }
-  
+
   rejoinChannels() {
     // Rejoin all channels after reconnection
-    this.joinedChannels.forEach(channel => {
+    this.joinedChannels.forEach((channel) => {
       this.joinChannel(channel);
     });
   }
@@ -476,28 +482,28 @@ class MessageQueue {
     this.socket = socket;
     this.pendingMessages = new Map();
     this.messageTimeout = 30000; // 30 seconds
-    
-    this.socket.on('messageAck', (ack) => {
+
+    this.socket.on("messageAck", (ack) => {
       this.handleAcknowledgment(ack);
     });
   }
-  
+
   sendMessage(message) {
     const messageId = this.generateMessageId();
     message.messageId = messageId;
-    
+
     // Store message for timeout handling
     this.pendingMessages.set(messageId, {
       message,
       timestamp: Date.now(),
       timeout: setTimeout(() => {
         this.handleTimeout(messageId);
-      }, this.messageTimeout)
+      }, this.messageTimeout),
     });
-    
+
     this.socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, message);
   }
-  
+
   handleAcknowledgment(ack) {
     const pending = this.pendingMessages.get(ack.clientMessageId);
     if (pending) {
@@ -505,11 +511,11 @@ class MessageQueue {
       this.pendingMessages.delete(ack.clientMessageId);
     }
   }
-  
+
   handleTimeout(messageId) {
     const pending = this.pendingMessages.get(messageId);
     if (pending) {
-      console.warn('Message timeout:', messageId);
+      console.warn("Message timeout:", messageId);
       this.pendingMessages.delete(messageId);
       // Implement retry logic if needed
     }
@@ -526,19 +532,19 @@ class TypingIndicator {
     this.typingTimeout = null;
     this.typingDelay = 3000; // 3 seconds
   }
-  
+
   startTyping(channelId) {
-    this.socket.emit('typing_start', { channelId });
-    
+    this.socket.emit("typing_start", { channelId });
+
     // Auto-stop typing after delay
     clearTimeout(this.typingTimeout);
     this.typingTimeout = setTimeout(() => {
       this.stopTyping(channelId);
     }, this.typingDelay);
   }
-  
+
   stopTyping(channelId) {
-    this.socket.emit('typing_stop', { channelId });
+    this.socket.emit("typing_stop", { channelId });
     clearTimeout(this.typingTimeout);
   }
 }
@@ -552,11 +558,11 @@ class TypingIndicator {
 // Server-side connection validation
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  
+
   if (!validateToken(token)) {
-    return next(new Error('Authentication failed'));
+    return next(new Error("Authentication failed"));
   }
-  
+
   next();
 });
 ```
@@ -571,19 +577,20 @@ class RateLimiter {
     this.maxRequests = maxRequests;
     this.windowMs = windowMs;
   }
-  
+
   canMakeRequest() {
     const now = Date.now();
-    this.requests = this.requests.filter(time => now - time < this.windowMs);
-    
+    this.requests = this.requests.filter((time) => now - time < this.windowMs);
+
     if (this.requests.length >= this.maxRequests) {
       return false;
     }
-    
+
     this.requests.push(now);
     return true;
   }
 }
 ```
 
-The WebSocket implementation in elizaOS provides a robust foundation for real-time communication, with automatic channel management, message queuing, and comprehensive error handling.
+The WebSocket implementation in elizaOS provides a robust foundation for real-time communication,
+with automatic channel management, message queuing, and comprehensive error handling.

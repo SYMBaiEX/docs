@@ -5,7 +5,9 @@ description: "Detailed guide to package organization, dependencies, and architec
 
 # Package Organization
 
-ElizaOS follows a well-structured package organization that promotes modularity, reusability, and maintainability. This document provides a comprehensive overview of how packages are organized, their dependencies, and the architectural patterns used throughout the system.
+ElizaOS follows a well-structured package organization that promotes modularity, reusability, and
+maintainability. This document provides a comprehensive overview of how packages are organized,
+their dependencies, and the architectural patterns used throughout the system.
 
 ## Package Hierarchy
 
@@ -72,10 +74,10 @@ graph TD
     A --> F[@elizaos/plugin-sql]
     A --> G[@elizaos/plugin-bootstrap]
     A --> H[@elizaos/plugin-starter]
-    
+
     B --> I[@elizaos/create-eliza]
     C --> J[@elizaos/docs]
-    
+
     F --> K[Database Providers]
     G --> L[Bootstrap Services]
 ```
@@ -165,12 +167,12 @@ All packages use a standard entry point pattern:
 
 ```typescript
 // packages/{package}/src/index.ts
-export * from './types';
-export * from './main-feature';
-export * from './utilities';
+export * from "./types";
+export * from "./main-feature";
+export * from "./utilities";
 
 // Default export for the main functionality
-export { default } from './main-feature';
+export { default } from "./main-feature";
 ```
 
 ### Type Organization
@@ -179,13 +181,13 @@ Types are organized by domain and exported through barrel exports:
 
 ```typescript
 // packages/core/src/types/index.ts
-export * from './agent';
-export * from './components';
-export * from './database';
-export * from './events';
-export * from './plugin';
-export * from './runtime';
-export * from './service';
+export * from "./agent";
+export * from "./components";
+export * from "./database";
+export * from "./events";
+export * from "./plugin";
+export * from "./runtime";
+export * from "./service";
 // ... other type exports
 ```
 
@@ -202,17 +204,17 @@ export class AgentRuntime implements IAgentRuntime {
   readonly agentId: UUID;
   readonly character: Character;
   public adapter!: IDatabaseAdapter;
-  
+
   // Plugin system
   readonly plugins: Plugin[] = [];
   readonly actions: Action[] = [];
   readonly evaluators: Evaluator[] = [];
   readonly providers: Provider[] = [];
-  
+
   // Service management
   services = new Map<ServiceTypeName, Service>();
   models = new Map<string, ModelHandler[]>();
-  
+
   // Event system
   events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
 }
@@ -227,7 +229,7 @@ The type system provides comprehensive type safety:
 export interface Plugin {
   name: string;
   description: string;
-  
+
   // Optional components
   actions?: Action[];
   providers?: Provider[];
@@ -236,11 +238,11 @@ export interface Plugin {
   models?: { [key: string]: ModelHandler };
   events?: PluginEvents;
   routes?: Route[];
-  
+
   // Configuration
   config?: { [key: string]: any };
   init?: (config: Record<string, string>, runtime: IAgentRuntime) => Promise<void>;
-  
+
   // Metadata
   dependencies?: string[];
   priority?: number;
@@ -258,31 +260,31 @@ export interface IDatabaseAdapter {
   // Core operations
   init(): Promise<void>;
   close(): Promise<void>;
-  
+
   // Agent operations
   createAgent(agent: Partial<Agent>): Promise<boolean>;
   getAgent(agentId: UUID): Promise<Agent | null>;
   updateAgent(agentId: UUID, agent: Partial<Agent>): Promise<boolean>;
-  
+
   // Memory operations
   createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID>;
   getMemories(params: GetMemoriesParams): Promise<Memory[]>;
   searchMemories(params: SearchMemoriesParams): Promise<Memory[]>;
-  
+
   // Entity operations
   createEntity(entity: Entity): Promise<boolean>;
   getEntityById(entityId: UUID): Promise<Entity | null>;
   updateEntity(entity: Entity): Promise<void>;
-  
+
   // Room operations
   createRoom(room: Room): Promise<UUID>;
   getRoom(roomId: UUID): Promise<Room | null>;
   updateRoom(room: Room): Promise<void>;
-  
+
   // Relationship operations
   createRelationship(params: CreateRelationshipParams): Promise<boolean>;
   getRelationship(params: GetRelationshipParams): Promise<Relationship | null>;
-  
+
   // Utility operations
   log(params: LogParams): Promise<void>;
   getCache<T>(key: string): Promise<T | undefined>;
@@ -299,49 +301,49 @@ All plugins implement the standard Plugin interface:
 ```typescript
 // Example plugin implementation
 export const examplePlugin: Plugin = {
-  name: 'example-plugin',
-  description: 'Example plugin demonstrating the plugin system',
-  
+  name: "example-plugin",
+  description: "Example plugin demonstrating the plugin system",
+
   // Initialization
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
     // Plugin initialization logic
   },
-  
+
   // Components
   actions: [
     {
-      name: 'EXAMPLE_ACTION',
-      description: 'Example action',
+      name: "EXAMPLE_ACTION",
+      description: "Example action",
       validate: async (runtime, message, state) => true,
       handler: async (runtime, message, state, options, callback) => {
         // Action implementation
-      }
-    }
+      },
+    },
   ],
-  
+
   providers: [
     {
-      name: 'EXAMPLE_PROVIDER',
-      description: 'Example provider',
+      name: "EXAMPLE_PROVIDER",
+      description: "Example provider",
       get: async (runtime, message, state) => {
         return {
-          text: 'Provider data',
+          text: "Provider data",
           values: {},
-          data: {}
+          data: {},
         };
-      }
-    }
+      },
+    },
   ],
-  
+
   services: [ExampleService],
-  
+
   // Configuration
   config: {
-    EXAMPLE_CONFIG: process.env.EXAMPLE_CONFIG
+    EXAMPLE_CONFIG: process.env.EXAMPLE_CONFIG,
   },
-  
+
   // Dependencies
-  dependencies: ['@elizaos/plugin-sql']
+  dependencies: ["@elizaos/plugin-sql"],
 };
 ```
 
@@ -354,14 +356,14 @@ Services provide long-running functionality:
 export abstract class Service {
   static serviceType: ServiceTypeName;
   protected runtime: IAgentRuntime;
-  
+
   constructor(runtime: IAgentRuntime) {
     this.runtime = runtime;
   }
-  
+
   abstract start(): Promise<void>;
   abstract stop(): Promise<void>;
-  
+
   // Static factory method
   static async start(runtime: IAgentRuntime): Promise<Service> {
     const service = new this(runtime);
@@ -381,13 +383,9 @@ export interface Action {
   name: string;
   similes?: string[];
   description: string;
-  
-  validate: (
-    runtime: IAgentRuntime,
-    message: Memory,
-    state?: State
-  ) => Promise<boolean>;
-  
+
+  validate: (runtime: IAgentRuntime, message: Memory, state?: State) => Promise<boolean>;
+
   handler: (
     runtime: IAgentRuntime,
     message: Memory,
@@ -396,7 +394,7 @@ export interface Action {
     callback?: HandlerCallback,
     responses?: Memory[]
   ) => Promise<void>;
-  
+
   examples?: ActionExample[][];
 }
 ```
@@ -441,28 +439,28 @@ Custom hooks encapsulate complex logic:
 export function useAgentManagement() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const createAgent = useCallback(async (config: AgentConfig) => {
     setLoading(true);
     try {
       const agent = await api.createAgent(config);
-      setAgents(prev => [...prev, agent]);
+      setAgents((prev) => [...prev, agent]);
       return agent;
     } finally {
       setLoading(false);
     }
   }, []);
-  
+
   const deleteAgent = useCallback(async (agentId: UUID) => {
     await api.deleteAgent(agentId);
-    setAgents(prev => prev.filter(agent => agent.id !== agentId));
+    setAgents((prev) => prev.filter((agent) => agent.id !== agentId));
   }, []);
-  
+
   return {
     agents,
     loading,
     createAgent,
-    deleteAgent
+    deleteAgent,
   };
 }
 ```
@@ -503,23 +501,23 @@ export class AgentCommand {
   static async start(options: StartOptions) {
     // Load configuration
     const config = await loadConfig(options.config);
-    
+
     // Initialize runtime
     const runtime = new AgentRuntime({
       character: config.character,
-      plugins: config.plugins
+      plugins: config.plugins,
     });
-    
+
     // Start agent
     await runtime.initialize();
-    
+
     // Handle shutdown
-    process.on('SIGINT', async () => {
+    process.on("SIGINT", async () => {
       await runtime.stop();
       process.exit(0);
     });
   }
-  
+
   static async create(options: CreateOptions) {
     // Create new agent from template
     const template = await loadTemplate(options.template);
@@ -558,11 +556,11 @@ export function createAuthMiddleware(options: AuthOptions) {
     try {
       const token = extractToken(req);
       const user = await validateToken(token);
-      
+
       req.user = user;
       next();
     } catch (error) {
-      res.status(401).json({ error: 'Unauthorized' });
+      res.status(401).json({ error: "Unauthorized" });
     }
   };
 }
@@ -596,18 +594,18 @@ Packages use tsup for building:
 
 ```typescript
 // packages/{package}/tsup.config.ts
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ['src/index.ts'],
-  format: ['esm'],
+  entry: ["src/index.ts"],
+  format: ["esm"],
   dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
-  outDir: 'dist',
-  external: ['@elizaos/core'],
-  treeshake: true
+  outDir: "dist",
+  external: ["@elizaos/core"],
+  treeshake: true,
 });
 ```
 
@@ -702,4 +700,5 @@ Each package has its own test configuration:
 3. **Automated Publishing**: Use Lerna for coordinated publishing
 4. **Documentation**: Maintain comprehensive documentation
 
-The package organization in ElizaOS provides a solid foundation for building, maintaining, and extending the agent framework while ensuring code quality, reusability, and developer productivity.
+The package organization in ElizaOS provides a solid foundation for building, maintaining, and
+extending the agent framework while ensuring code quality, reusability, and developer productivity.
