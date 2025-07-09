@@ -5,4 +5,131 @@ description: Create your first agent in minutes
 
 # Quickstart
 
-Content to be added.
+Create your first AI agent in under 5 minutes with the ElizaOS CLI.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** (v23.3.0 or higher)
+- **Bun** package manager
+- **API Key** from OpenAI, Anthropic, or local AI setup
+- **Windows Users**: WSL 2 required
+
+## Step 1: Install the CLI
+
+Install the ElizaOS CLI globally:
+
+```bash
+bun install -g @elizaos/cli
+```
+
+Verify the installation:
+
+```bash
+elizaos --version
+```
+
+## Step 2: Create Your First Agent
+
+Create a new agent project:
+
+```bash
+elizaos create my-first-agent
+```
+
+This will prompt you to choose:
+- **Database**: Select `pglite` (lightweight, no setup required)
+- **Model Provider**: Select `openai` (most reliable for beginners)
+- **Project Type**: Select `project` (full ElizaOS application)
+
+## Step 3: Configure Your Agent
+
+Navigate to your project directory:
+
+```bash
+cd my-first-agent
+```
+
+Set up your environment variables:
+
+```bash
+# Edit environment variables interactively
+elizaos env edit-local
+
+# Or manually edit .env file
+nano .env
+```
+
+Add your API key:
+
+```bash
+# Required: Your OpenAI API key
+OPENAI_API_KEY=your_api_key_here
+
+# Optional: Logging level
+LOG_LEVEL=info
+
+# Optional: Discord integration (if needed)
+DISCORD_APPLICATION_ID=your_discord_app_id
+DISCORD_API_TOKEN=your_discord_bot_token
+```
+
+## Step 4: Start Your Agent
+
+Build and start your agent:
+
+```bash
+elizaos start
+```
+
+Your agent will start and be available at:
+- **Web Interface**: http://localhost:3000
+- **Console**: Interactive chat in your terminal
+
+## Step 5: Test Your Agent
+
+1. Open your browser to `http://localhost:3000`
+2. Start a conversation with your agent
+3. Try different questions and commands
+4. Observe the responses and behavior
+
+## Next Steps
+
+Now that your agent is running, you can:
+
+<Cards>
+  <Card title="Connect to Discord" href="/docs/core-concepts/communication">
+    Set up Discord integration for your agent
+  </Card>
+  <Card title="Customize Personality" href="/docs/core-concepts/agent-development/character-definition">
+    Define your agent's personality and behavior
+  </Card>
+  <Card title="Add Plugins" href="/docs/plugins/creating-plugins">
+    Extend your agent with additional capabilities
+  </Card>
+  <Card title="Deploy to Production" href="/docs/advanced/deployment">
+    Make your agent available 24/7
+  </Card>
+</Cards>
+
+## Troubleshooting
+
+**Agent won't start?**
+- Verify your API key is correctly set
+- Check that Node.js v23.3.0+ is installed
+- Ensure port 3000 is available
+
+**Agent not responding?**
+- Check the console for error messages
+- Verify your API key is valid and has credits
+- Try restarting with `elizaos start`
+
+**Need help?**
+- Check our [troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
+- Join the [Discord community](https://discord.gg/elizaos)
+- Review the [FAQ](/docs/faq)
+
+---
+
+🎉 **Congratulations!** You've successfully created your first AI agent with ElizaOS.

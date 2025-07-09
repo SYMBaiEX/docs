@@ -5,4 +5,337 @@ description: Installing ElizaOS and setting up your environment
 
 # Installation
 
-Content to be added.
+This guide covers the complete installation process for ElizaOS, including system requirements, dependencies, and different installation methods.
+
+## System Requirements
+
+### Minimum Requirements
+
+- **Node.js**: v23.3.0 or higher
+- **Memory**: 4GB RAM minimum (8GB recommended)
+- **Storage**: 2GB available disk space
+- **Operating System**: 
+  - Linux (Ubuntu 20.04+, CentOS 8+)
+  - macOS 12.0+
+  - Windows 10/11 with WSL 2
+
+### Recommended Setup
+
+- **Node.js**: v23.3.0 (exact version from package.json)
+- **Package Manager**: Bun (faster than npm/yarn)
+- **Memory**: 8GB+ RAM for optimal performance
+- **Storage**: 5GB+ for development with multiple agents
+
+## Installing Dependencies
+
+### 1. Install Node.js
+
+<Tabs items={['macOS', 'Linux', 'Windows']}>
+  <Tab value="macOS">
+    
+**Using Homebrew (Recommended):**
+```bash
+brew install node@23
+```
+
+**Using Node Version Manager (nvm):**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 23.3.0
+nvm use 23.3.0
+```
+
+  </Tab>
+  <Tab value="Linux">
+    
+**Using Node Version Manager (nvm):**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 23.3.0
+nvm use 23.3.0
+```
+
+**Using Package Manager:**
+```bash
+# Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_23.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# CentOS/RHEL
+curl -fsSL https://rpm.nodesource.com/setup_23.x | sudo bash -
+sudo yum install -y nodejs
+```
+
+  </Tab>
+  <Tab value="Windows">
+    
+**Install WSL 2 first:**
+```powershell
+wsl --install -d Ubuntu
+```
+
+**Then follow Linux instructions within WSL 2:**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 23.3.0
+nvm use 23.3.0
+```
+
+  </Tab>
+</Tabs>
+
+### 2. Install Bun (Recommended)
+
+Bun is the recommended package manager for ElizaOS due to its speed and compatibility:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+Verify the installation:
+
+```bash
+bun --version
+```
+
+### 3. Verify Installation
+
+Check that all dependencies are correctly installed:
+
+```bash
+# Check Node.js version
+node --version  # Should be v23.3.0 or higher
+
+# Check Bun version
+bun --version   # Should be v1.2.15 or higher
+```
+
+## Installation Methods
+
+### Method 1: CLI Installation (Recommended)
+
+The CLI provides the fastest way to get started:
+
+```bash
+# Install the CLI globally
+bun install -g @elizaos/cli
+
+# Verify installation
+elizaos --version
+
+# Create your first project
+elizaos create my-agent
+```
+
+### Method 2: Manual Installation
+
+For developers who want full control:
+
+```bash
+# Clone the repository
+git clone https://github.com/elizaOS/eliza.git
+cd eliza
+
+# Install dependencies
+bun install
+
+# Build the project
+bun run build
+
+# Start the CLI
+bun start
+```
+
+### Method 3: Docker Installation
+
+For containerized deployment:
+
+```bash
+# Clone the repository
+git clone https://github.com/elizaOS/eliza.git
+cd eliza
+
+# Build and run with Docker
+docker-compose up -d
+```
+
+**Docker Requirements:**
+- Docker Engine 20.10+
+- Docker Compose 2.0+
+
+## Configuration
+
+### Environment Setup
+
+After installation, you'll need to configure your environment:
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit environment variables
+nano .env
+```
+
+### Required Environment Variables
+
+```bash
+# Model Provider (choose one)
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# Database (recommended for beginners)
+DATABASE_URL=sqlite:./data.db
+
+# Logging
+LOG_LEVEL=info
+
+# Optional: Platform integrations
+DISCORD_APPLICATION_ID=your_discord_app_id
+DISCORD_API_TOKEN=your_discord_bot_token
+```
+
+### Optional Configuration
+
+```bash
+# Advanced model settings
+MODEL_PROVIDER=openai
+MODEL_NAME=gpt-4
+
+# Performance settings
+MAX_CONCURRENT_REQUESTS=10
+MEMORY_LIMIT=2048
+
+# Security settings
+ENABLE_CORS=true
+CORS_ORIGIN=http://localhost:3000
+```
+
+## Platform-Specific Setup
+
+### Discord Integration
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a new application
+3. Generate a bot token
+4. Add the token to your `.env` file
+
+### Telegram Integration
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Create a new bot with `/newbot`
+3. Get your bot token
+4. Add the token to your `.env` file
+
+### Twitter Integration
+
+1. Apply for Twitter Developer access
+2. Create a new Twitter app
+3. Generate API keys and tokens
+4. Add credentials to your `.env` file
+
+## Verification
+
+### Test Your Installation
+
+```bash
+# Test the CLI
+elizaos --help
+
+# Test project creation
+elizaos create test-agent --yes --type project
+
+# Test agent startup
+cd test-agent
+elizaos start
+```
+
+### Health Check
+
+Verify your installation with the built-in health check:
+
+```bash
+# Check system status
+elizaos env check
+
+# Test database connection
+elizaos env test-db
+
+# Verify API keys
+elizaos env test-keys
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Node.js version errors:**
+```bash
+# Check current version
+node --version
+
+# Install correct version
+nvm install 23.3.0
+nvm use 23.3.0
+```
+
+**Permission errors:**
+```bash
+# Fix npm permissions
+sudo chown -R $(whoami) ~/.npm
+sudo chown -R $(whoami) ~/.bun
+```
+
+**Port conflicts:**
+```bash
+# Find process using port 3000
+lsof -i :3000
+
+# Kill process if needed
+kill -9 <PID>
+```
+
+**Windows WSL issues:**
+```bash
+# Update WSL
+wsl --update
+
+# Restart WSL
+wsl --shutdown
+wsl
+```
+
+### Getting Help
+
+If you encounter issues:
+
+1. Check the [troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
+2. Search [GitHub Issues](https://github.com/elizaOS/eliza/issues)
+3. Join the [Discord community](https://discord.gg/elizaos)
+4. Review the [FAQ](/docs/faq)
+
+## Next Steps
+
+Once installation is complete:
+
+<Cards>
+  <Card title="Quick Start" href="/docs/getting-started/quickstart">
+    Create your first agent in 5 minutes
+  </Card>
+  <Card title="Configuration" href="/docs/getting-started/configuration">
+    Set up your development environment
+  </Card>
+  <Card title="Core Concepts" href="/docs/core-concepts">
+    Learn about ElizaOS architecture
+  </Card>
+  <Card title="Plugins" href="/docs/plugins">
+    Extend your agent with plugins
+  </Card>
+</Cards>
+
+---
+
+**Installation complete!** You're ready to start building AI agents with ElizaOS.
