@@ -34,7 +34,8 @@ export default defineConfig({
       themes: {
         light: "github-light",
         dark: "github-dark",
-      },
+      }
+      ,
       transformers: [...(rehypeCodeDefaultOptions.transformers ?? [])],
     },
   },
