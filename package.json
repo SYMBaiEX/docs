@@ -11,12 +11,14 @@
     "lint:mdx": "remark 'docs/**/*.{md,mdx}' --frail",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,md,mdx,json}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,md,mdx,json}\"",
+    "generate:api": "bun run scripts/generate-openapi.ts",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "fumadocs-core": "15.6.1",
     "fumadocs-docgen": "^2.0.0",
     "fumadocs-mdx": "11.6.10",
+    "fumadocs-openapi": "^9.1.1",
     "fumadocs-ui": "15.6.1",
     "geist": "^1.4.2",
     "next": "15.3.4",
@@ -26,6 +28,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "@types/js-yaml": "^4.0.9",
     "@types/mdx": "^2.0.13",
     "@types/node": "24.0.7",
     "@types/react": "^19.1.8",
@@ -35,6 +38,7 @@
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-only-warn": "^1.1.0",
     "postcss": "^8.5.6",
+    "postman-to-openapi": "^3.0.1",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.10",
     "remark-cli": "^12.0.1",

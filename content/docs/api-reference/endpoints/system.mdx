@@ -1,0 +1,139 @@
+---
+title: System Configuration
+description: System Configuration endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Get Local Environment
+
+Get local environment configuration
+
+### Endpoint
+
+```
+GET /api/system/env/local
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/system/env/local
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/system/env/local', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/system/env/local',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Local Environment
+
+Update local environment configuration
+
+### Endpoint
+
+```
+POST /api/system/env/local
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "key": "value",
+      "setting": "updated_value"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/system/env/local
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/system/env/local', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/system/env/local',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

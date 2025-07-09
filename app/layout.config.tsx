@@ -18,9 +18,8 @@ export const baseOptions: BaseLayoutProps = {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           aria-label="ElizaOS Logo"
-          className="rounded"
         >
-          <rect width="24" height="24" rx="4" fill="#2563eb" className="dark:fill-blue-400" />
+          <rect width="24" height="24" fill="#2563eb" className="dark:fill-blue-400" />
           <g transform="translate(2, 2) scale(0.65)">
             <path
               d="M12.3617 2.0737L8.25813 2.0737V4.1474L20.6196 4.1474V6.17052L26.8004 6.17052V4.1474L24.7232 4.1474V2.0737L18.5425 2.0737V0L12.3617 0V2.0737Z"
