@@ -530,15 +530,43 @@ Save your character file as:
 
 <Tabs items={["Basic Structure", "Advanced Structure", "Multi-Character"]}>
   <Tab value="Basic Structure">
-    ``` my-agent/ ├── agent/ │ └── character.json ├── .env ├── package.json └── README.md ```
+    ```
+my-agent/
+├── agent/
+│   └── character.json
+├── .env
+├── package.json
+└── README.md
+    ```
   </Tab>
   <Tab value="Advanced Structure">
-    ``` my-agent/ ├── agent/ │ ├── character.json │ └── knowledge/ │ ├── general.md │ └──
-    specific.md ├── .env ├── package.json ├── tsconfig.json └── src/ └── index.ts ```
+    ```
+my-agent/
+├── agent/
+│   ├── character.json
+│   └── knowledge/
+│       ├── general.md
+│       └── specific.md
+├── .env
+├── package.json
+├── tsconfig.json
+└── src/
+    └── index.ts
+    ```
   </Tab>
   <Tab value="Multi-Character">
-    ``` my-agents/ ├── characters/ │ ├── assistant.json │ ├── researcher.json │ └── creative.json
-    ├── .env ├── package.json └── knowledge/ ├── shared/ └── specific/ ```
+    ```
+my-agents/
+├── characters/
+│   ├── assistant.json
+│   ├── researcher.json
+│   └── creative.json
+├── .env
+├── package.json
+└── knowledge/
+    ├── shared/
+    └── specific/
+    ```
   </Tab>
 </Tabs>
 

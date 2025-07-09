@@ -9,10 +9,10 @@
 .claude/
 
 # cursor
-.cursor.md
-.cursor/
-.cursorrules.md
-.cursorrules/
+#.cursor.md
+#.cursor/
+#.cursorrules.md
+#.cursorrules/
 
 # generated content
 .contentlayer

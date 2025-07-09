@@ -10,7 +10,7 @@ export default async function Page(props: { params: Promise<{ slug?: string[] }>
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
-  const MDXContent = page.data.body;
+  const MDXContent = page.data.exports.default;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>

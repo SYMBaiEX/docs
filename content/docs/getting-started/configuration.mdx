@@ -134,21 +134,45 @@ Each project type has its own structure:
 
 <Tabs items={["Project Structure", "Plugin Structure", "Agent Structure"]}>
   <Tab value="Project Structure">
-    ``` my-agent/ ├── .env # Environment variables ├── .env.example # Environment template ├──
-    package.json # Dependencies and scripts ├── tsconfig.json # TypeScript configuration ├──
-    characters/ # Agent character definitions │ └── default.json # Default character ├── knowledge/
-    # Knowledge base files ├── src/ # Source code │ ├── index.ts # Main entry point │ └── plugins/ #
-    Custom plugins ├── tests/ # Test files └── docs/ # Documentation ```
+    ```
+my-agent/
+├── .env                    # Environment variables
+├── .env.example           # Environment template
+├── package.json           # Dependencies and scripts
+├── tsconfig.json          # TypeScript configuration
+├── characters/            # Agent character definitions
+│   └── default.json       # Default character
+├── knowledge/             # Knowledge base files
+├── src/                   # Source code
+│   ├── index.ts          # Main entry point
+│   └── plugins/          # Custom plugins
+├── tests/                 # Test files
+└── docs/                  # Documentation
+    ```
   </Tab>
   <Tab value="Plugin Structure">
-    ``` plugin-my-plugin/ ├── package.json # Plugin metadata ├── tsconfig.json # TypeScript
-    configuration ├── src/ │ ├── index.ts # Plugin entry point │ ├── actions/ # Custom actions │ ├──
-    providers/ # Custom providers │ └── evaluators/ # Custom evaluators ├── tests/ # Plugin tests
-    ├── examples/ # Usage examples └── README.md # Plugin documentation ```
+    ```
+plugin-my-plugin/
+├── package.json           # Plugin metadata
+├── tsconfig.json          # TypeScript configuration
+├── src/
+│   ├── index.ts          # Plugin entry point
+│   ├── actions/          # Custom actions
+│   ├── providers/        # Custom providers
+│   └── evaluators/       # Custom evaluators
+├── tests/                 # Plugin tests
+├── examples/              # Usage examples
+└── README.md              # Plugin documentation
+    ```
   </Tab>
   <Tab value="Agent Structure">
-    ``` my-character/ ├── character.json # Agent definition ├── knowledge/ # Knowledge files ├──
-    prompts/ # Custom prompts └── config/ # Configuration files ```
+    ```
+my-character/
+├── character.json         # Agent definition
+├── knowledge/             # Knowledge files
+├── prompts/               # Custom prompts
+└── config/                # Configuration files
+    ```
   </Tab>
 </Tabs>
 
@@ -158,23 +182,63 @@ Each project type has its own structure:
 
 <Tabs items={["Development", "Testing", "Deployment"]}>
   <Tab value="Development">
-    ```bash # Start development server with hot-reload elizaos dev # Start with specific character
-    elizaos dev --character characters/my-agent.json # Start with build elizaos dev --build # Start
-    on custom port elizaos dev --port 8080 # Reconfigure services elizaos dev --configure ```
+    ```bash
+# Start development server with hot-reload
+elizaos dev
+
+# Start with specific character
+elizaos dev --character characters/my-agent.json
+
+# Start with build
+elizaos dev --build
+
+# Start on custom port
+elizaos dev --port 8080
+
+# Reconfigure services
+elizaos dev --configure
+```
     **Development Features:** - Hot-reload on file changes - Detailed logging and debugging - Live
     configuration updates - Real-time error reporting
   </Tab>
   <Tab value="Testing">
-    ```bash # Run all tests elizaos test # Run component tests elizaos test component # Run
-    end-to-end tests elizaos test e2e # Run tests with coverage elizaos test --coverage # Run
-    specific test file elizaos test --file my-test.spec.ts ``` **Testing Features:** - Unit and
+    ```bash
+# Run all tests
+elizaos test
+
+# Run component tests
+elizaos test component
+
+# Run end-to-end tests
+elizaos test e2e
+
+# Run tests with coverage
+elizaos test --coverage
+
+# Run specific test file
+elizaos test --file my-test.spec.ts
+    ```
+    
+    **Testing Features:** - Unit and
     integration tests - Component testing framework - End-to-end testing support - Coverage
     reporting
   </Tab>
   <Tab value="Deployment">
-    ```bash # Build for production elizaos start --build # Start production server elizaos start #
-    Background process nohup elizaos start > elizaos.log 2>&1 & # With environment file elizaos
-    start --env production ``` **Deployment Features:** - Production optimizations -
+    ```bash
+# Build for production
+elizaos start --build
+
+# Start production server
+elizaos start
+
+# Background process
+nohup elizaos start > elizaos.log 2>&1 &
+
+# With environment file
+elizaos start --env production
+    ```
+    
+    **Deployment Features:** - Production optimizations -
     Environment-specific configs - Background process support - Logging and monitoring
   </Tab>
 </Tabs>
@@ -275,24 +339,43 @@ ELIZA_SERVER_AUTH_TOKEN=your_auth_token_here
 
 <Tabs items={["Discord", "Telegram", "Twitter", "Blockchain"]}>
   <Tab value="Discord">
-    ```bash # Discord Configuration DISCORD_APPLICATION_ID=your_discord_app_id
-    DISCORD_API_TOKEN=your_discord_bot_token DISCORD_ENABLE_SLASH_COMMANDS=true
-    DISCORD_ENABLE_VOICE=false ```
+    ```bash
+# Discord Configuration
+DISCORD_APPLICATION_ID=your_discord_app_id
+DISCORD_API_TOKEN=your_discord_bot_token
+DISCORD_ENABLE_SLASH_COMMANDS=true
+DISCORD_ENABLE_VOICE=false
+```
   </Tab>
   <Tab value="Telegram">
-    ```bash # Telegram Configuration TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-    TELEGRAM_ENABLE_GROUPS=true TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook ```
+    ```bash
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_ENABLE_GROUPS=true
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
+```
   </Tab>
   <Tab value="Twitter">
-    ```bash # Twitter Configuration TWITTER_USERNAME=your_twitter_username
-    TWITTER_PASSWORD=your_twitter_password TWITTER_EMAIL=your_twitter_email
-    TWITTER_ENABLE_POST_GENERATION=true TWITTER_POST_IMMEDIATELY=false ```
+    ```bash
+# Twitter Configuration
+TWITTER_USERNAME=your_twitter_username
+TWITTER_PASSWORD=your_twitter_password
+TWITTER_EMAIL=your_twitter_email
+TWITTER_ENABLE_POST_GENERATION=true
+TWITTER_POST_IMMEDIATELY=false
+```
   </Tab>
   <Tab value="Blockchain">
-    ```bash # Ethereum Configuration EVM_PRIVATE_KEY=your_ethereum_private_key
-    EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key EVM_CHAINS=mainnet,sepolia,base,arbitrum
-    # Solana Configuration SOLANA_PRIVATE_KEY=your_solana_private_key
-    SOLANA_RPC_URL=https://api.mainnet-beta.solana.com ```
+    ```bash
+# Ethereum Configuration
+EVM_PRIVATE_KEY=your_ethereum_private_key
+EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key
+EVM_CHAINS=mainnet,sepolia,base,arbitrum
+
+# Solana Configuration
+SOLANA_PRIVATE_KEY=your_solana_private_key
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+```
   </Tab>
 </Tabs>
 

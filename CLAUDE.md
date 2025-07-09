@@ -32,19 +32,40 @@ bun run lint:mdx     # Check MDX content quality
 ### When Creating/Editing Documentation
 
 **DO:**
-
 - Place MDX files in `/docs` with `.mdx` extension
 - Include frontmatter: `title` and `description` (required)
 - Use H2 (`##`) as highest heading level in content
 - Follow existing URL patterns (check similar pages)
+- Format code blocks properly (backticks on separate lines)
 - Test changes with `bun dev` before committing
 
 **DON'T:**
-
 - Use H1 (`#`) headers in content (title comes from frontmatter)
 - Create files outside `/docs` for documentation content
 - Mix code and documentation in the same PR
 - Forget to update `meta.json` when adding new pages
+- Use inline code blocks (e.g., `` ```bash # comment ``)
+- Compress multi-line content into single lines in MDX components
+
+### Code Block Formatting
+
+**❌ WRONG - Inline code blocks:**
+```mdx
+<Tab value="Testing">
+  ```bash # This is wrong - don't put code blocks inline
+</Tab>
+```
+
+**✅ CORRECT - Properly formatted:**
+```mdx
+<Tab value="Testing">
+  ```bash
+  # This is correct - code block on separate lines
+  bun test
+  bun test --coverage
+  ```
+</Tab>
+```
 
 ### MDX Component Usage
 
