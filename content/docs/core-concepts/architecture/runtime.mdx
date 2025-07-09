@@ -1,11 +1,11 @@
 ---
 title: "Runtime Architecture"
-description: "Deep dive into the AgentRuntime class and its lifecycle management"
+description: "Deep dive into the AgentRuntime class and its lifecycle management in v1.2.0"
 ---
 
 # Runtime Architecture
 
-The ElizaOS runtime architecture is built around the `AgentRuntime` class, which serves as the core orchestrator for all agent operations. This system provides a flexible, event-driven framework that manages plugins, services, models, and agent lifecycle.
+The ElizaOS v1.2.0 runtime architecture is built around the enhanced `AgentRuntime` class, which serves as the core orchestrator for all agent operations. This system provides a flexible, event-driven framework that manages plugins, services, models, and agent lifecycle with improved run ID tracking, service management, and enhanced plugin dependency resolution.
 
 ## Core Components
 
@@ -17,12 +17,16 @@ The `AgentRuntime` class implements the `IAgentRuntime` interface and serves as 
 export class AgentRuntime implements IAgentRuntime {
   readonly agentId: UUID;
   readonly character: Character;
+  readonly runId: UUID; // New in v1.2.0: Enhanced run tracking
   public adapter!: IDatabaseAdapter;
   readonly actions: Action[] = [];
   readonly evaluators: Evaluator[] = [];
   readonly providers: Provider[] = [];
   readonly plugins: Plugin[] = [];
+  readonly services: Map<ServiceType, Service> = new Map(); // Enhanced service management
+  readonly events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
   private isInitialized = false;
+  private currentActionContext?: ActionContext; // New: Action context tracking
   // ... additional properties
 }
 ```
@@ -30,18 +34,22 @@ export class AgentRuntime implements IAgentRuntime {
 ### Key Properties
 
 - **agentId**: Unique identifier for the agent instance
+- **runId**: Unique identifier for the current runtime session (new in v1.2.0)
 - **character**: The agent's personality and configuration
 - **adapter**: Database adapter for persistent storage
 - **actions**: Registered actions the agent can perform
 - **evaluators**: Components that evaluate messages and responses
 - **providers**: Data providers for context and state
 - **plugins**: Loaded plugins extending agent functionality
+- **services**: Map of registered services with enhanced lifecycle management
+- **events**: Event system for inter-component communication
+- **currentActionContext**: Context tracking for action execution (new in v1.2.0)
 
 ## Runtime Lifecycle
 
 ### 1. Initialization
 
-The runtime follows a structured initialization process:
+The runtime follows a structured initialization process with enhanced dependency resolution:
 
 ```typescript
 async initialize(): Promise<void> {
@@ -50,9 +58,15 @@ async initialize(): Promise<void> {
     return;
   }
 
-  // Register all plugins
+  // Generate run ID for this session
+  this.runId = uuidv4() as UUID;
+
+  // Resolve plugin dependencies (new in v1.2.0)
+  const resolvedPlugins = await this.resolvePluginDependencies(this.characterPlugins);
+  
+  // Register all plugins in dependency order
   const pluginRegistrationPromises = [];
-  for (const plugin of this.characterPlugins) {
+  for (const plugin of resolvedPlugins) {
     if (plugin) {
       pluginRegistrationPromises.push(this.registerPlugin(plugin));
     }
@@ -62,8 +76,11 @@ async initialize(): Promise<void> {
   // Initialize database adapter
   await this.adapter.init();
 
-  // Run plugin migrations
+  // Run plugin migrations (enhanced in v1.2.0)
   await this.runPluginMigrations();
+
+  // Initialize service registry
+  await this.initializeServiceRegistry();
 
   // Create agent entity
   const existingAgent = await this.ensureAgentExists(this.character);
@@ -77,7 +94,7 @@ async initialize(): Promise<void> {
 
 ### 2. Plugin Registration
 
-Each plugin is registered through a comprehensive process:
+Each plugin is registered through a comprehensive process with enhanced dependency tracking:
 
 ```typescript
 async registerPlugin(plugin: Plugin): Promise<void> {
@@ -113,6 +130,20 @@ async registerPlugin(plugin: Plugin): Promise<void> {
   }
   if (plugin.services) {
     plugin.services.forEach(service => this.registerService(service));
+  }
+  
+  // Register model handlers (enhanced in v1.2.0)
+  if (plugin.models) {
+    Object.entries(plugin.models).forEach(([modelType, handler]) => {
+      this.registerModel(modelType, handler, plugin.name);
+    });
+  }
+
+  // Register event handlers (new in v1.2.0)
+  if (plugin.events) {
+    Object.entries(plugin.events).forEach(([eventName, handlers]) => {
+      handlers.forEach(handler => this.registerEvent(eventName, handler));
+    });
   }
 }
 ```

@@ -15,8 +15,7 @@ The database adapter system provides:
 - **PGlite Fallback** - Embedded database for development and testing
 - **Vector Search** - Semantic memory search with configurable dimensions
 - **Automatic Migrations** - Schema management and versioning
-- **Connection Pooling** - Efficient resource management
-- **Circuit Breaker** - Fault tolerance with automatic recovery
+- **Connection Management** - Efficient resource management with singleton pattern
 - **Type Safety** - Full TypeScript support with Drizzle ORM
 
 ## Architecture
@@ -36,7 +35,7 @@ The database adapter system provides:
      │  │   Connection Manager    │  │
      │  │  - Singleton Pattern    │  │
      │  │  - Connection Pooling   │  │
-     │  │  - Circuit Breaker      │  │
+     │  │  - Connection Testing   │  │
      │  └───────────┬─────────────┘  │
      │              │                │
      │    ┌─────────┴─────────┐     │
@@ -140,8 +139,8 @@ const runtime = new AgentRuntime({
 ### Direct Adapter Usage
 
 ```typescript
-import { createDatabaseAdapter } from '@elizaos/plugin-sql';
-import { PgDatabaseAdapter } from '@elizaos/plugin-sql';
+import { createDatabaseAdapter, PgDatabaseAdapter, PgliteDatabaseAdapter } from '@elizaos/plugin-sql';
+import { v4 as uuidv4 } from 'uuid';
 
 // Create adapter using factory function
 const adapter = createDatabaseAdapter({
@@ -266,6 +265,8 @@ const relevantMemories = await adapter.searchMemories({
 ### Memory Management
 
 ```typescript
+import { v4 as uuidv4 } from 'uuid';
+
 // Create a memory with embedding
 const memory = {
   id: uuidv4(),
@@ -342,16 +343,22 @@ class PGliteClientManager {
 
 #### Automatic Migrations
 
-Migrations run automatically during initialization:
+Migrations are handled by the DatabaseMigrationService:
 
 ```typescript
-// Checks for:
+// Import the migration service
+import { DatabaseMigrationService } from '@elizaos/plugin-sql';
+
+// Create migration service
+const migrationService = new DatabaseMigrationService(adapter);
+
+// Run migrations
+await migrationService.migrate();
+
+// Migrations check for:
 // 1. Missing tables
 // 2. Missing vector extension
 // 3. Schema updates
-
-await adapter.init(runtime);
-// Migrations applied automatically
 ```
 
 #### Manual Migrations
@@ -378,7 +385,7 @@ export default defineConfig({
   schema: './src/schema/index.ts',
   out: './drizzle/migrations',
   dbCredentials: {
-    url: process.env.POSTGRES_URL || 'file:../../.elizadb'
+    url: process.env.POSTGRES_URL || 'file:../../.eliza/.elizadb'
   }
 });
 ```
@@ -391,6 +398,7 @@ Extend the database with custom tables:
 
 ```typescript
 import { pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { schema } from '@elizaos/plugin-sql';
 
 export const customTable = pgTable('custom_data', {
   id: uuid('id').primaryKey().notNull(),
@@ -406,6 +414,27 @@ const results = await adapter.db
   .where(eq(customTable.agentId, agentId));
 ```
 
+### Schema Factory Pattern
+
+The plugin uses a schema factory pattern for dynamic schema creation:
+
+```typescript
+import { createSchemaFactory } from '@elizaos/plugin-sql';
+
+// Create schema factory with custom tables
+const schemaFactory = createSchemaFactory({
+  customTables: {
+    myTable: pgTable('my_table', {
+      id: uuid('id').primaryKey(),
+      data: text('data')
+    })
+  }
+});
+
+// Use factory to create schemas
+const schema = schemaFactory.createSchema();
+```
+
 ### Batch Operations
 
 Efficient bulk operations:
@@ -416,9 +445,12 @@ await adapter.db.transaction(async (tx) => {
   const memories = dataArray.map(data => ({
     id: uuid(),
     agentId,
+    entityId: data.entityId,
+    roomId: data.roomId,
     content: data.content,
-    embedding: data.embedding,
-    // ... other fields
+    type: data.type,
+    unique: true,
+    metadata: data.metadata || {}
   }));
   
   await tx.insert(memoryTable).values(memories);
@@ -468,33 +500,37 @@ const pgliteAdapter = createDatabaseAdapter({
 
 ## Error Handling
 
-### Circuit Breaker Pattern
+### Basic Error Handling
 
 ```typescript
-// Automatic circuit breaker activation
-// After 5 consecutive failures:
-// 1. Circuit opens (fast fail)
-// 2. Wait 60 seconds
-// 3. Try half-open state
-// 4. Full recovery or re-open
-
+// Basic error handling for database operations
 try {
-  await adapter.getMemories(...);
+  await adapter.getMemories({
+    tableName: 'memories',
+    agentId,
+    roomId,
+    count: 50
+  });
 } catch (error) {
-  if (error.code === 'CIRCUIT_OPEN') {
-    // Use fallback mechanism
+  logger.error('Database operation failed:', error);
+  // Handle specific error types
+  if (error.code === 'ECONNREFUSED') {
+    // Connection refused
   }
 }
 ```
 
-### Retry Logic
+### PGlite Shutdown Handling
 
 ```typescript
-// Exponential backoff with jitter
-// Attempt 1: 1 second delay
-// Attempt 2: 2 seconds + jitter
-// Attempt 3: 4 seconds + jitter
-// Max delay: 10 seconds
+// PGlite adapter checks for shutdown state
+protected async withDatabase<T>(operation: () => Promise<T>): Promise<T> {
+  if (this.manager.isShuttingDown()) {
+    logger.warn('Database is shutting down');
+    return null as unknown as T;
+  }
+  return operation();
+}
 ```
 
 ## Best Practices
@@ -502,13 +538,21 @@ try {
 ### 1. Connection Management
 
 ```typescript
-// Good: Let the adapter manage connections
-const adapter = sqlPlugin.adapter;
-await adapter.init(runtime);
+// Good: Use the plugin system
+const runtime = new AgentRuntime({
+  plugins: [sqlPlugin]
+});
+// Adapter is automatically created and registered
 
-// Bad: Creating multiple adapters
-const adapter1 = new PostgresAdapter(url);
-const adapter2 = new PostgresAdapter(url); // Duplicate pools
+// Good: Manual adapter creation
+const adapter = createDatabaseAdapter({
+  postgresUrl: process.env.POSTGRES_URL,
+  dataDir: './.eliza/.elizadb'
+}, agentId);
+
+// Bad: Creating multiple adapters for same database
+const adapter1 = createDatabaseAdapter(config, agentId);
+const adapter2 = createDatabaseAdapter(config, agentId); // Duplicate connections
 ```
 
 ### 2. Vector Dimensions
@@ -528,12 +572,20 @@ if (embedding.length !== STANDARD_DIMENSION) {
 ```typescript
 // Good: Use appropriate thresholds
 const memories = await adapter.searchMemories({
+  tableName: 'memories',
+  agentId,
+  roomId,
+  embedding: queryEmbedding,
   match_threshold: 0.8,  // High relevance only
   match_count: 10        // Limit results
 });
 
 // Bad: Over-fetching
 const memories = await adapter.searchMemories({
+  tableName: 'memories',
+  agentId,
+  roomId,
+  embedding: queryEmbedding,
   match_threshold: 0.1,  // Too loose
   match_count: 1000      // Too many
 });
@@ -554,31 +606,38 @@ await adapter.db.transaction(async (tx) => {
 ### Database Metrics
 
 ```typescript
-// Connection pool status
-const poolMetrics = adapter.getPoolMetrics();
-console.log({
-  totalConnections: poolMetrics.total,
-  idleConnections: poolMetrics.idle,
-  waitingRequests: poolMetrics.waiting
-});
+// Check adapter readiness
+const isReady = await adapter.isReady();
+console.log('Database ready:', isReady);
 
-// Circuit breaker status
-const circuitStatus = adapter.getCircuitStatus();
-console.log({
-  state: circuitStatus.state,
-  failures: circuitStatus.failures,
-  lastFailure: circuitStatus.lastFailureTime
-});
+// Test connection (PostgreSQL)
+if (adapter instanceof PgDatabaseAdapter) {
+  const connection = await adapter.getConnection();
+  console.log('Pool status:', {
+    totalCount: connection.totalCount,
+    idleCount: connection.idleCount,
+    waitingCount: connection.waitingCount
+  });
+}
+
+// Check PGlite status
+if (adapter instanceof PgliteDatabaseAdapter) {
+  const connection = await adapter.getConnection();
+  console.log('PGlite ready:', !connection.closed);
+}
 ```
 
 ### Query Performance
 
 ```typescript
-// Enable query logging
-const adapter = new PostgresAdapter(url, {
-  logQueries: true,
-  slowQueryThreshold: 1000 // Log queries over 1s
-});
+// Query logging is handled by the underlying Drizzle ORM
+// Enable with environment variable or drizzle configuration
+const adapter = createDatabaseAdapter({
+  postgresUrl: url
+}, agentId);
+
+// Monitor query performance in application logs
+logger.info('Query executed:', { duration: 'Xms', query: 'SELECT...' });
 ```
 
 ## Troubleshooting
@@ -592,14 +651,14 @@ const adapter = new PostgresAdapter(url, {
 
 2. **Dimension Mismatch**
    ```
-   Error: Cannot change embedding dimension for agent
-   Solution: Use consistent dimensions
+   Error: Embedding dimension mismatch
+   Solution: Use consistent dimensions (check VECTOR_DIMS)
    ```
 
-3. **Connection Pool Exhausted**
+3. **Connection Issues**
    ```
-   Error: Timeout acquiring connection
-   Solution: Increase pool size or optimize queries
+   Error: Connection refused / timeout
+   Solution: Check connection string and network access
    ```
 
 4. **Migration Failures**

@@ -1,0 +1,1035 @@
+---
+title: Memory API
+description: Comprehensive API documentation for agent memory and knowledge management
+---
+
+# Memory API
+
+The Memory API provides comprehensive memory management capabilities for agents, including memory storage, retrieval, search, and room-based organization. All memory endpoints are prefixed with `/api/memory`.
+
+## Overview
+
+The Memory API includes:
+
+- **Agent Memory** - Individual agent memory operations
+- **Group Memory** - Shared memory across agent groups
+- **Room Management** - Room-based memory organization
+- **Memory Search** - Advanced search and retrieval
+- **Memory Types** - Different types of memory storage
+
+## Base URL
+
+```
+http://localhost:3000/api/memory
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Agent Memory Operations
+
+### Search Agent Memory
+
+```http
+GET /api/memory/agents/:agentId/search
+```
+
+Searches through an agent's memory using semantic similarity.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `query` (string) - Search text (required)
+- `limit` (number) - Result limit (default: 10, max: 100)
+- `threshold` (number) - Similarity threshold (default: 0.5, range: 0-1)
+- `type` (string) - Memory type filter (reflection, fact, dialogue)
+- `roomId` (UUID) - Filter by room
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Memory content",
+          "source": "conversation",
+          "type": "reflection"
+        },
+        "similarity": 0.95,
+        "roomId": "room-uuid",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "metadata": {
+          "tags": ["important", "preference"]
+        }
+      }
+    ],
+    "totalCount": 50,
+    "searchQuery": "user preferences"
+  }
+}
+```
+
+### Create Agent Memory
+
+```http
+POST /api/memory/agents/:agentId/memories
+```
+
+Creates a new memory for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "content": {
+    "text": "Memory content",
+    "type": "reflection" | "fact" | "dialogue",
+    "source": "conversation" | "system" | "user_input"
+  },
+  "roomId": "room-uuid",
+  "metadata": {
+    "tags": ["important", "preference"],
+    "priority": "high",
+    "expires": "2024-12-31T23:59:59Z"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "memory-uuid",
+    "content": {
+      "text": "Memory content",
+      "type": "reflection",
+      "source": "conversation"
+    },
+    "roomId": "room-uuid",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "tags": ["important", "preference"],
+      "priority": "high"
+    }
+  }
+}
+```
+
+### Get Agent Memory
+
+```http
+GET /api/memory/agents/:agentId/memories/:memoryId
+```
+
+Gets a specific memory by ID.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "memory-uuid",
+    "content": {
+      "text": "Memory content",
+      "type": "reflection",
+      "source": "conversation"
+    },
+    "roomId": "room-uuid",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "tags": ["important"],
+      "accessCount": 5,
+      "lastAccessed": "2024-01-01T00:00:00Z"
+    }
+  }
+}
+```
+
+### Update Agent Memory
+
+```http
+PATCH /api/memory/agents/:agentId/memories/:memoryId
+```
+
+Updates an existing memory.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
+
+**Request Body:**
+```json
+{
+  "content": {
+    "text": "Updated memory content",
+    "type": "fact"
+  },
+  "metadata": {
+    "tags": ["updated", "important"],
+    "priority": "medium"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "memory-uuid",
+    "content": {
+      "text": "Updated memory content",
+      "type": "fact",
+      "source": "conversation"
+    },
+    "updatedAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "tags": ["updated", "important"],
+      "priority": "medium"
+    }
+  }
+}
+```
+
+### List Agent Memories
+
+```http
+GET /api/memory/agents/:agentId/memories
+```
+
+Lists all memories for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of memories (default: 50, max: 200)
+- `offset` (number) - Pagination offset (default: 0)
+- `type` (string) - Filter by memory type
+- `roomId` (UUID) - Filter by room
+- `tags` (string) - Filter by tags (comma-separated)
+- `sortBy` (string) - Sort field (createdAt, updatedAt, similarity)
+- `sortOrder` (string) - Sort order (asc, desc)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Memory content",
+          "type": "reflection"
+        },
+        "roomId": "room-uuid",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "metadata": {
+          "tags": ["important"]
+        }
+      }
+    ],
+    "pagination": {
+      "total": 100,
+      "limit": 50,
+      "offset": 0,
+      "hasMore": true
+    }
+  }
+}
+```
+
+### Remove Agent Memory
+
+```http
+DELETE /api/memory/agents/:agentId/memories/:memoryId
+```
+
+Removes a specific memory.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+### Remove All Agent Memories
+
+```http
+DELETE /api/memory/agents/:agentId/memories
+```
+
+Removes all memories for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `confirm` (string) - Must be "true" to execute
+- `type` (string) - Optional: only remove memories of specific type
+- `roomId` (UUID) - Optional: only remove memories from specific room
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deletedCount": 150,
+    "message": "All memories removed"
+  }
+}
+```
+
+## Room-based Memory Management
+
+### Get Memories by Room
+
+```http
+GET /api/memory/agents/:agentId/rooms/:roomId/memories
+```
+
+Gets all memories for an agent in a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Query Parameters:**
+- `unique` (boolean) - Return only unique memories (default: true)
+- `limit` (number) - Number of memories (default: 50)
+- `type` (string) - Filter by memory type
+- `sortBy` (string) - Sort field (createdAt, updatedAt)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Room-specific memory",
+          "type": "dialogue"
+        },
+        "roomId": "room-uuid",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "roomInfo": {
+      "id": "room-uuid",
+      "name": "Room Name",
+      "memoryCount": 25
+    }
+  }
+}
+```
+
+### Create Room Memory
+
+```http
+POST /api/memory/agents/:agentId/rooms/:roomId/memories
+```
+
+Creates a memory specifically for a room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Request Body:**
+```json
+{
+  "content": {
+    "text": "Room-specific memory content",
+    "type": "dialogue",
+    "source": "conversation"
+  },
+  "metadata": {
+    "contextual": true,
+    "importance": "high"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "memory-uuid",
+    "content": {
+      "text": "Room-specific memory content",
+      "type": "dialogue"
+    },
+    "roomId": "room-uuid",
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Clear Room Memories
+
+```http
+DELETE /api/memory/agents/:agentId/rooms/:roomId/memories
+```
+
+Clears all memories for an agent in a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Query Parameters:**
+- `confirm` (string) - Must be "true" to execute
+- `type` (string) - Optional: only clear memories of specific type
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deletedCount": 25,
+    "message": "Room memories cleared"
+  }
+}
+```
+
+## Room Management
+
+### List Agent Rooms
+
+```http
+GET /api/memory/agents/:agentId/rooms
+```
+
+Lists all rooms for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of rooms (default: 50)
+- `hasMemories` (boolean) - Filter rooms with memories
+- `sortBy` (string) - Sort field (name, createdAt, memoryCount)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "rooms": [
+      {
+        "id": "room-uuid",
+        "name": "Room Name",
+        "memoryCount": 25,
+        "lastMemoryAt": "2024-01-01T00:00:00Z",
+        "createdAt": "2024-01-01T00:00:00Z",
+        "metadata": {
+          "type": "group_chat",
+          "participants": ["user-uuid-1", "user-uuid-2"]
+        }
+      }
+    ]
+  }
+}
+```
+
+### Get Room Details
+
+```http
+GET /api/memory/agents/:agentId/rooms/:roomId
+```
+
+Gets detailed information about a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Room Name",
+    "memoryCount": 25,
+    "lastMemoryAt": "2024-01-01T00:00:00Z",
+    "createdAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "type": "group_chat",
+      "participants": ["user-uuid-1", "user-uuid-2"],
+      "settings": {
+        "persistent": true,
+        "maxMemories": 1000
+      }
+    },
+    "memoryStats": {
+      "totalMemories": 25,
+      "byType": {
+        "dialogue": 15,
+        "reflection": 8,
+        "fact": 2
+      }
+    }
+  }
+}
+```
+
+### Create Room
+
+```http
+POST /api/memory/agents/:agentId/rooms
+```
+
+Creates a new room for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "name": "Room Name",
+  "metadata": {
+    "type": "group_chat",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "settings": {
+      "persistent": true,
+      "maxMemories": 1000
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Room Name",
+    "memoryCount": 0,
+    "createdAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "type": "group_chat",
+      "participants": ["user-uuid-1", "user-uuid-2"]
+    }
+  }
+}
+```
+
+### Update Room
+
+```http
+PATCH /api/memory/agents/:agentId/rooms/:roomId
+```
+
+Updates room information.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Request Body:**
+```json
+{
+  "name": "Updated Room Name",
+  "metadata": {
+    "settings": {
+      "maxMemories": 2000
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Updated Room Name",
+    "memoryCount": 25,
+    "updatedAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "settings": {
+        "maxMemories": 2000
+      }
+    }
+  }
+}
+```
+
+### Delete Room
+
+```http
+DELETE /api/memory/agents/:agentId/rooms/:roomId
+```
+
+Deletes a room and all associated memories.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Query Parameters:**
+- `confirm` (string) - Must be "true" to execute
+
+**Response:**
+```http
+204 No Content
+```
+
+## Group Memory Management
+
+### List Memory Groups
+
+```http
+GET /api/memory/groups
+```
+
+Lists all memory groups.
+
+**Query Parameters:**
+- `limit` (number) - Number of groups (default: 50)
+- `agentId` (UUID) - Filter by agent participation
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "groups": [
+      {
+        "id": "group-uuid",
+        "name": "Group Name",
+        "agentIds": ["agent-uuid-1", "agent-uuid-2"],
+        "memoryCount": 100,
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Create Memory Group
+
+```http
+POST /api/memory/groups
+```
+
+Creates a new memory group.
+
+**Request Body:**
+```json
+{
+  "name": "Group Name",
+  "agentIds": ["agent-uuid-1", "agent-uuid-2"],
+  "settings": {
+    "shared": true,
+    "maxMemories": 1000
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "group-uuid",
+    "name": "Group Name",
+    "agentIds": ["agent-uuid-1", "agent-uuid-2"],
+    "memoryCount": 0,
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Group Memories
+
+```http
+GET /api/memory/groups/:groupId/memories
+```
+
+Gets all memories for a group.
+
+**Parameters:**
+- `groupId` (UUID) - Group identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of memories (default: 50)
+- `agentId` (UUID) - Filter by agent
+- `type` (string) - Filter by memory type
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Shared memory content",
+          "type": "fact"
+        },
+        "agentId": "agent-uuid",
+        "groupId": "group-uuid",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "groupInfo": {
+      "id": "group-uuid",
+      "name": "Group Name",
+      "agentIds": ["agent-uuid-1", "agent-uuid-2"]
+    }
+  }
+}
+```
+
+### Add Agent to Group
+
+```http
+POST /api/memory/groups/:groupId/agents/:agentId
+```
+
+Adds an agent to a memory group.
+
+**Parameters:**
+- `groupId` (UUID) - Group identifier
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "groupId": "group-uuid",
+    "agentId": "agent-uuid",
+    "addedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Remove Agent from Group
+
+```http
+DELETE /api/memory/groups/:groupId/agents/:agentId
+```
+
+Removes an agent from a memory group.
+
+**Parameters:**
+- `groupId` (UUID) - Group identifier
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Memory Analytics
+
+### Get Memory Statistics
+
+```http
+GET /api/memory/agents/:agentId/stats
+```
+
+Gets memory statistics for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `period` (string) - Time period (day, week, month, year)
+- `roomId` (UUID) - Filter by room
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalMemories": 500,
+    "byType": {
+      "dialogue": 300,
+      "reflection": 150,
+      "fact": 50
+    },
+    "byRoom": {
+      "room-uuid-1": 200,
+      "room-uuid-2": 150,
+      "room-uuid-3": 150
+    },
+    "recentActivity": {
+      "lastWeek": 25,
+      "lastMonth": 100
+    },
+    "topTags": [
+      { "tag": "important", "count": 50 },
+      { "tag": "preference", "count": 30 }
+    ]
+  }
+}
+```
+
+### Get Memory Insights
+
+```http
+GET /api/memory/agents/:agentId/insights
+```
+
+Gets memory insights and patterns.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of insights (default: 10)
+- `type` (string) - Insight type (trend, pattern, anomaly)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "insights": [
+      {
+        "type": "trend",
+        "title": "Increasing reflection memories",
+        "description": "Agent is creating more reflection-type memories",
+        "data": {
+          "increase": 25,
+          "period": "last_week"
+        }
+      },
+      {
+        "type": "pattern",
+        "title": "Common memory topics",
+        "description": "Most memories relate to user preferences",
+        "data": {
+          "topics": ["preferences", "habits", "interests"]
+        }
+      }
+    ]
+  }
+}
+```
+
+## Memory Export/Import
+
+### Export Agent Memories
+
+```http
+GET /api/memory/agents/:agentId/export
+```
+
+Exports all memories for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `format` (string) - Export format (json, csv, xml)
+- `roomId` (UUID) - Filter by room
+- `type` (string) - Filter by memory type
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "exportId": "export-uuid",
+    "url": "/api/memory/exports/export-uuid/download",
+    "format": "json",
+    "memoryCount": 500,
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Import Agent Memories
+
+```http
+POST /api/memory/agents/:agentId/import
+```
+
+Imports memories for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Memory file (JSON, CSV, or XML)
+
+**Query Parameters:**
+- `overwrite` (boolean) - Overwrite existing memories (default: false)
+- `validate` (boolean) - Validate before import (default: true)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "importId": "import-uuid",
+    "status": "processing",
+    "importedCount": 0,
+    "totalCount": 500,
+    "errors": []
+  }
+}
+```
+
+### Get Import Status
+
+```http
+GET /api/memory/imports/:importId/status
+```
+
+Gets the status of a memory import.
+
+**Parameters:**
+- `importId` (UUID) - Import identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "importId": "import-uuid",
+    "status": "completed",
+    "importedCount": 450,
+    "totalCount": 500,
+    "errors": [
+      {
+        "line": 25,
+        "error": "Invalid memory format",
+        "data": "..."
+      }
+    ],
+    "completedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_ID` - Invalid UUID format
+- `NOT_FOUND` - Resource not found
+- `INVALID_REQUEST` - Invalid request parameters
+- `MEMORY_LIMIT_EXCEEDED` - Memory storage limit exceeded
+- `DUPLICATE_MEMORY` - Duplicate memory content
+- `INVALID_MEMORY_TYPE` - Invalid memory type
+- `SEARCH_ERROR` - Memory search failed
+
+## Rate Limiting
+
+Memory endpoints are subject to rate limiting:
+- Standard operations: 100 requests per minute
+- Memory creation: 60 requests per minute
+- Memory search: 30 requests per minute
+- Bulk operations: 10 requests per minute
+
+## Best Practices
+
+1. **Use appropriate memory types** for different content
+2. **Implement proper search strategies** with similarity thresholds
+3. **Organize memories by rooms** for better context
+4. **Use metadata and tags** for better organization
+5. **Monitor memory usage** and clean up old memories
+6. **Implement pagination** for large memory sets
+7. **Use bulk operations** for efficiency
+
+## Examples
+
+### Complete Memory Management Flow
+
+```bash
+# 1. Create memory
+curl -X POST http://localhost:3000/api/memory/agents/{agentId}/memories \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": {
+      "text": "User prefers concise responses",
+      "type": "fact",
+      "source": "conversation"
+    },
+    "metadata": {
+      "tags": ["preference", "important"]
+    }
+  }'
+
+# 2. Search memories
+curl "http://localhost:3000/api/memory/agents/{agentId}/search?query=user%20preferences&limit=5"
+
+# 3. Get room memories
+curl "http://localhost:3000/api/memory/agents/{agentId}/rooms/{roomId}/memories?unique=true"
+
+# 4. Get memory statistics
+curl "http://localhost:3000/api/memory/agents/{agentId}/stats?period=month"
+```
+
+### Memory Search and Filtering
+
+```bash
+# Advanced search with filters
+curl "http://localhost:3000/api/memory/agents/{agentId}/search?query=important&type=fact&threshold=0.8&limit=10"
+
+# List memories with filters
+curl "http://localhost:3000/api/memory/agents/{agentId}/memories?type=reflection&tags=important&sortBy=createdAt&sortOrder=desc"
+
+# Get room-specific memories
+curl "http://localhost:3000/api/memory/agents/{agentId}/rooms/{roomId}/memories?type=dialogue&limit=20"
+```
+
+### Bulk Operations
+
+```bash
+# Clear all memories (with confirmation)
+curl -X DELETE "http://localhost:3000/api/memory/agents/{agentId}/memories?confirm=true"
+
+# Clear room memories
+curl -X DELETE "http://localhost:3000/api/memory/agents/{agentId}/rooms/{roomId}/memories?confirm=true"
+
+# Export memories
+curl "http://localhost:3000/api/memory/agents/{agentId}/export?format=json"
+```

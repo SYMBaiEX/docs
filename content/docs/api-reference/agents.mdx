@@ -1,0 +1,725 @@
+---
+title: Agents API
+description: Comprehensive API documentation for agent management and operations
+---
+
+# Agents API
+
+The Agents API provides comprehensive endpoints for managing agent lifecycle, memory, and operations. All agent endpoints are prefixed with `/api/agents`.
+
+## Overview
+
+The Agents API includes:
+
+- **CRUD Operations** - Create, read, update, and delete agents
+- **Lifecycle Management** - Start, stop, and monitor agents
+- **Memory Management** - Agent memory operations
+- **Logs and Monitoring** - Agent activity tracking
+- **Worlds and Environments** - Agent environment management
+
+## Base URL
+
+```
+http://localhost:3000/api/agents
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Agent CRUD Operations
+
+### List All Agents
+
+```http
+GET /api/agents
+```
+
+Returns a list of all agents with their basic information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agents": [
+      {
+        "id": "agent-uuid",
+        "name": "Agent Name",
+        "characterName": "Character Name",
+        "bio": "Agent biography",
+        "status": "active" | "inactive"
+      }
+    ]
+  }
+}
+```
+
+### Get Agent Details
+
+```http
+GET /api/agents/:agentId
+```
+
+Returns detailed information about a specific agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "name": "Agent Name",
+    "bio": ["Biography lines"],
+    "lore": ["Lore entries"],
+    "knowledge": ["Knowledge items"],
+    "topics": ["conversation", "topics"],
+    "status": "active" | "inactive",
+    "settings": {
+      "voice": "default",
+      "model": "gpt-4",
+      "secrets": {}
+    }
+  }
+}
+```
+
+### Create Agent
+
+```http
+POST /api/agents
+```
+
+Creates a new agent from character configuration.
+
+**Request Body:**
+```json
+{
+  "characterJson": {
+    "name": "Agent Name",
+    "bio": ["Agent biography"],
+    "lore": ["Agent lore"],
+    "knowledge": ["Agent knowledge"],
+    "settings": {
+      "voice": "default",
+      "model": "gpt-4"
+    }
+  }
+}
+```
+
+**Alternative using character path:**
+```json
+{
+  "characterPath": "/path/to/character.json"
+}
+```
+
+**Alternative using agent object:**
+```json
+{
+  "agent": {
+    "name": "Agent Name",
+    "bio": ["Agent biography"],
+    "settings": {}
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "character": {
+      "name": "Agent Name",
+      "bio": ["Agent biography"],
+      "settings": {}
+    }
+  }
+}
+```
+
+### Update Agent
+
+```http
+PATCH /api/agents/:agentId
+```
+
+Updates an existing agent's configuration.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "name": "Updated Agent Name",
+  "bio": ["Updated biography"],
+  "settings": {
+    "voice": "updated-voice",
+    "secrets": {
+      "API_KEY": "new-secret-value"
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "name": "Updated Agent Name",
+    "bio": ["Updated biography"],
+    "status": "active" | "inactive"
+  }
+}
+```
+
+### Delete Agent
+
+```http
+DELETE /api/agents/:agentId
+```
+
+Deletes an agent and all associated data.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Agent Lifecycle Management
+
+### Start Agent
+
+```http
+POST /api/agents/:agentId/start
+```
+
+Starts an agent runtime.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "character": {
+      "name": "Agent Name",
+      "bio": ["Agent biography"]
+    },
+    "status": "active"
+  }
+}
+```
+
+### Stop Agent
+
+```http
+POST /api/agents/:agentId/stop
+```
+
+Stops a running agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "status": "inactive"
+  }
+}
+```
+
+### Get Agent Status
+
+```http
+GET /api/agents/:agentId/status
+```
+
+Gets the current status of an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "agent-uuid",
+    "status": "active" | "inactive",
+    "uptime": 3600,
+    "lastActivity": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Agent Memory Management
+
+### Search Agent Memory
+
+```http
+GET /api/agents/:agentId/memories/search
+```
+
+Searches through an agent's memory.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `query` (string) - Search text (required)
+- `limit` (number) - Result limit (default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Memory content",
+          "source": "conversation"
+        },
+        "similarity": 0.95,
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Create Memory
+
+```http
+POST /api/agents/:agentId/memories
+```
+
+Creates a new memory for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "content": {
+    "text": "Memory content",
+    "type": "reflection" | "fact" | "dialogue"
+  },
+  "roomId": "optional-room-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "memory-uuid",
+    "content": {
+      "text": "Memory content",
+      "type": "reflection"
+    },
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Memories by Room
+
+```http
+GET /api/agents/:agentId/memories/rooms/:roomId
+```
+
+Gets all memories for an agent in a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Query Parameters:**
+- `unique` (boolean) - Return only unique memories (default: true)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "memory-uuid",
+        "content": {
+          "text": "Memory content"
+        },
+        "roomId": "room-uuid",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Remove Memory
+
+```http
+DELETE /api/agents/:agentId/memories/:memoryId
+```
+
+Removes a specific memory from an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+### Remove All Memories
+
+```http
+DELETE /api/agents/:agentId/memories
+```
+
+Removes all memories for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `confirm` (string) - Must be "true" to execute
+
+**Response:**
+```http
+204 No Content
+```
+
+## Agent Logs and Monitoring
+
+### Get Agent Logs
+
+```http
+GET /api/agents/:agentId/logs
+```
+
+Gets recent logs for a specific agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of log entries (default: 100)
+- `level` (string) - Log level filter (debug, info, warn, error)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "level": "info",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "message": "Log message",
+        "agentId": "agent-uuid",
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
+### Stream Agent Logs
+
+```http
+GET /api/agents/:agentId/logs/stream
+```
+
+Streams real-time logs for an agent via Server-Sent Events.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```
+Content-Type: text/event-stream
+
+data: {"level":"info","timestamp":"2024-01-01T00:00:00Z","message":"Log message"}
+
+data: {"level":"debug","timestamp":"2024-01-01T00:00:01Z","message":"Debug message"}
+```
+
+## Agent Worlds and Environments
+
+### List Agent Worlds
+
+```http
+GET /api/agents/:agentId/worlds
+```
+
+Lists all worlds/environments for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "worlds": [
+      {
+        "id": "world-uuid",
+        "name": "World Name",
+        "description": "World description",
+        "status": "active" | "inactive"
+      }
+    ]
+  }
+}
+```
+
+### Create Agent World
+
+```http
+POST /api/agents/:agentId/worlds
+```
+
+Creates a new world for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "name": "World Name",
+  "description": "World description",
+  "settings": {
+    "environment": "sandbox",
+    "permissions": ["read", "write"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "world-uuid",
+    "name": "World Name",
+    "description": "World description",
+    "status": "active"
+  }
+}
+```
+
+## Agent Room Management
+
+### List Agent Rooms
+
+```http
+GET /api/agents/:agentId/rooms
+```
+
+Lists all rooms for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "rooms": [
+      {
+        "id": "room-uuid",
+        "name": "Room Name",
+        "participants": ["user-uuid-1", "user-uuid-2"],
+        "lastActivity": "2024-01-01T00:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+### Get Room Details
+
+```http
+GET /api/agents/:agentId/rooms/:roomId
+```
+
+Gets detailed information about a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Room Name",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "messages": [
+      {
+        "id": "message-uuid",
+        "content": "Message content",
+        "authorId": "author-uuid",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "lastActivity": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Agent Panels and UI
+
+### Get Agent Panels
+
+```http
+GET /api/agents/:agentId/panels
+```
+
+Gets UI panels for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "panels": [
+      {
+        "id": "panel-uuid",
+        "name": "Panel Name",
+        "type": "chat" | "settings" | "logs",
+        "config": {}
+      }
+    ]
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_ID` - Invalid UUID format
+- `NOT_FOUND` - Agent not found
+- `INVALID_REQUEST` - Invalid request parameters
+- `CREATE_ERROR` - Failed to create agent
+- `UPDATE_ERROR` - Failed to update agent
+- `DELETE_ERROR` - Failed to delete agent
+- `DB_ERROR` - Database operation failed
+
+## Rate Limiting
+
+Agent endpoints are subject to rate limiting:
+- Standard operations: 100 requests per minute
+- Agent creation: 10 requests per minute
+- Memory operations: 50 requests per minute
+
+## Best Practices
+
+1. **Always validate UUIDs** before making requests
+2. **Handle errors gracefully** with appropriate user feedback
+3. **Use appropriate HTTP methods** for each operation
+4. **Implement proper authentication** in production
+5. **Monitor agent status** before performing operations
+6. **Clean up resources** when deleting agents
+7. **Use memory search** efficiently with proper query limits
+
+## Examples
+
+### Complete Agent Creation Flow
+
+```bash
+# 1. Create agent
+curl -X POST http://localhost:3000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "characterJson": {
+      "name": "MyAgent",
+      "bio": ["A helpful assistant"],
+      "settings": {
+        "voice": "default",
+        "model": "gpt-4"
+      }
+    }
+  }'
+
+# 2. Start agent
+curl -X POST http://localhost:3000/api/agents/{agentId}/start
+
+# 3. Create memory
+curl -X POST http://localhost:3000/api/agents/{agentId}/memories \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": {
+      "text": "User prefers concise responses",
+      "type": "fact"
+    }
+  }'
+
+# 4. Search memories
+curl "http://localhost:3000/api/agents/{agentId}/memories/search?query=preferences&limit=5"
+```
+
+### Agent Monitoring
+
+```bash
+# Check agent status
+curl http://localhost:3000/api/agents/{agentId}/status
+
+# Get recent logs
+curl "http://localhost:3000/api/agents/{agentId}/logs?limit=50&level=info"
+
+# Stream logs (Server-Sent Events)
+curl -N http://localhost:3000/api/agents/{agentId}/logs/stream
+```
