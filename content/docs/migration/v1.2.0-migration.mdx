@@ -1,0 +1,796 @@
+---
+title: "ElizaOS v1.2.0 Migration Guide"
+description: "Complete guide for migrating from previous versions to ElizaOS v1.2.0, including breaking changes, step-by-step instructions, and automated migration tools"
+---
+
+# ElizaOS v1.2.0 Migration Guide
+
+This comprehensive guide will help you migrate your ElizaOS application from previous versions to v1.2.0. The update introduces significant improvements in architecture, plugin system, and developer experience, but requires careful migration to maintain compatibility.
+
+<Callout type="warning" title="Breaking Changes">
+ElizaOS v1.2.0 introduces several breaking changes that require code modifications. Please read this guide carefully before upgrading.
+</Callout>
+
+## Overview of Changes
+
+### Major Features in v1.2.0
+
+- **Domain-based API routing** - New centralized messaging system
+- **Enhanced plugin system** - Improved plugin architecture with better dependency management
+- **Character schema updates** - Stricter validation and new required fields
+- **Runtime system improvements** - Better performance and stability
+- **Database adapter requirements** - Mandatory database adapters for all installations
+
+## Pre-Migration Checklist
+
+Before starting the migration, ensure you have:
+
+- [ ] **Backup your data** - Export all character definitions, conversations, and custom configurations
+- [ ] **Document custom integrations** - List all custom plugins, actions, and providers
+- [ ] **Check plugin compatibility** - Verify which plugins need updating
+- [ ] **Review breaking changes** - Understand what needs to be changed
+- [ ] **Test environment ready** - Set up a staging environment for testing
+
+## Breaking Changes in v1.2.0
+
+### 1. API Route Restructuring
+
+The most significant change is the move from agent-specific endpoints to domain-based routing.
+
+#### Old API Structure (v1.1.x and earlier)
+```
+/api/agents/{agentId}/message
+/api/agents/{agentId}/audio/transcribe
+/api/agents/{agentId}/audio/generate
+```
+
+#### New API Structure (v1.2.0)
+```
+/api/messaging/submit
+/api/audio/{agentId}/transcribe
+/api/audio/{agentId}/generate
+```
+
+### 2. Plugin System Changes
+
+#### Plugin Loading Order
+Plugin order is now critical and strictly enforced:
+
+```typescript
+// REQUIRED ORDER in v1.2.0
+plugins: [
+  "@elizaos/plugin-sql",        // MUST BE FIRST
+  "@elizaos/plugin-openai",     // Model provider
+  "@elizaos/plugin-bootstrap",  // MUST BE LAST
+  // ... other plugins in between
+]
+```
+
+#### Plugin Interface Updates
+The Plugin interface has been enhanced with new properties:
+
+```typescript
+// v1.2.0 Plugin interface additions
+export interface Plugin {
+  // ... existing properties
+
+  // NEW: Component type definitions
+  componentTypes?: {
+    name: string;
+    schema: Record<string, unknown>;
+    validator?: (data: any) => boolean;
+  }[];
+
+  // NEW: Event system
+  events?: PluginEvents;
+
+  // NEW: HTTP routes
+  routes?: Route[];
+
+  // NEW: Test suites
+  tests?: TestSuite[];
+
+  // NEW: Priority for loading order
+  priority?: number;
+}
+```
+
+### 3. Character Schema Updates
+
+Character definitions now require stricter validation:
+
+#### Message Examples Format Change
+```typescript
+// OLD FORMAT (v1.1.x)
+messageExamples: [
+  [
+    {
+      user: "{{user1}}",
+      content: { text: "Hello" }
+    },
+    {
+      user: "Agent",
+      content: { text: "Hi there!" }
+    }
+  ]
+]
+
+// NEW FORMAT (v1.2.0)
+messageExamples: [
+  [
+    {
+      name: "{{user1}}",  // 'user' → 'name'
+      content: { text: "Hello" }
+    },
+    {
+      name: "Agent",      // 'user' → 'name'
+      content: { text: "Hi there!" }
+    }
+  ]
+]
+```
+
+#### Required Plugin Configuration
+```typescript
+// v1.2.0 requires minimum 3 plugins in specific order
+plugins: [
+  "@elizaos/plugin-sql",        // REQUIRED FIRST
+  "@elizaos/plugin-openai",     // Model provider (required)
+  "@elizaos/plugin-bootstrap",  // REQUIRED LAST
+]
+```
+
+### 4. Runtime System Changes
+
+#### Environment Configuration
+```typescript
+// v1.2.0 requires explicit database configuration
+export const runtime = {
+  // Database adapter now mandatory
+  databaseAdapter: new SqliteDatabaseAdapter(),
+  
+  // Model provider configuration
+  modelProvider: "openai",
+  
+  // New runtime options
+  features: {
+    multiAgent: true,
+    webSearch: true,
+    imageGeneration: false
+  }
+}
+```
+
+### 5. Database Adapter Requirements
+
+All installations now require a database adapter:
+
+```typescript
+// v1.2.0 - Database adapter is mandatory
+import { SqliteDatabaseAdapter } from "@elizaos/database-sqlite";
+
+const runtime = new AgentRuntime({
+  databaseAdapter: new SqliteDatabaseAdapter(), // Required
+  // ... other configuration
+});
+```
+
+## Step-by-Step Migration Instructions
+
+### Step 1: Update Dependencies
+
+First, update your package.json dependencies:
+
+```json
+{
+  "dependencies": {
+    "@elizaos/core": "^1.2.0",
+    "@elizaos/plugin-sql": "^1.2.0",
+    "@elizaos/plugin-bootstrap": "^1.2.0",
+    "@elizaos/database-sqlite": "^1.2.0"
+  }
+}
+```
+
+Install updated dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+### Step 2: Update API Endpoints
+
+#### Client-Side Changes
+
+Update your API calls to use the new endpoints:
+
+```typescript
+// BEFORE (v1.1.x)
+const sendMessage = async (agentId: string, message: string) => {
+  return fetch(`/api/agents/${agentId}/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      senderId: 'user123',
+      roomId: 'room456',
+      text: message,
+      source: 'api'
+    })
+  });
+};
+
+// AFTER (v1.2.0)
+const sendMessage = async (message: string, channelId: string) => {
+  return fetch('/api/messaging/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      channel_id: channelId,
+      server_id: '00000000-0000-0000-0000-000000000000',
+      author_id: 'user123',
+      content: message,
+      source_type: 'user_message',
+      raw_message: { text: message }
+    })
+  });
+};
+```
+
+#### WebSocket Migration
+
+Migrate from raw WebSocket to Socket.IO:
+
+```typescript
+// BEFORE (v1.1.x)
+const ws = new WebSocket('ws://localhost:3000');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Message:', data);
+};
+
+// AFTER (v1.2.0)
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+socket.on('connect', () => {
+  socket.emit('join_channel', { channelId: 'your-channel-id' });
+});
+socket.on('new_message', (message) => {
+  console.log('Message:', message);
+});
+```
+
+### Step 3: Update Character Definitions
+
+#### Fix Message Examples Format
+
+Update the `messageExamples` format:
+
+```typescript
+// Update your character definition
+const migrateMessageExamples = (oldExamples: any[]) => {
+  return oldExamples.map(conversation => 
+    conversation.map(message => ({
+      name: message.user,        // user → name
+      content: message.content   // content stays the same
+    }))
+  );
+};
+```
+
+#### Update Plugin Configuration
+
+Ensure proper plugin ordering:
+
+```typescript
+// BEFORE (v1.1.x) - Order didn't matter
+plugins: [
+  "@elizaos/plugin-openai",
+  "@elizaos/plugin-discord",
+  "@elizaos/plugin-sql",
+  "@elizaos/plugin-bootstrap"
+]
+
+// AFTER (v1.2.0) - Strict ordering required
+plugins: [
+  "@elizaos/plugin-sql",        // MUST BE FIRST
+  "@elizaos/plugin-openai",     // Model provider
+  "@elizaos/plugin-bootstrap",  // MUST BE LAST
+  "@elizaos/plugin-discord"     // Other plugins between
+]
+```
+
+### Step 4: Update Plugin Development
+
+#### Migrate Plugin Structure
+
+Update your custom plugins to the new interface:
+
+```typescript
+// v1.2.0 Plugin structure
+import { Plugin } from "@elizaos/core";
+
+export const myPlugin: Plugin = {
+  name: "my-plugin",
+  description: "My custom plugin",
+  
+  // NEW: Initialize function
+  init: async (config, runtime) => {
+    console.log("Plugin initialized");
+  },
+  
+  // NEW: Component types
+  componentTypes: [{
+    name: "MyComponent",
+    schema: {
+      type: "object",
+      properties: {
+        value: { type: "string" }
+      }
+    },
+    validator: (data) => typeof data.value === "string"
+  }],
+  
+  // NEW: Event handlers
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        console.log("Message received:", params.message);
+      }
+    ]
+  },
+  
+  // NEW: HTTP routes
+  routes: [{
+    path: "/my-plugin/status",
+    method: "GET",
+    handler: async (req, res) => {
+      res.json({ status: "OK" });
+    }
+  }],
+  
+  // Existing properties
+  actions: [...],
+  providers: [...],
+  evaluators: [...]
+};
+```
+
+### Step 5: Update Configuration Files
+
+#### Environment Variables
+
+Update your `.env` file with v1.2.0 requirements:
+
+```env
+# Database configuration (now required)
+DATABASE_URL=sqlite:./db.sqlite
+
+# Model provider (required)
+OPENAI_API_KEY=your_openai_key
+
+# Runtime configuration
+RUNTIME_MODE=development
+ENABLE_MULTI_AGENT=true
+ENABLE_WEB_SEARCH=true
+```
+
+#### Database Setup
+
+Initialize the database adapter:
+
+```typescript
+// database.ts
+import { SqliteDatabaseAdapter } from "@elizaos/database-sqlite";
+
+export const databaseAdapter = new SqliteDatabaseAdapter({
+  path: process.env.DATABASE_URL || "./db.sqlite"
+});
+```
+
+### Step 6: Update Tests
+
+Update your test files to use the new testing framework:
+
+```typescript
+// v1.2.0 test structure
+import { TestSuite, TestCase } from "@elizaos/core";
+
+export const myPluginTests: TestSuite = {
+  name: "My Plugin Tests",
+  
+  cases: [
+    {
+      name: "should handle message",
+      async run(runtime) {
+        const result = await runtime.processMessage({
+          content: { text: "test message" },
+          userId: "test-user",
+          roomId: "test-room"
+        });
+        
+        expect(result).toBeDefined();
+        expect(result.content.text).toContain("response");
+      }
+    }
+  ]
+};
+```
+
+## Automated Migration Tools
+
+### ElizaOS CLI Migration Commands
+
+The ElizaOS CLI provides automated migration tools:
+
+#### Plugin Upgrade Command
+
+```bash
+# Upgrade all plugins to v1.2.0 compatible versions
+elizaos plugins upgrade
+
+# Upgrade specific plugin
+elizaos plugins upgrade @elizaos/plugin-discord
+
+# Check plugin compatibility
+elizaos plugins check-compatibility
+```
+
+#### Character Migration
+
+```bash
+# Migrate character definitions
+elizaos characters migrate ./characters/
+
+# Validate character files
+elizaos characters validate ./characters/my-character.json
+```
+
+#### Code Migration
+
+```bash
+# Migrate API calls automatically
+elizaos migrate api-calls ./src/
+
+# Migrate plugin definitions
+elizaos migrate plugins ./plugins/
+```
+
+### AI-Powered Code Transformation
+
+The CLI includes AI-powered migration assistance:
+
+```bash
+# Interactive migration with AI assistance
+elizaos migrate --interactive
+
+# Explain migration steps
+elizaos migrate --explain
+
+# Preview changes without applying
+elizaos migrate --dry-run
+```
+
+## Migration Validation
+
+### Validation Checklist
+
+After migration, verify these items:
+
+#### ✅ API Endpoints
+- [ ] Message submission uses `/api/messaging/submit`
+- [ ] Audio endpoints use `/api/audio/{agentId}/`
+- [ ] WebSocket connections use Socket.IO
+- [ ] All API responses follow new format
+
+#### ✅ Character Definitions
+- [ ] All characters have valid plugin ordering
+- [ ] Message examples use `name` field instead of `user`
+- [ ] Plugin list includes required minimum plugins
+- [ ] All validation passes without errors
+
+#### ✅ Plugin System
+- [ ] Plugins load in correct order
+- [ ] All custom plugins updated to v1.2.0 interface
+- [ ] Plugin dependencies resolved correctly
+- [ ] No deprecated plugin methods used
+
+#### ✅ Runtime Configuration
+- [ ] Database adapter configured and working
+- [ ] Environment variables set correctly
+- [ ] Model provider configured
+- [ ] All services start without errors
+
+### Automated Validation
+
+Run automated validation:
+
+```bash
+# Validate entire project
+elizaos validate
+
+# Validate specific components
+elizaos validate characters
+elizaos validate plugins
+elizaos validate api-endpoints
+```
+
+## Testing Migration
+
+### Test Strategy
+
+Create comprehensive tests for your migrated code:
+
+#### 1. API Testing
+
+```typescript
+// Test new API endpoints
+describe("API Migration", () => {
+  test("message submission works", async () => {
+    const response = await fetch('/api/messaging/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel_id: 'test-channel',
+        server_id: '00000000-0000-0000-0000-000000000000',
+        author_id: 'test-user',
+        content: 'test message',
+        source_type: 'test',
+        raw_message: { text: 'test message' }
+      })
+    });
+    
+    expect(response.ok).toBe(true);
+  });
+});
+```
+
+#### 2. Character Validation Testing
+
+```typescript
+// Test character definitions
+describe("Character Migration", () => {
+  test("character validation passes", () => {
+    const character = loadCharacter('./characters/my-character.json');
+    const result = validateCharacter(character);
+    
+    expect(result.success).toBe(true);
+    expect(result.data.plugins[0]).toBe('@elizaos/plugin-sql');
+    expect(result.data.plugins[result.data.plugins.length - 1]).toBe('@elizaos/plugin-bootstrap');
+  });
+});
+```
+
+#### 3. Plugin System Testing
+
+```typescript
+// Test plugin loading
+describe("Plugin Migration", () => {
+  test("plugins load in correct order", async () => {
+    const runtime = new AgentRuntime({
+      character: testCharacter,
+      databaseAdapter: new SqliteDatabaseAdapter()
+    });
+    
+    await runtime.initialize();
+    
+    const loadedPlugins = runtime.getLoadedPlugins();
+    expect(loadedPlugins[0].name).toBe('@elizaos/plugin-sql');
+    expect(loadedPlugins[loadedPlugins.length - 1].name).toBe('@elizaos/plugin-bootstrap');
+  });
+});
+```
+
+## Troubleshooting Common Issues
+
+### Issue 1: Plugin Loading Order Errors
+
+**Error**: `Plugin order validation failed: @elizaos/plugin-sql must be first`
+
+**Solution**: Update plugin array ordering:
+
+```typescript
+// Fix plugin order
+plugins: [
+  "@elizaos/plugin-sql",        // Move to first position
+  "@elizaos/plugin-openai",
+  "@elizaos/plugin-bootstrap",  // Move to last position
+  // ... other plugins
+]
+```
+
+### Issue 2: Message Format Validation Errors
+
+**Error**: `messageExamples validation failed: name field required`
+
+**Solution**: Update message example format:
+
+```typescript
+// Fix message examples
+messageExamples: [
+  [
+    {
+      name: "{{user1}}",     // Change 'user' to 'name'
+      content: { text: "Hello" }
+    }
+  ]
+]
+```
+
+### Issue 3: Database Adapter Missing
+
+**Error**: `DatabaseAdapter is required in v1.2.0`
+
+**Solution**: Add database adapter:
+
+```typescript
+import { SqliteDatabaseAdapter } from "@elizaos/database-sqlite";
+
+const runtime = new AgentRuntime({
+  databaseAdapter: new SqliteDatabaseAdapter(), // Add this
+  // ... other configuration
+});
+```
+
+### Issue 4: API Endpoint 404 Errors
+
+**Error**: `404 Not Found: /api/agents/{agentId}/message`
+
+**Solution**: Update API endpoint:
+
+```typescript
+// Update endpoint
+const response = await fetch('/api/messaging/submit', {
+  // ... use new payload format
+});
+```
+
+### Issue 5: WebSocket Connection Failures
+
+**Error**: `WebSocket connection failed`
+
+**Solution**: Migrate to Socket.IO:
+
+```bash
+npm install socket.io-client
+```
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+```
+
+## Rollback Procedures
+
+If you encounter issues during migration, you can rollback:
+
+### 1. Dependency Rollback
+
+```bash
+# Rollback to previous version
+npm install @elizaos/core@1.1.x
+
+# Or restore from backup
+cp package.json.backup package.json
+npm install
+```
+
+### 2. Configuration Rollback
+
+```bash
+# Restore character definitions
+cp -r characters.backup/* characters/
+
+# Restore environment configuration
+cp .env.backup .env
+```
+
+### 3. Database Rollback
+
+```bash
+# Restore database backup
+cp db.sqlite.backup db.sqlite
+
+# Or reinitialize
+elizaos db:reset
+```
+
+## Performance Optimizations
+
+### v1.2.0 Performance Improvements
+
+The new version includes several performance optimizations:
+
+#### 1. Plugin Loading Optimization
+
+```typescript
+// v1.2.0 optimized plugin loading
+const runtime = new AgentRuntime({
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",
+    "@elizaos/plugin-bootstrap"
+  ],
+  // Optimize plugin loading
+  pluginConfig: {
+    lazyLoad: true,
+    cacheEnabled: true,
+    loadTimeout: 30000
+  }
+});
+```
+
+#### 2. Database Performance
+
+```typescript
+// Configure database for better performance
+const databaseAdapter = new SqliteDatabaseAdapter({
+  path: "./db.sqlite",
+  // v1.2.0 performance options
+  options: {
+    cache: true,
+    journalMode: 'WAL',
+    synchronous: 'NORMAL',
+    busyTimeout: 30000
+  }
+});
+```
+
+#### 3. Message Processing
+
+```typescript
+// v1.2.0 optimized message processing
+const runtime = new AgentRuntime({
+  // ... other config
+  messageConfig: {
+    batchSize: 100,
+    processingTimeout: 30000,
+    enableCaching: true
+  }
+});
+```
+
+## Next Steps
+
+After successful migration:
+
+1. **Test thoroughly** - Run comprehensive tests in staging environment
+2. **Monitor performance** - Check for any performance regressions
+3. **Update documentation** - Document any custom changes made during migration
+4. **Train team** - Ensure all team members understand the new architecture
+5. **Plan for future updates** - Set up processes for handling future migrations
+
+## Additional Resources
+
+### Documentation
+- [API Reference](/docs/api-reference) - Complete API documentation
+- [Plugin Development](/docs/plugins/plugin-development) - Plugin development guide
+- [Character Definition](/docs/core-concepts/agent-development/character-definition) - Character schema documentation
+
+### Community Support
+- **Discord**: Join the ElizaOS Discord server for migration help
+- **GitHub Issues**: Report migration issues on the GitHub repository
+- **Community Forum**: Ask questions and share experiences
+
+### Migration Tools
+- **ElizaOS CLI**: `elizaos --help` for all migration commands
+- **Validation Tools**: Built-in validation for all components
+- **AI Assistant**: Interactive migration help with AI guidance
+
+---
+
+**Migration Status**: Follow this checklist to track your progress:
+
+- [ ] Dependencies updated
+- [ ] API endpoints migrated
+- [ ] Character definitions updated  
+- [ ] Plugin system migrated
+- [ ] Database adapter configured
+- [ ] Tests updated and passing
+- [ ] Validation complete
+- [ ] Production deployment ready
+
+For additional help with migration, consult the [troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide) or reach out to the ElizaOS community.
