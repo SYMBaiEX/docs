@@ -1,0 +1,614 @@
+---
+title: Providers
+description: Implementing data providers for agents
+---
+
+# Providers
+
+Providers supply contextual data and state information to agents during message processing. They enable agents to access external data sources, system state, and computed values that inform responses.
+
+## Provider Interface
+
+From `@elizaos/core/src/types/components.ts`:
+
+```typescript
+/**
+ * Provider for external data/services
+ */
+export interface Provider {
+  /** Provider name */
+  name: string;
+  
+  /** Description of the provider */
+  description?: string;
+  
+  /** Whether the provider is dynamic */
+  dynamic?: boolean;
+  
+  /** Position of the provider in the provider list, positive or negative */
+  position?: number;
+  
+  /**
+   * Whether the provider is private
+   * Private providers are not displayed in the regular provider list,
+   * they have to be called explicitly
+   */
+  private?: boolean;
+  
+  /** Data retrieval function */
+  get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
+}
+
+export interface ProviderResult {
+  values?: {
+    [key: string]: any;
+  };
+  data?: {
+    [key: string]: any;
+  };
+  text?: string;
+}
+```
+
+## Creating Providers
+
+### Basic Provider Structure
+
+```typescript
+import type { Provider, IAgentRuntime, Memory, State } from '@elizaos/core';
+
+export const weatherProvider: Provider = {
+  name: 'WEATHER',
+  description: 'Provides current weather information',
+  dynamic: true, // Weather changes frequently
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Extract location from message or use default
+    const location = extractLocation(message.content.text) || 'New York';
+    
+    // Fetch weather data
+    const weather = await fetchWeatherData(location);
+    
+    return {
+      values: {
+        temperature: weather.temp,
+        condition: weather.condition,
+        humidity: weather.humidity,
+        location: location
+      },
+      data: weather,
+      text: `Current weather in ${location}: ${weather.temp}°F, ${weather.condition}`
+    };
+  }
+};
+```
+
+### Real Example: Time Provider
+
+From `@elizaos/plugin-bootstrap/src/providers/time.ts`:
+
+```typescript
+import type { IAgentRuntime, Memory, Provider } from '@elizaos/core';
+
+/**
+ * Time provider function that retrieves the current date and time in UTC
+ * for use in time-based operations or responses.
+ */
+export const timeProvider: Provider = {
+  name: 'TIME',
+  get: async (_runtime: IAgentRuntime, _message: Memory) => {
+    const currentDate = new Date();
+
+    // Get UTC time since bots will be communicating with users around the global
+    const options = {
+      timeZone: 'UTC',
+      dateStyle: 'full' as const,
+      timeStyle: 'long' as const,
+    };
+    const humanReadable = new Intl.DateTimeFormat('en-US', options).format(currentDate);
+    
+    return {
+      data: {
+        time: currentDate,
+      },
+      values: {
+        time: humanReadable,
+      },
+      text: `The current date and time is ${humanReadable}. Please use this as your reference for any time-based operations or responses.`,
+    };
+  },
+};
+```
+
+## Bootstrap Plugin Providers
+
+The plugin-bootstrap includes many essential providers:
+
+### 1. Recent Messages Provider
+
+From `@elizaos/plugin-bootstrap/src/providers/recentMessages.ts`:
+
+```typescript
+export const recentMessagesProvider: Provider = {
+  name: 'RECENT_MESSAGES',
+  description: 'Provides conversation history and context',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Get recent messages from the conversation
+    const length = runtime.getConversationLength();
+    const messages = await runtime.messageManager.getMessages({
+      roomId: message.roomId,
+      count: length,
+      unique: true,
+    });
+    
+    const formattedMessages = messages
+      .reverse()
+      .map((msg) => {
+        return `${msg.name}: ${msg.content.text}${msg.content.action ? ` [${msg.content.action}]` : ''}`;
+      })
+      .join('\n');
+    
+    return {
+      text: `Conversation History:\n${formattedMessages}`,
+    };
+  }
+};
+```
+
+### 2. Settings Provider
+
+From `@elizaos/plugin-bootstrap/src/providers/settings.ts`:
+
+```typescript
+export const settingsProvider: Provider = {
+  name: 'SETTINGS',
+  description: 'Provides agent settings and configuration',
+  
+  get: async (runtime: IAgentRuntime, _message: Memory, state: State) => {
+    const currentState = Array.isArray(state) ? state[0] : state;
+    const agentId = currentState?.agentId || runtime.agentId;
+    const agentName = runtime.character.name || 'The agent';
+    const characterSettings = runtime.character.settings || {};
+    
+    const settingsMarkdown = Object.entries(characterSettings)
+      .map(([key, value]) => `- **${key}**: ${JSON.stringify(value)}`)
+      .join('\n');
+    
+    return {
+      text: `${agentName}'s configuration includes the following settings:\n\n${settingsMarkdown || 'No settings configured'}`,
+    };
+  },
+};
+```
+
+### 3. Facts Provider
+
+From `@elizaos/plugin-bootstrap/src/providers/facts.ts`:
+
+```typescript
+export const factsProvider: Provider = {
+  name: 'FACTS',
+  description: 'Retrieves known facts about entities and topics',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Get facts about the user and general knowledge
+    const agentId = runtime.agentId;
+    const agentName = runtime.character.name;
+    
+    const recentFacts = await runtime.getMemories({
+      tableName: 'facts',
+      roomId: message.roomId,
+      entityId: agentId,
+      start: Date.now() - 1000 * 60 * 60 * 24 * 7, // last 7 days
+      end: Date.now(),
+      count: 10,
+      unique: true,
+    });
+    
+    const allFacts = await runtime.getMemories({
+      tableName: 'facts',
+      roomId: message.roomId,
+      entityId: agentId,
+      count: 20,
+      unique: true,
+    });
+    
+    const formattedFacts = allFacts
+      .reverse()
+      .map((fact) => fact.content.text)
+      .join('\n');
+    
+    return {
+      text: `About ${agentName}:\n${formattedFacts}`,
+    };
+  },
+};
+```
+
+### 4. Other Bootstrap Providers
+
+The plugin-bootstrap includes many more providers:
+
+- **attachmentsProvider**: Handles message attachments
+- **capabilitiesProvider**: Lists agent capabilities
+- **characterProvider**: Provides character information
+- **choiceProvider**: Manages user choices
+- **entitiesProvider**: Tracks entities in conversations
+- **evaluatorsProvider**: Lists available evaluators
+- **providersProvider**: Lists available providers
+- **relationshipsProvider**: Manages entity relationships
+- **rolesProvider**: Handles user roles
+- **shouldRespondProvider**: Determines if agent should respond
+- **worldProvider**: Provides world/environment context
+- **anxietyProvider**: Tracks conversation anxiety levels
+- **actionsProvider**: Lists available actions
+
+### 5. External Data Providers
+
+Integrate external services:
+
+```typescript
+export const stockPriceProvider: Provider = {
+  name: 'STOCK_PRICES',
+  description: 'Provides real-time stock market data',
+  dynamic: true,
+  position: 10, // Higher priority
+  
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    // Extract stock symbols from message
+    const symbols = extractStockSymbols(message.content.text);
+    
+    if (symbols.length === 0) {
+      return {
+        text: 'No stock symbols detected in the message.'
+      };
+    }
+    
+    // Fetch stock data
+    const stockData = await Promise.all(
+      symbols.map(symbol => fetchStockPrice(symbol))
+    );
+    
+    return {
+      values: Object.fromEntries(
+        stockData.map(data => [data.symbol, data.price])
+      ),
+      data: { stocks: stockData },
+      text: `Stock prices: ${stockData
+        .map(d => `${d.symbol}: $${d.price}`)
+        .join(', ')}`
+    };
+  }
+};
+```
+
+## Provider Composition
+
+Providers can be composed in state:
+
+```typescript
+// Compose state with multiple providers
+const state = await runtime.composeState(message, [
+  'TIME',
+  'WEATHER',
+  'FACTS',
+  'RECENT_MESSAGES'
+]);
+
+// State will contain all provider data
+// {
+//   values: {
+//     time: '...',
+//     temperature: 72,
+//     factCount: 15,
+//     ...
+//   }
+// }
+```
+
+## Dynamic Providers
+
+Providers marked as `dynamic` are called fresh each time:
+
+```typescript
+export const randomNumberProvider: Provider = {
+  name: 'RANDOM',
+  dynamic: true, // Always generate new values
+  
+  get: async () => {
+    const random = Math.random();
+    
+    return {
+      values: {
+        random,
+        dice: Math.floor(random * 6) + 1,
+        coin: random > 0.5 ? 'heads' : 'tails'
+      },
+      text: `Random number: ${random.toFixed(4)}`
+    };
+  }
+};
+```
+
+## Private Providers
+
+Private providers are not shown in listings but can be explicitly requested:
+
+```typescript
+export const debugProvider: Provider = {
+  name: 'DEBUG_INFO',
+  private: true, // Hidden from normal use
+  
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    return {
+      data: {
+        messageId: message.id,
+        agentId: runtime.agentId,
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
+      },
+      text: 'Debug information retrieved'
+    };
+  }
+};
+
+// Must be explicitly requested
+const state = await runtime.composeState(message, ['DEBUG_INFO']);
+```
+
+## Provider Priority
+
+Use `position` to control provider order:
+
+```typescript
+// High priority - runs first
+export const criticalDataProvider: Provider = {
+  name: 'CRITICAL_DATA',
+  position: 100,
+  // ...
+};
+
+// Low priority - runs last
+export const supplementalProvider: Provider = {
+  name: 'SUPPLEMENTAL',
+  position: -10,
+  // ...
+};
+```
+
+## Registering Providers
+
+### In Plugins
+
+```typescript
+export const dataPlugin: Plugin = {
+  name: 'data-plugin',
+  description: 'Data providers for enhanced context',
+  
+  providers: [
+    weatherProvider,
+    stockPriceProvider,
+    newsProvider
+  ],
+  
+  register: async (runtime: IAgentRuntime) => {
+    // Providers are automatically registered
+    runtime.logger.info('Data providers registered');
+  }
+};
+```
+
+### Direct Registration
+
+```typescript
+// Register individual provider
+runtime.registerProvider(myProvider);
+
+// Register multiple providers
+const providers = [provider1, provider2, provider3];
+providers.forEach(p => runtime.registerProvider(p));
+```
+
+## Error Handling
+
+Providers should handle errors gracefully:
+
+```typescript
+get: async (runtime: IAgentRuntime, message: Memory) => {
+  try {
+    const data = await fetchExternalData();
+    
+    return {
+      values: processData(data),
+      text: formatDataAsText(data)
+    };
+    
+  } catch (error) {
+    runtime.logger.error('Provider error', {
+      provider: 'MY_PROVIDER',
+      error: error.message
+    });
+    
+    // Return fallback data
+    return {
+      values: {
+        error: true,
+        message: 'Data temporarily unavailable'
+      },
+      text: 'Unable to retrieve data at this time.'
+    };
+  }
+}
+```
+
+## Caching Provider Data
+
+For expensive operations, implement caching:
+
+```typescript
+export const cachedDataProvider: Provider = {
+  name: 'CACHED_DATA',
+  
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    const cacheKey = `provider-data-${message.roomId}`;
+    
+    // Check cache
+    const cached = await runtime.getCache<ProviderData>(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutes
+      return cached.result;
+    }
+    
+    // Fetch fresh data
+    const freshData = await fetchExpensiveData();
+    const result = {
+      values: freshData,
+      text: formatData(freshData)
+    };
+    
+    // Cache result
+    await runtime.setCache(cacheKey, {
+      result,
+      timestamp: Date.now()
+    });
+    
+    return result;
+  }
+};
+```
+
+## Testing Providers
+
+```typescript
+import { testProvider } from '@elizaos/core/testing';
+
+describe('WeatherProvider', () => {
+  it('should provide weather data', async () => {
+    const result = await testProvider(weatherProvider, {
+      message: { content: { text: 'What\'s the weather in Seattle?' } },
+      expectedKeys: ['temperature', 'condition', 'location']
+    });
+    
+    expect(result.values.location).toBe('Seattle');
+    expect(result.values.temperature).toBeGreaterThan(-50);
+    expect(result.text).toContain('Seattle');
+  });
+});
+```
+
+## Best Practices
+
+### 1. Data Structure
+
+- Use `values` for structured, queryable data
+- Use `data` for raw data objects
+- Always provide `text` for human-readable context
+
+### 2. Performance
+
+```typescript
+// Batch operations when possible
+get: async (runtime, message) => {
+  const [userData, systemData, externalData] = await Promise.all([
+    fetchUserData(message.entityId),
+    getSystemStatus(),
+    fetchExternalAPI()
+  ]);
+  
+  return combineResults(userData, systemData, externalData);
+}
+```
+
+### 3. Error Recovery
+
+```typescript
+// Provide meaningful fallbacks
+get: async (runtime, message) => {
+  let data;
+  
+  try {
+    data = await primaryDataSource();
+  } catch (error) {
+    try {
+      data = await fallbackDataSource();
+    } catch (fallbackError) {
+      data = getDefaultData();
+    }
+  }
+  
+  return formatProviderResult(data);
+}
+```
+
+### 4. Documentation
+
+```typescript
+export const wellDocumentedProvider: Provider = {
+  name: 'USER_PROFILE',
+  description: 'Provides user profile information including preferences, history, and settings',
+  
+  get: async (runtime, message) => {
+    // Implementation with clear variable names
+    const userProfile = await loadUserProfile(message.entityId);
+    const preferences = extractPreferences(userProfile);
+    const history = summarizeHistory(userProfile.history);
+    
+    return {
+      values: {
+        userName: userProfile.name,
+        memberSince: userProfile.createdAt,
+        preferredLanguage: preferences.language,
+        interactionCount: history.totalInteractions
+      },
+      text: `User ${userProfile.name} (member since ${formatDate(userProfile.createdAt)})`
+    };
+  }
+};
+```
+
+## Common Provider Patterns
+
+### Conditional Data
+
+```typescript
+get: async (runtime, message, state) => {
+  const userRole = state.values.userRole;
+  
+  if (userRole === 'premium') {
+    return getPremiumData();
+  } else {
+    return getBasicData();
+  }
+}
+```
+
+### Aggregated Data
+
+```typescript
+get: async (runtime, message) => {
+  const memories = await runtime.getMemories({
+    roomId: message.roomId,
+    tableName: 'messages',
+    count: 100
+  });
+  
+  const stats = {
+    totalMessages: memories.length,
+    uniqueUsers: new Set(memories.map(m => m.entityId)).size,
+    averageLength: memories.reduce((sum, m) => 
+      sum + (m.content.text?.length || 0), 0
+    ) / memories.length
+  };
+  
+  return {
+    values: stats,
+    text: `Conversation stats: ${stats.totalMessages} messages from ${stats.uniqueUsers} users`
+  };
+}
+```
+
+## Next Steps
+
+- Learn about [Tasks](/docs/core-concepts/agent-development/tasks) for scheduled data updates
+- Explore [Actions](/docs/core-concepts/agent-development/actions) that use provider data
+- See [Evaluators](/docs/core-concepts/agent-development/evaluators) for assessing provider effectiveness

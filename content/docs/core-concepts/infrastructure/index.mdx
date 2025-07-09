@@ -1,0 +1,301 @@
+---
+title: Infrastructure
+description: ElizaOS infrastructure components and development tools
+---
+
+## Overview
+
+ElizaOS infrastructure provides a comprehensive set of tools and services for building, testing, deploying, and managing AI agents. The infrastructure is designed to be developer-friendly, scalable, and secure.
+
+## Core Components
+
+### CLI Tools
+
+The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers:
+
+- **Project Management** - Create and manage projects, plugins, and agents
+- **Development Tools** - Hot reload, auto-rebuild, and debugging
+- **Testing Framework** - Unit, integration, and E2E testing
+- **Deployment Utilities** - Build, package, and deploy to various platforms
+
+[Learn more about CLI Tools →](/docs/core-concepts/infrastructure/cli-tools)
+
+### Environment Configuration
+
+Flexible environment management system:
+
+- **Hierarchical Configuration** - Environment files with inheritance
+- **Security Features** - Secret management and validation
+- **Plugin Integration** - Per-plugin environment variables
+- **Dynamic Updates** - Runtime configuration changes
+
+[Learn more about Environment Configuration →](/docs/core-concepts/infrastructure/environment-config)
+
+### Testing Infrastructure
+
+Comprehensive testing framework:
+
+- **Multiple Test Types** - Unit, integration, E2E, and shell tests
+- **Test Utilities** - Port management, process control, timeouts
+- **CI/CD Integration** - GitHub Actions and automated testing
+- **Coverage Reports** - Code coverage analysis
+
+[Learn more about Testing →](/docs/core-concepts/infrastructure/testing)
+
+### Core Services
+
+Essential services powering the platform:
+
+- **File System Services** - Template management, directory operations
+- **Process Management** - Server control, port handling
+- **Plugin Services** - Discovery, loading, and registry
+- **Documentation Tools** - Automated documentation generation
+
+[Learn more about Services →](/docs/core-concepts/infrastructure/services)
+
+## Development Workflow
+
+### Quick Start
+
+```bash
+# Install CLI globally
+bun install -g @elizaos/cli
+
+# Create new project
+elizaos create my-project
+cd my-project
+
+# Start development
+elizaos dev
+```
+
+### Project Structure
+
+```
+project/
+├── src/               # Source code
+├── tests/             # Test files
+├── .env              # Environment configuration
+├── package.json      # Project configuration
+└── tsconfig.json     # TypeScript configuration
+```
+
+### Development Commands
+
+```bash
+# Development mode with hot reload
+elizaos dev
+
+# Run tests
+elizaos test
+
+# Build for production
+elizaos start --build
+
+# Manage plugins
+elizaos plugins list
+elizaos plugins add @elizaos/plugin-openai
+```
+
+## Plugin Development
+
+### Creating Plugins
+
+```bash
+# Create new plugin
+elizaos create my-plugin --type plugin
+
+# Develop plugin
+cd plugin-my-plugin
+elizaos dev
+
+# Test plugin
+elizaos test
+
+# Publish plugin
+elizaos publish
+```
+
+### Plugin Structure
+
+```
+plugin-name/
+├── src/
+│   └── index.ts      # Plugin definition
+├── tests/            # Plugin tests
+├── images/           # Required for registry
+│   ├── logo.jpg      # 400x400px
+│   └── banner.jpg    # 1280x640px
+├── package.json      # With agentConfig
+└── README.md         # Documentation
+```
+
+## Deployment Options
+
+### Local Development
+
+```bash
+# Start local server
+elizaos start
+
+# With specific configuration
+elizaos start --port 4000 --character agent.json
+```
+
+### Cloud Deployment
+
+```bash
+# Build for production
+elizaos start --build
+
+# Deploy to TEE
+elizaos tee phala cvms create
+```
+
+### Container Deployment
+
+```bash
+# Build Docker image
+docker build -t my-agent .
+
+# Run container
+docker run -p 3000:3000 my-agent
+```
+
+## Build System
+
+### TypeScript Build
+
+- **Fast Builds** - Using `tsup` for optimized builds
+- **Type Safety** - Strict TypeScript configuration
+- **Source Maps** - Full debugging support
+- **Tree Shaking** - Optimized bundle sizes
+
+### Frontend Build
+
+- **Vite Integration** - Fast HMR and builds
+- **React Support** - Modern React development
+- **Asset Optimization** - Image and CSS processing
+- **Production Ready** - Minified and optimized output
+
+## Testing Strategy
+
+### Test Levels
+
+1. **Unit Tests** - Component isolation
+2. **Integration Tests** - Feature integration
+3. **E2E Tests** - Full workflow testing
+4. **Performance Tests** - Load and stress testing
+
+### Test Execution
+
+```bash
+# Run all tests
+elizaos test
+
+# Specific test types
+elizaos test --type unit
+elizaos test --type e2e
+
+# With coverage
+bun test --coverage
+```
+
+## Security Features
+
+### Environment Security
+
+- **Secret Management** - Secure handling of API keys
+- **Validation** - Schema-based configuration validation
+- **Access Control** - Limited environment exposure
+- **Encryption** - Optional secret encryption
+
+### Build Security
+
+- **Dependency Scanning** - Vulnerability detection
+- **Code Analysis** - Security linting
+- **Secure Defaults** - Safe configuration out of the box
+- **Audit Trails** - Logging and monitoring
+
+## Performance Optimization
+
+### Development Performance
+
+- **Hot Module Replacement** - Instant updates
+- **Incremental Builds** - Fast rebuilds
+- **Parallel Processing** - Multi-core utilization
+- **Caching** - Smart dependency caching
+
+### Runtime Performance
+
+- **Lazy Loading** - On-demand module loading
+- **Connection Pooling** - Database optimization
+- **Memory Management** - Efficient resource usage
+- **Request Batching** - API call optimization
+
+## Monitoring and Debugging
+
+### Development Tools
+
+```typescript
+// Enable debug logging
+process.env.DEBUG = 'elizaos:*';
+
+// Performance monitoring
+const start = performance.now();
+// ... operation
+console.log(`Operation took ${performance.now() - start}ms`);
+```
+
+### Production Monitoring
+
+- **Health Checks** - Service availability monitoring
+- **Error Tracking** - Centralized error collection
+- **Performance Metrics** - Response time tracking
+- **Resource Usage** - CPU and memory monitoring
+
+## Best Practices
+
+### Development
+
+1. **Use TypeScript** - Type safety and better tooling
+2. **Write Tests** - Comprehensive test coverage
+3. **Environment Variables** - Configuration management
+4. **Version Control** - Git best practices
+
+### Deployment
+
+1. **Build Optimization** - Production builds
+2. **Environment Separation** - Dev/staging/prod
+3. **Health Monitoring** - Service availability
+4. **Backup Strategy** - Data protection
+
+### Security
+
+1. **Secret Management** - Never commit secrets
+2. **Input Validation** - Sanitize all inputs
+3. **Access Control** - Principle of least privilege
+4. **Regular Updates** - Keep dependencies current
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts** - Use custom ports or kill processes
+2. **Build Failures** - Check TypeScript errors
+3. **Test Failures** - Clean state and retry
+4. **Environment Issues** - Verify configuration
+
+### Getting Help
+
+- **Documentation** - Comprehensive guides
+- **Community** - Discord and GitHub discussions
+- **Issue Tracking** - GitHub issues
+- **Support** - Commercial support available
+
+## Related Documentation
+
+- [Architecture Overview](/docs/core-concepts/architecture)
+- [Plugin System](/docs/core-concepts/architecture/plugin-system)
+- [Agent Development](/docs/core-concepts/agent-development)
+- [Deployment Guide](/docs/deployment)

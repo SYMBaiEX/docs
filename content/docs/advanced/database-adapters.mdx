@@ -1,0 +1,536 @@
+---
+title: Database Adapters
+description: PostgreSQL and PGlite database adapters with vector search, memory management, and advanced features
+---
+
+# Database Adapters
+
+Eliza's database layer provides a robust foundation for agent persistence, memory management, and vector search capabilities. The `@elizaos/plugin-sql` package offers PostgreSQL and PGlite adapters with automatic failover and comprehensive data management features.
+
+## Overview
+
+The database adapter system provides:
+
+- **PostgreSQL Support** - Full-featured PostgreSQL with pgvector extension
+- **PGlite Fallback** - Embedded database for development and testing
+- **Vector Search** - Semantic memory search with configurable dimensions
+- **Automatic Migrations** - Schema management and versioning
+- **Connection Pooling** - Efficient resource management
+- **Circuit Breaker** - Fault tolerance with automatic recovery
+- **Type Safety** - Full TypeScript support with Drizzle ORM
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│            Eliza Runtime                     │
+│  ┌─────────────────────────────────────┐    │
+│  │      Database Interface              │    │
+│  └─────────────────┬───────────────────┘    │
+│                    │                         │
+└────────────────────┼─────────────────────────┘
+                     │
+     ┌───────────────┴───────────────┐
+     │    Plugin SQL Adapter         │
+     │  ┌─────────────────────────┐  │
+     │  │   Connection Manager    │  │
+     │  │  - Singleton Pattern    │  │
+     │  │  - Connection Pooling   │  │
+     │  │  - Circuit Breaker      │  │
+     │  └───────────┬─────────────┘  │
+     │              │                │
+     │    ┌─────────┴─────────┐     │
+     │    │                   │     │
+     │ ┌──┴──┐           ┌───┴───┐ │
+     │ │ PG  │           │PGlite │ │
+     │ └─────┘           └───────┘ │
+     └───────────────────────────────┘
+```
+
+## Installation
+
+```bash
+# Using bun
+bun add @elizaos/plugin-sql
+
+# Using npm
+npm install @elizaos/plugin-sql
+
+# Using pnpm
+pnpm add @elizaos/plugin-sql
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# PostgreSQL connection (optional)
+POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
+
+# PGlite data directory (optional, defaults to ./pglite)
+PGLITE_DATA_DIR=./data/pglite
+```
+
+### Vector Dimensions
+
+The adapter supports multiple embedding dimensions:
+
+```typescript
+const VECTOR_DIMS = {
+  SMALL: 384,   // Lightweight models
+  MEDIUM: 512,  // Balanced performance
+  LARGE: 768,   // Standard BERT-like models
+  XL: 1024,     // Large models
+  XXL: 1536,    // OpenAI ada-002
+  XXXL: 3072    // Large context models
+};
+```
+
+**Important**: Once an agent is initialized with a specific dimension, it cannot be changed.
+
+## Usage
+
+### Basic Integration
+
+```typescript
+import sqlPlugin from '@elizaos/plugin-sql';
+import { AgentRuntime } from '@elizaos/core';
+
+// Plugin automatically initializes based on environment
+const runtime = new AgentRuntime({
+  plugins: [sqlPlugin],
+  databaseAdapter: sqlPlugin.adapter
+});
+
+// The adapter will:
+// 1. Try PostgreSQL if POSTGRES_URL is set
+// 2. Fall back to PGlite if not
+// 3. Run migrations automatically
+```
+
+### Direct Adapter Usage
+
+```typescript
+import { PostgresAdapter } from '@elizaos/plugin-sql';
+
+// Create adapter instance
+const adapter = new PostgresAdapter(postgresUrl);
+
+// Initialize with runtime
+await adapter.init(runtime);
+
+// Use adapter methods
+const memories = await adapter.searchMemories({
+  tableName: 'memories',
+  agentId,
+  roomId,
+  embedding: queryEmbedding,
+  match_threshold: 0.8,
+  match_count: 10
+});
+```
+
+## Database Schema
+
+### Core Tables
+
+#### Agent Table
+```typescript
+{
+  id: uuid,           // Unique agent identifier
+  name: text,         // Agent name
+  username: text,     // Unique username
+  details: text,      // Character description
+  model: text,        // AI model name
+  temperature: real,  // Model temperature
+  embedding_model: text
+}
+```
+
+#### Memory Table
+```typescript
+{
+  id: uuid,           // Memory identifier
+  type: text,         // Memory type
+  createdAt: bigint,  // Unix timestamp
+  content: text,      // Memory content
+  embedding: vector,  // Vector embedding
+  agentId: uuid,      // Associated agent
+  roomId: uuid,       // Conversation room
+  userId: uuid,       // User who created
+  isUnique: boolean   // Uniqueness flag
+}
+```
+
+#### Room Table
+```typescript
+{
+  id: uuid,           // Room identifier
+  name: text,         // Room name
+  topic: text,        // Conversation topic
+  type: text,         // Room type
+  createdAt: bigint,  // Creation time
+  agentId: uuid       // Managing agent
+}
+```
+
+### Additional Tables
+
+- **Participant** - Room membership tracking
+- **Relationship** - Entity relationships
+- **Entity** - Named entities extraction
+- **Component** - Agent components/plugins
+- **Tasks** - Goal and task tracking
+- **Cache** - Performance optimization
+- **Embedding** - Vector storage
+- **Log** - System event logging
+
+## Features
+
+### Vector Search
+
+Semantic search across memories:
+
+```typescript
+// Search memories by semantic similarity
+const relevantMemories = await adapter.searchMemories({
+  tableName: 'memories',
+  agentId: agent.id,
+  roomId: currentRoom,
+  embedding: queryVector,
+  match_threshold: 0.75,  // Similarity threshold
+  match_count: 20,        // Maximum results
+  unique: true            // Only unique memories
+});
+
+// The search uses pgvector's cosine similarity
+// Results are ordered by relevance
+```
+
+### Memory Management
+
+```typescript
+// Create a memory with embedding
+await adapter.createMemory({
+  agentId,
+  roomId,
+  userId,
+  content: "Important information",
+  embedding: await generateEmbedding(content),
+  type: "knowledge",
+  isUnique: true
+});
+
+// Retrieve memories by room
+const roomMemories = await adapter.getMemoriesByRoomId({
+  agentId,
+  roomId,
+  count: 50
+});
+
+// Remove duplicate memories
+await adapter.removeMemory(memoryId);
+```
+
+### Connection Management
+
+The adapter uses a singleton pattern for connection pooling:
+
+```typescript
+// Connection pool configuration
+{
+  max: 20,                    // Maximum connections
+  idleTimeoutMillis: 30000,   // Idle timeout
+  connectionTimeoutMillis: 5000 // Connection timeout
+}
+
+// Circuit breaker settings
+{
+  failureThreshold: 5,        // Failures before opening
+  resetTimeout: 60000,        // Reset after 1 minute
+  halfOpenMaxAttempts: 3,     // Attempts in half-open
+  maxRetries: 3,              // Retry attempts
+  baseDelay: 1000,            // Initial retry delay
+  maxDelay: 10000             // Maximum retry delay
+}
+```
+
+### Migrations
+
+#### Automatic Migrations
+
+Migrations run automatically during initialization:
+
+```typescript
+// Checks for:
+// 1. Missing tables
+// 2. Missing vector extension
+// 3. Schema updates
+
+await adapter.init(runtime);
+// Migrations applied automatically
+```
+
+#### Manual Migrations
+
+For schema updates:
+
+```bash
+# Generate migration files
+npx drizzle-kit generate:pg
+
+# Apply migrations
+npx drizzle-kit push:pg
+
+# Or use the migrate command
+npx drizzle-kit migrate
+```
+
+#### Migration Configuration
+
+```typescript
+// drizzle.config.ts
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: './src/schema/index.ts',
+  out: './drizzle/migrations',
+  dbCredentials: {
+    url: process.env.POSTGRES_URL || 'file:../../.elizadb'
+  }
+});
+```
+
+## Advanced Usage
+
+### Custom Schemas
+
+Extend the database with custom tables:
+
+```typescript
+import { pgTable, text, uuid } from 'drizzle-orm/pg-core';
+
+export const customTable = pgTable('custom_data', {
+  id: uuid('id').primaryKey().notNull(),
+  agentId: uuid('agent_id').notNull(),
+  data: text('data'),
+  metadata: text('metadata')
+});
+
+// Use with adapter
+const results = await adapter.db
+  .select()
+  .from(customTable)
+  .where(eq(customTable.agentId, agentId));
+```
+
+### Batch Operations
+
+Efficient bulk operations:
+
+```typescript
+// Batch insert memories
+await adapter.db.transaction(async (tx) => {
+  const memories = dataArray.map(data => ({
+    id: uuid(),
+    agentId,
+    content: data.content,
+    embedding: data.embedding,
+    // ... other fields
+  }));
+  
+  await tx.insert(memoryTable).values(memories);
+});
+```
+
+### Performance Optimization
+
+```typescript
+// Use indexes for frequent queries
+await adapter.db.execute(sql`
+  CREATE INDEX IF NOT EXISTS idx_memories_agent_room 
+  ON memories(agent_id, room_id);
+`);
+
+// Partition large tables
+await adapter.db.execute(sql`
+  CREATE TABLE memories_2024 PARTITION OF memories
+  FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+`);
+```
+
+## PGlite Support
+
+When PostgreSQL is not available, the adapter automatically uses PGlite:
+
+```typescript
+// PGlite features:
+// - Embedded PostgreSQL
+// - No external dependencies
+// - File-based storage
+// - Vector extension support
+// - Same API as PostgreSQL adapter
+
+// Configuration
+const pgliteAdapter = new PGliteAdapter({
+  dataDir: './data/pglite'  // Storage directory
+});
+```
+
+### PGlite Limitations
+
+- Single connection only
+- No network access
+- Limited concurrent operations
+- Best for development/testing
+
+## Error Handling
+
+### Circuit Breaker Pattern
+
+```typescript
+// Automatic circuit breaker activation
+// After 5 consecutive failures:
+// 1. Circuit opens (fast fail)
+// 2. Wait 60 seconds
+// 3. Try half-open state
+// 4. Full recovery or re-open
+
+try {
+  await adapter.getMemories(...);
+} catch (error) {
+  if (error.code === 'CIRCUIT_OPEN') {
+    // Use fallback mechanism
+  }
+}
+```
+
+### Retry Logic
+
+```typescript
+// Exponential backoff with jitter
+// Attempt 1: 1 second delay
+// Attempt 2: 2 seconds + jitter
+// Attempt 3: 4 seconds + jitter
+// Max delay: 10 seconds
+```
+
+## Best Practices
+
+### 1. Connection Management
+
+```typescript
+// Good: Let the adapter manage connections
+const adapter = sqlPlugin.adapter;
+await adapter.init(runtime);
+
+// Bad: Creating multiple adapters
+const adapter1 = new PostgresAdapter(url);
+const adapter2 = new PostgresAdapter(url); // Duplicate pools
+```
+
+### 2. Vector Dimensions
+
+```typescript
+// Set consistent dimensions across agents
+const STANDARD_DIMENSION = 1536; // OpenAI ada-002
+
+// Validate before creating
+if (embedding.length !== STANDARD_DIMENSION) {
+  throw new Error('Invalid embedding dimension');
+}
+```
+
+### 3. Memory Queries
+
+```typescript
+// Good: Use appropriate thresholds
+const memories = await adapter.searchMemories({
+  match_threshold: 0.8,  // High relevance only
+  match_count: 10        // Limit results
+});
+
+// Bad: Over-fetching
+const memories = await adapter.searchMemories({
+  match_threshold: 0.1,  // Too loose
+  match_count: 1000      // Too many
+});
+```
+
+### 4. Transaction Management
+
+```typescript
+// Use transactions for consistency
+await adapter.db.transaction(async (tx) => {
+  await tx.insert(roomTable).values(room);
+  await tx.insert(participantTable).values(participants);
+});
+```
+
+## Monitoring
+
+### Database Metrics
+
+```typescript
+// Connection pool status
+const poolMetrics = adapter.getPoolMetrics();
+console.log({
+  totalConnections: poolMetrics.total,
+  idleConnections: poolMetrics.idle,
+  waitingRequests: poolMetrics.waiting
+});
+
+// Circuit breaker status
+const circuitStatus = adapter.getCircuitStatus();
+console.log({
+  state: circuitStatus.state,
+  failures: circuitStatus.failures,
+  lastFailure: circuitStatus.lastFailureTime
+});
+```
+
+### Query Performance
+
+```typescript
+// Enable query logging
+const adapter = new PostgresAdapter(url, {
+  logQueries: true,
+  slowQueryThreshold: 1000 // Log queries over 1s
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Vector Extension Missing**
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   ```
+
+2. **Dimension Mismatch**
+   ```
+   Error: Cannot change embedding dimension for agent
+   Solution: Use consistent dimensions
+   ```
+
+3. **Connection Pool Exhausted**
+   ```
+   Error: Timeout acquiring connection
+   Solution: Increase pool size or optimize queries
+   ```
+
+4. **Migration Failures**
+   ```bash
+   # Reset and retry
+   DROP SCHEMA public CASCADE;
+   CREATE SCHEMA public;
+   # Run migrations again
+   ```
+
+## Resources
+
+- [Plugin SQL Source](https://github.com/elizaos/eliza/tree/main/packages/plugin-sql)
+- [Drizzle ORM Documentation](https://orm.drizzle.team/)
+- [pgvector Documentation](https://github.com/pgvector/pgvector)
+- [PGlite Documentation](https://github.com/electric-sql/pglite)

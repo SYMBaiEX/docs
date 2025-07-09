@@ -1,8 +1,126 @@
 ---
 title: Creating Plugins
-description: How to create custom plugins
+description: How to create custom plugins using the elizaOS CLI
 ---
 
 # Creating Plugins
 
-Content to be added.
+This guide shows you how to quickly create new plugins for elizaOS using the CLI tools. For detailed information about plugin architecture and components, see the [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system).
+
+## Quick Start
+
+elizaOS provides two approaches for creating plugins using the CLI:
+
+### Option 1: Full Project Structure
+
+Creates a complete project with sample agent and plugin:
+
+```bash
+elizaos create my-project -t project
+```
+
+This option:
+- Provides a complete project structure
+- Includes a sample agent character
+- Requires importing local plugin code before publishing
+- Best for developing standalone agent projects
+
+### Option 2: Minimal Plugin
+
+Creates only a plugin in publishable format:
+
+```bash
+elizaos create my-plugin -t plugin
+```
+
+This option:
+- Creates a minimal plugin structure
+- Ready for immediate publishing
+- Best for creating reusable plugins
+- No agent character required
+
+## Testing Your Plugin
+
+After creating your plugin, test it locally:
+
+```bash
+elizaos dev
+```
+
+This command:
+- Starts a development server
+- Loads your plugin automatically
+- Provides hot reloading for development
+- Shows debug information
+
+## Plugin Structure
+
+Both options create a standard plugin structure:
+
+```
+my-plugin/
+├── src/
+│   ├── actions/       # Plugin actions
+│   ├── evaluators/    # Plugin evaluators
+│   ├── providers/     # Context providers
+│   ├── services/      # Background services
+│   ├── index.ts       # Plugin entry point
+│   └── plugin.ts      # Plugin definition
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+## Next Steps
+
+1. **Choose Your Approach**: Decide between full project or minimal plugin based on your needs
+2. **Create Your Plugin**: Run the appropriate `elizaos create` command
+3. **Develop**: Add your custom actions, evaluators, providers, and services
+4. **Test**: Use `elizaos dev` to test your plugin locally
+5. **Publish**: Share your plugin with the community
+
+## Key Considerations
+
+- **Full Project**: Choose this if you're building a complete agent with custom functionality
+- **Minimal Plugin**: Choose this if you're creating reusable functionality for multiple agents
+- **Local Development**: Always test thoroughly with `elizaos dev` before publishing
+- **Documentation**: Include clear documentation for your plugin's features
+
+## Examples
+
+### Creating a Weather Plugin
+
+```bash
+# Create the plugin
+elizaos create weather-plugin -t plugin
+
+# Navigate to the plugin directory
+cd weather-plugin
+
+# Test the plugin
+elizaos dev
+```
+
+### Creating a Full Agent Project
+
+```bash
+# Create the project
+elizaos create my-assistant -t project
+
+# Navigate to the project directory
+cd my-assistant
+
+# Test the agent with plugin
+elizaos dev
+```
+
+## Publishing Your Plugin
+
+Once your plugin is ready:
+
+1. Update `package.json` with your plugin details
+2. Write comprehensive documentation
+3. Add examples and tests
+4. Publish to npm or your preferred registry
+
+For more information about plugin development, including detailed API references and best practices, see the [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system) documentation.

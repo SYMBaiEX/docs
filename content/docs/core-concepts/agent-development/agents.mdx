@@ -1,0 +1,408 @@
+---
+title: Agents
+description: Understanding and managing AI agents in elizaOS
+---
+
+# Agents
+
+Agents are the core entities in elizaOS that process conversations, execute actions, and maintain persistent state. They are built on an Entity-Component architecture that provides flexibility and extensibility.
+
+## Agent Architecture
+
+An agent consists of:
+
+- **Character Definition** - Personality, knowledge, and behavioral configuration
+- **Runtime** - The execution environment that processes messages and manages state
+- **Components** - Modular functionality like actions, evaluators, and providers
+- **Memory System** - Persistent storage for conversations, facts, and relationships
+
+## Agent vs Character
+
+elizaOS distinguishes between:
+
+- **Character** - The blueprint that defines an agent's personality and capabilities
+- **Agent** - An instantiated runtime instance of a character with persistence and state
+
+```typescript
+// From @elizaos/core/src/types/agent.ts
+
+/**
+ * Configuration for an agent's character, defining its personality, knowledge, and capabilities.
+ * This is a central piece of an agent's definition, used by the AgentRuntime.
+ */
+export interface Character {
+  /** Optional unique identifier */
+  id?: UUID;
+  
+  /** Character name */
+  name: string;
+  
+  /** Optional username */
+  username?: string;
+  
+  /** Optional system prompt */
+  system?: string;
+  
+  /** Optional prompt templates */
+  templates?: {
+    [key: string]: TemplateType;
+  };
+  
+  /** Character biography */
+  bio: string | string[];
+  
+  /** Example messages */
+  messageExamples?: MessageExample[][];
+  
+  /** Example posts */
+  postExamples?: string[];
+  
+  /** Known topics */
+  topics?: string[];
+  
+  /** Character traits */
+  adjectives?: string[];
+  
+  /** Optional knowledge base */
+  knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
+  
+  /** Available plugins */
+  plugins?: string[];
+  
+  /** Optional configuration */
+  settings?: {
+    [key: string]: string | boolean | number | Record<string, any>;
+  };
+  
+  /** Optional secrets */
+  secrets?: {
+    [key: string]: string | boolean | number;
+  };
+  
+  /** Writing style guides */
+  style?: {
+    all?: string[];
+    chat?: string[];
+    post?: string[];
+  };
+}
+
+/**
+ * Represents an operational agent, extending the Character definition with runtime status.
+ * While Character defines the blueprint, Agent represents an instantiated version.
+ */
+export interface Agent extends Character {
+  enabled?: boolean;
+  status?: AgentStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export enum AgentStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}
+
+// Supporting types
+export interface MessageExample {
+  /** Associated user */
+  name: string;
+  
+  /** Message content */
+  content: Content;
+}
+
+export type TemplateType =
+  | string
+  | ((options: { state: State | { [key: string]: string } }) => string);
+```
+
+## Creating an Agent
+
+Agents are created by instantiating an `AgentRuntime` with a character definition:
+
+```typescript
+import { AgentRuntime, Character, ModelType } from '@elizaos/core';
+
+// Define the character
+const character: Character = {
+  name: "TechAssistant",
+  bio: "A helpful technical support agent specializing in web development",
+  topics: ["javascript", "typescript", "react", "nodejs"],
+  adjectives: ["helpful", "knowledgeable", "patient"],
+  style: {
+    all: ["professional", "clear", "concise"],
+    chat: ["friendly", "supportive"]
+  },
+  // System prompt guides overall behavior
+  system: "You are a technical support specialist. Provide accurate, helpful answers about web development.",
+  // Add plugins for functionality - bootstrap provides core actions and providers
+  plugins: ["plugin-bootstrap"],
+  settings: {
+    maxResponseLength: 500,
+    temperature: 0.7
+  }
+};
+
+// Create the runtime
+const runtime = new AgentRuntime({
+  character,
+  databaseAdapter,
+  modelProvider,
+  // Optional configuration
+  conversationLength: 10,
+  evaluators: [],
+  actions: [],
+  providers: []
+});
+```
+
+## Agent Lifecycle
+
+### 1. Initialization
+
+When an agent starts:
+
+```typescript
+// Initialize the runtime
+await runtime.initialize();
+
+// Load knowledge base
+await runtime.loadKnowledge();
+
+// Register components from plugins
+for (const plugin of plugins) {
+  await plugin.register(runtime);
+}
+```
+
+### 2. Message Processing
+
+Agents process messages through a pipeline:
+
+```typescript
+// Process incoming message
+const response = await runtime.processMessage({
+  content: { text: "How do I set up React?" },
+  entityId: "user-123",
+  roomId: "support-channel",
+  createdAt: Date.now()
+});
+```
+
+### 3. State Management
+
+Agents maintain state throughout conversations:
+
+```typescript
+// Compose state from multiple sources
+const state = await runtime.composeState(message, [
+  "RECENT_MESSAGES",
+  "FACTS",
+  "RELATIONSHIPS"
+]);
+
+// State includes:
+// - Recent conversation history
+// - Known facts about entities
+// - Relationship information
+// - Provider-supplied context
+```
+
+### 4. Component Execution
+
+During message processing:
+
+1. **Providers** supply context
+2. **Actions** are validated and executed
+3. **Evaluators** assess and learn from interactions
+
+## Agent Configuration
+
+### Runtime Options
+
+```typescript
+interface AgentRuntimeOptions {
+  // Core configuration
+  character: Character;
+  databaseAdapter: IDatabaseAdapter;
+  modelProvider: IModelProvider;
+  
+  // Optional settings
+  conversationLength?: number; // Messages to keep in context
+  enableCache?: boolean;
+  cacheExpiry?: number;
+  
+  // Component registration
+  actions?: Action[];
+  evaluators?: Evaluator[];
+  providers?: Provider[];
+}
+```
+
+### Environment Variables
+
+Agents can access environment-specific settings:
+
+```bash
+# Model configuration
+OPENAI_API_KEY=your-key
+MODEL_PROVIDER=openai
+
+# Agent-specific settings
+AGENT_NAME=TechAssistant
+AGENT_ID=550e8400-e29b-41d4-a716-446655440000
+```
+
+## Multi-Agent Systems
+
+elizaOS supports running multiple agents:
+
+```typescript
+// Create multiple agents with different specializations
+const techAgent = new AgentRuntime({ character: techCharacter });
+const salesAgent = new AgentRuntime({ character: salesCharacter });
+const supportAgent = new AgentRuntime({ character: supportCharacter });
+
+// Agents can:
+// - Share knowledge through common database
+// - Communicate via messages
+// - Maintain separate contexts and personalities
+```
+
+## Agent Persistence
+
+Agents store data in several tables:
+
+- **agents** - Agent configuration and status
+- **messages** - Conversation history
+- **memories** - Extracted facts and embeddings
+- **relationships** - Inter-entity connections
+- **tasks** - Scheduled operations
+
+## Best Practices
+
+### 1. Character Design
+
+- Define clear, focused personalities
+- Provide diverse message examples
+- Include relevant knowledge domains
+- Set appropriate behavioral boundaries
+
+### 2. Resource Management
+
+- Configure appropriate conversation lengths
+- Enable caching for performance
+- Monitor memory usage with large knowledge bases
+- Clean up old conversations periodically
+
+### 3. Error Handling
+
+```typescript
+try {
+  await runtime.processMessage(message);
+} catch (error) {
+  // Log errors with context
+  logger.error('Message processing failed', {
+    agentId: runtime.agentId,
+    messageId: message.id,
+    error
+  });
+  
+  // Graceful fallback
+  await runtime.sendError(message.roomId, 
+    "I encountered an issue processing your request.");
+}
+```
+
+### 4. Monitoring
+
+- Track message processing times
+- Monitor action execution rates
+- Log evaluator outcomes
+- Watch for memory growth
+
+## Example: Customer Support Agent
+
+```typescript
+// Character definition for a support agent
+const supportCharacter: Character = {
+  name: "Alex",
+  bio: "A friendly customer support specialist for ACME Corp",
+  system: `You are Alex, a customer support agent for ACME Corp. 
+    You help customers with product issues, orders, and general inquiries.
+    Always be polite, helpful, and try to resolve issues efficiently.`,
+  
+  // Message examples shape the agent's communication style
+  messageExamples: [
+    [
+      {
+        name: "Customer",
+        content: { text: "My order hasn't arrived yet" }
+      },
+      {
+        name: "Alex",
+        content: { 
+          text: "I'd be happy to help track your order. Could you please provide your order number?",
+          actions: ["CHECK_ORDER_STATUS"]
+        }
+      }
+    ]
+  ],
+  
+  topics: ["customer service", "orders", "shipping", "returns", "products"],
+  adjectives: ["helpful", "patient", "professional", "empathetic"],
+  
+  plugins: [
+    "@elizaos/plugin-bootstrap",
+    "@acme/plugin-order-management",
+    "@acme/plugin-knowledge-base"
+  ],
+  
+  settings: {
+    responseTime: "immediate",
+    escalationThreshold: 3,
+    maxConversationLength: 20
+  },
+  
+  style: {
+    all: ["professional", "clear", "concise"],
+    chat: ["friendly", "solution-oriented"]
+  }
+};
+
+// Create and configure the agent
+const supportAgent = new AgentRuntime({
+  character: supportCharacter,
+  databaseAdapter,
+  modelProvider,
+  conversationLength: 15,
+  
+  // Add custom actions for order management
+  actions: [
+    checkOrderStatusAction,
+    processReturnAction,
+    escalateToHumanAction
+  ],
+  
+  // Add evaluators for quality assurance
+  evaluators: [
+    customerSatisfactionEvaluator,
+    issueResolutionEvaluator
+  ],
+  
+  // Add providers for context
+  providers: [
+    orderHistoryProvider,
+    productCatalogProvider,
+    knowledgeBaseProvider
+  ]
+});
+```
+
+## Next Steps
+
+- Learn about [Character Definition](/docs/core-concepts/agent-development/character-definition) to create compelling agent personalities
+- Explore [Actions](/docs/core-concepts/agent-development/actions) to add functionality
+- Understand [Evaluators](/docs/core-concepts/agent-development/evaluators) for agent learning
+- Discover [Providers](/docs/core-concepts/agent-development/providers) for contextual awareness

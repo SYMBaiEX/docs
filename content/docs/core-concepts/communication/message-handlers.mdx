@@ -1,0 +1,591 @@
+---
+title: Message Handlers
+description: Comprehensive guide to message processing and handling patterns in elizaOS
+---
+
+# Message Handlers
+
+Message handlers are the core processing units in elizaOS that handle incoming messages, generate responses, and execute actions. The bootstrap plugin provides the primary message handling pipeline, orchestrating the entire agent response lifecycle from message reception to final output.
+
+## Message Processing Pipeline
+
+The message processing pipeline follows these key stages:
+
+1. **Message Reception**: Incoming messages are received via the message bus
+2. **Validation**: Message and agent validation checks
+3. **Memory Storage**: Message saved to agent memory
+4. **Response Decision**: Determine if the agent should respond
+5. **Response Generation**: Create appropriate response content
+6. **Action Processing**: Execute any required actions
+7. **Response Delivery**: Send response back through the message bus
+
+## Main Message Handler
+
+The primary message handler is implemented in the bootstrap plugin:
+
+```typescript
+const messageReceivedHandler = async ({
+  runtime,
+  message,
+  callback,
+  onComplete,
+}: MessageReceivedHandlerParams): Promise<void> => {
+  // Set up timeout monitoring
+  const timeoutDuration = 60 * 60 * 1000; // 1 hour
+  let timeoutId: NodeJS.Timeout | undefined = undefined;
+
+  try {
+    logger.info(`Message received from ${message.entityId} in room ${message.roomId}`);
+    
+    // Generate response ID for tracking
+    const responseId = v4();
+    
+    // Track latest response per agent+room
+    const agentResponses = latestResponseIds.get(runtime.agentId) || new Map();
+    agentResponses.set(message.roomId, responseId);
+    latestResponseIds.set(runtime.agentId, agentResponses);
+
+    // Start run tracking
+    const runId = runtime.startRun();
+    const startTime = Date.now();
+
+    // Process message with timeout protection
+    await processMessage(runtime, message, callback, responseId, runId, startTime);
+    
+  } catch (error) {
+    logger.error('Message processing failed:', error);
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    onComplete?.();
+  }
+};
+```
+
+## Response Decision Logic
+
+### shouldRespond Evaluation
+
+The handler determines whether to respond based on various factors:
+
+```typescript
+// Skip shouldRespond check for certain channel types
+const shouldSkipShouldRespond = shouldBypassShouldRespond(
+  runtime,
+  room,
+  message.content.source
+);
+
+if (!shouldSkipShouldRespond) {
+  // Evaluate if agent should respond
+  const shouldRespondPrompt = composePromptFromState({
+    state,
+    template: runtime.character.templates?.shouldRespondTemplate || shouldRespondTemplate,
+  });
+
+  const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+    prompt: shouldRespondPrompt,
+  });
+
+  const responseObject = parseKeyValueXml(response);
+  
+  // Non-response actions
+  const nonResponseActions = ['IGNORE', 'NONE'];
+  shouldRespond = responseObject?.action && 
+    !nonResponseActions.includes(responseObject.action.toUpperCase());
+}
+```
+
+### Bypass Conditions
+
+Certain conditions automatically bypass the shouldRespond check:
+
+```typescript
+export function shouldBypassShouldRespond(
+  runtime: IAgentRuntime,
+  room?: Room,
+  source?: string
+): boolean {
+  const defaultBypassTypes = [
+    ChannelType.DM,
+    ChannelType.VOICE_DM,
+    ChannelType.SELF,
+    ChannelType.API,
+  ];
+
+  const defaultBypassSources = ['client_chat'];
+
+  // Check room type and source
+  const roomType = room?.type?.toString().toLowerCase();
+  const sourceStr = source?.toLowerCase() || '';
+
+  return bypassTypes.has(roomType) || 
+         bypassSources.some(pattern => sourceStr.includes(pattern));
+}
+```
+
+## Response Generation
+
+### Content Generation
+
+When the agent decides to respond, it generates content using the message handler template:
+
+```typescript
+if (shouldRespond) {
+  // Compose state with action information
+  state = await runtime.composeState(message, ['ACTIONS']);
+  
+  const prompt = composePromptFromState({
+    state,
+    template: runtime.character.templates?.messageHandlerTemplate || messageHandlerTemplate,
+  });
+
+  let responseContent: Content | null = null;
+  let retries = 0;
+  const maxRetries = 3;
+
+  // Retry mechanism for incomplete responses
+  while (retries < maxRetries && (!responseContent?.thought || !responseContent?.actions)) {
+    let response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt,
+    });
+
+    // Parse XML response
+    const parsedXml = parseKeyValueXml(response);
+    
+    if (parsedXml) {
+      responseContent = {
+        thought: parsedXml.thought || '',
+        actions: parsedXml.actions || ['IGNORE'],
+        providers: parsedXml.providers || [],
+        text: parsedXml.text || '',
+        simple: parsedXml.simple || false,
+      };
+    }
+
+    retries++;
+  }
+}
+```
+
+### Response Formatting
+
+The response is formatted and prepared for delivery:
+
+```typescript
+if (responseContent && message.id) {
+  responseContent.inReplyTo = createUniqueUuid(runtime, message.id);
+
+  // Determine if response is simple
+  const isSimple = responseContent.actions?.length === 1 &&
+                  responseContent.actions[0].toUpperCase() === 'REPLY' &&
+                  (!responseContent.providers || responseContent.providers.length === 0);
+
+  responseContent.simple = isSimple;
+
+  const responseMessage = {
+    id: asUUID(v4()),
+    entityId: runtime.agentId,
+    agentId: runtime.agentId,
+    content: responseContent,
+    roomId: message.roomId,
+    createdAt: Date.now(),
+  };
+
+  responseMessages = [responseMessage];
+}
+```
+
+## Action Processing
+
+### Simple Responses
+
+For simple responses (text-only), the handler executes the callback directly:
+
+```typescript
+if (responseContent && responseContent.simple && responseContent.text) {
+  // Log provider usage for simple responses
+  if (responseContent.providers && responseContent.providers.length > 0) {
+    logger.debug('Simple response used providers', responseContent.providers);
+  }
+
+  // Execute callback with response content
+  await callback(responseContent);
+} else {
+  // Process complex actions
+  await runtime.processActions(message, responseMessages, state, callback);
+}
+```
+
+### Complex Action Processing
+
+For complex responses, the runtime processes actions:
+
+```typescript
+// Runtime processes actions based on responseContent.actions
+await runtime.processActions(message, responseMessages, state, callback);
+
+// Common actions include:
+// - REPLY: Send text response
+// - IGNORE: No response
+// - FOLLOW_ROOM: Follow room updates
+// - SEND_MESSAGE: Send targeted message
+// - UPDATE_ENTITY: Update entity information
+```
+
+## Attachment Processing
+
+The handler processes various attachment types:
+
+```typescript
+export async function processAttachments(
+  attachments: Media[],
+  runtime: IAgentRuntime
+): Promise<Media[]> {
+  const processedAttachments: Media[] = [];
+
+  for (const attachment of attachments) {
+    const processedAttachment: Media = { ...attachment };
+
+    // Process images
+    if (attachment.contentType === ContentType.IMAGE && !attachment.description) {
+      const response = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, {
+        prompt: imageDescriptionTemplate,
+        imageUrl: attachment.url,
+      });
+
+      const parsedXml = parseKeyValueXml(response);
+      if (parsedXml?.description) {
+        processedAttachment.description = parsedXml.description;
+        processedAttachment.title = parsedXml.title || 'Image';
+        processedAttachment.text = parsedXml.text;
+      }
+    }
+
+    // Process documents
+    if (attachment.contentType === ContentType.DOCUMENT && !attachment.text) {
+      const res = await fetch(attachment.url);
+      const contentType = res.headers.get('content-type') || '';
+      
+      if (contentType.startsWith('text/plain')) {
+        const textContent = await res.text();
+        processedAttachment.text = textContent;
+        processedAttachment.title = processedAttachment.title || 'Text File';
+      }
+    }
+
+    processedAttachments.push(processedAttachment);
+  }
+
+  return processedAttachments;
+}
+```
+
+## Memory Management
+
+### Message Storage
+
+Messages are stored in both embeddings and message memory:
+
+```typescript
+// Save incoming message to memory
+await Promise.all([
+  runtime.addEmbeddingToMemory(message),
+  runtime.createMemory(message, 'messages'),
+]);
+```
+
+### Response Tracking
+
+The system tracks response IDs to prevent duplicate processing:
+
+```typescript
+const latestResponseIds = new Map<string, Map<string, string>>();
+
+// Set latest response ID for agent+room
+const agentResponses = latestResponseIds.get(runtime.agentId) || new Map();
+agentResponses.set(message.roomId, responseId);
+
+// Check if still latest before processing
+const currentResponseId = agentResponses.get(message.roomId);
+if (currentResponseId !== responseId) {
+  logger.info('Response discarded - newer message being processed');
+  return;
+}
+```
+
+## Ignore Handling
+
+When the agent decides not to respond, it still creates a memory entry:
+
+```typescript
+if (!shouldRespond) {
+  // Create ignore content
+  const ignoreContent: Content = {
+    thought: 'Agent decided not to respond to this message.',
+    actions: ['IGNORE'],
+    simple: true,
+    inReplyTo: createUniqueUuid(runtime, message.id),
+  };
+
+  // Execute callback with ignore content
+  await callback(ignoreContent);
+
+  // Save ignore decision to memory
+  const ignoreMemory = {
+    id: asUUID(v4()),
+    entityId: runtime.agentId,
+    agentId: runtime.agentId,
+    content: ignoreContent,
+    roomId: message.roomId,
+    createdAt: Date.now(),
+  };
+  
+  await runtime.createMemory(ignoreMemory, 'messages');
+}
+```
+
+## Error Handling
+
+### Timeout Protection
+
+Messages are processed with timeout protection:
+
+```typescript
+const timeoutDuration = 60 * 60 * 1000; // 1 hour
+const timeoutPromise = new Promise<never>((_, reject) => {
+  timeoutId = setTimeout(async () => {
+    await runtime.emitEvent(EventType.RUN_TIMEOUT, {
+      runtime,
+      runId,
+      messageId: message.id,
+      roomId: message.roomId,
+      entityId: message.entityId,
+      startTime,
+      status: 'timeout',
+      endTime: Date.now(),
+      duration: Date.now() - startTime,
+      error: 'Run exceeded 60 minute timeout',
+      source: 'messageHandler',
+    });
+    reject(new Error('Run exceeded 60 minute timeout'));
+  }, timeoutDuration);
+});
+
+await Promise.race([processingPromise, timeoutPromise]);
+```
+
+### Graceful Degradation
+
+```typescript
+try {
+  await processMessage(runtime, message, callback);
+} catch (error) {
+  logger.error('Message processing failed:', error);
+  
+  // Emit run ended event with error
+  await runtime.emitEvent(EventType.RUN_ENDED, {
+    runtime,
+    runId,
+    messageId: message.id,
+    roomId: message.roomId,
+    entityId: message.entityId,
+    startTime,
+    status: 'error',
+    endTime: Date.now(),
+    duration: Date.now() - startTime,
+    error: error.message,
+    source: 'messageHandler',
+  });
+}
+```
+
+## Specialized Handlers
+
+### Reaction Handler
+
+```typescript
+const reactionReceivedHandler = async ({
+  runtime,
+  message,
+}: {
+  runtime: IAgentRuntime;
+  message: Memory;
+}) => {
+  try {
+    await runtime.createMemory(message, 'messages');
+  } catch (error: any) {
+    if (error.code === '23505') {
+      logger.warn('Duplicate reaction memory, skipping');
+      return;
+    }
+    logger.error('Error in reaction handler:', error);
+  }
+};
+```
+
+### Message Deletion Handler
+
+```typescript
+const messageDeletedHandler = async ({
+  runtime,
+  message,
+}: {
+  runtime: IAgentRuntime;
+  message: Memory;
+}) => {
+  try {
+    if (!message.id) {
+      logger.error('Cannot delete memory: message ID is missing');
+      return;
+    }
+
+    logger.info('Deleting memory for message', message.id);
+    await runtime.deleteMemory(message.id);
+  } catch (error) {
+    logger.error('Error in message deleted handler:', error);
+  }
+};
+```
+
+### Channel Cleared Handler
+
+```typescript
+const channelClearedHandler = async ({
+  runtime,
+  roomId,
+  channelId,
+  memoryCount,
+}: {
+  runtime: IAgentRuntime;
+  roomId: UUID;
+  channelId: string;
+  memoryCount: number;
+}) => {
+  try {
+    logger.info(`Clearing ${memoryCount} message memories from channel ${channelId}`);
+
+    const memories = await runtime.getMemoriesByRoomIds({
+      tableName: 'messages',
+      roomIds: [roomId],
+    });
+
+    let deletedCount = 0;
+    for (const memory of memories) {
+      if (memory.id) {
+        try {
+          await runtime.deleteMemory(memory.id);
+          deletedCount++;
+        } catch (error) {
+          logger.warn(`Failed to delete message memory ${memory.id}:`, error);
+        }
+      }
+    }
+
+    logger.info(`Successfully cleared ${deletedCount}/${memories.length} message memories`);
+  } catch (error) {
+    logger.error('Error in channel cleared handler:', error);
+  }
+};
+```
+
+## Handler Registration
+
+Message handlers are registered through the bootstrap plugin:
+
+```typescript
+const events = {
+  [EventType.MESSAGE_RECEIVED]: [
+    async (payload: MessagePayload) => {
+      if (!payload.callback) {
+        logger.error('No callback provided for message');
+        return;
+      }
+      await messageReceivedHandler({
+        runtime: payload.runtime,
+        message: payload.message,
+        callback: payload.callback,
+        onComplete: payload.onComplete,
+      });
+    },
+  ],
+
+  [EventType.VOICE_MESSAGE_RECEIVED]: [
+    async (payload: MessagePayload) => {
+      // Use same handler for voice messages
+      await messageReceivedHandler({
+        runtime: payload.runtime,
+        message: payload.message,
+        callback: payload.callback,
+        onComplete: payload.onComplete,
+      });
+    },
+  ],
+
+  [EventType.REACTION_RECEIVED]: [
+    async (payload: MessagePayload) => {
+      await reactionReceivedHandler({
+        runtime: payload.runtime,
+        message: payload.message,
+      });
+    },
+  ],
+
+  [EventType.MESSAGE_DELETED]: [
+    async (payload: MessagePayload) => {
+      await messageDeletedHandler({
+        runtime: payload.runtime,
+        message: payload.message,
+      });
+    },
+  ],
+
+  [EventType.CHANNEL_CLEARED]: [
+    async (payload: EventPayload & { roomId: UUID; channelId: string; memoryCount: number }) => {
+      await channelClearedHandler({
+        runtime: payload.runtime,
+        roomId: payload.roomId,
+        channelId: payload.channelId,
+        memoryCount: payload.memoryCount,
+      });
+    },
+  ],
+};
+
+export const bootstrapPlugin: Plugin = {
+  name: 'bootstrap',
+  description: 'Agent bootstrap with basic actions and evaluators',
+  events: events as any as PluginEvents,
+  // ... other plugin properties
+};
+```
+
+## Performance Considerations
+
+### Concurrent Processing
+
+The system supports concurrent message processing while preventing response conflicts:
+
+```typescript
+// Each agent+room combination tracks its latest response
+const latestResponseIds = new Map<string, Map<string, string>>();
+
+// Concurrent safety check
+const currentResponseId = agentResponses.get(message.roomId);
+if (currentResponseId !== responseId) {
+  logger.info('Response discarded - newer message being processed');
+  return;
+}
+```
+
+### Memory Optimization
+
+```typescript
+// Clean up response tracking
+agentResponses.delete(message.roomId);
+if (agentResponses.size === 0) {
+  latestResponseIds.delete(runtime.agentId);
+}
+```
+
+Message handlers provide the essential processing logic that enables elizaOS agents to understand, process, and respond to incoming messages in a robust and scalable manner. The bootstrap plugin's handler implementation serves as the foundation for all agent communication capabilities.

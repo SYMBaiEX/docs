@@ -1,0 +1,1540 @@
+---
+title: Plugin System
+description: Comprehensive guide to ElizaOS plugin architecture and development
+---
+
+# Plugin System
+
+ElizaOS features a powerful plugin system that allows developers to extend agent functionality through modular, reusable components. The plugin system is the core extensibility mechanism, providing a standardized interface for adding actions, evaluators, providers, services, database adapters, routes, and more.
+
+## Plugin Architecture
+
+### Core Components
+
+Every plugin can provide multiple types of components:
+
+1. **Actions**: Functions that agents can execute (e.g., sending messages, making API calls)
+2. **Evaluators**: Functions that assess conversation quality or trigger behaviors  
+3. **Providers**: Functions that supply context data to the agent's state
+4. **Services**: Background services that provide ongoing functionality (extends Service class)
+5. **Database Adapters**: Custom database implementations (implements IDatabaseAdapter)
+6. **Models**: Custom AI model implementations with handlers
+7. **Routes**: HTTP endpoints exposed by the plugin (GET, POST, PUT, DELETE, STATIC)
+8. **Event Handlers**: Handlers for system and custom events via PluginEvents
+9. **Component Types**: Custom component schemas for entity extensions with validators
+10. **Tests**: Unit, integration, and E2E test suites (TestSuite[])
+
+### Plugin Interface
+
+```typescript
+export type Route = {
+  type: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'STATIC';
+  path: string;
+  filePath?: string;
+  public?: boolean;
+  name?: string extends { public: true } ? string : string | undefined;
+  handler?: (req: any, res: any, runtime: IAgentRuntime) => Promise<void>;
+  isMultipart?: boolean; // Indicates if the route expects multipart/form-data (file uploads)
+};
+
+export type PluginEvents = {
+  [K in keyof EventPayloadMap]?: EventHandler<K>[];
+} & {
+  [key: string]: ((params: any) => Promise<any>)[];
+};
+
+export interface Plugin {
+  name: string;
+  description: string;
+
+  // Initialize plugin with runtime services
+  init?: (config: Record<string, string>, runtime: IAgentRuntime) => Promise<void>;
+
+  // Configuration
+  config?: { [key: string]: any };
+
+  services?: (typeof Service)[];
+
+  // Entity component definitions
+  componentTypes?: {
+    name: string;
+    schema: Record<string, unknown>;
+    validator?: (data: any) => boolean;
+  }[];
+
+  // Optional plugin features
+  actions?: Action[];
+  providers?: Provider[];
+  evaluators?: Evaluator[];
+  adapter?: IDatabaseAdapter;
+  models?: {
+    [key: string]: (...args: any[]) => Promise<any>;
+  };
+  events?: PluginEvents;
+  routes?: Route[];
+  tests?: TestSuite[];
+
+  dependencies?: string[];
+
+  testDependencies?: string[];
+
+  priority?: number;
+
+  schema?: any;
+}
+```
+
+## Plugin Lifecycle
+
+### 1. Registration
+
+Plugins are registered with the runtime during agent initialization:
+
+```typescript
+async registerPlugin(plugin: Plugin): Promise<void> {
+  // Check for duplicate plugins
+  const existingPlugin = this.plugins.find((p) => p.name === plugin.name);
+  if (existingPlugin) {
+    logger.warn(`Plugin ${plugin.name} already registered`);
+    return;
+  }
+  
+  // Add to active plugins
+  this.plugins.push(plugin);
+  
+  // Initialize plugin if init function provided
+  if (plugin.init) {
+    await plugin.init(plugin.config || {}, this);
+  }
+  
+  // Register all plugin components
+  if (plugin.adapter) this.registerDatabaseAdapter(plugin.adapter);
+  if (plugin.actions) plugin.actions.forEach(a => this.registerAction(a));
+  if (plugin.evaluators) plugin.evaluators.forEach(e => this.registerEvaluator(e));
+  if (plugin.providers) plugin.providers.forEach(p => this.registerProvider(p));
+  if (plugin.models) {
+    for (const [type, handler] of Object.entries(plugin.models)) {
+      this.registerModel(type, handler, plugin.name, plugin.priority);
+    }
+  }
+  if (plugin.routes) this.routes.push(...plugin.routes);
+  if (plugin.events) {
+    for (const [event, handlers] of Object.entries(plugin.events)) {
+      handlers.forEach(h => this.registerEvent(event, h));
+    }
+  }
+  if (plugin.services) {
+    for (const service of plugin.services) {
+      await this.registerService(service);
+    }
+  }
+}
+```
+
+### 2. Initialization Process
+
+The initialization follows this order:
+
+1. **Plugin Discovery**: Plugins are loaded from the agent's character configuration
+2. **Dependency Resolution**: Plugins are sorted by priority and dependencies
+3. **Registration**: Each plugin is registered with the runtime
+4. **Component Registration**: Plugin components are registered in order:
+   - Database adapter
+   - Actions
+   - Evaluators  
+   - Providers
+   - Models
+   - Routes
+   - Event handlers
+   - Services (queued if runtime not yet initialized)
+
+### 3. Runtime Integration
+
+Once initialized, plugins become integral to the agent runtime:
+
+- **Actions** are available for the agent to execute
+- **Providers** supply data to the agent's state
+- **Evaluators** assess agent responses
+- **Services** run as background processes
+- **Routes** expose HTTP endpoints
+- **Event handlers** respond to system events
+
+## Actions
+
+Actions are executable functions that agents can perform. They define what an agent can do in response to messages or events.
+
+### Action Interface
+
+```typescript
+interface Action {
+  name: string;
+  description: string;
+  similes?: string[];
+  
+  // Validation function
+  validate: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State
+  ) => Promise<boolean>;
+  
+  // Execution handler
+  handler: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: { [key: string]: unknown },
+    callback?: HandlerCallback,
+    responses?: Memory[]
+  ) => Promise<boolean>;
+  
+  // Optional examples
+  examples?: ActionExample[][];
+}
+```
+
+### Example Action
+
+```typescript
+// src/actions/weatherAction.ts
+import { Action } from '@elizaos/core';
+
+export const weatherAction: Action = {
+  name: 'GET_WEATHER',
+  description: 'Get current weather for a location',
+  similes: ['weather', 'forecast', 'temperature'],
+  
+  validate: async (runtime, message, state) => {
+    // Check if message contains weather-related keywords
+    const text = message.content.text?.toLowerCase() || '';
+    return text.includes('weather') || text.includes('temperature');
+  },
+  
+  handler: async (runtime, message, state, options, callback) => {
+    // Extract location from message
+    const location = extractLocation(message.content.text);
+    
+    // Get weather service
+    const weatherService = runtime.getService('weather');
+    const weather = await weatherService.getCurrentWeather(location);
+    
+    // Create response
+    const response = {
+      text: `The weather in ${location} is ${weather.temperature}°F with ${weather.conditions}`,
+      source: 'weather_action'
+    };
+    
+    // Send response via callback
+    await callback(response);
+    
+    return true;
+  },
+  
+  examples: [
+    [{
+      user: "{{user1}}",
+      content: { text: "What's the weather like today?" }
+    }, {
+      user: "{{agentName}}",
+      content: { 
+        text: "The weather today is 72°F with clear skies",
+        action: "GET_WEATHER"
+      }
+    }]
+  ]
+};
+```
+
+### Action Registration
+
+Actions are registered automatically when plugins are loaded:
+
+```typescript
+// In plugin definition
+export default {
+  name: 'weather-plugin',
+  description: 'Weather information plugin',
+  actions: [weatherAction],
+  services: [WeatherService]
+} as Plugin;
+```
+
+## Evaluators
+
+Evaluators assess conversation quality, trigger behaviors, or make decisions about agent responses.
+
+### Evaluator Interface
+
+```typescript
+interface Evaluator {
+  name: string;
+  description: string;
+  
+  // Validation function
+  validate: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State
+  ) => Promise<boolean>;
+  
+  // Evaluation handler
+  handler: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: { [key: string]: unknown },
+    callback?: HandlerCallback,
+    responses?: Memory[]
+  ) => Promise<void>;
+  
+  // Run even when agent doesn't respond
+  alwaysRun?: boolean;
+  
+  // Optional examples
+  examples?: EvaluatorExample[];
+}
+```
+
+### Example Evaluator
+
+```typescript
+// src/evaluators/sentimentEvaluator.ts
+import { Evaluator } from '@elizaos/core';
+
+export const sentimentEvaluator: Evaluator = {
+  name: 'SENTIMENT_ANALYSIS',
+  description: 'Analyze sentiment of messages and adjust agent behavior',
+  alwaysRun: true,
+  
+  validate: async (runtime, message, state) => {
+    // Run on all messages
+    return true;
+  },
+  
+  handler: async (runtime, message, state, options, callback) => {
+    // Analyze sentiment
+    const sentiment = await analyzeSentiment(message.content.text);
+    
+    // Store sentiment in memory
+    const sentimentMemory = {
+      id: v4() as UUID,
+      entityId: message.entityId,
+      roomId: message.roomId,
+      content: {
+        text: `Sentiment: ${sentiment.score}`,
+        sentiment: sentiment,
+        source: 'sentiment_evaluator'
+      },
+      createdAt: Date.now()
+    };
+    
+    await runtime.createMemory(sentimentMemory, 'facts');
+    
+    // Adjust agent behavior based on sentiment
+    if (sentiment.score < -0.5) {
+      // Trigger supportive response
+      await runtime.emitEvent('NEGATIVE_SENTIMENT', {
+        message,
+        sentiment
+      });
+    }
+  }
+};
+```
+
+## Providers
+
+Providers supply context data that gets included in the agent's state during message processing.
+
+### Provider Interface
+
+```typescript
+interface Provider {
+  name: string;
+  description: string;
+  
+  // Data retrieval function
+  get: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State
+  ) => Promise<string | { 
+    values: { [key: string]: unknown };
+    text: string;
+    data?: { [key: string]: unknown };
+  }>;
+  
+  // Position in state composition
+  position?: number;
+  
+  // Whether to include in default state
+  private?: boolean;
+  
+  // Dynamic provider (computed on demand)
+  dynamic?: boolean;
+}
+```
+
+### Example Provider
+
+```typescript
+// src/providers/userProfileProvider.ts
+import { Provider } from '@elizaos/core';
+
+export const userProfileProvider: Provider = {
+  name: 'USER_PROFILE',
+  description: 'Provides user profile information',
+  position: 10,
+  
+  get: async (runtime, message, state) => {
+    // Get user entity
+    const user = await runtime.getEntityById(message.entityId);
+    if (!user) {
+      return { values: {}, text: '', data: {} };
+    }
+    
+    // Get user's interaction history
+    const interactions = await runtime.getMemories({
+      entityId: message.entityId,
+      roomId: message.roomId,
+      count: 10,
+      tableName: 'messages'
+    });
+    
+    // Compile profile information
+    const profile = {
+      name: user.names[0],
+      interactionCount: interactions.length,
+      lastInteraction: interactions[0]?.createdAt,
+      preferences: user.metadata.preferences || {},
+      ...user.metadata
+    };
+    
+    return {
+      values: {
+        userName: profile.name,
+        userInteractions: profile.interactionCount,
+        userPreferences: profile.preferences
+      },
+      text: `User: ${profile.name} (${profile.interactionCount} interactions)`,
+      data: { profile }
+    };
+  }
+};
+```
+
+## Services
+
+Services provide background functionality and can be accessed by actions, evaluators, and other components.
+
+### Service Interface
+
+```typescript
+abstract class Service {
+  static serviceType: ServiceTypeName;
+  
+  // Service initialization
+  static async start(runtime: IAgentRuntime): Promise<Service>;
+  
+  // Service cleanup
+  abstract stop(): Promise<void>;
+}
+```
+
+### Example Service
+
+```typescript
+// src/services/weatherService.ts
+import { Service, IAgentRuntime } from '@elizaos/core';
+
+export class WeatherService extends Service {
+  static serviceType = 'weather' as const;
+  
+  private apiKey: string;
+  private runtime: IAgentRuntime;
+  
+  constructor(runtime: IAgentRuntime) {
+    super();
+    this.runtime = runtime;
+    this.apiKey = runtime.getSetting('WEATHER_API_KEY');
+  }
+  
+  static async start(runtime: IAgentRuntime): Promise<WeatherService> {
+    return new WeatherService(runtime);
+  }
+  
+  async getCurrentWeather(location: string) {
+    const response = await fetch(
+      `https://api.weather.com/v1/weather?location=${location}&key=${this.apiKey}`
+    );
+    return await response.json();
+  }
+  
+  async getForecast(location: string, days: number = 7) {
+    const response = await fetch(
+      `https://api.weather.com/v1/forecast?location=${location}&days=${days}&key=${this.apiKey}`
+    );
+    return await response.json();
+  }
+  
+  async stop(): Promise<void> {
+    // Cleanup resources
+  }
+}
+```
+
+## Plugin Development
+
+### Creating a Plugin
+
+1. **Setup Plugin Structure**
+
+```bash
+mkdir my-weather-plugin
+cd my-weather-plugin
+npm init -y
+```
+
+2. **Install Dependencies**
+
+```json
+{
+  "name": "@my-org/weather-plugin",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@elizaos/core": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tsup": "^8.0.0"
+  }
+}
+```
+
+3. **Create Plugin Structure**
+
+```
+my-weather-plugin/
+├── src/
+│   ├── actions/
+│   │   ├── weatherAction.ts
+│   │   └── index.ts
+│   ├── evaluators/
+│   │   ├── weatherEvaluator.ts
+│   │   └── index.ts
+│   ├── providers/
+│   │   ├── weatherProvider.ts
+│   │   └── index.ts
+│   ├── services/
+│   │   ├── weatherService.ts
+│   │   └── index.ts
+│   ├── types/
+│   │   └── index.ts
+│   ├── plugin.ts
+│   └── index.ts
+├── package.json
+├── tsconfig.json
+└── tsup.config.ts
+```
+
+4. **Define Plugin**
+
+```typescript
+// src/plugin.ts
+import { Plugin } from '@elizaos/core';
+import { weatherAction } from './actions';
+import { weatherEvaluator } from './evaluators';
+import { weatherProvider } from './providers';
+import { WeatherService } from './services';
+
+export const weatherPlugin: Plugin = {
+  name: 'weather',
+  description: 'Weather information and forecasting plugin',
+  
+  actions: [weatherAction],
+  evaluators: [weatherEvaluator],
+  providers: [weatherProvider],
+  services: [WeatherService],
+  
+  init: async (config, runtime) => {
+    // Plugin initialization
+    const apiKey = runtime.getSetting('WEATHER_API_KEY');
+    if (!apiKey) {
+      throw new Error('WEATHER_API_KEY is required');
+    }
+  }
+};
+
+export default weatherPlugin;
+```
+
+5. **Export Plugin**
+
+```typescript
+// src/index.ts
+export * from './actions';
+export * from './evaluators';
+export * from './providers';
+export * from './services';
+export * from './types';
+export { default } from './plugin';
+```
+
+### Plugin Configuration
+
+Plugins can be configured through environment variables or runtime settings:
+
+```typescript
+// In plugin init function
+init: async (config, runtime) => {
+  const settings = {
+    apiKey: runtime.getSetting('WEATHER_API_KEY'),
+    units: runtime.getSetting('WEATHER_UNITS') || 'fahrenheit',
+    timeout: parseInt(runtime.getSetting('WEATHER_TIMEOUT') || '5000')
+  };
+  
+  // Validate configuration
+  if (!settings.apiKey) {
+    throw new Error('Weather API key is required');
+  }
+  
+  // Store configuration
+  runtime.setSetting('weather_config', settings);
+}
+```
+
+## Core Plugin: Bootstrap
+
+The `@elizaos/plugin-bootstrap` is the foundational plugin that provides essential functionality for all agents. It's a single-file plugin (`/packages/plugin-bootstrap/src/index.ts`) that handles message processing, core actions, essential providers, and fundamental event handling.
+
+### Key Features
+
+1. **Message Handling**
+   ```typescript
+   const messageReceivedHandler = async ({
+     runtime,
+     message,
+     callback,
+     onComplete,
+   }: MessageReceivedHandlerParams): Promise<void> => {
+     // Process incoming messages
+     // Determine if agent should respond  
+     // Generate and send responses
+     // Handle attachments and media
+   };
+   ```
+
+2. **Core Actions**
+   - `REPLY`: Generate text responses
+   - `FOLLOW_ROOM`/`UNFOLLOW_ROOM`: Room management
+   - `MUTE_ROOM`/`UNMUTE_ROOM`: Mute controls
+   - `IGNORE`/`NONE`: Non-response actions
+   - `SEND_MESSAGE`: Direct messaging
+   - `UPDATE_ENTITY`: Entity management
+   - `CHOICE`: Decision making
+   - `UPDATE_ROLE`/`UPDATE_SETTINGS`: Configuration
+
+```typescript
+// Core actions provided by bootstrap plugin
+const actions: Action[] = [
+  // Message handling
+  replyAction,        // Generate text responses
+  ignoreAction,       // Explicitly ignore messages
+  noneAction,         // No action needed
+  
+  // Room management
+  followRoomAction,   // Start following room updates
+  unfollowRoomAction, // Stop following room updates
+  muteRoomAction,     // Mute room notifications
+  unmuteRoomAction,   // Unmute room notifications
+  
+  // Communication
+  sendMessageAction,  // Send messages to specific targets
+  
+  // Entity management
+  updateEntityAction, // Update entity information
+  
+  // Decision making
+  choiceAction,       // Handle multiple choice selections
+  
+  // Configuration
+  updateRoleAction,   // Update user roles and permissions
+  updateSettingsAction // Update agent runtime settings
+];
+```
+
+3. **Essential Providers**
+   - `TIME`: Current time information
+   - `ENTITIES`: Entity data and relationships
+   - `RELATIONSHIPS`: Relationship management
+   - `FACTS`: Knowledge base
+   - `CHARACTER`: Agent character info
+   - `RECENT_MESSAGES`: Message history
+   - `ATTACHMENTS`: Media handling
+   - `ACTIONS`: Available actions
+   - `PROVIDERS`: Available providers
+   - `EVALUATORS`: Available evaluators
+   - `WORLD`: World/room context
+   - `SETTINGS`: Agent settings
+   - `CAPABILITIES`: Agent capabilities
+   - `ANXIETY`: Emotional state tracking
+   - `ROLE`: User roles and permissions
+
+```typescript
+// Essential providers for agent context state
+const providers: Provider[] = [
+  // Temporal context
+  timeProvider,             // Current time and date information
+  
+  // Entity context
+  entitiesProvider,         // Entity data and relationships
+  relationshipsProvider,    // Relationship graph
+  
+  // Knowledge context
+  factsProvider,           // Fact database
+  
+  // Agent identity
+  characterProvider,        // Agent personality and traits
+  
+  // Conversation context
+  recentMessagesProvider,   // Recent message history
+  attachmentsProvider,      // Media attachments
+  
+  // System information
+  actionsProvider,         // Available actions list
+  providersProvider,       // Available providers list
+  evaluatorsProvider,      // Available evaluators list
+  
+  // Environment context
+  worldProvider,           // World/room information
+  
+  // Configuration
+  settingsProvider,        // Runtime settings
+  capabilitiesProvider,    // Agent capabilities
+  
+  // Emotional state
+  anxietyProvider,         // Anxiety level tracking
+  
+  // Access control
+  roleProvider            // User roles and permissions
+];
+```
+
+4. **Event Handling**
+   ```typescript
+   const events = {
+     [EventType.MESSAGE_RECEIVED]: [messageReceivedHandler],
+     [EventType.VOICE_MESSAGE_RECEIVED]: [messageReceivedHandler],
+     [EventType.POST_GENERATED]: [postGeneratedHandler],
+     [EventType.WORLD_JOINED]: [handleServerSync],
+     [EventType.WORLD_CONNECTED]: [handleServerSync],
+     [EventType.ENTITY_JOINED]: [syncSingleUser],
+     [EventType.ENTITY_LEFT]: [handleEntityLeft],
+     [EventType.MESSAGE_DELETED]: [messageDeletedHandler],
+     [EventType.CHANNEL_CLEARED]: [channelClearedHandler],
+     [EventType.REACTION_RECEIVED]: [reactionReceivedHandler],
+     // ... more event handlers
+   };
+   ```
+
+### Message Processing Pipeline
+
+The bootstrap plugin handles the core message processing pipeline:
+
+```typescript
+// Message received handler
+const messageReceivedHandler = async ({
+  runtime,
+  message,
+  callback,
+  onComplete,
+}: MessageReceivedHandlerParams): Promise<void> => {
+  // 1. Save incoming message and embeddings
+  await runtime.createMemory(message, 'messages');
+  await runtime.addEmbeddingToMemory(message);
+  
+  // 2. Process attachments if present
+  if (message.content.attachments?.length > 0) {
+    message.content.attachments = await processAttachments(
+      message.content.attachments,
+      runtime
+    );
+  }
+  
+  // 3. Compose state with context
+  let state = await runtime.composeState(message, [
+    'ANXIETY', 'SHOULD_RESPOND', 'ENTITIES', 
+    'CHARACTER', 'RECENT_MESSAGES', 'ACTIONS'
+  ]);
+  
+  // 4. Determine if should respond (skip for DMs/Voice)
+  const shouldSkipShouldRespond = shouldBypassShouldRespond(
+    runtime, room, message.content.source
+  );
+  
+  // 5. Generate and send response
+  if (shouldRespond) {
+    const response = await generateResponse(runtime, state);
+    await runtime.processActions(message, [response], state, callback);
+    await runtime.evaluate(message, state, true, callback, [response]);
+  }
+  
+  onComplete?.();
+};
+```
+
+### Attachment Processing
+
+The bootstrap plugin includes sophisticated attachment handling:
+
+```typescript
+export async function processAttachments(
+  attachments: Media[],
+  runtime: IAgentRuntime
+): Promise<Media[]> {
+  const processedAttachments: Media[] = [];
+  
+  for (const attachment of attachments) {
+    // Process images with AI description
+    if (attachment.contentType === ContentType.IMAGE) {
+      const response = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, {
+        prompt: imageDescriptionTemplate,
+        imageUrl: attachment.url,
+      });
+      
+      const parsed = parseKeyValueXml(response);
+      attachment.description = parsed.description;
+      attachment.title = parsed.title;
+      attachment.text = parsed.text;
+    }
+    
+    // Process documents
+    if (attachment.contentType === ContentType.DOCUMENT) {
+      // Extract text from plain text documents
+      const textContent = await extractTextContent(attachment);
+      attachment.text = textContent;
+    }
+    
+    processedAttachments.push(attachment);
+  }
+  
+  return processedAttachments;
+}
+```
+
+## Plugin Examples
+
+### 1. Starter Plugin Template
+
+The `@elizaos/plugin-starter` provides a complete template for creating new plugins:
+
+```typescript
+export const starterPlugin: Plugin = {
+  name: 'plugin-starter',
+  description: 'Plugin starter for elizaOS',
+  
+  init: async (config: Record<string, string>) => {
+    // Validate configuration with Zod schema
+    const validatedConfig = await configSchema.parseAsync(config);
+    logger.info('Plugin initialized');
+  },
+  
+  actions: [helloWorldAction],
+  providers: [helloWorldProvider],
+  services: [StarterService],
+  
+  routes: [
+    {
+      name: 'hello-world-route',
+      path: '/helloworld',
+      type: 'GET',
+      handler: async (_req: any, res: any) => {
+        res.json({ message: 'Hello World!' });
+      },
+    },
+  ],
+  
+  events: {
+    MESSAGE_RECEIVED: [
+      async (params) => {
+        logger.debug('MESSAGE_RECEIVED event received');
+      },
+    ],
+  },
+  
+  tests: [StarterPluginTestSuite],
+};
+```
+
+### 2. Database Plugin
+
+The `@elizaos/plugin-sql` provides database functionality with support for both PostgreSQL and PGLite:
+
+```typescript
+export const plugin: Plugin = {
+  name: '@elizaos/plugin-sql',
+  description: 'SQL database access with dynamic schema migrations',
+  priority: 0, // Load early as other plugins depend on it
+  schema, // Database schema definitions
+  
+  init: async (_, runtime: IAgentRuntime) => {
+    // Check for existing adapter
+    const existingAdapter = runtime.databaseAdapter;
+    if (existingAdapter) return;
+    
+    // Create adapter based on configuration
+    const postgresUrl = runtime.getSetting('POSTGRES_URL');
+    const dataDir = runtime.getSetting('PGLITE_PATH') || './.eliza/.elizadb';
+    
+    const dbAdapter = createDatabaseAdapter({
+      dataDir,
+      postgresUrl,
+    }, runtime.agentId);
+    
+    runtime.registerDatabaseAdapter(dbAdapter);
+  },
+};
+```
+
+### 3. Service Plugin Example
+
+The `@elizaos/plugin-dummy-services` demonstrates service implementation patterns:
+
+```typescript
+export class DummyTokenDataService extends Service implements ITokenDataService {
+  readonly serviceName = 'dummy-token-data';
+  static readonly serviceType = ServiceType.TOKEN_DATA;
+  readonly capabilityDescription = 'Provides dummy token data for testing';
+  
+  async getTokenDetails(address: string, chain: string): Promise<TokenData | null> {
+    return this.generateDummyToken(chain, address);
+  }
+  
+  static async start(runtime: IAgentRuntime): Promise<DummyTokenDataService> {
+    const service = new DummyTokenDataService(runtime);
+    logger.info('DummyTokenDataService started');
+    return service;
+  }
+  
+  static async stop(runtime: IAgentRuntime): Promise<void> {
+    const service = runtime.getService<DummyTokenDataService>(
+      DummyTokenDataService.serviceType
+    );
+    if (service) {
+      await service.stop();
+    }
+  }
+}
+
+export const dummyServicesPlugin: Plugin = {
+  name: 'dummy-services',
+  description: 'Load standard dummy services for testing',
+  services: [DummyTokenDataService, DummyLpService, DummyWalletService],
+  tests: [dummyServicesScenariosSuite],
+};
+```
+
+## Plugin Development with CLI
+
+### Creating a New Plugin
+
+1. **Use the ElizaOS CLI**
+   ```bash
+   elizaos create -t plugin my-plugin
+   cd plugin-my-plugin
+   elizaos dev  # Start with hot-reloading
+   ```
+
+2. **Plugin Structure Generated**
+   ```
+   plugin-my-plugin/
+   ├── src/
+   │   ├── __tests__/       # Unit and integration tests
+   │   │   ├── e2e/        # End-to-end tests
+   │   │   └── plugin.test.ts
+   │   ├── frontend/       # Optional UI components
+   │   ├── actions/        # Plugin actions
+   │   ├── providers/      # Plugin providers
+   │   ├── services/       # Plugin services
+   │   ├── plugin.ts       # Main plugin definition
+   │   └── index.ts        # Exports
+   ├── package.json        # With agentConfig
+   ├── tsconfig.json
+   └── README.md
+   ```
+
+3. **Development Commands**
+   ```bash
+   elizaos dev     # Development with hot-reload
+   elizaos test    # Run all tests
+   elizaos test component  # Unit/integration tests only
+   elizaos test e2e       # E2E tests only
+   elizaos publish        # Publish to npm + registry
+   ```
+
+## Plugin Testing
+
+### Test Structure
+
+ElizaOS provides comprehensive testing support:
+
+1. **Unit Tests** - Test individual components
+   ```typescript
+   describe('HelloWorld Action', () => {
+     it('should validate correctly', async () => {
+       const result = await helloWorldAction.validate(
+         mockRuntime,
+         mockMessage,
+         mockState
+       );
+       expect(result).toBe(true);
+     });
+   });
+   ```
+
+2. **Integration Tests** - Test component interactions
+   ```typescript
+   describe('Integration: Action with Service', () => {
+     it('should use service data in action', async () => {
+       const service = await StarterService.start(runtime);
+       const response = await action.handler(runtime, message);
+       expect(response.text).toContain(service.getData());
+     });
+   });
+   ```
+
+3. **E2E Tests** - Test complete scenarios with real runtime
+   ```typescript
+   export const PluginTestSuite: TestSuite = {
+     name: 'plugin_e2e_tests',
+     tests: [
+       {
+         name: 'complete_user_flow',
+         fn: async (runtime: IAgentRuntime) => {
+           // Simulate user interaction
+           const message = createTestMessage('Hello');
+           const response = await simulateMessage(runtime, message);
+           
+           // Verify expected behavior
+           if (!response.includes('world')) {
+             throw new Error('Expected hello world response');
+           }
+         },
+       },
+     ],
+   };
+   ```
+
+### Test Utilities
+
+```typescript
+// Test utilities provided
+import { createMockRuntime, createTestMessage } from '@elizaos/test-utils';
+
+const mockRuntime = createMockRuntime({
+  character: testCharacter,
+  plugins: [myPlugin],
+});
+
+const testMessage = createTestMessage({
+  text: 'Test message',
+  entityId: 'test-user',
+});
+```
+
+## Plugin Configuration
+
+### Environment Variables
+
+Plugins can use environment variables for configuration:
+
+```typescript
+const configSchema = z.object({
+  API_KEY: z.string().min(1, 'API key is required'),
+  ENDPOINT: z.string().url().optional(),
+  RATE_LIMIT: z.string().transform(Number).default('100'),
+});
+
+async init(config: Record<string, string>, runtime: IAgentRuntime) {
+  const validated = await configSchema.parseAsync(config);
+  
+  // Set environment variables
+  for (const [key, value] of Object.entries(validated)) {
+    if (value) process.env[key] = value;
+  }
+}
+```
+
+### Package.json Configuration
+
+```json
+{
+  "name": "@myorg/plugin-weather",
+  "version": "1.0.0",
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "WEATHER_API_KEY": {
+        "type": "string",
+        "description": "API key for weather service",
+        "required": true
+      },
+      "WEATHER_UNITS": {
+        "type": "string",
+        "description": "Temperature units (celsius/fahrenheit)",
+        "default": "fahrenheit"
+      }
+    }
+  }
+}
+```
+
+## Plugin Loading and Dependencies
+
+### Plugin Registration
+
+Plugins are registered in the runtime during initialization:
+
+```typescript
+// Runtime initialization with plugins
+const runtime = new AgentRuntime({
+  agentId: "unique-agent-id",
+  character: characterConfig,
+  plugins: [
+    bootstrapPlugin,     // Always required - provides core functionality
+    sqlPlugin,          // Database adapter (PostgreSQL/PGLite)
+    weatherPlugin,      // Custom weather plugin
+    // ... other plugins
+  ],
+  adapter: databaseAdapter,
+  settings: environmentSettings
+});
+```
+
+### Dependency Resolution
+
+Plugins can declare dependencies on other plugins:
+
+```typescript
+export const advancedWeatherPlugin: Plugin = {
+  name: 'advanced-weather',
+  description: 'Advanced weather features',
+  dependencies: ['weather', 'location'],
+  
+  init: async (config, runtime) => {
+    // Verify dependencies are loaded
+    const weatherService = runtime.getService('weather');
+    const locationService = runtime.getService('location');
+    
+    if (!weatherService || !locationService) {
+      throw new Error('Required services not available');
+    }
+  }
+};
+```
+
+### Plugin Priority
+
+Plugins can specify priority for loading order:
+
+```typescript
+export const highPriorityPlugin: Plugin = {
+  name: 'critical-plugin',
+  description: 'Critical functionality',
+  priority: 100, // Higher priority loads first
+  
+  // Plugin definition...
+};
+```
+
+## Event System
+
+Plugins can register event handlers and emit events:
+
+### Event Registration
+
+```typescript
+export const eventPlugin: Plugin = {
+  name: 'event-plugin',
+  description: 'Event handling plugin',
+  
+  events: {
+    [EventType.MESSAGE_RECEIVED]: [
+      async (payload) => {
+        // Handle message received
+      }
+    ],
+    
+    [EventType.ACTION_COMPLETED]: [
+      async (payload) => {
+        // Handle action completion
+      }
+    ],
+    
+    // Custom events
+    'WEATHER_ALERT': [
+      async (payload) => {
+        // Handle weather alert
+      }
+    ]
+  }
+};
+```
+
+### Event Emission
+
+```typescript
+// In action or evaluator
+await runtime.emitEvent('WEATHER_ALERT', {
+  severity: 'high',
+  message: 'Severe weather warning',
+  location: 'New York'
+});
+```
+
+## Best Practices
+
+### Plugin Development Guidelines
+
+1. **Single Responsibility**: Each plugin should have a focused purpose
+2. **Error Handling**: Implement comprehensive error handling
+3. **Configuration**: Use environment variables for configuration
+4. **Testing**: Write unit tests for all components
+5. **Documentation**: Document all public APIs
+
+### Performance Considerations
+
+1. **Lazy Loading**: Load resources only when needed
+2. **Caching**: Cache expensive operations
+3. **Async Operations**: Use async/await for I/O operations
+4. **Memory Management**: Clean up resources in service stop methods
+
+### Security Best Practices
+
+1. **Input Validation**: Validate all inputs
+2. **API Key Management**: Use secure configuration for API keys
+3. **Permission Checks**: Implement proper authorization
+4. **Rate Limiting**: Implement rate limiting for external APIs
+
+## Advanced Plugin Features
+
+### Custom Models
+
+Plugins can provide custom model implementations:
+
+```typescript
+models: {
+  [ModelType.TEXT_SMALL]: async (runtime, params) => {
+    // Custom model implementation
+    return generateResponse(params.prompt);
+  },
+  [ModelType.IMAGE]: async (runtime, params) => {
+    // Custom image generation
+    return generateImage(params.prompt);
+  },
+},
+```
+
+### Dynamic Routes
+
+Plugins can expose HTTP endpoints:
+
+```typescript
+routes: [
+  {
+    name: 'api-endpoint',
+    path: '/api/plugin/data',
+    type: 'POST',
+    handler: async (req, res, runtime) => {
+      const data = await processRequest(req.body);
+      res.json({ success: true, data });
+    },
+    isMultipart: false, // For file uploads
+    public: true,       // Public access
+  },
+],
+```
+
+### Component Types
+
+Plugins can define custom component schemas:
+
+```typescript
+componentTypes: [
+  {
+    name: 'weather-config',
+    schema: {
+      apiKey: { type: 'string', required: true },
+      units: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+      refreshInterval: { type: 'number', min: 60 },
+    },
+    validator: (data) => {
+      return data.apiKey && data.apiKey.length > 0;
+    },
+  },
+],
+```
+
+### Plugin Events
+
+Custom event handling and emission:
+
+```typescript
+// Emit custom events
+await runtime.emitEvent('WEATHER_ALERT', {
+  severity: 'high',
+  message: 'Severe weather warning',
+  location: 'New York',
+  timestamp: Date.now(),
+});
+
+// Handle events in plugin
+events: {
+  WEATHER_ALERT: [
+    async (payload) => {
+      // Send notifications
+      // Update agent state
+      // Log to database
+    },
+  ],
+},
+```
+
+## Performance Optimization
+
+### 1. Lazy Loading
+
+```typescript
+class LazyService extends Service {
+  private weatherClient?: WeatherClient;
+  
+  async getClient(): Promise<WeatherClient> {
+    if (!this.weatherClient) {
+      this.weatherClient = await initializeWeatherClient();
+    }
+    return this.weatherClient;
+  }
+}
+```
+
+### 2. Caching Strategies
+
+```typescript
+class CachedProvider implements Provider {
+  private cache = new Map<string, CacheEntry>();
+  
+  async get(runtime, message, state) {
+    const cacheKey = this.getCacheKey(message);
+    const cached = this.cache.get(cacheKey);
+    
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data;
+    }
+    
+    const data = await this.fetchData(runtime, message);
+    this.cache.set(cacheKey, {
+      data,
+      expiry: Date.now() + 300000, // 5 minutes
+    });
+    
+    return data;
+  }
+}
+```
+
+### 3. Resource Management
+
+```typescript
+class ManagedService extends Service {
+  private connections: Connection[] = [];
+  
+  async stop() {
+    // Clean up all connections
+    await Promise.all(
+      this.connections.map(conn => conn.close())
+    );
+    this.connections = [];
+    
+    // Clear intervals and timeouts
+    this.clearTimers();
+    
+    // Release memory
+    this.cache.clear();
+  }
+}
+```
+
+## Security Best Practices
+
+### 1. Configuration Validation
+
+```typescript
+const configSchema = z.object({
+  apiKey: z.string().min(32).regex(/^[A-Za-z0-9]+$/),
+  endpoint: z.string().url().startsWith('https://'),
+  timeout: z.number().min(1000).max(30000),
+});
+
+async init(config, runtime) {
+  try {
+    const validated = await configSchema.parseAsync(config);
+    // Use validated config
+  } catch (error) {
+    throw new Error(`Invalid configuration: ${error.message}`);
+  }
+}
+```
+
+### 2. Input Sanitization
+
+```typescript
+const sanitizeInput = (input: string): string => {
+  return input
+    .replace(/<script[^>]*>.*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+};
+
+handler: async (runtime, message, state) => {
+  const sanitized = sanitizeInput(message.content.text);
+  // Process sanitized input
+}
+```
+
+### 3. Permission Checks
+
+```typescript
+validate: async (runtime, message, state) => {
+  const user = await runtime.getEntityById(message.entityId);
+  const userRole = user?.metadata?.role || 'user';
+  
+  if (this.requiredRole && userRole !== this.requiredRole) {
+    logger.warn(`User lacks required role: ${this.requiredRole}`);
+    return false;
+  }
+  
+  return true;
+}
+```
+
+### 4. Rate Limiting
+
+```typescript
+class RateLimitedService extends Service {
+  private rateLimiter = new Map<string, number[]>();
+  
+  async checkRateLimit(userId: string): Promise<boolean> {
+    const now = Date.now();
+    const userRequests = this.rateLimiter.get(userId) || [];
+    
+    // Remove old requests
+    const recentRequests = userRequests.filter(
+      time => now - time < 60000 // 1 minute window
+    );
+    
+    if (recentRequests.length >= 10) {
+      return false; // Rate limit exceeded
+    }
+    
+    recentRequests.push(now);
+    this.rateLimiter.set(userId, recentRequests);
+    return true;
+  }
+}
+```
+
+## Plugin Publishing
+
+### Initial Setup
+
+```bash
+# Authenticate with npm
+npm login
+
+# Create GitHub repository
+# Add 'elizaos-plugins' topic
+# Add required images:
+#   - images/logo.jpg (400x400px)
+#   - images/banner.jpg (1280x640px)
+```
+
+### Publishing Workflow
+
+```bash
+# Initial publish
+elizaos publish
+
+# Updates (use standard npm workflow)
+npm version patch
+npm publish
+git push origin main --tags
+```
+
+### Publishing Options
+
+```bash
+# Test before publishing
+elizaos publish --test
+
+# Publish to npm only
+elizaos publish --npm
+
+# Skip registry submission
+elizaos publish --skip-registry
+
+# Dry run
+elizaos publish --dry-run
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Plugin Not Loading**
+   - Check plugin name uniqueness
+   - Verify dependencies are installed
+   - Check for initialization errors
+
+2. **Service Not Available**
+   - Ensure service is registered in plugin
+   - Check service initialization
+   - Verify runtime.isInitialized before access
+
+3. **Action Not Executing**
+   - Verify action validation returns true
+   - Check action is registered
+   - Review runtime logs for errors
+
+4. **Memory Leaks**
+   - Implement proper cleanup in stop()
+   - Clear intervals and timeouts
+   - Release external resources
+
+### Debug Mode
+
+```typescript
+// Enable debug logging
+process.env.DEBUG = 'elizaos:*';
+
+// Plugin-specific debugging
+logger.debug('[MyPlugin] State:', state);
+logger.debug('[MyPlugin] Response:', response);
+```
+
+## Conclusion
+
+The ElizaOS plugin system provides a powerful and flexible way to extend agent functionality while maintaining consistency and reliability. By following these patterns and best practices, you can create robust, reusable plugins that enhance the capabilities of ElizaOS agents.
+
+### Key Takeaways
+
+1. **Start with the Starter Template** - Use `elizaos create -t plugin` for quick setup
+2. **Follow the Plugin Interface** - Implement the standard Plugin interface
+3. **Test Thoroughly** - Use unit, integration, and E2E tests
+4. **Handle Errors Gracefully** - Implement proper error handling and validation
+5. **Optimize Performance** - Use lazy loading and caching where appropriate
+6. **Secure Your Plugin** - Validate inputs and check permissions
+7. **Document Your Plugin** - Provide clear documentation and examples
+
+The plugin system empowers developers to create sophisticated agent capabilities while maintaining a clean, modular architecture.

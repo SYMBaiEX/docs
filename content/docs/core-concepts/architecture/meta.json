@@ -1,0 +1,11 @@
+{
+  "title": "Architecture & Core",
+  "pages": [
+    "index",
+    "runtime",
+    "client-server",
+    "project-structure",
+    "package-organization",
+    "plugin-system"
+  ]
+}

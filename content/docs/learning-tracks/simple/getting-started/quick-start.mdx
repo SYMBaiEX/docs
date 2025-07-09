@@ -1,0 +1,141 @@
+---
+title: Quick Start
+description: Create your first AI agent in 5 minutes
+---
+
+# Quick Start Guide
+
+🚀 **Create your first AI agent in 5 minutes**
+
+This guide will walk you through creating and deploying your first ElizaOS agent. No coding experience required!
+
+## Step 1: Install ElizaOS CLI
+
+First, install the ElizaOS command-line interface:
+
+```bash
+bun install -g @elizaos/cli
+```
+
+Then create your first agent:
+
+```bash
+elizaos create my-first-agent
+```
+
+This will create a new directory with all the files you need.
+
+## Step 2: Get an AI Key
+
+You'll need an API key from one of these providers:
+
+### Option A: OpenAI (Recommended for beginners)
+1. Go to [OpenAI API](https://platform.openai.com/api-keys)
+2. Create an account and get your API key
+3. Add it to your `.env` file
+
+### Option B: Claude (Anthropic)
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Create an account and get your API key
+3. Add it to your `.env` file
+
+### Option C: Local AI
+1. Install a local AI model (like Ollama)
+2. Configure the local endpoint
+3. No API key needed!
+
+Add your key to the `.env` file:
+
+```bash
+OPENAI_API_KEY=your_key_here
+# or
+ANTHROPIC_API_KEY=your_key_here
+```
+
+## Step 3: Configure Your Agent
+
+Customize your agent by editing `agent/eliza.character.json`:
+
+```json
+{
+  "name": "MyAgent",
+  "description": "A helpful AI assistant",
+  "personality": "friendly and helpful",
+  "plugins": ["bootstrap"],
+  "clients": ["discord", "web"]
+}
+```
+
+You can customize:
+- **Name**: Your agent's name
+- **Description**: What your agent does
+- **Personality**: How your agent behaves
+- **Plugins**: What capabilities your agent has
+- **Clients**: Where your agent will run
+
+## Step 4: Start Your Agent
+
+Start your agent locally:
+
+```bash
+bun start
+```
+
+Your agent will start and you can access the web chat at:
+```
+http://localhost:3000
+```
+
+## Step 5: Test Your Agent
+
+1. Open your browser to `http://localhost:3000`
+2. Start chatting with your agent
+3. Test different questions and commands
+4. Refine the personality if needed
+
+## Next Steps
+
+Once your agent is working locally, you can:
+
+1. **Deploy to platforms**: Set up Discord, Telegram, or Twitter
+2. **Customize personality**: Add more personality traits and knowledge
+3. **Add plugins**: Enhance your agent with additional capabilities
+4. **Deploy to cloud**: Make your agent available 24/7
+
+## Troubleshooting
+
+### Common Issues
+
+**Agent won't start?**
+- Check that your API key is correctly set in `.env`
+- Make sure you have the required dependencies installed
+- Verify your internet connection
+
+**Agent not responding?**
+- Check the console for error messages
+- Verify your API key is valid and has credits
+- Try restarting the agent
+
+**Need help?**
+- Check the [FAQ](../faq) for common questions
+- Join the Discord community for support
+- Review the troubleshooting guides
+
+## What's Next?
+
+Now that you have a working agent, explore:
+
+- [Character Creation Guide](../guides/character-creation) - Design unique personalities
+- [Platform Deployment](../guides/deployment-railway) - Deploy to Discord, Twitter, etc.
+- [Templates](../templates/) - Use pre-built agent templates
+
+## Resources
+
+- **YouTube tutorials**: Step-by-step video guides
+- **Discord community**: Get help from other creators
+- **Documentation**: Detailed technical guides
+- **Free help sessions**: 15-minute one-on-one support
+
+---
+
+🎉 **Congratulations!** You've created your first AI agent with ElizaOS. The possibilities are endless - what will you build next?

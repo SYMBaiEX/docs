@@ -1,0 +1,525 @@
+---
+title: Knowledge Management
+description: How Eliza manages agent knowledge, facts, and document processing for intelligent context retrieval
+---
+
+## Overview
+
+Eliza's knowledge management system provides agents with the ability to store, organize, and retrieve structured knowledge. This includes facts about users, documents, and domain-specific information that can be used to enhance conversations and decision-making.
+
+## Knowledge Types
+
+### Knowledge Item Structure
+
+```typescript
+interface KnowledgeItem {
+  id: UUID;
+  content: Content;
+  metadata?: MemoryMetadata;
+}
+
+enum KnowledgeScope {
+  SHARED = 'shared',   // Accessible across agents
+  PRIVATE = 'private'  // Agent-specific knowledge
+}
+```
+
+## Adding Knowledge
+
+### Character Knowledge
+
+Knowledge can be defined in the agent's character configuration:
+
+```typescript
+const character = {
+  name: "Assistant",
+  knowledge: [
+    // Direct knowledge items
+    {
+      text: "The company was founded in 2020",
+      tags: ["company", "history"]
+    },
+    {
+      text: "Our main product is an AI platform",
+      tags: ["product", "business"]
+    },
+    
+    // Reference to knowledge files
+    "path/to/knowledge-base.json",
+    
+    // Directory of knowledge files
+    {
+      directory: "knowledge/domain-specific",
+      shared: true  // Make available to all agents
+    }
+  ]
+};
+```
+
+### Runtime Knowledge Addition
+
+```typescript
+// Add a single knowledge item
+await runtime.addKnowledge({
+  id: generateUUID(),
+  content: {
+    text: "The user prefers morning meetings",
+    metadata: {
+      userId: userId,
+      confidence: 0.9
+    }
+  },
+  metadata: {
+    type: MemoryType.DESCRIPTION,
+    source: "user_preference",
+    tags: ["preferences", "scheduling"]
+  }
+});
+
+// Bulk knowledge import
+const knowledgeItems = [
+  { content: { text: "Fact 1" } },
+  { content: { text: "Fact 2" } },
+  { content: { text: "Fact 3" } }
+];
+
+for (const item of knowledgeItems) {
+  await runtime.addKnowledge(item);
+}
+```
+
+## Knowledge Processing
+
+### Document Processing
+
+Large documents are automatically chunked and embedded:
+
+```typescript
+async function processKnowledgeDocument(filePath: string) {
+  const content = await fs.readFile(filePath, 'utf-8');
+  const documentId = generateUUID();
+  
+  // Create main document entry
+  await runtime.createMemory({
+    content: {
+      text: path.basename(filePath),
+      fullText: content,
+      source: filePath
+    },
+    metadata: {
+      type: MemoryType.DOCUMENT,
+      source: "filesystem",
+      timestamp: Date.now()
+    }
+  }, 'documents');
+  
+  // Process chunks for semantic search
+  const chunks = chunkDocument(content);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+      text: chunk.text
+    });
+    
+    await runtime.createMemory({
+      content: { text: chunk.text },
+      embedding,
+      metadata: {
+        type: MemoryType.FRAGMENT,
+        documentId,
+        position: i,
+        source: filePath
+      }
+    }, 'fragments');
+  }
+}
+```
+
+### Knowledge Extraction
+
+Extract structured knowledge from text:
+
+```typescript
+class KnowledgeExtractor {
+  async extractFacts(text: string): Promise<KnowledgeItem[]> {
+    // Use LLM to extract facts
+    const extraction = await runtime.useModel(ModelType.TEXT_COMPLETION, {
+      prompt: `Extract key facts from the following text as JSON array:
+      
+      Text: ${text}
+      
+      Format each fact as: { "fact": "...", "confidence": 0.0-1.0, "tags": [] }`
+    });
+    
+    const facts = JSON.parse(extraction);
+    return facts.map(f => ({
+      id: generateUUID(),
+      content: { text: f.fact },
+      metadata: {
+        type: MemoryType.DESCRIPTION,
+        confidence: f.confidence,
+        tags: f.tags
+      }
+    }));
+  }
+}
+```
+
+## Knowledge Retrieval
+
+### Facts Provider
+
+The built-in facts provider retrieves relevant knowledge:
+
+```typescript
+const factsProvider: Provider = {
+  name: "FACTS",
+  get: async (runtime, message, state) => {
+    // Get recent facts about the user
+    const userFacts = await runtime.getMemories({
+      entityId: message.entityId,
+      tableName: 'facts',
+      count: 10,
+      unique: true
+    });
+    
+    // Search for relevant facts based on message
+    const relevantFacts = await runtime.searchMemories({
+      query: message.content.text,
+      tableName: 'facts',
+      count: 5,
+      match_threshold: 0.7
+    });
+    
+    const facts = [...userFacts, ...relevantFacts]
+      .map(f => f.content.text)
+      .join('\n');
+    
+    return {
+      values: { facts: facts.split('\n') },
+      text: facts
+    };
+  }
+};
+```
+
+### Semantic Knowledge Search
+
+```typescript
+// Search for specific knowledge
+const results = await runtime.searchMemories({
+  query: "What are the company policies on remote work?",
+  tableName: 'documents',
+  count: 3,
+  match_threshold: 0.8
+});
+
+// Get knowledge with specific tags
+const taggedKnowledge = await runtime.getMemories({
+  tableName: 'facts',
+  count: 50
+}).then(memories => 
+  memories.filter(m => 
+    m.metadata?.tags?.includes('policy')
+  )
+);
+```
+
+## Knowledge Organization
+
+### Hierarchical Knowledge
+
+Organize knowledge in hierarchical structures:
+
+```typescript
+interface KnowledgeHierarchy {
+  topic: string;
+  subtopics: KnowledgeHierarchy[];
+  facts: KnowledgeItem[];
+}
+
+class KnowledgeOrganizer {
+  async buildHierarchy(domain: string): Promise<KnowledgeHierarchy> {
+    // Get all facts for domain
+    const facts = await runtime.getMemories({
+      tableName: 'facts',
+      count: 1000
+    }).then(memories => 
+      memories.filter(m => 
+        m.metadata?.tags?.includes(domain)
+      )
+    );
+    
+    // Group by subtopics
+    const grouped = this.groupByTags(facts);
+    
+    return {
+      topic: domain,
+      subtopics: this.buildSubtopics(grouped),
+      facts: facts.map(f => ({
+        id: f.id,
+        content: f.content,
+        metadata: f.metadata
+      }))
+    };
+  }
+}
+```
+
+### Knowledge Graphs
+
+Create relationships between knowledge items:
+
+```typescript
+// Create knowledge relationships
+await runtime.createRelationship({
+  sourceEntityId: fact1Id,
+  targetEntityId: fact2Id,
+  tags: ["related", "prerequisite"],
+  metadata: {
+    relationshipType: "requires",
+    strength: 0.8
+  }
+});
+
+// Query related knowledge
+async function getRelatedKnowledge(factId: UUID) {
+  const relationships = await runtime.getRelationships({
+    entityId: factId,
+    tags: ["related"]
+  });
+  
+  const relatedFacts = await Promise.all(
+    relationships.map(r => 
+      runtime.getMemoryById(r.targetEntityId)
+    )
+  );
+  
+  return relatedFacts.filter(Boolean);
+}
+```
+
+## Knowledge Caching
+
+### Cache Frequently Used Knowledge
+
+```typescript
+const KNOWLEDGE_CACHE_PREFIX = CacheKeyPrefix.KNOWLEDGE;
+
+async function getCachedKnowledge(key: string): Promise<any> {
+  const cacheKey = `${KNOWLEDGE_CACHE_PREFIX}:${key}`;
+  
+  // Check cache first
+  const cached = await runtime.getCache(cacheKey);
+  if (cached) return cached;
+  
+  // Load and cache knowledge
+  const knowledge = await loadKnowledge(key);
+  await runtime.setCache(cacheKey, knowledge);
+  
+  return knowledge;
+}
+```
+
+### Embedding Cache
+
+Cache embeddings for faster retrieval:
+
+```typescript
+async function getCachedEmbedding(text: string): Promise<number[]> {
+  const cached = await runtime.getCachedEmbeddings({
+    query_table_name: 'knowledge_embeddings',
+    query_input: text,
+    query_field_name: 'text',
+    query_field_sub_name: 'content',
+    query_match_count: 1,
+    query_threshold: 0.99 // Very high threshold for exact matches
+  });
+  
+  if (cached.length > 0) {
+    return cached[0].embedding;
+  }
+  
+  // Generate new embedding
+  return await runtime.useModel(ModelType.TEXT_EMBEDDING, { text });
+}
+```
+
+## Best Practices
+
+### 1. Knowledge Validation
+
+```typescript
+class KnowledgeValidator {
+  validateFact(fact: string): boolean {
+    // Check minimum length
+    if (fact.length < 10) return false;
+    
+    // Check for actual content
+    if (fact.trim().split(' ').length < 3) return false;
+    
+    // Check for placeholders
+    const placeholders = ['TODO', 'FIXME', 'XXX'];
+    if (placeholders.some(p => fact.includes(p))) return false;
+    
+    return true;
+  }
+}
+```
+
+### 2. Knowledge Deduplication
+
+```typescript
+async function deduplicateKnowledge() {
+  const allFacts = await runtime.getMemories({
+    tableName: 'facts',
+    count: 10000
+  });
+  
+  const seen = new Map<string, Memory>();
+  const duplicates: UUID[] = [];
+  
+  for (const fact of allFacts) {
+    const normalized = fact.content.text.toLowerCase().trim();
+    if (seen.has(normalized)) {
+      duplicates.push(fact.id!);
+    } else {
+      seen.set(normalized, fact);
+    }
+  }
+  
+  if (duplicates.length > 0) {
+    await runtime.deleteManyMemories(duplicates);
+  }
+}
+```
+
+### 3. Knowledge Confidence
+
+Track confidence levels for facts:
+
+```typescript
+interface ConfidentKnowledge extends KnowledgeItem {
+  confidence: number;
+  source: string;
+  verifiedAt?: number;
+}
+
+async function addConfidentKnowledge(
+  text: string, 
+  confidence: number,
+  source: string
+) {
+  await runtime.addKnowledge({
+    id: generateUUID(),
+    content: { text },
+    metadata: {
+      type: MemoryType.DESCRIPTION,
+      confidence,
+      source,
+      timestamp: Date.now()
+    }
+  });
+}
+```
+
+## Example: Domain Knowledge System
+
+Here's a complete example of a domain knowledge system:
+
+```typescript
+class DomainKnowledgeSystem {
+  constructor(
+    private runtime: IAgentRuntime,
+    private domain: string
+  ) {}
+  
+  async initialize() {
+    // Load base knowledge
+    await this.loadBaseKnowledge();
+    
+    // Set up knowledge provider
+    this.runtime.registerProvider({
+      name: `${this.domain.toUpperCase()}_KNOWLEDGE`,
+      get: async (runtime, message) => {
+        const knowledge = await this.getRelevantKnowledge(
+          message.content.text
+        );
+        
+        return {
+          values: {
+            [`${this.domain}Knowledge`]: knowledge
+          },
+          text: knowledge.map(k => k.content.text).join('\n')
+        };
+      }
+    });
+  }
+  
+  private async loadBaseKnowledge() {
+    const knowledgeDir = `knowledge/${this.domain}`;
+    const files = await fs.readdir(knowledgeDir);
+    
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        const content = await fs.readFile(
+          path.join(knowledgeDir, file),
+          'utf-8'
+        );
+        const items = JSON.parse(content);
+        
+        for (const item of items) {
+          await this.runtime.addKnowledge({
+            id: generateUUID(),
+            content: { text: item.text },
+            metadata: {
+              type: MemoryType.DESCRIPTION,
+              source: file,
+              tags: [this.domain, ...item.tags]
+            }
+          });
+        }
+      }
+    }
+  }
+  
+  async getRelevantKnowledge(query: string): Promise<Memory[]> {
+    // Get domain-specific knowledge
+    const domainKnowledge = await this.runtime.searchMemories({
+      query,
+      tableName: 'facts',
+      count: 5,
+      match_threshold: 0.7
+    });
+    
+    // Filter by domain tag
+    return domainKnowledge.filter(k =>
+      k.metadata?.tags?.includes(this.domain)
+    );
+  }
+  
+  async updateKnowledge(factId: UUID, updates: Partial<Content>) {
+    const existing = await this.runtime.getMemoryById(factId);
+    if (!existing) throw new Error('Knowledge not found');
+    
+    await this.runtime.updateMemory({
+      id: factId,
+      content: { ...existing.content, ...updates },
+      metadata: {
+        ...existing.metadata,
+        updatedAt: Date.now()
+      }
+    });
+  }
+}
+
+// Usage
+const medicalKnowledge = new DomainKnowledgeSystem(runtime, 'medical');
+await medicalKnowledge.initialize();
+```
+
+## Related Topics
+
+- [Memory System](./memory-system) - Core memory storage and retrieval
+- [State Management](./state-management) - Using knowledge in state composition
+- [Character Configuration](../agents/character-files) - Defining agent knowledge

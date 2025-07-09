@@ -1,0 +1,612 @@
+---
+title: Deployment
+description: Deploy Eliza agents using Docker, Docker Compose, and Fly.io
+---
+
+# Deployment
+
+This guide covers various deployment options for Eliza agents, from local Docker containers to cloud platforms. Each method is optimized for different use cases and scale requirements.
+
+## Overview
+
+Eliza supports multiple deployment strategies:
+
+- **Docker** - Containerized deployment for consistency
+- **Docker Compose** - Multi-service orchestration with PostgreSQL
+- **Fly.io** - Global edge deployment with automatic scaling
+- **TEE Deployment** - Secure execution in trusted environments
+- **Kubernetes** - Enterprise-scale orchestration (coming soon)
+
+## Docker Deployment
+
+### Dockerfile Configuration
+
+Eliza uses a multi-stage Docker build for optimal image size:
+
+```dockerfile
+# Stage 1: Builder
+FROM node:23.3.0-slim AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    ffmpeg \
+    g++ \
+    git \
+    make \
+    python3 \
+    unzip
+
+# Install package managers
+RUN npm install -g bun@1.2.5 turbo@2.3.3
+
+# Copy and build
+COPY . .
+RUN SKIP_POSTINSTALL=1 bun install --no-cache
+RUN bun run build
+
+# Stage 2: Runtime
+FROM node:23.3.0-slim
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ffmpeg \
+    git \
+    python3 \
+    unzip
+
+# Copy built application
+COPY --from=builder /app .
+
+ENV NODE_ENV=production
+EXPOSE 3000 50000-50100/udp
+
+CMD ["bun", "run", "start"]
+```
+
+### Building the Image
+
+```bash
+# Build the Docker image
+docker build -t eliza:latest .
+
+# Build with specific tag
+docker build -t eliza:v1.0.16 .
+
+# Build with build args
+docker build \
+  --build-arg NODE_ENV=production \
+  -t eliza:prod .
+```
+
+### Running with Docker
+
+```bash
+# Basic run
+docker run -p 3000:3000 eliza:latest
+
+# Run with environment variables
+docker run \
+  -p 3000:3000 \
+  -e OPENAI_API_KEY=your_key \
+  -e ANTHROPIC_API_KEY=your_key \
+  eliza:latest
+
+# Run with volume mounts
+docker run \
+  -p 3000:3000 \
+  -v $(pwd)/agents:/app/agents \
+  -v $(pwd)/data:/app/data \
+  eliza:latest
+
+# Run in detached mode
+docker run -d \
+  --name eliza-agent \
+  -p 3000:3000 \
+  --restart unless-stopped \
+  eliza:latest
+```
+
+## Docker Compose Deployment
+
+### Complete Stack Configuration
+
+The `docker-compose.yaml` provides a full production stack:
+
+```yaml
+version: '3'
+services:
+  postgres:
+    image: ankane/pgvector:latest
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=eliza
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:rw
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - eliza-network
+
+  eliza:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elizav2
+    command: bun run start
+    volumes:
+      - /var/run/tappd.sock:/var/run/tappd.sock
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SERVER_PORT=${SERVER_PORT}
+      - POSTGRES_URL=${POSTGRES_URL}
+      - EVM_CHAINS=${EVM_CHAINS}
+      - BIRDEYE_API_KEY=${BIRDEYE_API_KEY}
+      - DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}
+      - DISCORD_API_TOKEN=${DISCORD_API_TOKEN}
+    ports:
+      - '3000:3000'
+      - '50000-50100:50000-50100/udp'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - eliza-network
+
+networks:
+  eliza-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+```
+
+### Environment Configuration
+
+Create a `.env` file:
+
+```bash
+# Database
+POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/eliza
+
+# AI Models
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Server
+SERVER_PORT=3000
+
+# Optional Services
+DISCORD_APPLICATION_ID=your_app_id
+DISCORD_API_TOKEN=your_bot_token
+BIRDEYE_API_KEY=your_api_key
+
+# Blockchain
+EVM_CHAINS=ethereum,polygon,arbitrum
+```
+
+### Deployment Commands
+
+```bash
+# Start the stack
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose stop
+
+# Remove everything
+docker-compose down
+
+# Remove with volumes
+docker-compose down -v
+
+# Rebuild and restart
+docker-compose up -d --build
+```
+
+### Scaling Services
+
+```bash
+# Scale Eliza instances
+docker-compose up -d --scale eliza=3
+
+# Check scaled services
+docker-compose ps
+```
+
+## Fly.io Deployment
+
+### Fly.io Configuration
+
+The `fly.toml` configuration:
+
+```toml
+app = "eliza-v2"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 4096
+```
+
+### Deployment Process
+
+```bash
+# Install Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login to Fly
+fly auth login
+
+# Create app (first time)
+fly apps create eliza-v2
+
+# Set secrets
+fly secrets set OPENAI_API_KEY=sk-...
+fly secrets set ANTHROPIC_API_KEY=sk-ant-...
+fly secrets set POSTGRES_URL=your_db_url
+
+# Deploy
+fly deploy
+
+# Check status
+fly status
+
+# View logs
+fly logs
+
+# Scale horizontally
+fly scale count 3
+
+# Scale vertically
+fly scale vm dedicated-cpu-2x
+```
+
+### Multi-Region Deployment
+
+```bash
+# Add regions
+fly regions add lhr sin syd
+
+# Set backup regions
+fly regions backup lhr sin
+
+# Check regions
+fly regions list
+```
+
+### Database on Fly
+
+```bash
+# Create Postgres cluster
+fly postgres create --name eliza-db
+
+# Attach to app
+fly postgres attach eliza-db
+
+# The connection string is automatically set as DATABASE_URL
+```
+
+## Production Best Practices
+
+### 1. Security
+
+```yaml
+# Use secrets for sensitive data
+services:
+  eliza:
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    secrets:
+      - openai_key
+      - anthropic_key
+
+secrets:
+  openai_key:
+    external: true
+  anthropic_key:
+    external: true
+```
+
+### 2. Health Checks
+
+```dockerfile
+# Add health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+```
+
+### 3. Resource Limits
+
+```yaml
+# Docker Compose resource constraints
+services:
+  eliza:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+```
+
+### 4. Logging
+
+```yaml
+# Configure logging
+services:
+  eliza:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+### 5. Persistence
+
+```yaml
+# Mount volumes for data persistence
+volumes:
+  - ./agents:/app/agents:ro  # Read-only agents
+  - eliza-data:/app/data:rw   # Read-write data
+  - ./logs:/app/logs:rw       # Logs
+```
+
+## Monitoring
+
+### Docker Stats
+
+```bash
+# Monitor container resources
+docker stats
+
+# Specific container
+docker stats eliza-agent
+```
+
+### Compose Monitoring
+
+```bash
+# View all services
+docker-compose ps
+
+# Check service health
+docker-compose exec eliza curl http://localhost:3000/health
+```
+
+### Fly.io Monitoring
+
+```bash
+# View metrics
+fly dashboard metrics
+
+# SSH into container
+fly ssh console
+
+# Check logs
+fly logs --tail
+```
+
+## Backup and Recovery
+
+### Database Backup
+
+```bash
+# Backup PostgreSQL
+docker-compose exec postgres pg_dump -U postgres eliza > backup.sql
+
+# Restore backup
+docker-compose exec -T postgres psql -U postgres eliza < backup.sql
+```
+
+### Volume Backup
+
+```bash
+# Backup Docker volumes
+docker run --rm \
+  -v eliza_postgres-data:/data \
+  -v $(pwd):/backup \
+  busybox tar czf /backup/postgres-backup.tar.gz -C /data .
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port Conflicts**
+   ```bash
+   # Check port usage
+   lsof -i :3000
+   
+   # Use different port
+   docker run -p 3001:3000 eliza:latest
+   ```
+
+2. **Memory Issues**
+   ```bash
+   # Increase Docker memory
+   docker run -m 4g eliza:latest
+   ```
+
+3. **Database Connection**
+   ```bash
+   # Check connectivity
+   docker-compose exec eliza ping postgres
+   
+   # Verify connection string
+   docker-compose exec eliza env | grep POSTGRES
+   ```
+
+4. **Build Failures**
+   ```bash
+   # Clean build
+   docker system prune -a
+   docker-compose build --no-cache
+   ```
+
+### Debug Mode
+
+```yaml
+# Enable debug logging
+services:
+  eliza:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=eliza:*
+    command: bun run dev
+```
+
+## Advanced Deployment
+
+### Blue-Green Deployment
+
+```bash
+# Deploy to staging
+docker-compose -f docker-compose.staging.yaml up -d
+
+# Test staging
+curl http://localhost:3001/health
+
+# Switch traffic
+docker-compose -f docker-compose.yaml down
+docker-compose -f docker-compose.staging.yaml up -d
+```
+
+### Rolling Updates
+
+```bash
+# Update image
+docker-compose pull eliza
+docker-compose up -d --no-deps --scale eliza=2 eliza
+```
+
+### Canary Deployment
+
+```yaml
+# Use multiple compose files
+services:
+  eliza-stable:
+    image: eliza:v1.0.15
+    ports:
+      - "3000:3000"
+  
+  eliza-canary:
+    image: eliza:v1.0.16
+    ports:
+      - "3001:3000"
+```
+
+## Performance Optimization
+
+### Image Optimization
+
+```dockerfile
+# Use alpine images
+FROM node:23-alpine
+
+# Multi-stage builds
+# Minimize layers
+# Remove unnecessary files
+```
+
+### Caching Strategy
+
+```yaml
+# Use BuildKit cache
+services:
+  eliza:
+    build:
+      context: .
+      cache_from:
+        - eliza:cache
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+```
+
+### Network Optimization
+
+```yaml
+# Use host networking for performance
+services:
+  eliza:
+    network_mode: host
+```
+
+## Security Hardening
+
+### Container Security
+
+```dockerfile
+# Run as non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+USER nodejs
+
+# Read-only root filesystem
+# Mount writable directories as needed
+```
+
+### Network Security
+
+```yaml
+# Restrict network access
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"  # Local only
+```
+
+### Secrets Management
+
+```bash
+# Use Docker secrets
+echo "your-api-key" | docker secret create openai_key -
+
+# Reference in compose
+services:
+  eliza:
+    secrets:
+      - openai_key
+```
+
+## Resources
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Reference](https://docs.docker.com/compose/)
+- [Fly.io Documentation](https://fly.io/docs/)
+- [Eliza Deployment Examples](https://github.com/elizaos/eliza/tree/main/examples/deployment)

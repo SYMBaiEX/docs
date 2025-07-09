@@ -1,0 +1,556 @@
+---
+title: REST API
+description: Complete guide to elizaOS REST API endpoints and usage
+---
+
+# REST API
+
+The elizaOS server provides a comprehensive REST API for interacting with agents, managing messages, and accessing system functionality. All API endpoints are mounted under `/api` with proper authentication and validation.
+
+## Authentication
+
+API endpoints can be secured with an optional API key:
+
+```bash
+# Set authentication token
+export ELIZA_SERVER_AUTH_TOKEN=your-secret-token
+
+# Make authenticated requests
+curl -H "X-API-KEY: your-secret-token" \
+  http://localhost:3000/api/agents
+```
+
+## API Structure
+
+The API is organized into domain-specific routers:
+
+- `/api/agents` - Agent management and interactions
+- `/api/messaging` - Message handling and channels
+- `/api/media` - File uploads and media serving
+- `/api/memory` - Memory management and retrieval
+- `/api/audio` - Audio processing and transcription
+- `/api/server` - Runtime and server management
+- `/api/system` - System configuration and health
+- `/api/tee` - TEE (Trusted Execution Environment) operations
+
+## Agent Management
+
+### List Agents
+
+```http
+GET /api/agents
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agents": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Alice",
+        "character": {
+          "name": "Alice",
+          "description": "A helpful assistant"
+        },
+        "status": "active"
+      }
+    ]
+  }
+}
+```
+
+### Get Agent Details
+
+```http
+GET /api/agents/{agentId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agent": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Alice",
+      "character": {
+        "name": "Alice",
+        "description": "A helpful assistant",
+        "settings": {
+          "secrets": {},
+          "voice": {}
+        }
+      },
+      "status": "active"
+    }
+  }
+}
+```
+
+### Create Agent
+
+```http
+POST /api/agents
+Content-Type: application/json
+
+{
+  "character": {
+    "name": "Bob",
+    "description": "A specialized assistant",
+    "settings": {
+      "secrets": {},
+      "voice": {}
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agent": {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Bob",
+      "status": "active"
+    }
+  }
+}
+```
+
+### Update Agent
+
+```http
+PUT /api/agents/{agentId}
+Content-Type: application/json
+
+{
+  "character": {
+    "name": "Bob Updated",
+    "description": "An updated assistant"
+  }
+}
+```
+
+### Delete Agent
+
+```http
+DELETE /api/agents/{agentId}
+```
+
+### Start/Stop Agent
+
+```http
+POST /api/agents/{agentId}/start
+POST /api/agents/{agentId}/stop
+```
+
+## Messaging
+
+### Submit Message
+
+```http
+POST /api/messaging/submit
+Content-Type: application/json
+
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "author_id": "550e8400-e29b-41d4-a716-446655440001",
+  "content": "Hello, how can you help me?",
+  "source_type": "api_client",
+  "metadata": {
+    "source": "web_client"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "channelId": "550e8400-e29b-41d4-a716-446655440000",
+      "authorId": "550e8400-e29b-41d4-a716-446655440001",
+      "content": "Hello, how can you help me?",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+### Get Channel Messages
+
+```http
+GET /api/messaging/central-channels/{channelId}/messages?limit=50&before=2024-01-01T00:00:00.000Z
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440002",
+        "channelId": "550e8400-e29b-41d4-a716-446655440000",
+        "authorId": "550e8400-e29b-41d4-a716-446655440001",
+        "content": "Hello, how can you help me?",
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
+### Create Channel
+
+```http
+POST /api/messaging/central-channels
+Content-Type: application/json
+
+{
+  "messageServerId": "00000000-0000-0000-0000-000000000000",
+  "name": "General Chat",
+  "type": "GROUP",
+  "sourceType": "api_created",
+  "participantIds": [
+    "550e8400-e29b-41d4-a716-446655440001",
+    "550e8400-e29b-41d4-a716-446655440002"
+  ]
+}
+```
+
+### Get Channel Details
+
+```http
+GET /api/messaging/central-channels/{channelId}/details
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channel": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "messageServerId": "00000000-0000-0000-0000-000000000000",
+      "name": "General Chat",
+      "type": "GROUP",
+      "sourceType": "api_created",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+### Manage Message Servers
+
+```http
+# List servers
+GET /api/messaging/central-servers
+
+# Create server
+POST /api/messaging/central-servers
+Content-Type: application/json
+
+{
+  "name": "My Server",
+  "sourceType": "custom"
+}
+
+# Get server details
+GET /api/messaging/central-servers/{serverId}
+
+# Get server channels
+GET /api/messaging/central-servers/{serverId}/channels
+```
+
+## Media Management
+
+### Upload File
+
+```http
+POST /api/media/upload
+Content-Type: multipart/form-data
+
+{
+  "file": <file_data>,
+  "agentId": "550e8400-e29b-41d4-a716-446655440000",
+  "roomId": "550e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/agents/550e8400-e29b-41d4-a716-446655440000/filename.jpg",
+    "filename": "filename.jpg",
+    "size": 1024,
+    "contentType": "image/jpeg"
+  }
+}
+```
+
+### Get Media
+
+```http
+GET /media/uploads/agents/{agentId}/{filename}
+GET /media/generated/{agentId}/{filename}
+GET /media/uploads/channels/{channelId}/{filename}
+```
+
+## Memory Management
+
+### Get Agent Memories
+
+```http
+GET /api/memory/agents/{agentId}/memories?table=messages&limit=50&offset=0
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "memories": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "agentId": "550e8400-e29b-41d4-a716-446655440001",
+        "entityId": "550e8400-e29b-41d4-a716-446655440002",
+        "content": {
+          "text": "Hello, how can you help me?",
+          "source": "user_message"
+        },
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Search Memories
+
+```http
+POST /api/memory/agents/{agentId}/search
+Content-Type: application/json
+
+{
+  "query": "help with coding",
+  "table": "messages",
+  "limit": 10
+}
+```
+
+### Delete Memory
+
+```http
+DELETE /api/memory/agents/{agentId}/memories/{memoryId}
+```
+
+## Audio Processing
+
+### Transcribe Audio
+
+```http
+POST /api/audio/transcribe
+Content-Type: multipart/form-data
+
+{
+  "audio": <audio_file>,
+  "agentId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transcription": "Hello, this is a test transcription."
+  }
+}
+```
+
+### Generate Speech
+
+```http
+POST /api/audio/generate
+Content-Type: application/json
+
+{
+  "text": "Hello, this is a test message.",
+  "agentId": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+## System Management
+
+### Health Check
+
+```http
+GET /api/server/ping
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Server is healthy",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### Get System Status
+
+```http
+GET /api/system/status
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "uptime": 3600,
+    "memory": {
+      "used": 123456789,
+      "total": 1073741824
+    },
+    "agents": {
+      "active": 2,
+      "total": 2
+    }
+  }
+}
+```
+
+### Environment Configuration
+
+```http
+GET /api/system/environment
+POST /api/system/environment
+```
+
+## Error Handling
+
+All API endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "message": "Agent not found",
+    "code": "AGENT_NOT_FOUND",
+    "details": {}
+  }
+}
+```
+
+### Common Error Codes
+
+- `400` - Bad Request: Invalid request format or parameters
+- `401` - Unauthorized: Missing or invalid API key
+- `403` - Forbidden: Access denied
+- `404` - Not Found: Resource not found
+- `422` - Unprocessable Entity: Validation error
+- `500` - Internal Server Error: Server error
+
+## Rate Limiting
+
+The API implements rate limiting to prevent abuse:
+
+```http
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1640995200
+
+{
+  "success": false,
+  "error": {
+    "message": "Rate limit exceeded",
+    "code": "RATE_LIMIT_EXCEEDED"
+  }
+}
+```
+
+## Best Practices
+
+### Request Headers
+
+```http
+Content-Type: application/json
+X-API-KEY: your-secret-token
+Accept: application/json
+```
+
+### Error Handling
+
+```javascript
+async function apiCall() {
+  try {
+    const response = await fetch('/api/agents', {
+      headers: {
+        'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error.message);
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+}
+```
+
+### Pagination
+
+```javascript
+// Handle paginated responses
+async function getAllMessages(channelId, limit = 50) {
+  const messages = [];
+  let before = null;
+  
+  while (true) {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      ...(before && { before })
+    });
+    
+    const response = await fetch(
+      `/api/messaging/central-channels/${channelId}/messages?${params}`
+    );
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.data.messages.length) {
+      break;
+    }
+    
+    messages.push(...data.data.messages);
+    before = data.data.messages[data.data.messages.length - 1].createdAt;
+  }
+  
+  return messages;
+}
+```
+
+The elizaOS REST API provides a comprehensive interface for building applications that interact with agents and manage communication workflows.

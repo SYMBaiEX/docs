@@ -1,0 +1,316 @@
+---
+title: Server Architecture
+description: Learn about the AgentServer class and HTTP server setup in elizaOS
+---
+
+# Server Architecture
+
+The elizaOS server is built on top of Node.js and Express, providing a robust foundation for agent communication and HTTP API endpoints. The core `AgentServer` class handles server initialization, agent management, and middleware configuration.
+
+## AgentServer Class
+
+The `AgentServer` class is the main entry point for running an elizaOS server instance. It handles:
+
+- HTTP server setup and configuration
+- Agent registration and lifecycle management
+- Database initialization and migrations
+- WebSocket server setup
+- Security middleware configuration
+- File serving and uploads
+
+### Basic Usage
+
+```typescript
+import { AgentServer } from '@elizaos/server';
+
+// Create a new server instance
+const server = new AgentServer();
+
+// Initialize the server
+await server.initialize({
+  dataDir: './data',
+  middlewares: [/* custom middleware */]
+});
+
+// Register agents
+await server.registerAgent(agentRuntime);
+
+// Start the server
+await server.start(3000);
+```
+
+## Server Configuration
+
+### ServerOptions Interface
+
+```typescript
+interface ServerOptions {
+  middlewares?: ServerMiddleware[];
+  dataDir?: string;
+  postgresUrl?: string;
+}
+```
+
+- `middlewares`: Array of Express middleware functions to apply
+- `dataDir`: Directory for storing server data (defaults to `.eliza/.elizadb`)
+- `postgresUrl`: Optional PostgreSQL connection URL
+
+### Environment Variables
+
+```bash
+# Server configuration
+SERVER_PORT=3000
+SERVER_HOST=0.0.0.0
+NODE_ENV=production
+
+# Database
+PGLITE_DATA_DIR=./data
+POSTGRES_URL=postgresql://user:pass@localhost:5432/db
+
+# Security
+ELIZA_SERVER_AUTH_TOKEN=your-secret-token
+CORS_ORIGIN=http://localhost:3000
+
+# UI Control
+ELIZA_UI_ENABLE=true
+```
+
+## Security Features
+
+### Helmet Configuration
+
+The server uses Helmet for security headers with environment-aware CSP:
+
+```typescript
+// Production CSP
+contentSecurityPolicy: {
+  directives: {
+    defaultSrc: ["'self'"],
+    styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+    connectSrc: ["'self'", 'ws:', 'wss:', 'https:', 'http:']
+  }
+}
+```
+
+### Authentication Middleware
+
+Optional API key authentication for `/api` routes:
+
+```typescript
+// Enable authentication
+process.env.ELIZA_SERVER_AUTH_TOKEN = 'your-secret-token';
+
+// Clients must include X-API-KEY header
+fetch('/api/agents', {
+  headers: {
+    'X-API-KEY': 'your-secret-token'
+  }
+});
+```
+
+## Database Integration
+
+The server automatically initializes a database adapter and runs migrations:
+
+```typescript
+// Database initialization
+this.database = createDatabaseAdapter({
+  dataDir: agentDataDir,
+  postgresUrl: options?.postgresUrl,
+});
+
+// Run migrations
+const migrationService = new DatabaseMigrationService();
+await migrationService.runAllPluginMigrations();
+```
+
+## Agent Management
+
+### Agent Registration
+
+```typescript
+// Register an agent
+await server.registerAgent(runtime);
+
+// Automatic features:
+// - MessageBusConnector plugin registration
+// - TEE plugin registration (if present)
+// - Server association
+```
+
+### Agent Lifecycle
+
+```typescript
+// Get registered agents
+const agents = server.agents; // Map<UUID, IAgentRuntime>
+
+// Unregister an agent
+server.unregisterAgent(agentId);
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await server.stop();
+});
+```
+
+## File Serving
+
+### Media Endpoints
+
+The server provides secure file serving for uploads and generated content:
+
+```typescript
+// Agent-specific uploads
+GET /media/uploads/agents/:agentId/:filename
+
+// Generated content
+GET /media/generated/:agentId/:filename
+
+// Channel uploads
+GET /media/uploads/channels/:channelId/:filename
+```
+
+### Path Security
+
+All file paths are validated and sanitized:
+
+```typescript
+// UUID validation
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Path traversal protection
+if (!filePath.startsWith(agentUploadsPath)) {
+  return res.status(403).json({ error: 'Access denied' });
+}
+```
+
+## Web UI Control
+
+The server supports conditional UI serving:
+
+```typescript
+// Check if UI should be enabled
+function isWebUIEnabled(): boolean {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const uiEnabledEnv = process.env.ELIZA_UI_ENABLE;
+  
+  if (uiEnabledEnv !== undefined) {
+    return parseBooleanFromText(uiEnabledEnv);
+  }
+  
+  // Default: enabled in dev, disabled in prod
+  return !isProduction;
+}
+```
+
+## Message Server Management
+
+The server maintains a default message server for communication:
+
+```typescript
+// Default server ID
+const DEFAULT_SERVER_ID = '00000000-0000-0000-0000-000000000000';
+
+// Server operations
+await server.createServer({
+  name: 'My Server',
+  sourceType: 'custom'
+});
+
+const servers = await server.getServers();
+const serverById = await server.getServerById(serverId);
+```
+
+## Error Handling
+
+### Graceful Shutdown
+
+```typescript
+private registerSignalHandlers(): void {
+  const gracefulShutdown = async () => {
+    // Stop all agents
+    for (const [id, agent] of this.agents.entries()) {
+      await agent.stop();
+    }
+    
+    // Close database
+    await this.database.close();
+    
+    // Close server
+    this.server.close();
+  };
+  
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
+}
+```
+
+### Error Responses
+
+```typescript
+// API error handling
+app.use((err, req, res, next) => {
+  logger.error(`API error: ${req.method} ${req.path}`, err);
+  res.status(500).json({
+    success: false,
+    error: {
+      message: err.message || 'Internal Server Error',
+      code: err.code || 500
+    }
+  });
+});
+```
+
+## Best Practices
+
+### Production Deployment
+
+```typescript
+// Use environment variables for configuration
+const server = new AgentServer();
+await server.initialize({
+  dataDir: process.env.DATA_DIR,
+  postgresUrl: process.env.DATABASE_URL,
+  middlewares: [customRateLimit(), customAuth()]
+});
+
+// Start with proper error handling
+try {
+  await server.start(process.env.PORT || 3000);
+} catch (error) {
+  logger.error('Failed to start server:', error);
+  process.exit(1);
+}
+```
+
+### Custom Middleware
+
+```typescript
+// Custom middleware example
+const customMiddleware: ServerMiddleware = (req, res, next) => {
+  // Add custom headers
+  res.setHeader('X-Custom-Header', 'value');
+  next();
+};
+
+// Apply during initialization
+await server.initialize({
+  middlewares: [customMiddleware]
+});
+```
+
+### Monitoring and Logging
+
+```typescript
+// The server provides detailed logging
+logger.info('Server started on port 3000');
+logger.debug('Agent registered:', agentId);
+logger.error('Server error:', error);
+
+// Monitor agent count
+logger.debug(`Active agents: ${server.agents.size}`);
+```
+
+The AgentServer class provides a robust foundation for building elizaOS applications with proper security, error handling, and extensibility features.

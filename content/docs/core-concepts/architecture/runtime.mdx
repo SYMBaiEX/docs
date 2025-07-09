@@ -1,0 +1,443 @@
+---
+title: Agent Runtime
+description: Core orchestration system that manages agent lifecycle, plugins, and message processing
+---
+
+# Agent Runtime
+
+The Agent Runtime (`AgentRuntime`) is the central orchestration system in elizaOS that manages an agent's entire lifecycle, from initialization to message processing and plugin management. Located in `/packages/core/src/runtime.ts`, it serves as the main entry point for all agent operations.
+
+## Core Architecture
+
+### Runtime Class Structure
+
+The `AgentRuntime` class implements the `IAgentRuntime` interface and provides:
+
+- **Agent Management**: Character configuration, state management, and lifecycle control
+- **Plugin System**: Dynamic plugin loading, registration, and dependency management
+- **Message Processing**: Incoming message handling, response generation, and action execution
+- **Service Registry**: Service management and dependency injection
+- **Model Management**: AI model registration and usage tracking
+- **Memory Management**: Conversation memory, embeddings, and state caching
+
+```typescript
+export class AgentRuntime implements IAgentRuntime {
+  readonly agentId: UUID;
+  readonly character: Character;
+  readonly actions: Action[] = [];
+  readonly evaluators: Evaluator[] = [];
+  readonly providers: Provider[] = [];
+  readonly plugins: Plugin[] = [];
+  private services = new Map<ServiceTypeName, Service>();
+  private models = new Map<string, ModelHandler[]>();
+  // ... other core properties
+}
+```
+
+## Initialization Process
+
+### 1. Runtime Construction
+
+The runtime is constructed with essential configuration:
+
+```typescript
+const runtime = new AgentRuntime({
+  agentId: "unique-agent-id",
+  character: characterConfig,
+  plugins: [bootstrapPlugin, ...otherPlugins],
+  adapter: databaseAdapter,
+  settings: environmentSettings
+});
+```
+
+### 2. Plugin Registration
+
+During initialization, plugins are registered in dependency order:
+
+```typescript
+async registerPlugin(plugin: Plugin): Promise<void> {
+  // Register plugin components
+  if (plugin.actions) {
+    plugin.actions.forEach(action => this.registerAction(action));
+  }
+  if (plugin.evaluators) {
+    plugin.evaluators.forEach(evaluator => this.registerEvaluator(evaluator));
+  }
+  if (plugin.providers) {
+    plugin.providers.forEach(provider => this.registerProvider(provider));
+  }
+  if (plugin.services) {
+    plugin.services.forEach(service => this.registerService(service));
+  }
+  if (plugin.models) {
+    Object.entries(plugin.models).forEach(([type, handler]) => {
+      this.registerModel(type, handler, plugin.name);
+    });
+  }
+}
+```
+
+### 3. Database Initialization
+
+The runtime ensures the database adapter is properly initialized:
+
+```typescript
+async initialize(): Promise<void> {
+  await this.adapter.init();
+  await this.runPluginMigrations();
+  await this.ensureAgentExists(this.character);
+  await this.ensureEmbeddingDimension();
+}
+```
+
+## Message Processing Pipeline
+
+### Message Flow
+
+1. **Message Reception**: Incoming messages trigger the `MESSAGE_RECEIVED` event
+2. **State Composition**: Context is gathered from providers and memory
+3. **Response Decision**: The `shouldRespond` template determines if agent should respond
+4. **Response Generation**: If responding, the `messageHandler` template generates content
+5. **Action Execution**: Actions are parsed and executed
+6. **Evaluation**: Evaluators assess the interaction
+7. **Memory Storage**: Messages and responses are stored in memory
+
+### Core Message Handler
+
+```typescript
+const messageReceivedHandler = async ({
+  runtime,
+  message,
+  callback,
+  onComplete,
+}: MessageReceivedHandlerParams): Promise<void> => {
+  // Save incoming message
+  await runtime.createMemory(message, 'messages');
+  
+  // Compose state with relevant context
+  let state = await runtime.composeState(message, [
+    'CHARACTER', 'RECENT_MESSAGES', 'ACTIONS', 'ENTITIES'
+  ]);
+  
+  // Determine if should respond
+  const shouldRespond = await evaluateShouldRespond(runtime, state);
+  
+  if (shouldRespond) {
+    // Generate response
+    const response = await generateResponse(runtime, state);
+    
+    // Execute actions
+    await runtime.processActions(message, [response], state, callback);
+    
+    // Run evaluators
+    await runtime.evaluate(message, state, true, callback, [response]);
+  }
+};
+```
+
+## Service Management
+
+### Service Registration
+
+Services provide extended functionality and are registered during plugin initialization:
+
+```typescript
+async registerService(serviceDef: typeof Service): Promise<void> {
+  const serviceType = serviceDef.serviceType;
+  const serviceInstance = await serviceDef.start(this);
+  this.services.set(serviceType, serviceInstance);
+}
+```
+
+### Service Access
+
+Services are accessed through type-safe getters:
+
+```typescript
+// Get a service instance
+const webService = runtime.getService<WebService>('web');
+
+// Check if service exists
+if (runtime.hasService('database')) {
+  const dbService = runtime.getService('database');
+}
+```
+
+## Model Management
+
+### Model Registration
+
+AI models are registered with priority support:
+
+```typescript
+registerModel(
+  modelType: ModelTypeName,
+  handler: ModelHandler,
+  provider: string,
+  priority?: number
+) {
+  if (!this.models.has(modelType)) {
+    this.models.set(modelType, []);
+  }
+  
+  this.models.get(modelType)?.push({
+    handler,
+    provider,
+    priority: priority || 0,
+    registrationOrder: Date.now()
+  });
+  
+  // Sort by priority (highest first)
+  this.models.get(modelType)?.sort((a, b) => 
+    (b.priority || 0) - (a.priority || 0)
+  );
+}
+```
+
+### Model Usage
+
+Models are used through the unified interface:
+
+```typescript
+const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+  prompt: "Generate a response...",
+  temperature: 0.7
+});
+```
+
+## State Management
+
+### State Composition
+
+State is dynamically composed from providers:
+
+```typescript
+async composeState(
+  message: Memory,
+  includeList: string[] = [],
+  onlyInclude = false,
+  skipCache = false
+): Promise<State> {
+  const providers = this.providers.filter(p => 
+    includeList.length === 0 || includeList.includes(p.name)
+  );
+  
+  const providerData = await Promise.all(
+    providers.map(provider => provider.get(this, message))
+  );
+  
+  return {
+    values: Object.assign({}, ...providerData.map(d => d.values)),
+    data: { providers: providerData },
+    text: providerData.map(d => d.text).join('\n')
+  };
+}
+```
+
+### State Caching
+
+The runtime includes intelligent state caching:
+
+```typescript
+private stateCache = new Map<UUID, {
+  values: { [key: string]: any };
+  data: { [key: string]: any };
+  text: string;
+}>();
+```
+
+## Event System
+
+### Event Registration
+
+Events are registered during plugin initialization:
+
+```typescript
+registerEvent(event: string, handler: (params: any) => Promise<void>) {
+  if (!this.events.has(event)) {
+    this.events.set(event, []);
+  }
+  this.events.get(event)?.push(handler);
+}
+```
+
+### Event Emission
+
+Events are emitted throughout the runtime:
+
+```typescript
+await runtime.emitEvent(EventType.MESSAGE_RECEIVED, {
+  runtime,
+  message,
+  callback
+});
+```
+
+## Memory Management
+
+### Memory Operations
+
+The runtime provides comprehensive memory management:
+
+```typescript
+// Create memory with embedding
+await runtime.createMemory(memory, 'messages');
+
+// Search memories with vector similarity
+const memories = await runtime.searchMemories({
+  embedding: queryEmbedding,
+  match_threshold: 0.8,
+  count: 10,
+  tableName: 'messages'
+});
+
+// Get recent memories
+const recentMemories = await runtime.getMemories({
+  roomId: message.roomId,
+  count: 20,
+  tableName: 'messages'
+});
+```
+
+### Embedding Management
+
+Embeddings are automatically managed:
+
+```typescript
+async addEmbeddingToMemory(memory: Memory): Promise<Memory> {
+  if (memory.embedding) return memory;
+  
+  const memoryText = memory.content.text;
+  memory.embedding = await this.useModel(ModelType.TEXT_EMBEDDING, {
+    text: memoryText
+  });
+  
+  return memory;
+}
+```
+
+## Error Handling and Monitoring
+
+### Logging System
+
+The runtime includes comprehensive logging:
+
+```typescript
+this.logger = createLogger({
+  agentName: this.character?.name,
+  logLevel: process.env.LOG_LEVEL || 'info'
+});
+```
+
+### Error Recovery
+
+Robust error handling ensures stability:
+
+```typescript
+try {
+  await this.processActions(message, responses, state, callback);
+} catch (error) {
+  this.logger.error('Action processing failed:', error);
+  // Create error memory for debugging
+  await this.createMemory(errorMemory, 'messages');
+}
+```
+
+## Performance Optimizations
+
+### Concurrency Control
+
+The runtime includes a Semaphore class for managing concurrent operations:
+
+```typescript
+export class Semaphore {
+  private permits: number;
+  private waiting: Array<() => void> = [];
+  
+  constructor(count: number) {
+    this.permits = count;
+  }
+  
+  async acquire(): Promise<void> {
+    if (this.permits > 0) {
+      this.permits -= 1;
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      this.waiting.push(resolve);
+    });
+  }
+  
+  release(): void {
+    this.permits += 1;
+    const nextResolve = this.waiting.shift();
+    if (nextResolve && this.permits > 0) {
+      this.permits -= 1;
+      nextResolve();
+    }
+  }
+}
+```
+
+### Connection Pooling
+
+Database connections are efficiently managed:
+
+```typescript
+async ensureConnections(entities, rooms, source, world): Promise<void> {
+  // Batch operations for performance
+  const batches = chunkArray(entities, 5000);
+  for (const batch of batches) {
+    await this.createEntities(batch);
+  }
+}
+```
+
+## Advanced Features
+
+### Run Tracking
+
+The runtime tracks execution runs for debugging:
+
+```typescript
+startRun(): UUID {
+  this.currentRunId = this.createRunId();
+  return this.currentRunId;
+}
+
+endRun(): void {
+  this.currentRunId = undefined;
+}
+```
+
+### Plugin Migrations
+
+Database schema migrations are handled automatically:
+
+```typescript
+async runPluginMigrations(): Promise<void> {
+  const pluginsWithSchemas = this.plugins.filter(p => p.schema);
+  
+  for (const plugin of pluginsWithSchemas) {
+    await this.adapter.runMigrations(plugin.schema, plugin.name);
+  }
+}
+```
+
+## Best Practices
+
+### Runtime Configuration
+
+1. **Environment Variables**: Use settings for configuration
+2. **Plugin Dependencies**: Ensure proper plugin dependency order
+3. **Resource Management**: Properly initialize and cleanup resources
+4. **Error Handling**: Implement comprehensive error handling
+
+### Performance Considerations
+
+1. **State Caching**: Use state caching for frequently accessed data
+2. **Batch Operations**: Batch database operations when possible
+3. **Connection Management**: Manage database connections efficiently
+4. **Memory Usage**: Monitor and optimize memory usage
+
+The Agent Runtime serves as the foundation for all agent operations in elizaOS, providing a robust, extensible, and performant system for building intelligent agents.

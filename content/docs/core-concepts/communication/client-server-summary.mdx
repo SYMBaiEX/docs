@@ -1,0 +1,250 @@
+---
+title: Client-Server Communication Summary
+description: Quick reference guide for ElizaOS client-server architecture
+---
+
+## Architecture Overview
+
+ElizaOS implements a modern client-server architecture with:
+
+- **Server**: Express.js + Socket.IO (`@elizaos/server`)
+- **Client**: React 19 SPA (`@elizaos/client`)  
+- **API Client**: TypeScript SDK (`@elizaos/api-client`)
+
+## Key Components
+
+### Server Components
+
+1. **AgentServer Class**
+   - Manages agent lifecycle
+   - Handles HTTP/WebSocket servers
+   - Database operations
+   - Message bus integration
+
+2. **REST API Router**
+   - Domain-based organization
+   - Consistent response format
+   - Middleware stack (auth, rate limiting, CORS)
+
+3. **SocketIO Router**
+   - Real-time message handling
+   - Channel management
+   - Log streaming
+
+4. **Internal Message Bus**
+   - Event-driven agent communication
+   - Decoupled architecture
+   - Plugin integration
+
+### Client Components
+
+1. **React Application**
+   - Provider-based architecture
+   - React Query for server state
+   - Socket.IO for real-time updates
+
+2. **SocketIO Manager**
+   - Singleton pattern
+   - Channel subscriptions
+   - Message handling
+
+3. **API Client Services**
+   - Typed service methods
+   - Error handling
+   - Request/response formatting
+
+## Communication Flow
+
+### REST API Flow
+```
+Client → HTTP Request → Server → Database
+                            ↓
+Client ← HTTP Response ← Server
+```
+
+### WebSocket Flow
+```
+Client → Socket Event → Server → Message Bus → Agents
+            ↑                         ↓
+            ←── Socket Broadcast ←────┘
+```
+
+### Message Processing
+```
+1. Client sends message via WebSocket
+2. Server validates and stores in database
+3. Server publishes to message bus
+4. Agents subscribe and process messages
+5. Agent responses broadcast to clients
+```
+
+## Quick Start
+
+### Server Setup
+
+```typescript
+const server = new AgentServer();
+await server.initialize({
+  dataDir: './data',
+  postgresUrl: process.env.DATABASE_URL
+});
+await server.start(3000);
+```
+
+### Client Connection
+
+```typescript
+// API Client
+const client = new ElizaClient({
+  baseUrl: 'http://localhost:3000',
+  apiKey: process.env.API_KEY
+});
+
+// WebSocket
+const socketManager = SocketIOManager.getInstance();
+socketManager.initialize(userId);
+socketManager.joinChannel(channelId);
+```
+
+## API Endpoints
+
+### Core Domains
+- `/api/agents` - Agent management
+- `/api/messaging` - Messages & channels
+- `/api/memory` - Agent memory
+- `/api/audio` - Audio processing
+- `/api/media` - File management
+- `/api/server` - Runtime status
+- `/api/system` - Configuration
+
+### WebSocket Events
+
+**Client → Server:**
+- `ROOM_JOINING` - Join channel
+- `SEND_MESSAGE` - Send message
+- `subscribe_logs` - Log streaming
+
+**Server → Client:**
+- `messageBroadcast` - New message
+- `controlMessage` - UI control
+- `log_stream` - Log entries
+
+## Security
+
+### Authentication
+- Optional API key via `X-API-KEY` header
+- Environment: `ELIZA_SERVER_AUTH_TOKEN`
+
+### Security Features
+- Helmet.js security headers
+- CORS protection
+- Rate limiting
+- Input validation
+- File upload restrictions
+
+## Performance
+
+### Optimizations
+- Connection pooling
+- Query caching
+- Optimistic updates
+- Event batching
+- Resource cleanup
+
+### Scaling
+- Horizontal scaling ready
+- Message bus upgradeable to Redis/RabbitMQ
+- Database connection pooling
+- Load balancer compatible
+
+## Error Handling
+
+### API Errors
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": "Additional info"
+  }
+}
+```
+
+### WebSocket Errors
+```javascript
+socket.on('messageError', (data) => {
+  console.error('Error:', data.error);
+});
+```
+
+## Development Tips
+
+1. **Enable Debug Logging**
+   ```bash
+   DEBUG=socket.io:* node server.js
+   localStorage.debug = 'socket.io-client:*'
+   ```
+
+2. **Monitor Events**
+   ```javascript
+   socket.onAny((event, ...args) => {
+     console.log(`Event: ${event}`, args);
+   });
+   ```
+
+3. **Test API Endpoints**
+   ```bash
+   curl -X GET http://localhost:3000/api/agents \
+     -H "X-API-KEY: your-key"
+   ```
+
+4. **Mock Services**
+   ```typescript
+   jest.mock('@/lib/api-client-config', () => ({
+     createElizaClient: () => mockClient
+   }));
+   ```
+
+## Common Patterns
+
+### Optimistic Updates
+```typescript
+// Update UI immediately
+setMessages(prev => [...prev, optimisticMessage]);
+
+// Send to server
+await socketManager.sendMessage(text, channelId);
+
+// Handle confirmation/rollback
+socket.on('messageAck', updateWithServerId);
+```
+
+### Connection Management
+```typescript
+const { status } = useConnection();
+
+if (status === 'connected') {
+  // Enable features
+} else if (status === 'disconnected') {
+  // Show offline UI
+}
+```
+
+### Error Recovery
+```typescript
+try {
+  const result = await client.agents.create(data);
+} catch (error) {
+  if (error.code === 'NETWORK_ERROR') {
+    // Retry with backoff
+  }
+}
+```
+
+## Resources
+
+- [REST API Reference](/docs/core-concepts/communication/rest-api-reference)
+- [WebSocket Events](/docs/core-concepts/communication/websocket-events)
+- [Message Bus Architecture](/docs/core-concepts/communication/message-bus-architecture)
+- [Client-Server Architecture](/docs/core-concepts/architecture/client-server)

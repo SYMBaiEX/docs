@@ -3,11 +3,10 @@
   "pages": [
     "index",
     "architecture",
-    "agents",
+    "agent-development",
     "ai-models",
     "communication",
     "data-state",
-    "infrastructure",
-    "plugins"
+    "infrastructure"
   ]
 }

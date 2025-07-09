@@ -1,0 +1,467 @@
+---
+title: TEE (Trusted Execution Environment) Integration
+description: Secure agent execution with TEE support including Phala Network and Intel TDX
+---
+
+# TEE (Trusted Execution Environment) Integration
+
+Trusted Execution Environments (TEEs) provide hardware-based security for Eliza agents, ensuring code and data confidentiality even from system administrators. The TEE integration enables agents to run in secure enclaves with cryptographic attestation capabilities.
+
+## Overview
+
+TEE support in Eliza provides:
+
+- **Hardware-based Security** - Isolated execution in secure enclaves
+- **Remote Attestation** - Cryptographic proof of secure execution
+- **Confidential Computing** - Data remains encrypted even during processing
+- **Multi-vendor Support** - Works with Phala Network and Intel TDX
+- **Secure Key Management** - Private keys never leave the enclave
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│            Eliza Agent                       │
+│  ┌─────────────────────────────────────┐    │
+│  │         TEE Plugin                   │    │
+│  │  - Remote Attestation Action        │    │
+│  │  - TEE Status Verification          │    │
+│  │  - Secure Key Operations            │    │
+│  └─────────────────┬───────────────────┘    │
+│                    │                         │
+└────────────────────┼─────────────────────────┘
+                     │
+     ┌───────────────┴───────────────┐
+     │       TEE Environment         │
+     │  ┌─────────────────────────┐  │
+     │  │    Secure Enclave       │  │
+     │  │  - Isolated Memory      │  │
+     │  │  - Encrypted Storage    │  │
+     │  │  - Attestation Service  │  │
+     │  └─────────────────────────┘  │
+     └───────────────────────────────┘
+```
+
+## Quick Start with Mr. TEE
+
+The TEE Project Starter provides a complete example with **Mr. TEE**, a security-focused character:
+
+```bash
+# Navigate to the TEE starter
+cd packages/project-tee-starter
+
+# Install dependencies
+bun install
+
+# Copy and configure environment
+cp .env.example .env
+
+# Configure TEE settings in .env:
+TEE_MODE=PHALA_DSTACK    # Options: PHALA_DSTACK, TDX_DSTACK, NONE
+TEE_VENDOR=phala          # Options: phala, intel
+OPENAI_API_KEY=your_key
+
+# Run in development
+bun run dev
+```
+
+## TEE Modes
+
+### 1. Development Mode (TEE_MODE=NONE)
+
+For local development without TEE hardware:
+
+```bash
+TEE_MODE=NONE
+# Simulates TEE responses for testing
+```
+
+### 2. Docker Mode (TEE_MODE=DOCKER)
+
+For containerized testing:
+
+```bash
+TEE_MODE=DOCKER
+# Uses Docker to simulate isolated environment
+```
+
+### 3. Phala Network (TEE_MODE=PHALA_DSTACK)
+
+For production deployment on Phala Cloud:
+
+```bash
+TEE_MODE=PHALA_DSTACK
+TEE_VENDOR=phala
+```
+
+### 4. Intel TDX (TEE_MODE=TDX_DSTACK)
+
+For Intel TDX environments:
+
+```bash
+TEE_MODE=TDX_DSTACK
+TEE_VENDOR=intel
+```
+
+## Remote Attestation
+
+The TEE plugin provides remote attestation capabilities through the `remoteAttestationAction`:
+
+### Using Attestation
+
+Ask your agent for attestation:
+
+```
+User: "Generate a remote attestation report"
+Agent: [Generates cryptographic attestation proof]
+
+User: "Show me proof you're in a secure environment"
+Agent: [Provides TEE status and attestation]
+
+User: "I need TEE attestation with nonce xyz123"
+Agent: [Generates attestation with specific nonce]
+```
+
+### Attestation Response Format
+
+```json
+{
+  "success": true,
+  "attestation": {
+    "report": "base64_encoded_attestation_report",
+    "signature": "cryptographic_signature",
+    "certificate": "x509_certificate_chain",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "teeType": "PHALA_DSTACK",
+    "nonce": "xyz123"
+  }
+}
+```
+
+## Deployment Options
+
+### Local Development
+
+```bash
+# Set for local testing
+TEE_MODE=LOCAL
+bun run dev
+```
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker
+docker-compose -f docker-compose.yaml up
+```
+
+### Phala Cloud Deployment
+
+Complete deployment to Phala's TEE infrastructure:
+
+```bash
+# Install Phala CLI
+npm install -g phala
+
+# Login to Phala Cloud
+phala auth login
+
+# Build Docker image
+phala docker build
+
+# Push to registry
+phala docker push
+
+# Deploy CVM (Confidential VM)
+phala cvms create -c docker-compose.yaml -e .env
+
+# Verify attestation
+phala cvms attestation
+
+# Upgrade deployment
+phala cvms upgrade -c docker-compose.yaml
+```
+
+### Docker Compose Configuration
+
+```yaml
+version: '3'
+services:
+  eliza-tee:
+    image: your-registry/eliza-tee:latest
+    environment:
+      - TEE_MODE=PHALA_DSTACK
+      - TEE_VENDOR=phala
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+```
+
+## Security Features
+
+### 1. Isolated Execution
+
+- Code runs in hardware-isolated enclaves
+- Memory encryption prevents external access
+- Protected from privileged software attacks
+
+### 2. Attestation Verification
+
+```typescript
+// Verify TEE attestation
+const attestation = await agent.getAttestation();
+const isValid = await verifyAttestation(attestation, {
+  expectedVendor: 'phala',
+  expectedMode: 'PHALA_DSTACK',
+  nonce: 'user_provided_nonce'
+});
+```
+
+### 3. Secure Key Management
+
+Private keys are generated and stored within the TEE:
+
+```typescript
+// Keys never leave the enclave
+const signature = await agent.signMessage(message);
+// Private key operations happen inside TEE
+```
+
+### 4. Encrypted Communication
+
+All communication with TEE uses encrypted channels:
+
+- TLS for external connections
+- Encrypted memory for internal operations
+- Secure bootstrapping process
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# TEE Configuration
+TEE_MODE=PHALA_DSTACK        # TEE deployment mode
+TEE_VENDOR=phala             # TEE vendor selection
+
+# Agent Configuration
+OPENAI_API_KEY=your_key      # Required for AI operations
+
+# Optional Services
+DISCORD_APPLICATION_ID=app_id # For Discord integration
+DISCORD_API_TOKEN=token       # Discord bot token
+ELEVENLABS_API_KEY=key       # For voice synthesis
+```
+
+### Plugin Configuration
+
+```typescript
+import { teePlugin } from '@elizaos/plugin-tee';
+
+const character = {
+  name: "Mr. TEE",
+  plugins: [teePlugin],
+  settings: {
+    tee: {
+      enabled: true,
+      attestationInterval: 3600, // seconds
+      requireAttestation: true
+    }
+  }
+};
+```
+
+## Best Practices
+
+### 1. Security First
+
+- Always verify attestation before trusting
+- Use hardware random number generators
+- Implement defense in depth
+
+### 2. Key Management
+
+```typescript
+// Good: Let TEE manage keys
+const response = await agent.encrypt(data);
+
+// Bad: Extracting keys from TEE
+const privateKey = await agent.getPrivateKey(); // Will fail
+```
+
+### 3. Attestation Patterns
+
+```typescript
+// Regular attestation checks
+setInterval(async () => {
+  const attestation = await agent.getAttestation();
+  await logAttestation(attestation);
+}, 3600000); // Every hour
+
+// User-triggered attestation
+if (userRequestsProof) {
+  const proof = await agent.getAttestation({
+    nonce: crypto.randomBytes(32).toString('hex')
+  });
+}
+```
+
+### 4. Error Handling
+
+```typescript
+try {
+  const result = await agent.performSecureOperation();
+} catch (error) {
+  if (error.code === 'TEE_NOT_AVAILABLE') {
+    // Fallback to non-TEE mode
+  } else if (error.code === 'ATTESTATION_FAILED') {
+    // Handle attestation failure
+  }
+}
+```
+
+## Testing
+
+### Unit Tests
+
+```bash
+# Run TEE-specific tests
+bun test packages/project-tee-starter/__tests__
+```
+
+### Integration Tests
+
+```bash
+# Test with simulated TEE
+TEE_MODE=LOCAL bun test:e2e
+
+# Test with Docker
+TEE_MODE=DOCKER bun test:integration
+```
+
+### Attestation Testing
+
+```typescript
+// Test attestation generation
+test('should generate valid attestation', async () => {
+  const attestation = await teePlugin.generateAttestation();
+  expect(attestation).toHaveProperty('report');
+  expect(attestation).toHaveProperty('signature');
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **TEE Not Available**
+   ```
+   Error: TEE environment not detected
+   Solution: Check TEE_MODE and hardware support
+   ```
+
+2. **Attestation Failures**
+   ```
+   Error: Attestation verification failed
+   Solution: Ensure TEE vendor matches configuration
+   ```
+
+3. **Performance Issues**
+   ```
+   Issue: Slow attestation generation
+   Solution: Cache attestations, adjust intervals
+   ```
+
+### Debug Mode
+
+Enable detailed logging:
+
+```bash
+# Set debug environment
+DEBUG=eliza:tee:* bun run dev
+
+# Check TEE status
+curl http://localhost:3000/api/tee/status
+```
+
+## Performance Considerations
+
+### Attestation Overhead
+
+- First attestation: ~2-5 seconds
+- Subsequent attestations: ~100-500ms
+- Cache attestations when possible
+
+### Memory Usage
+
+- TEE enclaves have limited memory
+- Monitor enclave page cache (EPC) usage
+- Implement efficient data structures
+
+### Optimization Tips
+
+```typescript
+// Cache attestations
+const attestationCache = new Map();
+
+async function getCachedAttestation(nonce) {
+  const cached = attestationCache.get(nonce);
+  if (cached && Date.now() - cached.timestamp < 3600000) {
+    return cached.attestation;
+  }
+  
+  const fresh = await generateAttestation(nonce);
+  attestationCache.set(nonce, {
+    attestation: fresh,
+    timestamp: Date.now()
+  });
+  return fresh;
+}
+```
+
+## Advanced Topics
+
+### Custom Attestation Handlers
+
+```typescript
+import { TEEProvider } from '@elizaos/plugin-tee';
+
+class CustomTEEProvider extends TEEProvider {
+  async generateAttestation(params) {
+    // Custom attestation logic
+    const report = await this.createCustomReport(params);
+    return this.signReport(report);
+  }
+}
+```
+
+### Multi-TEE Support
+
+```typescript
+// Support multiple TEE vendors
+const teeConfig = {
+  vendors: ['phala', 'intel'],
+  fallbackOrder: ['phala', 'intel', 'software'],
+  attestationPolicy: 'any' // or 'all'
+};
+```
+
+### Secure Multi-Party Computation
+
+```typescript
+// Coordinate between multiple TEEs
+const parties = await discoverTEEPeers();
+const sharedComputation = await initializesMPC(parties);
+```
+
+## Resources
+
+- [Phala Network Documentation](https://docs.phala.network)
+- [Intel TDX Overview](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-trust-domain-extensions.html)
+- [TEE Plugin Source](https://github.com/elizaos/eliza/tree/main/packages/plugin-tee)
+- [Mr. TEE Starter Project](https://github.com/elizaos/eliza/tree/main/packages/project-tee-starter)

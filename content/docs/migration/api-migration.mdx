@@ -1,0 +1,224 @@
+---
+title: API Migration Guide
+description: Guide for migrating from old agent-specific APIs to the new centralized messaging system
+---
+
+# API Migration Guide
+
+This guide helps you migrate from the old agent-specific API endpoints to the new centralized messaging system in elizaOS.
+
+## Major Changes
+
+### 1. Message Submission Endpoint
+
+The most significant change is the migration of the message submission endpoint:
+
+- **Old**: `/api/agents/{agentId}/message` (Removed)
+- **New**: `/api/messaging/submit`
+
+### 2. Audio Endpoints
+
+Audio-related endpoints have been reorganized:
+
+- **Old**: `/api/agents/{agentId}/audio/...`
+- **New**: `/api/audio/{agentId}/...`
+
+## Message Submission Migration
+
+### Before (Incorrect)
+
+```javascript
+const response = await fetch('/api/agents/{agentId}/message', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    senderId: 'user123',
+    roomId: 'room456',
+    text: 'Hello agent!',
+    source: 'api'
+  })
+});
+```
+
+### After (Correct)
+
+```javascript
+const response = await fetch('/api/messaging/submit', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    channel_id: 'room456',
+    server_id: '00000000-0000-0000-0000-000000000000',
+    author_id: 'user123',
+    content: 'Hello agent!',
+    source_type: 'user_message',
+    raw_message: { text: 'Hello agent!' }
+  })
+});
+```
+
+## Key Differences
+
+### Request Payload Structure
+
+The new API uses a different payload structure:
+
+| Old Field | New Field | Notes |
+|-----------|-----------|-------|
+| `senderId` | `author_id` | UUID of the message author |
+| `roomId` | `channel_id` | UUID of the channel/room |
+| `text` | `content` | Message content |
+| `source` | `source_type` | Message source identifier |
+| N/A | `server_id` | Required: Use central server ID |
+| N/A | `raw_message` | Original message structure |
+
+### Central Server ID
+
+The new system uses a central message bus. Always use this server ID:
+```javascript
+server_id: '00000000-0000-0000-0000-000000000000'
+```
+
+## WebSocket Migration
+
+The real-time communication has also been updated:
+
+- **Old**: Raw WebSocket connection
+- **New**: Socket.IO client
+
+### Socket.IO Connection Example
+
+```javascript
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000', {
+  auth: {
+    token: 'your-auth-token'
+  }
+});
+
+// Join a channel
+socket.emit('join_channel', { channelId: 'room456' });
+
+// Listen for messages
+socket.on('new_message', (message) => {
+  console.log('New message:', message);
+});
+```
+
+## Benefits of New Architecture
+
+1. **Multi-Agent Support**: Messages are routed through a central system, enabling better multi-agent coordination
+2. **Better Message Routing**: Centralized routing allows for more sophisticated message handling
+3. **Consistent State Management**: All agents share a consistent view of conversations
+4. **Improved Scalability**: The architecture supports horizontal scaling
+
+## Migration Checklist
+
+Follow these steps to migrate your integration:
+
+1. ✅ Update all API endpoints from agent-specific to centralized endpoints
+2. ✅ Modify request payloads to match the new structure
+3. ✅ Update audio endpoint paths
+4. ✅ Migrate WebSocket connections to Socket.IO
+5. ✅ Test message submission with the new endpoint
+6. ✅ Verify real-time message delivery
+7. ✅ Test audio transcription/generation if used
+
+## Testing Your Migration
+
+### 1. Test Message Submission
+
+```javascript
+async function testMessageSubmission() {
+  const testMessage = {
+    channel_id: 'your-channel-id',
+    server_id: '00000000-0000-0000-0000-000000000000',
+    author_id: 'test-user-id',
+    content: 'Test message from migration',
+    source_type: 'api_test',
+    raw_message: { text: 'Test message from migration' }
+  };
+
+  try {
+    const response = await fetch('http://localhost:3000/api/messaging/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': 'your-api-key' // if authentication is enabled
+      },
+      body: JSON.stringify(testMessage)
+    });
+
+    const result = await response.json();
+    console.log('Message sent successfully:', result);
+  } catch (error) {
+    console.error('Failed to send message:', error);
+  }
+}
+```
+
+### 2. Test Socket.IO Connection
+
+```javascript
+function testSocketConnection() {
+  const socket = io('http://localhost:3000');
+
+  socket.on('connect', () => {
+    console.log('Connected to Socket.IO server');
+    socket.emit('join_channel', { channelId: 'your-channel-id' });
+  });
+
+  socket.on('new_message', (message) => {
+    console.log('Received message:', message);
+  });
+
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+}
+```
+
+## Common Issues and Solutions
+
+### Issue: 404 Not Found on Old Endpoints
+
+**Solution**: Update to the new `/api/messaging/submit` endpoint.
+
+### Issue: Invalid Request Body
+
+**Solution**: Ensure you're using the new field names (`channel_id`, `author_id`, etc.) instead of the old ones.
+
+### Issue: Messages Not Reaching Agents
+
+**Solution**: Verify that:
+- You're using the correct `server_id`
+- The agent is subscribed to the channel
+- The channel exists and is properly configured
+
+### Issue: WebSocket Connection Failures
+
+**Solution**: Migrate to Socket.IO client and ensure you're connecting to the correct port.
+
+## Need Help?
+
+If you encounter issues during migration:
+
+1. Check the [API Validation Report](/docs/api-reference) for endpoint details
+2. Review the [OpenAPI specification](/api/openapi.json) for complete API documentation
+3. Use the updated Postman collection for testing
+4. Join the ElizaOS community for support
+
+## Next Steps
+
+After migrating your API integration:
+
+1. Review the [Message Bus Architecture](/docs/core-concepts/communication/message-bus) to understand the new system
+2. Explore [WebSocket documentation](/docs/core-concepts/communication/websockets) for real-time features
+3. Check the [REST API reference](/docs/core-concepts/communication/rest-api) for additional endpoints
+
+The new architecture provides a more robust and scalable foundation for building conversational AI applications with elizaOS.

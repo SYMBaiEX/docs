@@ -1,0 +1,716 @@
+---
+title: Templates & Prompts
+description: Working with templates and prompts in elizaOS for consistent AI interactions
+---
+
+# Templates & Prompts
+
+Templates and prompts are the foundation of AI interactions in elizaOS. They provide structured, consistent ways to communicate with AI models while maintaining flexibility for different contexts and use cases.
+
+## Overview
+
+elizaOS uses templates to:
+- **Standardize interactions**: Ensure consistent AI behavior across different contexts
+- **Context injection**: Dynamically insert relevant information into prompts
+- **Personalization**: Adapt responses based on character traits and settings
+- **Modularity**: Reuse prompt components across different scenarios
+- **Maintainability**: Update AI behavior without changing code
+
+## Template System
+
+### Template Types
+
+elizaOS supports several template types for different use cases:
+
+#### String Templates
+Simple text templates with placeholder substitution:
+
+```typescript
+const template = "Hello {{name}}, how can I help you today?";
+```
+
+#### Function Templates
+Dynamic templates that generate content based on state:
+
+```typescript
+const template = ({ state }) => {
+  const timeOfDay = new Date().getHours() < 12 ? 'morning' : 'evening';
+  return `Good ${timeOfDay}, ${state.senderName}!`;
+};
+```
+
+#### Conditional Templates
+Templates that adapt based on conditions:
+
+```typescript
+const template = ({ state }) => {
+  if (state.isFirstMessage) {
+    return "Welcome! I'm {{characterName}}, nice to meet you.";
+  } else {
+    return "How can I help you today?";
+  }
+};
+```
+
+### Template Configuration
+
+Templates are configured in the character file:
+
+```typescript
+const character = {
+  name: "MyAgent",
+  templates: {
+    // Message handling template
+    messageHandlerTemplate: `
+      You are {{characterName}}.
+      
+      {{bio}}
+      
+      {{lore}}
+      
+      Recent conversation:
+      {{recentMessages}}
+      
+      Respond to: {{message}}
+    `,
+    
+    // Evaluation template
+    evaluationTemplate: `
+      Evaluate if you should respond to this message:
+      {{message}}
+      
+      Context: {{context}}
+      
+      Respond with YES or NO:
+    `,
+    
+    // Custom template
+    customTemplate: ({ state }) => {
+      return `Custom response for ${state.senderName}`;
+    }
+  }
+};
+```
+
+## Core Templates
+
+### Message Handler Template
+
+Controls how the agent responds to messages:
+
+```typescript
+const messageHandlerTemplate = `
+# Character
+You are {{characterName}}, {{bio}}
+
+# Personality
+{{adjectives}}
+
+# Knowledge
+{{knowledge}}
+
+# Recent Messages
+{{recentMessages}}
+
+# Response Instructions
+{{messageDirections}}
+
+# Current Message
+{{senderName}}: {{message}}
+
+Respond as {{characterName}}:
+`;
+```
+
+### Should Respond Template
+
+Determines when the agent should respond:
+
+```typescript
+const shouldRespondTemplate = `
+# Context
+You are {{characterName}} in a conversation.
+
+# Recent Messages
+{{recentMessages}}
+
+# Current Message
+{{senderName}}: {{message}}
+
+# Decision
+Should {{characterName}} respond to this message?
+Consider:
+- Is the message directed at you?
+- Is it relevant to the conversation?
+- Would a response add value?
+
+Respond with YES or NO:
+`;
+```
+
+### Evaluation Template
+
+Used for evaluating actions and responses:
+
+```typescript
+const evaluationTemplate = `
+# Evaluation Task
+Evaluate the following interaction:
+
+# Character: {{characterName}}
+{{bio}}
+
+# Message: {{message}}
+# Response: {{response}}
+
+# Criteria
+- Appropriateness
+- Consistency with character
+- Helpfulness
+- Engagement level
+
+# Rating
+Rate from 1-10 and explain:
+`;
+```
+
+## Platform-Specific Templates
+
+### Twitter Templates
+
+```typescript
+const twitterTemplates = {
+  // Tweet generation
+  twitterPostTemplate: `
+    Generate a tweet as {{characterName}}.
+    
+    Character: {{bio}}
+    Topics: {{topics}}
+    Style: {{style}}
+    
+    Recent tweets: {{recentPosts}}
+    
+    Tweet (max 280 chars):
+  `,
+  
+  // Twitter response
+  twitterMessageHandlerTemplate: `
+    You are {{characterName}} responding to a tweet.
+    
+    Original tweet: {{message}}
+    Context: {{context}}
+    
+    Write a brief, engaging response:
+  `,
+  
+  // Twitter engagement decision
+  twitterShouldRespondTemplate: `
+    Should {{characterName}} respond to this tweet?
+    
+    Tweet: {{message}}
+    Author: {{senderName}}
+    
+    Consider engagement value. YES/NO:
+  `
+};
+```
+
+### Discord Templates
+
+```typescript
+const discordTemplates = {
+  // Discord message handler
+  discordMessageHandlerTemplate: `
+    You are {{characterName}} in Discord server "{{serverName}}".
+    
+    Channel: {{channelName}}
+    Recent messages: {{recentMessages}}
+    
+    Message: {{senderName}}: {{message}}
+    
+    Respond naturally:
+  `,
+  
+  // Discord auto-post
+  discordAutoPostTemplate: `
+    Create an engaging post for Discord channel "{{channelName}}".
+    
+    Character: {{characterName}}
+    Server activity: {{serverActivity}}
+    
+    Write something relevant and interesting:
+  `
+};
+```
+
+### Telegram Templates
+
+```typescript
+const telegramTemplates = {
+  // Telegram message handler
+  telegramMessageHandlerTemplate: `
+    You are {{characterName}} in Telegram chat.
+    
+    Chat: {{chatName}}
+    Recent messages: {{recentMessages}}
+    
+    Message: {{senderName}}: {{message}}
+    
+    Respond appropriately:
+  `,
+  
+  // Telegram auto-post
+  telegramAutoPostTemplate: `
+    Create a post for Telegram channel "{{channelName}}".
+    
+    Character: {{characterName}}
+    Recent activity: {{recentActivity}}
+    
+    Write an engaging message:
+  `
+};
+```
+
+## Template Variables
+
+### Standard Variables
+
+Available in all templates:
+
+```typescript
+const standardVariables = {
+  // Character information
+  characterName: "Agent name",
+  bio: "Character biography",
+  lore: "Character background",
+  adjectives: "Character traits",
+  topics: "Known topics",
+  style: "Communication style",
+  
+  // Context information
+  senderName: "Message sender",
+  message: "Current message",
+  recentMessages: "Recent conversation",
+  
+  // Platform information
+  channelName: "Channel/room name",
+  serverName: "Server name",
+  chatName: "Chat name",
+  
+  // Dynamic content
+  timestamp: "Current time",
+  context: "Additional context",
+  knowledge: "Relevant knowledge"
+};
+```
+
+### Custom Variables
+
+Add custom variables through providers:
+
+```typescript
+const customProvider = {
+  name: 'CUSTOM_PROVIDER',
+  get: async (runtime, message, state) => {
+    return {
+      values: {
+        customVariable: "Custom value",
+        dynamicData: await fetchDynamicData(),
+        processedContent: processContent(message.content)
+      }
+    };
+  }
+};
+```
+
+## Template Processing
+
+### Variable Substitution
+
+Templates use `{{variable}}` syntax for substitution:
+
+```typescript
+const template = "Hello {{name}}, today is {{date}}";
+const processed = template
+  .replace('{{name}}', 'Alice')
+  .replace('{{date}}', '2024-01-15');
+```
+
+### Function Template Processing
+
+Function templates receive state and return strings:
+
+```typescript
+const functionTemplate = ({ state }) => {
+  const greeting = state.isFirstMessage ? "Welcome" : "Hello again";
+  return `${greeting}, ${state.senderName}!`;
+};
+
+const processed = functionTemplate({ state: currentState });
+```
+
+### Template Compilation
+
+elizaOS compiles templates for performance:
+
+```typescript
+// Template compilation (internal)
+const compiledTemplate = compileTemplate(templateString);
+const result = compiledTemplate(variables);
+```
+
+## Advanced Template Features
+
+### Conditional Content
+
+```typescript
+const conditionalTemplate = ({ state }) => {
+  let content = "You are {{characterName}}.";
+  
+  if (state.isFirstMessage) {
+    content += "\nThis is our first conversation.";
+  }
+  
+  if (state.hasKnowledge) {
+    content += "\nRelevant knowledge: {{knowledge}}";
+  }
+  
+  return content;
+};
+```
+
+### Template Inheritance
+
+```typescript
+const baseTemplate = `
+  You are {{characterName}}.
+  {{bio}}
+  
+  {{specificInstructions}}
+`;
+
+const chatTemplate = baseTemplate.replace(
+  '{{specificInstructions}}',
+  'Respond conversationally to: {{message}}'
+);
+
+const postTemplate = baseTemplate.replace(
+  '{{specificInstructions}}',
+  'Create an engaging post about: {{topic}}'
+);
+```
+
+### Template Composition
+
+```typescript
+const composeTemplate = (parts) => {
+  return parts.filter(Boolean).join('\n\n');
+};
+
+const composedTemplate = composeTemplate([
+  "# Character\n{{characterName}}",
+  "# Bio\n{{bio}}",
+  state.hasLore ? "# Lore\n{{lore}}" : null,
+  "# Message\n{{message}}",
+  "# Response\nRespond as {{characterName}}:"
+]);
+```
+
+## Template Management
+
+### Template Registry
+
+```typescript
+class TemplateRegistry {
+  private templates = new Map();
+  
+  register(name: string, template: string | Function) {
+    this.templates.set(name, template);
+  }
+  
+  get(name: string) {
+    return this.templates.get(name);
+  }
+  
+  process(name: string, variables: any) {
+    const template = this.get(name);
+    if (typeof template === 'function') {
+      return template(variables);
+    }
+    return this.substituteVariables(template, variables);
+  }
+  
+  private substituteVariables(template: string, variables: any) {
+    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+      return variables[key] || match;
+    });
+  }
+}
+```
+
+### Template Versioning
+
+```typescript
+const templateVersions = {
+  v1: {
+    messageHandler: "Simple template",
+    shouldRespond: "Basic decision logic"
+  },
+  
+  v2: {
+    messageHandler: "Enhanced template with context",
+    shouldRespond: "Improved decision logic"
+  }
+};
+
+const getTemplate = (name: string, version = 'v2') => {
+  return templateVersions[version][name];
+};
+```
+
+### Template Validation
+
+```typescript
+const validateTemplate = (template: string) => {
+  const issues = [];
+  
+  // Check for required variables
+  const requiredVars = ['characterName', 'message'];
+  for (const req of requiredVars) {
+    if (!template.includes(`{{${req}}}`)) {
+      issues.push(`Missing required variable: ${req}`);
+    }
+  }
+  
+  // Check for unclosed variables
+  const unclosed = template.match(/\{\{[^}]*$/);
+  if (unclosed) {
+    issues.push('Unclosed template variable');
+  }
+  
+  return issues;
+};
+```
+
+## Performance Optimization
+
+### Template Caching
+
+```typescript
+class TemplateCache {
+  private cache = new Map();
+  private maxSize = 100;
+  
+  get(key: string) {
+    return this.cache.get(key);
+  }
+  
+  set(key: string, value: string) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, value);
+  }
+}
+```
+
+### Pre-compilation
+
+```typescript
+const precompileTemplates = (templates: Record<string, string>) => {
+  const compiled = {};
+  
+  for (const [name, template] of Object.entries(templates)) {
+    compiled[name] = compileTemplate(template);
+  }
+  
+  return compiled;
+};
+```
+
+## Best Practices
+
+### 1. Template Organization
+
+```typescript
+// Group related templates
+const messageTemplates = {
+  handler: "Message handling template",
+  shouldRespond: "Response decision template",
+  evaluation: "Message evaluation template"
+};
+
+const postTemplates = {
+  twitter: "Twitter post template",
+  discord: "Discord post template",
+  telegram: "Telegram post template"
+};
+```
+
+### 2. Variable Naming
+
+```typescript
+// Use descriptive, consistent names
+const template = `
+  Character: {{characterName}}
+  Sender: {{senderName}}
+  Message: {{messageContent}}
+  Context: {{conversationContext}}
+  Time: {{currentTimestamp}}
+`;
+```
+
+### 3. Template Documentation
+
+```typescript
+/**
+ * Message Handler Template
+ * 
+ * Variables:
+ * - characterName: The agent's name
+ * - bio: Character biography
+ * - message: Current message content
+ * - senderName: Message sender
+ * - recentMessages: Recent conversation history
+ * 
+ * Purpose: Generate contextual responses to messages
+ */
+const messageHandlerTemplate = `...`;
+```
+
+### 4. Error Handling
+
+```typescript
+const safeTemplateProcessing = (template: string, variables: any) => {
+  try {
+    return processTemplate(template, variables);
+  } catch (error) {
+    console.error('Template processing failed:', error);
+    return "I'm sorry, I encountered an error processing your message.";
+  }
+};
+```
+
+## Testing Templates
+
+### Unit Testing
+
+```typescript
+describe('Template Processing', () => {
+  it('should substitute variables correctly', () => {
+    const template = "Hello {{name}}";
+    const variables = { name: "Alice" };
+    const result = processTemplate(template, variables);
+    expect(result).toBe("Hello Alice");
+  });
+  
+  it('should handle missing variables', () => {
+    const template = "Hello {{name}} {{missing}}";
+    const variables = { name: "Alice" };
+    const result = processTemplate(template, variables);
+    expect(result).toBe("Hello Alice {{missing}}");
+  });
+});
+```
+
+### Integration Testing
+
+```typescript
+describe('Template Integration', () => {
+  it('should generate appropriate responses', async () => {
+    const runtime = createTestRuntime();
+    const template = "You are {{characterName}}. Respond to: {{message}}";
+    
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: processTemplate(template, {
+        characterName: "TestAgent",
+        message: "Hello"
+      })
+    });
+    
+    expect(response).toContain("TestAgent");
+  });
+});
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Variable not substituted**
+   ```typescript
+   // Check variable name spelling
+   const template = "Hello {{name}}"; // Correct
+   const template = "Hello {{Name}}"; // Wrong case
+   ```
+
+2. **Template function errors**
+   ```typescript
+   const template = ({ state }) => {
+     // Always check if state exists
+     if (!state || !state.senderName) {
+       return "Default response";
+     }
+     return `Hello ${state.senderName}`;
+   };
+   ```
+
+3. **Performance issues**
+   ```typescript
+   // Use caching for expensive operations
+   const expensiveTemplate = ({ state }) => {
+     const cached = templateCache.get(state.key);
+     if (cached) return cached;
+     
+     const result = expensiveOperation(state);
+     templateCache.set(state.key, result);
+     return result;
+   };
+   ```
+
+### Debug Mode
+
+```typescript
+const debugTemplate = (template: string, variables: any) => {
+  console.log('Template:', template);
+  console.log('Variables:', variables);
+  
+  const result = processTemplate(template, variables);
+  console.log('Result:', result);
+  
+  return result;
+};
+```
+
+## Migration Guide
+
+### From Static to Dynamic Templates
+
+```typescript
+// Old static template
+const oldTemplate = "Hello user, how can I help?";
+
+// New dynamic template
+const newTemplate = ({ state }) => {
+  const greeting = getTimeBasedGreeting();
+  const name = state.senderName || "user";
+  return `${greeting} ${name}, how can I help?`;
+};
+```
+
+### Template Versioning
+
+```typescript
+const migrateTemplates = (oldTemplates: any) => {
+  const newTemplates = {};
+  
+  for (const [name, template] of Object.entries(oldTemplates)) {
+    newTemplates[name] = upgradeTemplate(template);
+  }
+  
+  return newTemplates;
+};
+```
+
+Templates and prompts are essential for creating consistent, context-aware AI interactions in elizaOS. By leveraging the template system effectively, you can build agents that provide personalized, relevant responses while maintaining consistent behavior across different platforms and scenarios.

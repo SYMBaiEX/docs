@@ -1,0 +1,459 @@
+---
+title: Memory System
+description: Understanding Eliza's memory system, including storage, retrieval, and semantic search capabilities
+---
+
+## Overview
+
+Eliza's memory system provides persistent storage and retrieval of conversations, facts, and documents with built-in support for embeddings and semantic search. The system is designed to handle different types of memories with appropriate metadata and efficient querying.
+
+## Memory Types
+
+Eliza categorizes memories into distinct types for optimal storage and retrieval:
+
+```typescript
+enum MemoryType {
+  DOCUMENT = 'document',    // Complete documents or large text
+  FRAGMENT = 'fragment',    // Chunks of documents for embedding
+  MESSAGE = 'message',      // Conversational messages
+  DESCRIPTION = 'description', // Descriptive information
+  CUSTOM = 'custom'         // Application-specific memories
+}
+```
+
+## Memory Structure
+
+### Core Memory Interface
+
+```typescript
+interface Memory {
+  id?: UUID;
+  entityId: UUID;           // Associated user/entity
+  agentId?: UUID;          // Associated agent
+  createdAt?: number;      // Timestamp in milliseconds
+  content: Content;        // Memory content with text
+  embedding?: number[];    // Vector embedding for semantic search
+  roomId: UUID;            // Conversation room/channel
+  worldId?: UUID;          // Optional world context
+  unique?: boolean;        // Prevent duplicates
+  similarity?: number;     // Similarity score (when searching)
+  metadata?: MemoryMetadata; // Type-specific metadata
+}
+```
+
+### Memory Content
+
+Content can contain text and additional structured data:
+
+```typescript
+interface Content {
+  text: string;
+  // Additional fields based on content type
+  [key: string]: any;
+}
+```
+
+### Memory Metadata
+
+Each memory type has specific metadata requirements:
+
+```typescript
+// Message metadata
+interface MessageMetadata extends BaseMetadata {
+  type: MemoryType.MESSAGE;
+}
+
+// Document metadata
+interface DocumentMetadata extends BaseMetadata {
+  type: MemoryType.DOCUMENT;
+}
+
+// Fragment metadata (for document chunks)
+interface FragmentMetadata extends BaseMetadata {
+  type: MemoryType.FRAGMENT;
+  documentId: UUID;
+  position: number;
+}
+```
+
+## Creating Memories
+
+### Basic Memory Creation
+
+```typescript
+// Create a message memory
+const messageMemory = await runtime.createMemory({
+  content: { text: "Hello, how can I help you today?" },
+  entityId: userId,
+  roomId: roomId,
+  metadata: {
+    type: MemoryType.MESSAGE,
+    timestamp: Date.now()
+  }
+}, 'messages');
+
+// Create a document memory
+const documentMemory = await runtime.createMemory({
+  content: { 
+    text: documentText,
+    title: "User Guide",
+    source: "docs/user-guide.md"
+  },
+  entityId: agentId,
+  roomId: roomId,
+  metadata: {
+    type: MemoryType.DOCUMENT,
+    source: "filesystem",
+    tags: ["documentation", "guide"]
+  }
+}, 'documents');
+```
+
+### Memory with Embeddings
+
+Embeddings are automatically generated for semantic search:
+
+```typescript
+// Memory with automatic embedding generation
+const memory = await runtime.addEmbeddingToMemory({
+  content: { text: "The weather today is sunny and warm." },
+  entityId: userId,
+  roomId: roomId
+});
+
+// Custom embedding
+const customMemory = {
+  content: { text: "Custom content" },
+  embedding: await generateCustomEmbedding(text),
+  entityId: userId,
+  roomId: roomId
+};
+await runtime.createMemory(customMemory, 'memories');
+```
+
+## Retrieving Memories
+
+### Basic Retrieval
+
+```typescript
+// Get recent messages
+const recentMessages = await runtime.getMemories({
+  roomId: roomId,
+  tableName: 'messages',
+  count: 50,
+  unique: false
+});
+
+// Get memories by time range
+const timeRangeMemories = await runtime.getMemories({
+  roomId: roomId,
+  tableName: 'messages',
+  start: Date.now() - 86400000, // Last 24 hours
+  end: Date.now()
+});
+
+// Get unique memories only
+const uniqueMemories = await runtime.getMemories({
+  roomId: roomId,
+  tableName: 'facts',
+  unique: true,
+  count: 100
+});
+```
+
+### Memory by ID
+
+```typescript
+// Single memory
+const memory = await runtime.getMemoryById(memoryId);
+
+// Multiple memories
+const memories = await runtime.getMemoriesByIds(
+  [id1, id2, id3],
+  'messages'
+);
+```
+
+## Semantic Search
+
+Eliza supports vector-based semantic search using embeddings:
+
+### Basic Semantic Search
+
+```typescript
+// Search for similar memories
+const searchResults = await runtime.searchMemories({
+  query: "weather forecast",
+  tableName: 'messages',
+  roomId: roomId,
+  count: 10,
+  match_threshold: 0.7
+});
+
+// Results include similarity scores
+searchResults.forEach(memory => {
+  console.log(`Text: ${memory.content.text}`);
+  console.log(`Similarity: ${memory.similarity}`);
+});
+```
+
+### Advanced Search with Embeddings
+
+```typescript
+// Generate embedding for search query
+const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+  text: "What's the temperature outside?"
+});
+
+// Search with pre-computed embedding
+const results = await runtime.searchMemories({
+  embedding: queryEmbedding,
+  tableName: 'messages',
+  roomId: roomId,
+  match_threshold: 0.8,
+  count: 5
+});
+```
+
+## Memory Management
+
+### Updating Memories
+
+```typescript
+// Update memory content and regenerate embedding
+const updated = await runtime.updateMemory({
+  id: memoryId,
+  content: { text: "Updated content" },
+  metadata: {
+    type: MemoryType.MESSAGE,
+    edited: true,
+    editedAt: Date.now()
+  }
+});
+```
+
+### Deleting Memories
+
+```typescript
+// Delete single memory
+await runtime.deleteMemory(memoryId);
+
+// Delete multiple memories
+await runtime.deleteManyMemories([id1, id2, id3]);
+
+// Delete all memories in a room
+await runtime.deleteAllMemories(roomId, 'messages');
+```
+
+### Memory Deduplication
+
+The `unique` flag prevents duplicate memories:
+
+```typescript
+// Store unique facts only
+await runtime.createMemory({
+  content: { text: "The user's favorite color is blue" },
+  entityId: userId,
+  roomId: roomId,
+  unique: true
+}, 'facts');
+
+// Second attempt with same content will be ignored
+await runtime.createMemory({
+  content: { text: "The user's favorite color is blue" },
+  entityId: userId,
+  roomId: roomId,
+  unique: true
+}, 'facts'); // No duplicate created
+```
+
+## Document Processing
+
+For large documents, Eliza supports fragmentation:
+
+```typescript
+// Create document with fragments
+async function processDocument(documentText: string, title: string) {
+  // Create main document
+  const documentId = await runtime.createMemory({
+    content: { text: title, fullText: documentText },
+    metadata: {
+      type: MemoryType.DOCUMENT,
+      timestamp: Date.now()
+    }
+  }, 'documents');
+
+  // Create fragments for embedding
+  const chunks = splitIntoChunks(documentText, 1000);
+  
+  for (let i = 0; i < chunks.length; i++) {
+    await runtime.createMemory({
+      content: { text: chunks[i] },
+      metadata: {
+        type: MemoryType.FRAGMENT,
+        documentId: documentId,
+        position: i
+      }
+    }, 'fragments');
+  }
+}
+```
+
+## Caching
+
+Eliza includes caching for frequently accessed data:
+
+```typescript
+// Store in cache
+await runtime.setCache("user_preferences", {
+  theme: "dark",
+  language: "en"
+});
+
+// Retrieve from cache
+const preferences = await runtime.getCache("user_preferences");
+
+// Delete from cache
+await runtime.deleteCache("user_preferences");
+```
+
+## Memory Tables
+
+Eliza uses different tables for different memory types:
+
+- **`memories`**: General purpose memories
+- **`messages`**: Conversation messages
+- **`facts`**: Agent facts and knowledge
+- **`documents`**: Full documents
+- **`fragments`**: Document chunks for search
+
+## Best Practices
+
+### 1. Choose Appropriate Memory Types
+
+```typescript
+// Use specific tables for better organization
+const message = { content: { text: "Hello" }, ... };
+await runtime.createMemory(message, 'messages');
+
+const fact = { content: { text: "User is 25 years old" }, ... };
+await runtime.createMemory(fact, 'facts', true); // unique
+```
+
+### 2. Optimize Embeddings
+
+```typescript
+// Batch processing for multiple memories
+const memories = texts.map(text => ({
+  content: { text },
+  entityId: userId,
+  roomId: roomId
+}));
+
+// Add embeddings in batch
+const memoriesWithEmbeddings = await Promise.all(
+  memories.map(m => runtime.addEmbeddingToMemory(m))
+);
+```
+
+### 3. Use Metadata Effectively
+
+```typescript
+const memory = {
+  content: { text: "Meeting scheduled for tomorrow" },
+  metadata: {
+    type: MemoryType.MESSAGE,
+    source: "calendar",
+    sourceId: eventId,
+    tags: ["meeting", "schedule"],
+    timestamp: Date.now()
+  }
+};
+```
+
+### 4. Implement Search Strategies
+
+```typescript
+// Combine semantic and metadata filtering
+async function searchWithContext(query: string, tags: string[]) {
+  const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+    text: query
+  });
+  
+  const results = await runtime.searchMemories({
+    embedding,
+    tableName: 'messages',
+    roomId: roomId,
+    match_threshold: 0.75
+  });
+  
+  // Filter by tags
+  return results.filter(memory => 
+    tags.some(tag => memory.metadata?.tags?.includes(tag))
+  );
+}
+```
+
+## Example: Conversation Memory
+
+Here's a complete example of managing conversation memory:
+
+```typescript
+class ConversationManager {
+  constructor(private runtime: IAgentRuntime) {}
+  
+  async saveMessage(userId: UUID, text: string, roomId: UUID) {
+    // Create message memory with embedding
+    const memory = await this.runtime.addEmbeddingToMemory({
+      content: { 
+        text,
+        role: "user",
+        timestamp: Date.now()
+      },
+      entityId: userId,
+      roomId: roomId,
+      metadata: {
+        type: MemoryType.MESSAGE,
+        timestamp: Date.now()
+      }
+    });
+    
+    await this.runtime.createMemory(memory, 'messages');
+    return memory.id;
+  }
+  
+  async getConversationContext(roomId: UUID, query: string) {
+    // Get recent messages
+    const recentMessages = await this.runtime.getMemories({
+      roomId,
+      tableName: 'messages',
+      count: 10
+    });
+    
+    // Search for relevant context
+    const relevantMessages = await this.runtime.searchMemories({
+      query,
+      tableName: 'messages',
+      roomId,
+      count: 5,
+      match_threshold: 0.7
+    });
+    
+    // Combine and deduplicate
+    const allMessages = [...recentMessages, ...relevantMessages];
+    const unique = Array.from(
+      new Map(allMessages.map(m => [m.id, m])).values()
+    );
+    
+    return unique.sort((a, b) => 
+      (a.createdAt || 0) - (b.createdAt || 0)
+    );
+  }
+}
+```
+
+## Related Topics
+
+- [State Management](./state-management) - How state is composed using memories
+- [Knowledge Management](./knowledge-management) - Managing agent knowledge base
+- [Database Architecture](./database) - Underlying database structure
