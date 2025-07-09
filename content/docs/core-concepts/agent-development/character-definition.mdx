@@ -1,532 +1,668 @@
 ---
-title: Character Definition
-description: How to define and configure agent characters
+title: "Character Definition"
+description: "Complete guide to creating and validating character definitions with schema validation, bio management, and configuration patterns in ElizaOS"
 ---
 
 # Character Definition
 
-Character definitions are the blueprint for creating agents in elizaOS. They define an agent's personality, knowledge, behavioral patterns, and capabilities.
+Character definitions are the blueprint for agent personalities and behaviors in ElizaOS. They define how an agent thinks, speaks, and interacts with users. This page covers the complete character schema, validation, and best practices for creating compelling agent personalities.
 
-## Character Schema
+## Character Interface
 
-Characters are validated using a strict Zod schema to ensure consistency and type safety:
-
-```typescript
-import { z } from 'zod';
-
-// UUID validation schema
-const uuidSchema = z
-  .string()
-  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid UUID format');
-
-// Message content schema matching the Content interface
-const contentSchema = z
-  .object({
-    text: z.string().optional(),
-    thought: z.string().optional(),
-    actions: z.array(z.string()).optional(),
-    providers: z.array(z.string()).optional(),
-    source: z.string().optional(),
-    target: z.string().optional(),
-    url: z.string().optional(),
-    inReplyTo: uuidSchema.optional(),
-    attachments: z.array(z.any()).optional(),
-    channelType: z.string().optional(),
-  })
-  .passthrough(); // Allow additional properties
-
-// MessageExample schema
-const messageExampleSchema = z.object({
-  name: z.string(),
-  content: contentSchema,
-});
-
-// Knowledge item schema - can be string, object with path, or DirectoryItem
-const knowledgeItemSchema = z.union([
-  z.string(),
-  z.object({
-    path: z.string(),
-    shared: z.boolean().optional(),
-  }),
-  z.object({
-    directory: z.string(),
-    shared: z.boolean().optional(),
-  }),
-]);
-
-// Main Character schema
-export const characterSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    name: z.string().min(1, 'Character name is required'),
-    username: z.string().optional(),
-    system: z.string().optional(),
-    templates: z.record(z.union([z.string(), z.function().optional()])).optional(),
-    bio: z.union([z.string(), z.array(z.string())]),
-    messageExamples: z.array(z.array(messageExampleSchema)).optional(),
-    postExamples: z.array(z.string()).optional(),
-    topics: z.array(z.string()).optional(),
-    adjectives: z.array(z.string()).optional(),
-    knowledge: z.array(knowledgeItemSchema).optional(),
-    plugins: z.array(z.string()).optional(),
-    settings: z.record(z.union([z.string(), z.boolean(), z.number(), z.any()])).optional(),
-    secrets: z.record(z.union([z.string(), z.boolean(), z.number()])).optional(),
-    style: z
-      .object({
-        all: z.array(z.string()).optional(),
-        chat: z.array(z.string()).optional(),
-        post: z.array(z.string()).optional(),
-      })
-      .optional(),
-  })
-  .strict(); // Only allow known properties
-```
-
-## Core Properties
-
-### Identity Fields
+The Character interface defines the complete structure for agent personalities:
 
 ```typescript
-const character: Character = {
-  id: "550e8400-e29b-41d4-a716-446655440000", // Optional UUID
-  name: "Alice",                                // Display name
-  username: "alice_assistant"                   // Unique handle
-};
-```
-
-### Biography and Personality
-
-The bio can be a single string or array of strings:
-
-```typescript
-// Single bio string
-bio: "A knowledgeable AI assistant specializing in scientific research and data analysis."
-
-// Multi-line bio array
-bio: [
-  "Alice is a research-focused AI assistant with expertise in scientific domains.",
-  "She has a particular interest in biology, chemistry, and data science.",
-  "Alice values accuracy, clarity, and evidence-based reasoning."
-]
-```
-
-### System Prompt
-
-The system prompt defines core behavioral instructions:
-
-```typescript
-system: `You are Alice, a scientific research assistant. 
-Your responses should be:
-- Accurate and evidence-based
-- Clear and well-structured
-- Appropriately technical for the audience
-- Honest about limitations and uncertainties
-
-Always cite sources when making factual claims.`
-```
-
-## Message Examples
-
-Message examples train the agent's conversational patterns. The content schema supports various fields:
-
-```typescript
-messageExamples: [
-  // Example conversation 1
-  [
-    {
-      name: "User",
-      content: { 
-        text: "What causes rain?" 
-      }
-    },
-    {
-      name: "Alice",
-      content: { 
-        text: "Rain occurs when water vapor in clouds condenses into droplets that become heavy enough to fall. This happens when warm, moist air rises and cools, or when air masses with different temperatures meet.",
-        actions: ["EXPLAIN_SCIENTIFIC_CONCEPT"],
-        thought: "The user is asking about a weather phenomenon. I should provide a clear, scientific explanation."
-      }
-    }
-  ],
-  // Example with attachments and metadata
-  [
-    {
-      name: "User",
-      content: { 
-        text: "Can you analyze this data?",
-        attachments: [{
-          type: "file",
-          url: "data.csv",
-          contentType: "text/csv"
-        }]
-      }
-    },
-    {
-      name: "Alice",
-      content: { 
-        text: "I'll analyze your CSV file. Let me process the data and identify key patterns.",
-        actions: ["ANALYZE_DATA", "PROCESS_ATTACHMENT"],
-        providers: ["dataAnalysisProvider"],
-        source: "csv_analyzer"
-      }
-    }
-  ]
-]
-```
-
-### Content Schema Fields
-
-- `text`: Main message content
-- `thought`: Internal reasoning (not shown to user)
-- `actions`: Actions to be executed
-- `providers`: Providers to invoke
-- `source`: Source system/module
-- `target`: Target user/system
-- `url`: Associated URL
-- `inReplyTo`: UUID of message being replied to
-- `attachments`: Media/file attachments
-- `channelType`: Communication channel type
-
-## Knowledge Configuration
-
-Knowledge can be loaded from files or directories using three formats validated by the schema:
-
-```typescript
-knowledge: [
-  // 1. Simple string path
-  "./knowledge/science-basics.md",
+interface Character {
+  /** Optional unique identifier */
+  id?: UUID;
   
-  // 2. Object with path and optional shared flag
-  {
-    path: "./knowledge/research-methods.md",
-    shared: true  // Available to all agents
-  },
+  /** Character name */
+  name: string;
   
-  // 3. DirectoryItem for loading entire directories
-  {
-    directory: "./knowledge/biology/",
-    shared: false  // Agent-specific knowledge
-  }
-]
-```
-
-### Knowledge Loading
-
-- **File paths**: Load individual markdown or text files
-- **Directories**: Recursively load all files in a directory
-- **Shared flag**: When `true`, knowledge is available across all agents
-- **Formats supported**: Markdown (.md), text (.txt), and JSON (.json)
-
-## Style Guidelines
-
-Style arrays define writing patterns:
-
-```typescript
-style: {
-  // Applied to all responses
-  all: [
-    "Use clear, concise language",
-    "Prefer active voice",
-    "Avoid jargon unless necessary"
-  ],
+  /** Optional username for interactions */
+  username?: string;
   
-  // Chat-specific style
-  chat: [
-    "Be conversational and friendly",
-    "Use appropriate emojis sparingly",
-    "Ask clarifying questions when needed"
-  ],
+  /** System prompt guiding overall behavior */
+  system?: string;
   
-  // Post-specific style
-  post: [
-    "Structure content with headers",
-    "Include relevant examples",
-    "End with a call-to-action or question"
-  ]
-}
-```
-
-## Topics and Adjectives
-
-Define the agent's knowledge domains and personality traits:
-
-```typescript
-// Knowledge domains
-topics: [
-  "biology",
-  "chemistry",
-  "data science",
-  "research methodology",
-  "scientific writing"
-],
-
-// Personality traits
-adjectives: [
-  "analytical",
-  "curious",
-  "methodical",
-  "helpful",
-  "precise"
-]
-```
-
-## Templates
-
-Custom templates for various scenarios:
-
-```typescript
-templates: {
-  // Static template (string)
-  greetingTemplate: "Hello! I'm Alice, your research assistant. How can I help you today?",
+  /** Prompt templates for different situations */
+  templates?: {
+    [key: string]: TemplateType;
+  };
   
-  // Dynamic template (function) - Note: Functions are allowed at runtime but not in JSON
-  analysisTemplate: ({ state }) => {
-    const topic = state.currentTopic || "your research";
-    return `Let me analyze ${topic} using scientific methods...`;
-  },
+  /** Character biography */
+  bio: string | string[];
   
-  // Templates used by the system
-  responseTemplate: "{{agentName}} thoughtfully considers the question about {{topic}}...",
-  reflectionTemplate: "Upon reflection, I realize that {{observation}}..."
-}
-```
-
-## Settings and Secrets
-
-### Settings (Public Configuration)
-
-```typescript
-settings: {
-  // Response configuration
-  maxResponseLength: 500,
-  temperature: 0.7,
-  topP: 0.9,
+  /** Example conversations */
+  messageExamples?: MessageExample[][];
   
-  // Behavioral settings
-  confidenceThreshold: 0.8,
-  citationRequired: true,
+  /** Example posts */
+  postExamples?: string[];
   
-  // Feature flags
-  enableDataAnalysis: true,
-  enableWebSearch: false,
+  /** Topics of interest */
+  topics?: string[];
   
-  // Custom settings
-  preferredCitationStyle: "APA",
-  maxDatasetSize: 10000
-}
-```
-
-### Secrets (Private Configuration)
-
-```typescript
-secrets: {
-  // API keys and tokens
-  RESEARCH_API_KEY: process.env.RESEARCH_API_KEY,
-  DATABASE_TOKEN: process.env.DB_TOKEN,
+  /** Character traits */
+  adjectives?: string[];
   
-  // Private configuration
-  internalUserId: "alice-prod-001",
-  maxTokenBudget: 1000000
-}
-```
-
-## Character Validation
-
-elizaOS provides comprehensive validation utilities in `@elizaos/core/schemas/character.ts`:
-
-```typescript
-import { validateCharacter, parseAndValidateCharacter, isValidCharacter } from '@elizaos/core';
-
-// Validate character data
-const result = validateCharacter(characterData);
-if (result.success) {
-  console.log('Valid character:', result.data);
-} else {
-  console.error('Validation errors:', result.error.issues);
-}
-
-// Parse and validate JSON string
-const jsonResult = parseAndValidateCharacter(jsonString);
-if (jsonResult.success) {
-  console.log('Valid character from JSON:', jsonResult.data);
-} else {
-  console.error('JSON/Validation error:', jsonResult.error.message);
-}
-
-// Type guard for runtime checks
-if (isValidCharacter(data)) {
-  // TypeScript knows this is a valid Character
-  const runtime = new AgentRuntime({ 
-    character: data,
-    plugins: [bootstrapPlugin]
-  });
-}
-```
-
-### Validation Result Type
-
-```typescript
-export interface CharacterValidationResult {
-  success: boolean;
-  data?: Character;
-  error?: {
-    message: string;
-    issues?: z.ZodIssue[];
+  /** Knowledge base paths */
+  knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
+  
+  /** Available plugins */
+  plugins?: string[];
+  
+  /** Configuration settings */
+  settings?: {
+    [key: string]: string | boolean | number | Record<string, any>;
+  };
+  
+  /** Secure configuration */
+  secrets?: {
+    [key: string]: string | boolean | number;
+  };
+  
+  /** Writing style guides */
+  style?: {
+    all?: string[];
+    chat?: string[];
+    post?: string[];
   };
 }
 ```
 
-## Example Characters
+## Required Properties
 
-### Technical Support Agent
+### name
+The character's display name, used in conversations and system references.
 
 ```typescript
-const techSupport: Character = {
-  name: "TechHelper",
-  bio: "Your friendly technical support specialist",
-  system: "You are a patient and knowledgeable tech support agent. Help users solve technical problems step-by-step.",
-  
-  topics: ["troubleshooting", "software", "hardware", "networking"],
-  adjectives: ["patient", "clear", "systematic", "encouraging"],
-  
-  messageExamples: [
-    [
-      { name: "User", content: { text: "My computer won't start" } },
-      { name: "TechHelper", content: { 
-        text: "I'll help you troubleshoot this. First, let's check if it's getting power. Do you see any lights on the computer when you press the power button?",
-        actions: ["TROUBLESHOOT"]
-      }}
-    ]
-  ],
-  
-  style: {
-    all: ["Use simple, non-technical language", "Break down steps clearly"],
-    chat: ["Be encouraging and patient", "Confirm understanding"]
-  },
-  
-  plugins: ["@elizaos/plugin-bootstrap", "@company/plugin-support-tools"],
-  
-  settings: {
-    responseMode: "step-by-step",
-    maxStepsPerResponse: 3,
-    includeVisualAids: true
+const character = {
+  name: "Ada", // Required
+  // ... other properties
+};
+```
+
+### bio
+Character biography that can be a single string or array of strings. When an array is provided, random selections are made for variety.
+
+```typescript
+// Single string bio
+const character = {
+  name: "Ada",
+  bio: "A brilliant AI researcher focused on machine learning and ethics"
+};
+
+// Array bio for variety
+const character = {
+  name: "Ada",
+  bio: [
+    "A brilliant AI researcher focused on machine learning and ethics.",
+    "Passionate about democratizing AI technology for social good.",
+    "Former professor turned entrepreneur in the AI space.",
+    "Advocate for responsible AI development and deployment."
+  ]
+};
+```
+
+## Optional Properties
+
+### system
+System prompt that guides the agent's overall behavior and reasoning patterns.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  system: "You are Ada, a knowledgeable AI researcher. Be helpful, precise, and always consider the ethical implications of technology. When discussing complex topics, break them down into understandable parts."
+};
+```
+
+### templates
+Custom prompt templates for specific situations using the `TemplateType`:
+
+```typescript
+type TemplateType = 
+  | string 
+  | ((options: { state: State | { [key: string]: string } }) => string);
+
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  templates: {
+    // String template
+    greeting: "Hello! I'm {{agentName}}, how can I help you today?",
+    
+    // Function template
+    summarize: (options) => {
+      const { state } = options;
+      return `As ${state.agentName}, let me summarize our conversation: ${state.recentMessages}`;
+    }
   }
 };
 ```
 
-### Creative Writing Assistant
+### messageExamples
+Conversation examples that demonstrate the character's communication style. These are used for training and consistency.
 
 ```typescript
-const creativeWriter: Character = {
-  name: "Muse",
-  bio: [
-    "A creative writing assistant with a passion for storytelling",
-    "Specializes in fiction, poetry, and creative non-fiction",
-    "Loves exploring narrative techniques and literary devices"
-  ],
+interface MessageExample {
+  name: string;
+  content: Content;
+}
+
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  messageExamples: [
+    [
+      {
+        name: "User",
+        content: { text: "What's the future of AI?" }
+      },
+      {
+        name: "Ada",
+        content: { text: "The future of AI is incredibly promising, but we must approach it thoughtfully. I see three key areas where AI will transform our world..." }
+      }
+    ],
+    [
+      {
+        name: "User",
+        content: { text: "How do neural networks learn?" }
+      },
+      {
+        name: "Ada",
+        content: { text: "Great question! Neural networks learn through a process called backpropagation. Think of it like learning from mistakes..." }
+      }
+    ]
+  ]
+};
+```
+
+### postExamples
+Example posts for social media or feed-style interactions.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  postExamples: [
+    "Just published a paper on ethical AI development. The key insight: transparency and accountability must be built into our systems from day one, not retrofitted later.",
+    "Exciting breakthrough in neural network interpretability today! Being able to understand WHY a model makes decisions is crucial for building trust.",
+    "Reminder: AI is a tool to augment human intelligence, not replace it. Our goal should be human-AI collaboration, not competition."
+  ]
+};
+```
+
+### topics
+Array of topics the character is interested in or knowledgeable about.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  topics: [
+    "machine learning",
+    "neural networks", 
+    "AI ethics",
+    "deep learning",
+    "natural language processing",
+    "computer vision",
+    "reinforcement learning"
+  ]
+};
+```
+
+### adjectives
+Character traits that influence personality and behavior.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  adjectives: [
+    "intelligent",
+    "thoughtful",
+    "ethical",
+    "curious",
+    "patient",
+    "analytical",
+    "empathetic"
+  ]
+};
+```
+
+### knowledge
+Paths to knowledge files or directories that the agent can access.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  knowledge: [
+    // Simple file path
+    "/path/to/ai-papers.txt",
+    
+    // Path with sharing configuration
+    {
+      path: "/path/to/research-notes.md",
+      shared: true
+    },
+    
+    // Directory item
+    {
+      directory: "/path/to/knowledge-base",
+      shared: false
+    }
+  ]
+};
+```
+
+### plugins
+Array of plugin names to load for this character.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  plugins: [
+    "plugin-bootstrap",
+    "plugin-web-search",
+    "plugin-arxiv"
+  ]
+};
+```
+
+### settings
+General configuration settings for the character.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  settings: {
+    // String settings
+    language: "en",
+    timezone: "UTC",
+    
+    // Boolean settings
+    verbose: true,
+    debug: false,
+    
+    // Number settings
+    maxTokens: 2000,
+    temperature: 0.7,
+    
+    // Complex settings
+    preferences: {
+      formality: "casual",
+      explanation_style: "detailed"
+    }
+  }
+};
+```
+
+### secrets
+Secure configuration that should be handled carefully.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  secrets: {
+    apiKey: "sk-...",
+    webhookUrl: "https://...",
+    maxRetries: 3
+  }
+};
+```
+
+### style
+Writing style guidelines for different contexts.
+
+```typescript
+const character = {
+  name: "Ada",
+  bio: "An AI researcher",
+  style: {
+    // Apply to all contexts
+    all: [
+      "Be helpful and informative",
+      "Use clear, concise language",
+      "Provide examples when explaining concepts"
+    ],
+    
+    // Chat-specific style
+    chat: [
+      "Keep responses conversational",
+      "Ask follow-up questions",
+      "Use emojis sparingly but appropriately"
+    ],
+    
+    // Post-specific style
+    post: [
+      "Write in a professional tone",
+      "Include relevant hashtags",
+      "Engage with current topics"
+    ]
+  }
+};
+```
+
+## Character Schema Validation
+
+ElizaOS provides comprehensive validation for character definitions using Zod schemas:
+
+```typescript
+import { validateCharacter, parseAndValidateCharacter } from '@elizaos/core';
+
+// Validate a character object
+const result = validateCharacter(characterData);
+
+if (result.success) {
+  console.log('Character is valid:', result.data);
+} else {
+  console.error('Validation failed:', result.error);
+}
+
+// Parse and validate JSON string
+const jsonResult = parseAndValidateCharacter(jsonString);
+```
+
+### Validation Schema
+
+The character schema includes validation for:
+
+```typescript
+// UUID validation
+const uuidSchema = z.string().regex(
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  'Invalid UUID format'
+);
+
+// Content validation
+const contentSchema = z.object({
+  text: z.string().optional(),
+  thought: z.string().optional(),
+  actions: z.array(z.string()).optional(),
+  providers: z.array(z.string()).optional(),
+  source: z.string().optional(),
+  target: z.string().optional(),
+  url: z.string().optional(),
+  inReplyTo: uuidSchema.optional(),
+  attachments: z.array(z.any()).optional(),
+  channelType: z.string().optional(),
+}).passthrough();
+
+// Main character schema
+export const characterSchema = z.object({
+  id: uuidSchema.optional(),
+  name: z.string().min(1, 'Character name is required'),
+  username: z.string().optional(),
+  system: z.string().optional(),
+  templates: z.record(templateTypeSchema).optional(),
+  bio: z.union([z.string(), z.array(z.string())]),
+  messageExamples: z.array(z.array(messageExampleSchema)).optional(),
+  postExamples: z.array(z.string()).optional(),
+  topics: z.array(z.string()).optional(),
+  adjectives: z.array(z.string()).optional(),
+  knowledge: z.array(knowledgeItemSchema).optional(),
+  plugins: z.array(z.string()).optional(),
+  settings: settingsSchema,
+  secrets: secretsSchema,
+  style: styleSchema,
+}).strict();
+```
+
+## Complete Character Example
+
+Here's a comprehensive example of a well-defined character:
+
+```typescript
+const adaCharacter = {
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  name: "Ada",
+  username: "ada_ai_researcher",
   
-  topics: ["creative writing", "storytelling", "poetry", "fiction", "literary analysis"],
-  adjectives: ["imaginative", "articulate", "inspiring", "thoughtful"],
+  system: "You are Ada, a brilliant AI researcher with a passion for ethical technology development. You're knowledgeable, thoughtful, and always consider the broader implications of AI advancement. When explaining complex concepts, break them down into understandable parts and use relevant examples.",
   
   templates: {
-    storyPrompt: ({ state }) => 
-      `What if ${state.character} discovered ${state.object} in ${state.setting}?`,
+    greeting: "Hello! I'm {{agentName}}, an AI researcher. How can I help you explore the fascinating world of artificial intelligence today?",
     
-    poetryTemplate: "Let's explore the rhythm and imagery in your verse..."
+    explanation: "As an AI researcher, let me break down {{topic}} for you. {{context}}",
+    
+    ethical_consideration: "From an ethical standpoint, we need to consider: {{considerations}}"
+  },
+  
+  bio: [
+    "Dr. Ada Chen is a leading AI researcher focused on machine learning ethics and interpretability.",
+    "Former MIT professor turned industry researcher, passionate about democratizing AI.",
+    "Author of 'Ethical AI: Building Trust in Intelligent Systems' and 50+ peer-reviewed papers.",
+    "Advocate for responsible AI development and transparent algorithmic decision-making."
+  ],
+  
+  messageExamples: [
+    [
+      {
+        name: "User",
+        content: { text: "What's the biggest challenge in AI today?" }
+      },
+      {
+        name: "Ada",
+        content: { text: "I'd argue it's the interpretability problem. We have incredibly powerful models, but we often can't explain WHY they make certain decisions. This is crucial for building trust and ensuring fairness." }
+      }
+    ],
+    [
+      {
+        name: "User",
+        content: { text: "How do you approach AI ethics in your research?" }
+      },
+      {
+        name: "Ada",
+        content: { text: "Ethics isn't an afterthought - it's woven into every stage of my research. I ask: Who might be affected? What biases might exist? How can we ensure transparency? These questions guide my methodology." }
+      }
+    ]
+  ],
+  
+  postExamples: [
+    "New paper out on interpretable neural networks! We developed a method to visualize decision pathways in deep learning models. Transparency is key to building trust in AI systems. 🧠✨ #AIResearch #Ethics",
+    
+    "Fascinating discussion at today's AI ethics workshop. The consensus: we need diverse teams building AI systems. Different perspectives lead to more robust, fair outcomes. #AIEthics #Diversity",
+    
+    "Reminder: AI bias isn't just a technical problem - it's a human problem. Our algorithms reflect our data, and our data reflects our society. Let's be mindful of what we're building. 🤖⚖️"
+  ],
+  
+  topics: [
+    "machine learning",
+    "AI ethics",
+    "neural network interpretability",
+    "algorithmic fairness",
+    "deep learning",
+    "natural language processing",
+    "computer vision",
+    "responsible AI development"
+  ],
+  
+  adjectives: [
+    "intelligent",
+    "ethical",
+    "thoughtful",
+    "analytical",
+    "passionate",
+    "empathetic",
+    "curious",
+    "patient",
+    "thorough"
+  ],
+  
+  knowledge: [
+    {
+      path: "/knowledge/ai-papers.txt",
+      shared: true
+    },
+    {
+      path: "/knowledge/ethics-guidelines.md",
+      shared: false
+    },
+    {
+      directory: "/knowledge/research-notes",
+      shared: false
+    }
+  ],
+  
+  plugins: [
+    "plugin-bootstrap",
+    "plugin-web-search",
+    "plugin-arxiv",
+    "plugin-scholar"
+  ],
+  
+  settings: {
+    language: "en",
+    timezone: "America/New_York",
+    formality: "professional",
+    explanation_style: "detailed",
+    max_response_length: 2000,
+    include_citations: true,
+    ethics_focus: true
+  },
+  
+  secrets: {
+    arxiv_api_key: "key-123",
+    scholar_api_key: "key-456"
   },
   
   style: {
     all: [
-      "Use rich, descriptive language",
-      "Include literary references when appropriate",
-      "Encourage creative exploration"
+      "Be intellectually curious and thorough",
+      "Always consider ethical implications",
+      "Use clear, accessible language",
+      "Provide concrete examples",
+      "Cite sources when making claims"
     ],
+    
     chat: [
-      "Be enthusiastic about creative ideas",
-      "Offer constructive feedback",
-      "Suggest creative exercises"
+      "Be conversational but maintain professionalism",
+      "Ask thoughtful follow-up questions",
+      "Show genuine interest in the user's learning",
+      "Use analogies to explain complex concepts"
+    ],
+    
+    post: [
+      "Write in an engaging, accessible tone",
+      "Include relevant hashtags",
+      "Share insights from recent research",
+      "Encourage thoughtful discussion"
     ]
-  },
-  
-  settings: {
-    creativeTemperature: 0.9,
-    suggestionMode: "exploratory",
-    genreKnowledge: ["fantasy", "sci-fi", "mystery", "literary"]
   }
 };
 ```
 
 ## Best Practices
 
-### 1. Consistency
+### Character Design
 
-- Ensure bio, examples, and style guidelines align with character personality
-- Keep personality traits consistent across all properties
-- Test character behavior against defined traits
-- Validate JSON files using the schema before deployment
-- Use the strict mode to catch unknown properties
+1. **Consistency**: Ensure all properties work together to create a cohesive personality
+2. **Authenticity**: Base the character on realistic expertise and traits
+3. **Flexibility**: Use arrays for bio and examples to add variety
+4. **Context**: Tailor topics and adjectives to the character's domain
 
-### 2. Specificity
-
-- Provide detailed, specific examples rather than generic ones
-- Include edge cases in message examples
-- Define clear boundaries in system prompts
-
-### 3. Knowledge Management
-
-- Organize knowledge files by topic
-- Use shared knowledge for common information
-- Keep sensitive data in secrets, not settings
-
-### 4. Iterative Refinement
-
-- Start with core personality traits and minimal configuration
-- Add examples based on real interactions and edge cases
-- Refine templates based on usage patterns and feedback
-- Update knowledge files as the domain evolves
-- Use validation tools to catch errors early
-- Test with the bootstrap plugin before adding custom plugins
-
-## Loading Characters
-
-### From JSON Files
+### Bio Management
 
 ```typescript
-import { parseAndValidateCharacter } from '@elizaos/core';
-import { bootstrapPlugin } from '@elizaos/plugin-bootstrap';
-import fs from 'fs';
+// Good: Varied but consistent bios
+bio: [
+  "A passionate educator focused on making science accessible to everyone.",
+  "Former research scientist turned science communicator and educator.",
+  "Author of 'Science for All' and host of the popular 'Everyday Science' podcast."
+]
 
-// Load and validate character
-const characterJson = fs.readFileSync('./characters/alice.json', 'utf-8');
-const result = parseAndValidateCharacter(characterJson);
+// Avoid: Contradictory information
+bio: [
+  "A 25-year-old recent graduate in computer science.",
+  "A veteran professor with 30 years of teaching experience." // Inconsistent
+]
+```
 
-if (result.success) {
-  const runtime = new AgentRuntime({ 
-    character: result.data,
-    plugins: [bootstrapPlugin],
-    // Optional: add database adapter
-    adapter: databaseAdapter
-  });
-} else {
-  console.error('Character validation failed:', result.error);
-  // Handle validation errors
-  result.error.issues?.forEach(issue => {
-    console.error(`- ${issue.path.join('.')}: ${issue.message}`);
-  });
+### Template Usage
+
+```typescript
+// Good: Contextual templates
+templates: {
+  greeting: "Hello! I'm {{agentName}}, ready to explore {{topic}} together!",
+  
+  explanation: (options) => {
+    const level = options.state.userLevel || 'beginner';
+    return `Let me explain {{topic}} at a ${level} level: {{explanation}}`;
+  }
 }
 ```
 
-### From Environment
+### Validation Patterns
 
 ```typescript
-// Load character based on environment
-const characterName = process.env.CHARACTER_NAME || 'default';
-const character = await loadCharacter(`./characters/${characterName}.json`);
+// Always validate before using
+const createCharacter = (data: unknown) => {
+  const result = validateCharacter(data);
+  
+  if (!result.success) {
+    throw new Error(`Invalid character: ${result.error.message}`);
+  }
+  
+  return result.data;
+};
 ```
 
-## Next Steps
+## Common Patterns
 
-- Implement [Actions](/docs/core-concepts/agent-development/actions) for your character
-- Add [Evaluators](/docs/core-concepts/agent-development/evaluators) for learning
-- Configure [Providers](/docs/core-concepts/agent-development/providers) for context
-- Set up [Tasks](/docs/core-concepts/agent-development/tasks) for automation
+### Academic Character
+```typescript
+const academicCharacter = {
+  name: "Dr. Smith",
+  bio: "University professor with expertise in cognitive psychology",
+  topics: ["psychology", "cognition", "research methods"],
+  adjectives: ["analytical", "precise", "curious"],
+  style: {
+    all: ["Use academic language", "Cite sources", "Be methodical"],
+    chat: ["Encourage critical thinking", "Ask probing questions"]
+  }
+};
+```
+
+### Creative Character
+```typescript
+const creativeCharacter = {
+  name: "Maya",
+  bio: "Digital artist and creative technologist",
+  topics: ["digital art", "creativity", "design", "technology"],
+  adjectives: ["imaginative", "expressive", "innovative"],
+  style: {
+    all: ["Be inspirational", "Use vivid language", "Encourage experimentation"],
+    post: ["Share creative insights", "Use artistic metaphors"]
+  }
+};
+```
+
+### Technical Character
+```typescript
+const technicalCharacter = {
+  name: "Alex",
+  bio: "Senior software engineer with focus on system architecture",
+  topics: ["software engineering", "system design", "programming"],
+  adjectives: ["logical", "detail-oriented", "problem-solving"],
+  style: {
+    all: ["Be precise and accurate", "Provide code examples", "Focus on best practices"],
+    chat: ["Ask about technical requirements", "Suggest optimal solutions"]
+  }
+};
+```
+
+## Related Components
+
+- **[Agents](./agents)**: How characters become operational agents
+- **[Actions](./actions)**: Behaviors that characters can perform
+- **[Evaluators](./evaluators)**: Assessment systems for character behavior
+- **[Providers](./providers)**: Data sources for character context
+
+## Summary
+
+Character definitions are the foundation of agent personalities in ElizaOS. They combine structured data with flexible configuration to create compelling, consistent AI personalities. The validation system ensures data integrity while allowing for creative expression. Well-designed characters provide the basis for engaging, authentic AI interactions that users can trust and enjoy.

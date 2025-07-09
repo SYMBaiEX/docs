@@ -1,11 +1,11 @@
 ---
-title: Message Handlers
-description: Comprehensive guide to message processing and handling patterns in elizaOS
+title: "Message Handlers"
+description: "Comprehensive guide to message processing and handling patterns in ElizaOS"
 ---
 
 # Message Handlers
 
-Message handlers are the core processing units in elizaOS that handle incoming messages, generate responses, and execute actions. The bootstrap plugin provides the primary message handling pipeline, orchestrating the entire agent response lifecycle from message reception to final output.
+Message handlers are the core processing units in ElizaOS that handle incoming messages, generate responses, and execute actions. The bootstrap plugin provides the primary message handling pipeline, orchestrating the entire agent response lifecycle from message reception to final output.
 
 ## Message Processing Pipeline
 
@@ -18,6 +18,48 @@ The message processing pipeline follows these key stages:
 5. **Response Generation**: Create appropriate response content
 6. **Action Processing**: Execute any required actions
 7. **Response Delivery**: Send response back through the message bus
+
+## MessageBusService
+
+The `MessageBusService` is the intermediary that connects agents to the central message bus and handles message routing:
+
+```typescript
+export class MessageBusService extends Service {
+  static serviceType = 'message-bus-service';
+  capabilityDescription = 'Manages connection and message synchronization with the message server.';
+
+  private boundHandleIncomingMessage: (message: MessageServiceMessage) => Promise<void>;
+  private validChannelIds: Set<UUID> = new Set();
+  private subscribedServers: Set<UUID> = new Set();
+}
+```
+
+### Message Flow Through MessageBusService
+
+1. **Subscription**: Service subscribes to internal message bus events
+2. **Validation**: Validates server subscription and channel participation
+3. **Processing**: Converts message format and emits to agent runtime
+4. **Response**: Handles agent responses and sends back to central bus
+
+```typescript
+private async handleIncomingMessage(message: MessageServiceMessage) {
+  // Validate channel participation
+  const participants = await this.getChannelParticipants(message.channel_id);
+  if (!participants.includes(this.runtime.agentId)) {
+    return;
+  }
+
+  // Create agent memory from message
+  const agentMemory = this.createAgentMemory(message, ...);
+
+  // Emit to runtime for processing
+  await this.runtime.emitEvent(EventType.MESSAGE_RECEIVED, {
+    runtime: this.runtime,
+    message: agentMemory,
+    callback: this.handleAgentResponse.bind(this)
+  });
+}
+```
 
 ## Main Message Handler
 

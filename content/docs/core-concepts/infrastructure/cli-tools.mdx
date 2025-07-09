@@ -1,9 +1,9 @@
 ---
 title: CLI Tools
-description: Complete guide to ElizaOS CLI commands and development utilities
+description: Complete guide to ElizaOS CLI commands and development utilities with actual implementation details
 ---
 
-## Overview
+# CLI Tools
 
 The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to manage your ElizaOS projects and plugins, from local development to cloud deployment. It includes:
 
@@ -13,6 +13,99 @@ The ElizaOS CLI (`@elizaos/cli`) provides a comprehensive set of commands to man
 - Development environment tools
 - Testing infrastructure
 - Publishing and deployment utilities
+
+## CLI Architecture
+
+The CLI is built with a command-based architecture located in `/home/cid/eliza/packages/cli/src/commands/`:
+
+```
+commands/
+├── agent/          # Agent lifecycle management
+├── create/         # Project creation
+├── dev/            # Development server
+├── env/            # Environment management
+├── monorepo/       # Monorepo setup
+├── plugins/        # Plugin management
+├── publish/        # Publishing utilities
+├── shared/         # Shared utilities
+├── start/          # Server startup
+├── tee/            # TEE integration
+├── test/           # Testing framework
+└── update/         # Update management
+```
+
+## Command Implementation Details
+
+### Create Command
+
+The create command uses actual templates from the codebase:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/create/actions/creators.ts
+export async function createProject(options: CreateProjectOptions) {
+  const { name, dir, type, skipPrompts } = options;
+  
+  // Template selection logic
+  const templateMap = {
+    'project': 'project-starter',
+    'plugin': 'plugin-starter',
+    'agent': 'agent-starter',
+    'tee': 'tee-starter'
+  };
+  
+  const template = templateMap[type] || 'project-starter';
+  
+  // Copy template with replacements
+  await copyTemplate(template, targetDir, {
+    replacements: {
+      PROJECTNAME: name,
+      DESCRIPTION: `A new ElizaOS ${type}`,
+      AUTHOR: await getGitUser(),
+      YEAR: new Date().getFullYear().toString()
+    }
+  });
+  
+  // Post-creation setup
+  await setupProject(targetDir, type);
+}
+```
+
+### Test Command
+
+The test command implements comprehensive testing as shown in the actual implementation:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/test/actions/component-tests.ts
+export async function runComponentTests(
+  testPath: string | undefined,
+  options: TestCommandOptions,
+  projectInfo: ProjectInfo
+): Promise<TestResult> {
+  const { name, skipBuild, port } = options;
+  
+  // TypeScript validation
+  const tscValidator = new TypeScriptValidator();
+  const validationResult = await tscValidator.validate(testPath);
+  
+  if (!validationResult.success) {
+    logger.error('TypeScript validation failed');
+    return { success: false, failed: true };
+  }
+  
+  // Run Bun tests
+  const testCommand = ['bun', 'test'];
+  if (name) testCommand.push('--grep', name);
+  if (port) testCommand.push('--port', port.toString());
+  
+  const result = await runCommand(testCommand, { cwd: testPath });
+  
+  return {
+    success: result.exitCode === 0,
+    failed: result.exitCode !== 0,
+    output: result.stdout + result.stderr
+  };
+}
+```
 
 ## Installation
 

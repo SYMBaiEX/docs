@@ -1,533 +1,705 @@
 ---
-title: Package Organization
-description: Comprehensive overview of the 15 core packages and their relationships in elizaOS
+title: "Package Organization"
+description: "Detailed guide to package organization, dependencies, and architectural patterns"
 ---
 
 # Package Organization
 
-elizaOS is organized into 15 core packages within a monorepo structure. Each package serves a specific purpose and follows consistent patterns for dependency management, API design, and extensibility.
+ElizaOS follows a well-structured package organization that promotes modularity, reusability, and maintainability. This document provides a comprehensive overview of how packages are organized, their dependencies, and the architectural patterns used throughout the system.
 
 ## Package Hierarchy
 
-### Core Foundation
+### Core Layer
+
+The core layer provides fundamental functionality that all other packages depend on:
 
 ```
 @elizaos/core
-├── Types and interfaces
-├── Agent runtime
-├── Plugin system
-├── Service management
-└── Utilities
+├── Runtime System
+├── Type Definitions
+├── Database Abstractions
+├── Plugin Interface
+├── Memory Management
+├── Action Framework
+├── Service Architecture
+└── Utility Functions
 ```
 
-### Application Layer
+### Interface Layer
+
+The interface layer provides user-facing components and APIs:
 
 ```
-@elizaos/cli                    # Command-line interface
-@elizaos/client                 # Web-based management UI
-@elizaos/server                 # HTTP server for agent communication
-@elizaos/app                    # Desktop application (Tauri)
+@elizaos/client          # Web-based user interface
+@elizaos/cli             # Command-line interface
+@elizaos/api-client      # TypeScript API client
+@elizaos/server          # Server components
 ```
 
-### Data and Infrastructure
+### Plugin Layer
+
+The plugin layer extends core functionality:
 
 ```
-@elizaos/plugin-sql             # Database adapter and migrations
-@elizaos/plugin-bootstrap       # Essential actions, evaluators, providers
-@elizaos/api-client             # HTTP client for API communication
+@elizaos/plugin-sql                # Database adapter
+@elizaos/plugin-bootstrap          # Bootstrap functionality
+@elizaos/plugin-dummy-services     # Testing services
+@elizaos/plugin-starter            # Plugin template
 ```
 
-### Development Tools
+### Development Layer
+
+The development layer supports development and tooling:
 
 ```
-@elizaos/autodoc                # Automatic documentation generation
-@elizaos/docs                   # Documentation website
-@elizaos/create-eliza           # Project bootstrapping tool
-```
-
-### Templates and Starters
-
-```
-@elizaos/plugin-starter         # Plugin development template
-@elizaos/project-starter        # Basic project template
-@elizaos/project-tee-starter    # TEE (Trusted Execution Environment) template
-@elizaos/plugin-dummy-services  # Mock services for testing
-```
-
-## Core Packages
-
-### `@elizaos/core`
-
-The foundation package containing all essential types, interfaces, and utilities:
-
-**Key Components:**
-- **Runtime System**: Agent lifecycle management
-- **Type Definitions**: TypeScript interfaces and types
-- **Entity-Component System**: Entity management and relationships
-- **Service Framework**: Service registration and dependency injection
-- **Plugin Interface**: Plugin definition and loading system
-
-**Dependencies:**
-```json
-{
-  "dependencies": {
-    "uuid": "^10.0.0",
-    "bun": "^1.2.15"
-  }
-}
-```
-
-**Key Exports:**
-```typescript
-// Types
-export * from './types';
-
-// Runtime
-export { AgentRuntime } from './runtime';
-
-// Services
-export { createService, defineService } from './services';
-
-// Utilities
-export { createLogger, stringToUuid } from './utils';
-```
-
-### `@elizaos/cli`
-
-Command-line interface for agent development and management:
-
-**Key Features:**
-- **Project Creation**: Bootstrap new agent projects
-- **Plugin Management**: Install, update, and manage plugins
-- **Development Tools**: Hot reloading and debugging
-- **Testing Framework**: Run tests and generate reports
-
-**Commands:**
-```bash
-elizaos create <project-name>    # Create new project
-elizaos start                    # Start agent
-elizaos dev                      # Development mode
-elizaos test                     # Run tests
-elizaos plugin install <name>    # Install plugin
-```
-
-**Dependencies:**
-```json
-{
-  "dependencies": {
-    "@elizaos/core": "workspace:*",
-    "@elizaos/plugin-bootstrap": "workspace:*",
-    "@elizaos/plugin-sql": "workspace:*"
-  }
-}
-```
-
-### `@elizaos/client`
-
-React-based web application for agent management:
-
-**Key Features:**
-- **Agent Dashboard**: Monitor and control multiple agents
-- **Chat Interface**: Direct communication with agents
-- **Memory Viewer**: Inspect agent memories and relationships
-- **Plugin Management**: Visual plugin configuration
-- **Settings Panel**: Environment and configuration management
-
-**Technology Stack:**
-- **React 19.1.0**: Modern React with concurrent features
-- **TypeScript**: Full type safety
-- **Vite**: Fast build tooling
-- **Tailwind CSS**: Utility-first styling
-- **Radix UI**: Accessible component library
-
-**Dependencies:**
-```json
-{
-  "dependencies": {
-    "@elizaos/core": "workspace:*",
-    "@elizaos/api-client": "workspace:*",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
-  }
-}
-```
-
-### `@elizaos/server`
-
-HTTP server providing RESTful API for agent communication:
-
-**Key Features:**
-- **RESTful API**: Standard HTTP endpoints for agent operations
-- **Authentication**: JWT-based authentication and authorization
-- **File Upload**: Handle media and document uploads
-- **WebSocket Support**: Real-time communication
-- **Plugin Routes**: Dynamic route registration from plugins
-
-**API Endpoints:**
-```typescript
-// Agent management
-GET    /api/agents
-POST   /api/agents
-GET    /api/agents/:id
-PUT    /api/agents/:id
-DELETE /api/agents/:id
-
-// Message handling
-POST   /api/agents/:id/messages
-GET    /api/agents/:id/messages
-POST   /api/agents/:id/actions
-
-// Memory management
-GET    /api/agents/:id/memories
-POST   /api/agents/:id/memories
-DELETE /api/agents/:id/memories/:memoryId
-```
-
-### `@elizaos/plugin-bootstrap`
-
-Essential plugin providing core functionality for all agents:
-
-**Core Actions:**
-- `replyAction`: Generate text responses
-- `ignoreAction`: Ignore messages
-- `followRoomAction`: Follow room updates
-- `muteRoomAction`: Mute room notifications
-- `sendMessageAction`: Send messages to specific targets
-
-**Core Evaluators:**
-- `reflectionEvaluator`: Assess conversation quality and agent performance
-
-**Core Providers:**
-- `characterProvider`: Agent personality and configuration
-- `recentMessagesProvider`: Recent conversation history
-- `entitiesProvider`: Entity relationships and metadata
-- `timeProvider`: Current time and date information
-- `factsProvider`: Known facts and information
-
-**Core Services:**
-- `TaskService`: Background task management and scheduling
-
-### `@elizaos/plugin-sql`
-
-Database adapter providing persistent storage capabilities:
-
-**Key Features:**
-- **Database Abstraction**: Support for multiple database types
-- **Migration System**: Automated schema migrations
-- **Query Builder**: Type-safe database queries
-- **Connection Pooling**: Efficient database connections
-- **Transaction Support**: ACID transactions for data integrity
-
-**Supported Databases:**
-- **PostgreSQL**: Primary recommended database
-- **SQLite**: Development and testing
-- **MySQL**: Alternative production option
-
-**Schema Management:**
-```typescript
-// Example migration
-export const migration_001 = {
-  up: async (db) => {
-    await db.schema.createTable('agents', (table) => {
-      table.uuid('id').primary();
-      table.string('name').notNullable();
-      table.json('character').notNullable();
-      table.timestamps(true, true);
-    });
-  },
-  down: async (db) => {
-    await db.schema.dropTable('agents');
-  }
-};
-```
-
-### `@elizaos/api-client`
-
-HTTP client library for communicating with elizaOS servers:
-
-**Key Features:**
-- **Type-Safe API**: Full TypeScript support
-- **Request/Response Types**: Strongly typed API communication
-- **Error Handling**: Comprehensive error handling and retries
-- **Authentication**: Automatic token management
-- **Caching**: Intelligent response caching
-
-**Usage Example:**
-```typescript
-import { ElizaAPIClient } from '@elizaos/api-client';
-
-const client = new ElizaAPIClient({
-  baseURL: 'http://localhost:3000',
-  apiKey: 'your-api-key'
-});
-
-// Get agent information
-const agent = await client.agents.get('agent-id');
-
-// Send message to agent
-const response = await client.agents.sendMessage('agent-id', {
-  text: 'Hello, agent!',
-  source: 'api'
-});
+@elizaos/autodoc         # Documentation generation
+@elizaos/create-eliza    # Project scaffolding
+@elizaos/docs            # Documentation site
 ```
 
 ## Package Dependencies
 
 ### Dependency Graph
 
+The packages follow a clear dependency hierarchy:
+
 ```mermaid
 graph TD
-    A[core] --> B[plugin-bootstrap]
-    A --> C[plugin-sql]
-    A --> D[api-client]
-    A --> E[server]
-    A --> F[cli]
-    A --> G[client]
+    A[@elizaos/core] --> B[@elizaos/cli]
+    A --> C[@elizaos/client]
+    A --> D[@elizaos/server]
+    A --> E[@elizaos/api-client]
+    A --> F[@elizaos/plugin-sql]
+    A --> G[@elizaos/plugin-bootstrap]
+    A --> H[@elizaos/plugin-starter]
     
-    B --> H[plugin-starter]
-    B --> I[project-starter]
+    B --> I[@elizaos/create-eliza]
+    C --> J[@elizaos/docs]
     
-    C --> F
-    C --> H
-    C --> I
-    
-    D --> G
-    D --> E
-    
-    E --> G
-    F --> G
-    
-    J[autodoc] --> A
-    K[docs] --> A
-    L[create-eliza] --> A
-    M[app] --> A
+    F --> K[Database Providers]
+    G --> L[Bootstrap Services]
 ```
 
-### Dependency Types
+### Core Dependencies
 
-**Internal Dependencies:**
-- All packages depend on `@elizaos/core`
-- Plugin packages depend on `@elizaos/plugin-bootstrap`
-- Application packages depend on `@elizaos/api-client`
+The core package has minimal external dependencies:
 
-**External Dependencies:**
-- **Runtime**: Bun 1.2.15 as primary runtime
-- **Database**: PostgreSQL, SQLite drivers
-- **UI**: React 19.1.0, Tailwind CSS
-- **Build**: Turbo, tsup, TypeScript
-
-## Package Versioning
-
-### Version Strategy
-
-elizaOS uses **independent versioning** managed by Lerna:
-
-1. **Core Package**: Semantic versioning (semver)
-2. **Plugin Packages**: Follow core version
-3. **Application Packages**: Independent versions
-4. **Template Packages**: Synchronized with core
-
-### Version Lifecycle
-
-```bash
-# Development
-1.0.0-alpha.1
-1.0.0-alpha.2
-1.0.0-beta.1
-
-# Release Candidates
-1.0.0-rc.1
-1.0.0-rc.2
-
-# Production
-1.0.0
-1.0.1 (patch)
-1.1.0 (minor)
-2.0.0 (major)
-```
-
-### Publishing Process
-
-```bash
-# 1. Version packages
-lerna version --conventional-commits
-
-# 2. Build all packages
-bun run build
-
-# 3. Run tests
-bun run test
-
-# 4. Publish to npm
-lerna publish from-package
-```
-
-## Package Architecture Patterns
-
-### Common Patterns
-
-**1. Index Barrel Exports**
-```typescript
-// src/index.ts
-export * from './actions';
-export * from './evaluators';
-export * from './providers';
-export * from './services';
-export { default } from './plugin';
-```
-
-**2. Plugin Structure**
-```typescript
-// src/plugin.ts
-import { Plugin } from '@elizaos/core';
-
-export default {
-  name: 'my-plugin',
-  description: 'Plugin description',
-  actions: [...],
-  evaluators: [...],
-  providers: [...],
-  services: [...]
-} as Plugin;
-```
-
-**3. Service Definition**
-```typescript
-// src/services/my-service.ts
-import { defineService } from '@elizaos/core';
-
-export const MyService = defineService({
-  serviceType: 'MyService',
-  description: 'Service description',
-  start: async (runtime) => {
-    // Service initialization
-    return new MyServiceInstance(runtime);
+```json
+{
+  "dependencies": {
+    "uuid": "^10.0.0",
+    "zod": "^3.22.4",
+    "typescript": "5.8.2"
+  },
+  "peerDependencies": {
+    "node": "23.3.0"
   }
-});
+}
+```
+
+### Interface Dependencies
+
+Interface packages depend on core and add UI/API specific dependencies:
+
+```json
+// @elizaos/client
+{
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "vite": "^5.0.0"
+  }
+}
+
+// @elizaos/cli
+{
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "commander": "^11.0.0",
+    "inquirer": "^9.2.0"
+  }
+}
+```
+
+### Plugin Dependencies
+
+Plugin packages follow a standard dependency pattern:
+
+```json
+{
+  "dependencies": {
+    "@elizaos/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "specific-plugin-deps": "^1.0.0"
+  }
+}
+```
+
+## Package Structure Patterns
+
+### Standard Package Structure
+
+Each package follows a consistent structure:
+
+```
+packages/{package-name}/
+├── src/
+│   ├── index.ts             # Main entry point
+│   ├── types/               # Type definitions
+│   ├── __tests__/           # Unit tests
+│   └── [feature-specific]/  # Feature implementations
+├── dist/                    # Built output
+├── package.json             # Package configuration
+├── tsconfig.json            # TypeScript configuration
+├── tsconfig.build.json      # Build-specific configuration
+├── tsup.config.ts           # Build configuration
+├── bunfig.toml             # Bun configuration
+└── README.md               # Package documentation
+```
+
+### Entry Point Pattern
+
+All packages use a standard entry point pattern:
+
+```typescript
+// packages/{package}/src/index.ts
+export * from './types';
+export * from './main-feature';
+export * from './utilities';
+
+// Default export for the main functionality
+export { default } from './main-feature';
+```
+
+### Type Organization
+
+Types are organized by domain and exported through barrel exports:
+
+```typescript
+// packages/core/src/types/index.ts
+export * from './agent';
+export * from './components';
+export * from './database';
+export * from './events';
+export * from './plugin';
+export * from './runtime';
+export * from './service';
+// ... other type exports
+```
+
+## Core Package Deep Dive
+
+### Runtime System
+
+The runtime system is the heart of ElizaOS:
+
+```typescript
+// packages/core/src/runtime.ts
+export class AgentRuntime implements IAgentRuntime {
+  // Core properties
+  readonly agentId: UUID;
+  readonly character: Character;
+  public adapter!: IDatabaseAdapter;
+  
+  // Plugin system
+  readonly plugins: Plugin[] = [];
+  readonly actions: Action[] = [];
+  readonly evaluators: Evaluator[] = [];
+  readonly providers: Provider[] = [];
+  
+  // Service management
+  services = new Map<ServiceTypeName, Service>();
+  models = new Map<string, ModelHandler[]>();
+  
+  // Event system
+  events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
+}
+```
+
+### Type System
+
+The type system provides comprehensive type safety:
+
+```typescript
+// packages/core/src/types/plugin.ts
+export interface Plugin {
+  name: string;
+  description: string;
+  
+  // Optional components
+  actions?: Action[];
+  providers?: Provider[];
+  evaluators?: Evaluator[];
+  services?: (typeof Service)[];
+  models?: { [key: string]: ModelHandler };
+  events?: PluginEvents;
+  routes?: Route[];
+  
+  // Configuration
+  config?: { [key: string]: any };
+  init?: (config: Record<string, string>, runtime: IAgentRuntime) => Promise<void>;
+  
+  // Metadata
+  dependencies?: string[];
+  priority?: number;
+  schema?: any;
+}
+```
+
+### Database Abstraction
+
+Database operations are abstracted through interfaces:
+
+```typescript
+// packages/core/src/types/database.ts
+export interface IDatabaseAdapter {
+  // Core operations
+  init(): Promise<void>;
+  close(): Promise<void>;
+  
+  // Agent operations
+  createAgent(agent: Partial<Agent>): Promise<boolean>;
+  getAgent(agentId: UUID): Promise<Agent | null>;
+  updateAgent(agentId: UUID, agent: Partial<Agent>): Promise<boolean>;
+  
+  // Memory operations
+  createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID>;
+  getMemories(params: GetMemoriesParams): Promise<Memory[]>;
+  searchMemories(params: SearchMemoriesParams): Promise<Memory[]>;
+  
+  // Entity operations
+  createEntity(entity: Entity): Promise<boolean>;
+  getEntityById(entityId: UUID): Promise<Entity | null>;
+  updateEntity(entity: Entity): Promise<void>;
+  
+  // Room operations
+  createRoom(room: Room): Promise<UUID>;
+  getRoom(roomId: UUID): Promise<Room | null>;
+  updateRoom(room: Room): Promise<void>;
+  
+  // Relationship operations
+  createRelationship(params: CreateRelationshipParams): Promise<boolean>;
+  getRelationship(params: GetRelationshipParams): Promise<Relationship | null>;
+  
+  // Utility operations
+  log(params: LogParams): Promise<void>;
+  getCache<T>(key: string): Promise<T | undefined>;
+  setCache<T>(key: string, value: T): Promise<boolean>;
+}
+```
+
+## Plugin Architecture
+
+### Plugin Interface
+
+All plugins implement the standard Plugin interface:
+
+```typescript
+// Example plugin implementation
+export const examplePlugin: Plugin = {
+  name: 'example-plugin',
+  description: 'Example plugin demonstrating the plugin system',
+  
+  // Initialization
+  init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Plugin initialization logic
+  },
+  
+  // Components
+  actions: [
+    {
+      name: 'EXAMPLE_ACTION',
+      description: 'Example action',
+      validate: async (runtime, message, state) => true,
+      handler: async (runtime, message, state, options, callback) => {
+        // Action implementation
+      }
+    }
+  ],
+  
+  providers: [
+    {
+      name: 'EXAMPLE_PROVIDER',
+      description: 'Example provider',
+      get: async (runtime, message, state) => {
+        return {
+          text: 'Provider data',
+          values: {},
+          data: {}
+        };
+      }
+    }
+  ],
+  
+  services: [ExampleService],
+  
+  // Configuration
+  config: {
+    EXAMPLE_CONFIG: process.env.EXAMPLE_CONFIG
+  },
+  
+  // Dependencies
+  dependencies: ['@elizaos/plugin-sql']
+};
+```
+
+### Service Architecture
+
+Services provide long-running functionality:
+
+```typescript
+// packages/core/src/types/service.ts
+export abstract class Service {
+  static serviceType: ServiceTypeName;
+  protected runtime: IAgentRuntime;
+  
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+  }
+  
+  abstract start(): Promise<void>;
+  abstract stop(): Promise<void>;
+  
+  // Static factory method
+  static async start(runtime: IAgentRuntime): Promise<Service> {
+    const service = new this(runtime);
+    await service.start();
+    return service;
+  }
+}
+```
+
+### Action System
+
+Actions define agent capabilities:
+
+```typescript
+// packages/core/src/types/components.ts
+export interface Action {
+  name: string;
+  similes?: string[];
+  description: string;
+  
+  validate: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State
+  ) => Promise<boolean>;
+  
+  handler: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: any,
+    callback?: HandlerCallback,
+    responses?: Memory[]
+  ) => Promise<void>;
+  
+  examples?: ActionExample[][];
+}
+```
+
+## Client Package Organization
+
+### Component Structure
+
+The client package follows React best practices:
+
+```
+packages/client/src/
+├── components/              # Reusable UI components
+│   ├── agent-card.tsx      # Agent display component
+│   ├── chat.tsx            # Chat interface
+│   ├── memory-viewer.tsx   # Memory visualization
+│   └── ...
+├── hooks/                  # Custom React hooks
+│   ├── use-agent-management.ts
+│   ├── use-socket-chat.ts
+│   └── ...
+├── lib/                    # Utility libraries
+│   ├── api-client-config.ts
+│   ├── utils.ts
+│   └── ...
+├── routes/                 # Application routes
+│   ├── chat.tsx
+│   ├── agent-list.tsx
+│   └── ...
+├── types/                  # Client-specific types
+│   ├── index.ts
+│   └── rooms.ts
+└── main.tsx               # Application entry point
+```
+
+### Hook Pattern
+
+Custom hooks encapsulate complex logic:
+
+```typescript
+// packages/client/src/hooks/use-agent-management.ts
+export function useAgentManagement() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const createAgent = useCallback(async (config: AgentConfig) => {
+    setLoading(true);
+    try {
+      const agent = await api.createAgent(config);
+      setAgents(prev => [...prev, agent]);
+      return agent;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  const deleteAgent = useCallback(async (agentId: UUID) => {
+    await api.deleteAgent(agentId);
+    setAgents(prev => prev.filter(agent => agent.id !== agentId));
+  }, []);
+  
+  return {
+    agents,
+    loading,
+    createAgent,
+    deleteAgent
+  };
+}
+```
+
+## CLI Package Organization
+
+### Command Structure
+
+The CLI package organizes commands by functionality:
+
+```
+packages/cli/src/
+├── commands/               # CLI command implementations
+│   ├── agent.ts           # Agent management commands
+│   ├── create.ts          # Project creation commands
+│   ├── dev.ts             # Development commands
+│   ├── plugins.ts         # Plugin management commands
+│   └── start.ts           # Agent startup commands
+├── utils/                 # CLI utilities
+│   ├── plugin-creator.ts  # Plugin creation utilities
+│   ├── package-manager.ts # Package management
+│   ├── test-runner.ts     # Test execution
+│   └── ...
+├── templates/             # Project templates
+│   ├── plugin-starter/
+│   ├── project-starter/
+│   └── project-tee-starter/
+└── index.ts              # CLI entry point
+```
+
+### Command Pattern
+
+CLI commands follow a consistent pattern:
+
+```typescript
+// packages/cli/src/commands/agent.ts
+export class AgentCommand {
+  static async start(options: StartOptions) {
+    // Load configuration
+    const config = await loadConfig(options.config);
+    
+    // Initialize runtime
+    const runtime = new AgentRuntime({
+      character: config.character,
+      plugins: config.plugins
+    });
+    
+    // Start agent
+    await runtime.initialize();
+    
+    // Handle shutdown
+    process.on('SIGINT', async () => {
+      await runtime.stop();
+      process.exit(0);
+    });
+  }
+  
+  static async create(options: CreateOptions) {
+    // Create new agent from template
+    const template = await loadTemplate(options.template);
+    await createProject(options.name, template);
+  }
+}
+```
+
+## Server Package Organization
+
+### Server Architecture
+
+The server package provides hosting capabilities:
+
+```
+packages/server/src/
+├── index.ts               # Server entry point
+├── authMiddleware.ts      # Authentication middleware
+├── bus.ts                 # Message bus
+├── loader.ts              # Agent loader
+├── types.ts               # Server types
+├── upload.ts              # File upload handling
+└── examples/              # Usage examples
+    ├── standalone-server.ts
+    └── package.json
+```
+
+### Middleware Pattern
+
+Server middleware follows Express patterns:
+
+```typescript
+// packages/server/src/authMiddleware.ts
+export function createAuthMiddleware(options: AuthOptions) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = extractToken(req);
+      const user = await validateToken(token);
+      
+      req.user = user;
+      next();
+    } catch (error) {
+      res.status(401).json({ error: 'Unauthorized' });
+    }
+  };
+}
+```
+
+## Build Configuration
+
+### TypeScript Configuration
+
+Each package has its own TypeScript configuration:
+
+```json
+// packages/{package}/tsconfig.json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}
 ```
 
 ### Build Configuration
 
-**Standard tsup Configuration:**
+Packages use tsup for building:
+
 ```typescript
-// tsup.config.ts
+// packages/{package}/tsup.config.ts
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  outDir: 'dist',
   format: ['esm'],
-  target: 'es2022',
+  dts: true,
+  splitting: false,
   sourcemap: true,
   clean: true,
-  dts: true
+  outDir: 'dist',
+  external: ['@elizaos/core'],
+  treeshake: true
 });
 ```
 
-## Development Guidelines
+## Version Management
 
-### Creating New Packages
+### Workspace Dependencies
 
-1. **Setup Package Structure**
-```bash
-mkdir packages/my-package
-cd packages/my-package
-bun init
-```
+Packages use workspace references:
 
-2. **Configure Package.json**
 ```json
 {
-  "name": "@elizaos/my-package",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "dependencies": {
-    "@elizaos/core": "workspace:*"
+    "@elizaos/core": "workspace:*",
+    "@elizaos/plugin-sql": "workspace:*"
   }
 }
 ```
 
-3. **Add Build Configuration**
-```bash
-# Add tsup.config.ts
-# Add tsconfig.json
-# Add package to turbo.json
+### Version Synchronization
+
+Lerna manages version synchronization:
+
+```json
+{
+  "version": "1.0.16",
+  "packages": ["packages/*"],
+  "command": {
+    "version": {
+      "conventionalCommits": true,
+      "exact": true,
+      "forcePublish": true
+    }
+  }
+}
 ```
+
+## Testing Organization
+
+### Test Structure
+
+Tests are organized by package:
+
+```
+packages/{package}/
+├── src/
+│   └── __tests__/          # Unit tests
+│       ├── component.test.ts
+│       ├── integration.test.ts
+│       └── utils.test.ts
+├── e2e/                    # End-to-end tests
+│   └── feature.test.ts
+└── cypress/                # Cypress tests (for UI packages)
+    └── integration/
+```
+
+### Test Configuration
+
+Each package has its own test configuration:
+
+```json
+// packages/{package}/package.json
+{
+  "scripts": {
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage"
+  }
+}
+```
+
+## Best Practices
+
+### Package Design Principles
+
+1. **Single Responsibility**: Each package has a clear, focused purpose
+2. **Dependency Minimization**: Minimal external dependencies
+3. **Clear Interfaces**: Well-defined public APIs
+4. **Consistent Structure**: Standardized package organization
+5. **Testing**: Comprehensive test coverage
 
 ### Dependency Management
 
-**Best Practices:**
-1. **Use Workspace Dependencies**: `"@elizaos/core": "workspace:*"`
-2. **Pin External Versions**: Specific versions for stability
-3. **Minimize Dependencies**: Only include necessary packages
-4. **Regular Updates**: Keep dependencies current
+1. **Workspace References**: Use workspace: protocol for internal dependencies
+2. **Peer Dependencies**: Mark shared dependencies as peers
+3. **Version Alignment**: Keep dependency versions aligned
+4. **Minimal Footprint**: Avoid unnecessary dependencies
 
-**Dependency Patterns:**
-```json
-{
-  "dependencies": {
-    // Internal packages
-    "@elizaos/core": "workspace:*",
-    
-    // External packages (pinned)
-    "uuid": "^10.0.0",
-    "lodash": "^4.17.21"
-  },
-  "peerDependencies": {
-    // Packages provided by consumer
-    "@elizaos/core": "^1.0.0"
-  }
-}
-```
+### Publishing Strategy
 
-### Testing Strategy
+1. **Semantic Versioning**: Follow semantic versioning
+2. **Conventional Commits**: Use conventional commit messages
+3. **Automated Publishing**: Use Lerna for coordinated publishing
+4. **Documentation**: Maintain comprehensive documentation
 
-**Test Organization:**
-```
-packages/my-package/
-├── src/
-│   ├── __tests__/
-│   │   ├── unit/
-│   │   └── integration/
-│   └── [module].test.ts
-└── test-utils/
-```
-
-**Test Configuration:**
-```typescript
-// bun.test.ts
-import { test, expect } from 'bun:test';
-import { createTestRuntime } from '@elizaos/core/test-utils';
-
-test('my functionality', async () => {
-  const runtime = createTestRuntime();
-  // Test implementation
-});
-```
-
-### Quality Assurance
-
-**Code Quality Tools:**
-- **TypeScript**: Strict type checking
-- **ESLint**: Code linting and formatting
-- **Prettier**: Code formatting
-- **Turbo**: Build optimization
-
-**CI/CD Pipeline:**
-```yaml
-# .github/workflows/ci.yml
-- name: Install dependencies
-  run: bun install --frozen-lockfile
-
-- name: Build packages
-  run: bun run build
-
-- name: Run tests
-  run: bun run test
-
-- name: Check types
-  run: bun run type-check
-```
-
-The package organization in elizaOS provides a scalable, maintainable foundation for building sophisticated AI agents while maintaining clear separation of concerns and dependency management.
+The package organization in ElizaOS provides a solid foundation for building, maintaining, and extending the agent framework while ensuring code quality, reusability, and developer productivity.

@@ -1,11 +1,11 @@
 ---
-title: REST API
-description: Complete guide to elizaOS REST API endpoints and usage
+title: "REST API Reference"
+description: "Complete guide to ElizaOS REST API endpoints and usage"
 ---
 
-# REST API
+# REST API Reference
 
-The elizaOS server provides a comprehensive REST API for interacting with agents, managing messages, and accessing system functionality. All API endpoints are mounted under `/api` with proper authentication and validation.
+The ElizaOS server provides a comprehensive REST API for interacting with agents, managing messages, and accessing system functionality. All API endpoints are mounted under `/api` with proper authentication and validation.
 
 ## Authentication
 
@@ -33,6 +33,39 @@ The API is organized into domain-specific routers:
 - `/api/system` - System configuration and health
 - `/api/tee` - TEE (Trusted Execution Environment) operations
 
+## Request/Response Format
+
+All API endpoints follow consistent patterns:
+
+### Request Headers
+```http
+Content-Type: application/json
+X-API-KEY: your-secret-token (if auth enabled)
+Accept: application/json
+```
+
+### Success Response
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  }
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error details"
+  }
+}
+```
+
 ## Agent Management
 
 ### List Agents
@@ -40,6 +73,8 @@ The API is organized into domain-specific routers:
 ```http
 GET /api/agents
 ```
+
+Returns a list of all agents with minimal details, sorted by status and name.
 
 **Response:**
 ```json
@@ -50,10 +85,8 @@ GET /api/agents
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
         "name": "Alice",
-        "character": {
-          "name": "Alice",
-          "description": "A helpful assistant"
-        },
+        "characterName": "Alice",
+        "bio": "A helpful assistant",
         "status": "active"
       }
     ]
@@ -67,24 +100,22 @@ GET /api/agents
 GET /api/agents/{agentId}
 ```
 
+Returns complete agent configuration including character details.
+
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "agent": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Alice",
-      "character": {
-        "name": "Alice",
-        "description": "A helpful assistant",
-        "settings": {
-          "secrets": {},
-          "voice": {}
-        }
-      },
-      "status": "active"
-    }
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Alice",
+    "bio": ["A helpful assistant"],
+    "lore": ["Background information"],
+    "settings": {
+      "secrets": {},
+      "voice": {}
+    },
+    "status": "active"
   }
 }
 ```
@@ -94,15 +125,42 @@ GET /api/agents/{agentId}
 ```http
 POST /api/agents
 Content-Type: application/json
+```
 
+Create a new agent from character configuration. Supports three input methods:
+
+**Method 1: Character JSON**
+```json
 {
-  "character": {
+  "characterJson": {
     "name": "Bob",
-    "description": "A specialized assistant",
+    "bio": ["A specialized assistant"],
+    "lore": ["Background story"],
     "settings": {
-      "secrets": {},
-      "voice": {}
+      "secrets": {
+        "openai_api_key": "sk-..."
+      },
+      "voice": {
+        "model": "en_US-hfc_female-medium"
+      }
     }
+  }
+}
+```
+
+**Method 2: Character Path**
+```json
+{
+  "characterPath": "/path/to/character.json"
+}
+```
+
+**Method 3: Agent Object**
+```json
+{
+  "agent": {
+    "name": "Bob",
+    "bio": ["A specialized assistant"]
   }
 }
 ```
@@ -112,10 +170,10 @@ Content-Type: application/json
 {
   "success": true,
   "data": {
-    "agent": {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "character": {
       "name": "Bob",
-      "status": "active"
+      "bio": ["A specialized assistant"]
     }
   }
 }
@@ -124,13 +182,30 @@ Content-Type: application/json
 ### Update Agent
 
 ```http
-PUT /api/agents/{agentId}
+PATCH /api/agents/{agentId}
 Content-Type: application/json
 
 {
-  "character": {
+  "name": "Bob Updated",
+  "bio": ["An updated assistant"],
+  "settings": {
+    "secrets": {
+      "openai_api_key": "sk-new-key"
+    }
+  }
+}
+```
+
+Updates agent configuration. Automatically encrypts secrets and restarts active agents.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
     "name": "Bob Updated",
-    "description": "An updated assistant"
+    "status": "active"
   }
 }
 ```
@@ -141,16 +216,59 @@ Content-Type: application/json
 DELETE /api/agents/{agentId}
 ```
 
-### Start/Stop Agent
+Permanently deletes an agent. Automatically stops the agent if running.
 
+**Response:**
+```http
+HTTP/1.1 204 No Content
+```
+
+### Agent Lifecycle
+
+#### Start Agent
 ```http
 POST /api/agents/{agentId}/start
+```
+
+#### Stop Agent
+```http
 POST /api/agents/{agentId}/stop
+```
+
+#### Restart Agent
+```http
+POST /api/agents/{agentId}/restart
+```
+
+### Agent Logs
+
+#### Get Agent Logs
+```http
+GET /api/agents/{agentId}/logs?level=info&limit=100
+```
+
+**Query Parameters:**
+- `level` - Log level filter (debug, info, warn, error)
+- `limit` - Maximum number of log entries
+- `since` - Timestamp to get logs since
+
+### Agent Worlds
+
+#### List Agent Worlds
+```http
+GET /api/agents/{agentId}/worlds
+```
+
+#### Get World Details
+```http
+GET /api/agents/{agentId}/worlds/{worldId}
 ```
 
 ## Messaging
 
 ### Submit Message
+
+Submit a message to the central message bus for agent processing.
 
 ```http
 POST /api/messaging/submit
@@ -161,10 +279,17 @@ Content-Type: application/json
   "server_id": "00000000-0000-0000-0000-000000000000",
   "author_id": "550e8400-e29b-41d4-a716-446655440001",
   "content": "Hello, how can you help me?",
-  "source_type": "api_client",
+  "source_type": "agent_response",
+  "raw_message": {
+    "text": "Hello, how can you help me?",
+    "thought": "User is asking for help",
+    "actions": ["respond"]
+  },
   "metadata": {
-    "source": "web_client"
-  }
+    "agentName": "Alice",
+    "attachments": []
+  },
+  "in_reply_to_message_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -173,44 +298,76 @@ Content-Type: application/json
 {
   "success": true,
   "data": {
-    "message": {
-      "id": "550e8400-e29b-41d4-a716-446655440002",
-      "channelId": "550e8400-e29b-41d4-a716-446655440000",
-      "authorId": "550e8400-e29b-41d4-a716-446655440001",
-      "content": "Hello, how can you help me?",
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    }
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "channelId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorId": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Hello, how can you help me?",
+    "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
 
-### Get Channel Messages
+### Ingest External Message
+
+Ingest messages from external platforms into the central message bus.
 
 ```http
-GET /api/messaging/central-channels/{channelId}/messages?limit=50&before=2024-01-01T00:00:00.000Z
+POST /api/messaging/ingest-external
+Content-Type: application/json
+
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "author_id": "550e8400-e29b-41d4-a716-446655440001",
+  "content": "Hello from Discord!",
+  "source_type": "discord",
+  "source_id": "discord_message_123",
+  "author_display_name": "User123",
+  "raw_message": {
+    "id": "discord_message_123",
+    "content": "Hello from Discord!",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  },
+  "metadata": {
+    "platform": "discord",
+    "guild_id": "discord_guild_456"
+  }
+}
 ```
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Message ingested and published to bus",
   "data": {
-    "messages": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440002",
-        "channelId": "550e8400-e29b-41d4-a716-446655440000",
-        "authorId": "550e8400-e29b-41d4-a716-446655440001",
-        "content": "Hello, how can you help me?",
-        "createdAt": "2024-01-01T00:00:00.000Z",
-        "metadata": {}
-      }
-    ]
+    "messageId": "550e8400-e29b-41d4-a716-446655440002"
   }
 }
 ```
 
-### Create Channel
+### Complete Message
 
+Notify that message processing is complete.
+
+```http
+POST /api/messaging/complete
+Content-Type: application/json
+
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "00000000-0000-0000-0000-000000000000"
+}
+```
+
+### Channel Management
+
+#### List Channels
+```http
+GET /api/messaging/central-servers/{serverId}/channels
+```
+
+#### Create Channel
 ```http
 POST /api/messaging/central-channels
 Content-Type: application/json
@@ -227,49 +384,98 @@ Content-Type: application/json
 }
 ```
 
-### Get Channel Details
-
+#### Get Channel Details
 ```http
 GET /api/messaging/central-channels/{channelId}/details
 ```
 
-**Response:**
-```json
+#### Get Channel Messages
+```http
+GET /api/messaging/central-channels/{channelId}/messages?limit=50&before=2024-01-01T00:00:00.000Z
+```
+
+#### Update Channel
+```http
+PATCH /api/messaging/central-channels/{channelId}
+Content-Type: application/json
+
 {
-  "success": true,
-  "data": {
-    "channel": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "messageServerId": "00000000-0000-0000-0000-000000000000",
-      "name": "General Chat",
-      "type": "GROUP",
-      "sourceType": "api_created",
-      "createdAt": "2024-01-01T00:00:00.000Z"
-    }
-  }
+  "name": "Updated Channel Name",
+  "participantCentralUserIds": [
+    "550e8400-e29b-41d4-a716-446655440001"
+  ]
 }
 ```
 
-### Manage Message Servers
-
+#### Delete Channel
 ```http
-# List servers
-GET /api/messaging/central-servers
+DELETE /api/messaging/central-channels/{channelId}
+```
 
-# Create server
+#### Clear Channel Messages
+```http
+DELETE /api/messaging/central-channels/{channelId}/messages
+```
+
+### Message Server Management
+
+#### List Servers
+```http
+GET /api/messaging/central-servers
+```
+
+#### Create Server
+```http
 POST /api/messaging/central-servers
 Content-Type: application/json
 
 {
   "name": "My Server",
-  "sourceType": "custom"
+  "sourceType": "custom",
+  "metadata": {
+    "description": "Custom server for testing"
+  }
 }
+```
 
-# Get server details
+#### Get Server Details
+```http
 GET /api/messaging/central-servers/{serverId}
+```
 
-# Get server channels
-GET /api/messaging/central-servers/{serverId}/channels
+#### Update Server
+```http
+PATCH /api/messaging/central-servers/{serverId}
+Content-Type: application/json
+
+{
+  "name": "Updated Server Name",
+  "metadata": {
+    "description": "Updated description"
+  }
+}
+```
+
+#### Delete Server
+```http
+DELETE /api/messaging/central-servers/{serverId}
+```
+
+### Agent-Server Association
+
+#### Add Agent to Server
+```http
+POST /api/messaging/agents/{agentId}/servers/{serverId}
+```
+
+#### Remove Agent from Server
+```http
+DELETE /api/messaging/agents/{agentId}/servers/{serverId}
+```
+
+#### Get Agent's Servers
+```http
+GET /api/messaging/agents/{agentId}/servers
 ```
 
 ## Media Management

@@ -1,24 +1,19 @@
 ---
 title: State Management
-description: Learn how Eliza manages conversational state and agent context through providers and state composition
+description: Learn about ElizaOS state management system, including state structure, state values, and enhanced state interfaces.
 ---
 
-## Overview
+# State Management
 
-Eliza uses a flexible state management system that aggregates data from multiple providers to create a complete conversational context. The state system is designed to be extensible, cacheable, and type-safe.
+ElizaOS provides a robust state management system that maintains conversational context and agent state throughout interactions. The state system is designed to be flexible, extensible, and type-safe.
 
-## Core Concepts
+## State Interface
 
-### State Structure
-
-The state object is the central data structure that contains all contextual information available to actions, evaluators, and providers:
+The core `State` interface provides the foundation for all state management in ElizaOS:
 
 ```typescript
-interface State {
-  // Dynamic properties
+export interface State {
   [key: string]: any;
-  
-  // Core state containers
   values: {
     [key: string]: any;
   };
@@ -29,9 +24,39 @@ interface State {
 }
 ```
 
-- **`values`**: Holds directly accessible state values, often used for template rendering
-- **`data`**: Stores more complex or structured data, potentially namespaced by providers
-- **`text`**: A textual representation or summary of the current state
+### State Properties
+
+- **`values`**: A key-value store for general state variables, often populated by providers
+- **`data`**: Another key-value store for more structured or internal data
+- **`text`**: A string representation of the current context, often a summary or concatenated history
+- **Dynamic properties**: Additional properties can be added via the index signature
+
+## Enhanced State System
+
+ElizaOS provides an enhanced state system with better type safety through the `EnhancedState` interface:
+
+```typescript
+export interface EnhancedState {
+  values: StateObject;
+  data: StateObject;
+  text: string;
+  [key: string]: StateValue;
+}
+```
+
+### State Value Types
+
+The enhanced state system uses typed values:
+
+```typescript
+export type StateValue = string | number | boolean | null | StateObject | StateArray;
+
+export interface StateObject {
+  [key: string]: StateValue;
+}
+
+export type StateArray = StateValue[];
+```
 
 ### State Composition
 

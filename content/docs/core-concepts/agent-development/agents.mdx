@@ -1,49 +1,97 @@
 ---
-title: Agents
-description: Understanding and managing AI agents in elizaOS
+title: "Agents"
+description: "Understanding the Agent and Character interfaces, runtime integration, and agent lifecycle management in ElizaOS"
 ---
 
 # Agents
 
-Agents are the core entities in elizaOS that process conversations, execute actions, and maintain persistent state. They are built on an Entity-Component architecture that provides flexibility and extensibility.
+Agents are the core operational units in ElizaOS, representing autonomous entities that can interact with users and systems. This page covers the fundamental concepts of agents, their structure, and how they relate to characters.
 
-## Agent Architecture
+## Core Concepts
 
-An agent consists of:
+### Agent vs Character
 
-- **Character Definition** - Personality, knowledge, and behavioral configuration
-- **Runtime** - The execution environment that processes messages and manages state
-- **Components** - Modular functionality like actions, evaluators, and providers
-- **Memory System** - Persistent storage for conversations, facts, and relationships
+In ElizaOS, there's an important distinction between **Character** and **Agent**:
 
-## Agent vs Character
-
-elizaOS distinguishes between:
-
-- **Character** - The blueprint that defines an agent's personality and capabilities
-- **Agent** - An instantiated runtime instance of a character with persistence and state
+- **Character**: A static definition that describes an agent's personality, capabilities, and configuration
+- **Agent**: A runtime instance that extends a Character with operational status, timestamps, and database management
 
 ```typescript
-// From @elizaos/core/src/types/agent.ts
+// Character - Static definition
+interface Character {
+  id?: UUID;
+  name: string;
+  username?: string;
+  bio: string | string[];
+  // ... personality and configuration
+}
 
-/**
- * Configuration for an agent's character, defining its personality, knowledge, and capabilities.
- * This is a central piece of an agent's definition, used by the AgentRuntime.
- */
-export interface Character {
+// Agent - Runtime instance
+interface Agent extends Character {
+  enabled?: boolean;
+  status?: AgentStatus;
+  createdAt: number;
+  updatedAt: number;
+}
+```
+
+### Agent Status
+
+Agents have operational states managed through the `AgentStatus` enum:
+
+```typescript
+export enum AgentStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}
+```
+
+## Agent Interface
+
+The complete Agent interface extends Character with runtime management fields:
+
+```typescript
+interface Agent extends Character {
+  /** Whether the agent is enabled for operation */
+  enabled?: boolean;
+  
+  /** Current operational status */
+  status?: AgentStatus;
+  
+  /** Timestamp when agent was created in database */
+  createdAt: number;
+  
+  /** Timestamp when agent was last updated */
+  updatedAt: number;
+}
+```
+
+### Key Properties
+
+- **enabled**: Boolean flag controlling whether the agent can operate
+- **status**: Current operational state (ACTIVE or INACTIVE)
+- **createdAt**: Database creation timestamp
+- **updatedAt**: Last modification timestamp
+
+## Character Definition
+
+An Agent's personality and behavior are defined through the Character interface:
+
+```typescript
+interface Character {
   /** Optional unique identifier */
   id?: UUID;
   
   /** Character name */
   name: string;
   
-  /** Optional username */
+  /** Optional username for interactions */
   username?: string;
   
-  /** Optional system prompt */
+  /** System prompt guiding behavior */
   system?: string;
   
-  /** Optional prompt templates */
+  /** Prompt templates for different situations */
   templates?: {
     [key: string]: TemplateType;
   };
@@ -51,30 +99,30 @@ export interface Character {
   /** Character biography */
   bio: string | string[];
   
-  /** Example messages */
+  /** Example conversations */
   messageExamples?: MessageExample[][];
   
   /** Example posts */
   postExamples?: string[];
   
-  /** Known topics */
+  /** Topics of interest */
   topics?: string[];
   
   /** Character traits */
   adjectives?: string[];
   
-  /** Optional knowledge base */
+  /** Knowledge base paths */
   knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
   
   /** Available plugins */
   plugins?: string[];
   
-  /** Optional configuration */
+  /** Configuration settings */
   settings?: {
     [key: string]: string | boolean | number | Record<string, any>;
   };
   
-  /** Optional secrets */
+  /** Secure configuration */
   secrets?: {
     [key: string]: string | boolean | number;
   };
@@ -86,323 +134,185 @@ export interface Character {
     post?: string[];
   };
 }
-
-/**
- * Represents an operational agent, extending the Character definition with runtime status.
- * While Character defines the blueprint, Agent represents an instantiated version.
- */
-export interface Agent extends Character {
-  enabled?: boolean;
-  status?: AgentStatus;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export enum AgentStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-}
-
-// Supporting types
-export interface MessageExample {
-  /** Associated user */
-  name: string;
-  
-  /** Message content */
-  content: Content;
-}
-
-export type TemplateType =
-  | string
-  | ((options: { state: State | { [key: string]: string } }) => string);
 ```
 
-## Creating an Agent
+## Agent Runtime Integration
 
-Agents are created by instantiating an `AgentRuntime` with a character definition:
+Agents are managed through the `IAgentRuntime` interface, which provides:
+
+### Agent Management
 
 ```typescript
-import { AgentRuntime, Character, ModelType } from '@elizaos/core';
+// Create an agent
+const agent = await runtime.createAgent(characterConfig);
 
-// Define the character
-const character: Character = {
-  name: "TechAssistant",
-  bio: "A helpful technical support agent specializing in web development",
-  topics: ["javascript", "typescript", "react", "nodejs"],
-  adjectives: ["helpful", "knowledgeable", "patient"],
+// Get agent status
+const status = agent.status;
+
+// Update agent
+await runtime.updateAgent(agent.id, {
+  status: AgentStatus.ACTIVE,
+  enabled: true
+});
+```
+
+### Character Integration
+
+The runtime uses the Character configuration to initialize agent behavior:
+
+```typescript
+const runtime = new AgentRuntime({
+  character: characterConfig,
+  // ... other runtime options
+});
+
+// Access character from runtime
+const character = runtime.character;
+console.log(character.name); // Agent name
+console.log(character.bio); // Agent biography
+```
+
+## Practical Example
+
+Here's a complete example of creating an agent with a character definition:
+
+```typescript
+import { AgentRuntime, AgentStatus } from '@elizaos/core';
+
+// Define character
+const character = {
+  name: "Ada",
+  username: "ada_assistant",
+  bio: "A helpful AI assistant specializing in programming and mathematics",
+  system: "You are Ada, a knowledgeable assistant. Be helpful and precise.",
+  topics: ["programming", "mathematics", "computer science"],
+  adjectives: ["helpful", "precise", "knowledgeable"],
+  messageExamples: [
+    [
+      {
+        name: "User",
+        content: { text: "Can you help me with Python?" }
+      },
+      {
+        name: "Ada",
+        content: { text: "Of course! I'd be happy to help with Python. What specific question do you have?" }
+      }
+    ]
+  ],
   style: {
-    all: ["professional", "clear", "concise"],
-    chat: ["friendly", "supportive"]
+    all: ["Be concise and helpful", "Use examples when explaining concepts"],
+    chat: ["Keep responses conversational", "Ask follow-up questions"],
+    post: ["Write in a professional tone", "Include relevant examples"]
   },
-  // System prompt guides overall behavior
-  system: "You are a technical support specialist. Provide accurate, helpful answers about web development.",
-  // Add plugins for functionality - bootstrap provides core actions and providers
-  plugins: ["plugin-bootstrap"],
-  settings: {
-    maxResponseLength: 500,
-    temperature: 0.7
-  }
+  plugins: ["plugin-bootstrap"]
 };
 
-// Create the runtime
+// Create runtime with character
 const runtime = new AgentRuntime({
   character,
-  databaseAdapter,
-  modelProvider,
-  // Optional configuration
-  conversationLength: 10,
-  evaluators: [],
-  actions: [],
-  providers: []
+  // ... other configuration
 });
+
+// The agent is now operational and can:
+// - Process messages according to character personality
+// - Use defined writing style
+// - Access knowledge base
+// - Execute actions through plugins
 ```
 
 ## Agent Lifecycle
 
-### 1. Initialization
+### Creation
+1. Character definition is validated
+2. Agent record is created in database
+3. Runtime is initialized with character config
+4. Plugins are loaded based on character.plugins
 
-When an agent starts:
+### Operation
+1. Agent receives messages
+2. Character personality guides responses
+3. Actions and evaluators process interactions
+4. State is maintained between conversations
 
-```typescript
-// Initialize the runtime
-await runtime.initialize();
-
-// Load knowledge base
-await runtime.loadKnowledge();
-
-// Register components from plugins
-for (const plugin of plugins) {
-  await plugin.register(runtime);
-}
-```
-
-### 2. Message Processing
-
-Agents process messages through a pipeline:
-
-```typescript
-// Process incoming message
-const response = await runtime.processMessage({
-  content: { text: "How do I set up React?" },
-  entityId: "user-123",
-  roomId: "support-channel",
-  createdAt: Date.now()
-});
-```
-
-### 3. State Management
-
-Agents maintain state throughout conversations:
-
-```typescript
-// Compose state from multiple sources
-const state = await runtime.composeState(message, [
-  "RECENT_MESSAGES",
-  "FACTS",
-  "RELATIONSHIPS"
-]);
-
-// State includes:
-// - Recent conversation history
-// - Known facts about entities
-// - Relationship information
-// - Provider-supplied context
-```
-
-### 4. Component Execution
-
-During message processing:
-
-1. **Providers** supply context
-2. **Actions** are validated and executed
-3. **Evaluators** assess and learn from interactions
-
-## Agent Configuration
-
-### Runtime Options
-
-```typescript
-interface AgentRuntimeOptions {
-  // Core configuration
-  character: Character;
-  databaseAdapter: IDatabaseAdapter;
-  modelProvider: IModelProvider;
-  
-  // Optional settings
-  conversationLength?: number; // Messages to keep in context
-  enableCache?: boolean;
-  cacheExpiry?: number;
-  
-  // Component registration
-  actions?: Action[];
-  evaluators?: Evaluator[];
-  providers?: Provider[];
-}
-```
-
-### Environment Variables
-
-Agents can access environment-specific settings:
-
-```bash
-# Model configuration
-OPENAI_API_KEY=your-key
-MODEL_PROVIDER=openai
-
-# Agent-specific settings
-AGENT_NAME=TechAssistant
-AGENT_ID=550e8400-e29b-41d4-a716-446655440000
-```
-
-## Multi-Agent Systems
-
-elizaOS supports running multiple agents:
-
-```typescript
-// Create multiple agents with different specializations
-const techAgent = new AgentRuntime({ character: techCharacter });
-const salesAgent = new AgentRuntime({ character: salesCharacter });
-const supportAgent = new AgentRuntime({ character: supportCharacter });
-
-// Agents can:
-// - Share knowledge through common database
-// - Communicate via messages
-// - Maintain separate contexts and personalities
-```
-
-## Agent Persistence
-
-Agents store data in several tables:
-
-- **agents** - Agent configuration and status
-- **messages** - Conversation history
-- **memories** - Extracted facts and embeddings
-- **relationships** - Inter-entity connections
-- **tasks** - Scheduled operations
+### Management
+1. Status can be updated (ACTIVE/INACTIVE)
+2. Character configuration can be modified
+3. Plugins can be added or removed
+4. Database records track changes
 
 ## Best Practices
 
-### 1. Character Design
+### Character Design
+- Keep bio concise but informative
+- Provide diverse messageExamples
+- Use specific adjectives for personality
+- Include relevant topics for context
 
-- Define clear, focused personalities
-- Provide diverse message examples
-- Include relevant knowledge domains
-- Set appropriate behavioral boundaries
+### Agent Configuration
+- Set appropriate enabled/status flags
+- Monitor agent performance
+- Update character as needed
+- Use proper error handling
 
-### 2. Resource Management
+### Runtime Integration
+- Initialize runtime with complete character
+- Handle agent state changes properly
+- Implement proper cleanup on shutdown
+- Monitor resource usage
 
-- Configure appropriate conversation lengths
-- Enable caching for performance
-- Monitor memory usage with large knowledge bases
-- Clean up old conversations periodically
+## Common Patterns
 
-### 3. Error Handling
-
+### Multi-Agent Systems
 ```typescript
-try {
-  await runtime.processMessage(message);
-} catch (error) {
-  // Log errors with context
-  logger.error('Message processing failed', {
-    agentId: runtime.agentId,
-    messageId: message.id,
-    error
-  });
-  
-  // Graceful fallback
-  await runtime.sendError(message.roomId, 
-    "I encountered an issue processing your request.");
-}
+// Create multiple agents with different characters
+const agents = await Promise.all([
+  runtime.createAgent(supportCharacter),
+  runtime.createAgent(salesCharacter),
+  runtime.createAgent(technicalCharacter)
+]);
+
+// Route messages based on context
+const routeToAgent = (message, context) => {
+  if (context.type === 'support') return agents[0];
+  if (context.type === 'sales') return agents[1];
+  return agents[2]; // technical
+};
 ```
 
-### 4. Monitoring
-
-- Track message processing times
-- Monitor action execution rates
-- Log evaluator outcomes
-- Watch for memory growth
-
-## Example: Customer Support Agent
-
+### Dynamic Agent Updates
 ```typescript
-// Character definition for a support agent
-const supportCharacter: Character = {
-  name: "Alex",
-  bio: "A friendly customer support specialist for ACME Corp",
-  system: `You are Alex, a customer support agent for ACME Corp. 
-    You help customers with product issues, orders, and general inquiries.
-    Always be polite, helpful, and try to resolve issues efficiently.`,
-  
-  // Message examples shape the agent's communication style
-  messageExamples: [
-    [
-      {
-        name: "Customer",
-        content: { text: "My order hasn't arrived yet" }
-      },
-      {
-        name: "Alex",
-        content: { 
-          text: "I'd be happy to help track your order. Could you please provide your order number?",
-          actions: ["CHECK_ORDER_STATUS"]
-        }
-      }
-    ]
-  ],
-  
-  topics: ["customer service", "orders", "shipping", "returns", "products"],
-  adjectives: ["helpful", "patient", "professional", "empathetic"],
-  
-  plugins: [
-    "@elizaos/plugin-bootstrap",
-    "@acme/plugin-order-management",
-    "@acme/plugin-knowledge-base"
-  ],
-  
-  settings: {
-    responseTime: "immediate",
-    escalationThreshold: 3,
-    maxConversationLength: 20
-  },
-  
-  style: {
-    all: ["professional", "clear", "concise"],
-    chat: ["friendly", "solution-oriented"]
+// Update agent character based on user feedback
+await runtime.updateAgent(agent.id, {
+  ...agent,
+  character: {
+    ...agent.character,
+    adjectives: [...agent.character.adjectives, "friendly"],
+    topics: [...agent.character.topics, "customer service"]
   }
-};
-
-// Create and configure the agent
-const supportAgent = new AgentRuntime({
-  character: supportCharacter,
-  databaseAdapter,
-  modelProvider,
-  conversationLength: 15,
-  
-  // Add custom actions for order management
-  actions: [
-    checkOrderStatusAction,
-    processReturnAction,
-    escalateToHumanAction
-  ],
-  
-  // Add evaluators for quality assurance
-  evaluators: [
-    customerSatisfactionEvaluator,
-    issueResolutionEvaluator
-  ],
-  
-  // Add providers for context
-  providers: [
-    orderHistoryProvider,
-    productCatalogProvider,
-    knowledgeBaseProvider
-  ]
 });
 ```
 
-## Next Steps
+### Agent Health Monitoring
+```typescript
+// Check agent status
+const checkAgentHealth = async (agent) => {
+  return {
+    enabled: agent.enabled,
+    status: agent.status,
+    lastUpdate: new Date(agent.updatedAt),
+    isHealthy: agent.status === AgentStatus.ACTIVE && agent.enabled
+  };
+};
+```
 
-- Learn about [Character Definition](/docs/core-concepts/agent-development/character-definition) to create compelling agent personalities
-- Explore [Actions](/docs/core-concepts/agent-development/actions) to add functionality
-- Understand [Evaluators](/docs/core-concepts/agent-development/evaluators) for agent learning
-- Discover [Providers](/docs/core-concepts/agent-development/providers) for contextual awareness
+## Related Components
+
+- **[Character Definition](./character-definition)**: Complete character schema and validation
+- **[Actions](./actions)**: Agent action system for interactive behaviors
+- **[Evaluators](./evaluators)**: Assessment and reflection systems
+- **[Providers](./providers)**: Data and service integration
+- **[Tasks](./tasks)**: Background task management
+
+## Summary
+
+Agents in ElizaOS combine static Character definitions with runtime operational state. They provide the foundation for autonomous AI entities that can interact naturally with users while maintaining consistent personalities and behaviors. The separation between Character and Agent allows for flexible deployment and management of AI agents in various contexts.

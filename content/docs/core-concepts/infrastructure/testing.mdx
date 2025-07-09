@@ -1,11 +1,161 @@
 ---
 title: Testing
-description: Comprehensive testing strategies and tools in ElizaOS
+description: Comprehensive testing strategies and tools in ElizaOS with actual implementation details
 ---
 
-## Overview
+# Testing
 
 ElizaOS provides a comprehensive testing framework that covers unit tests, integration tests, end-to-end tests, and shell script testing. The testing infrastructure ensures code quality, reliability, and maintainability across the entire platform.
+
+## Testing Architecture
+
+### Test Command Implementation
+
+The ElizaOS CLI provides a comprehensive test command:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/commands/test/actions/run-all-tests.ts
+export async function runAllTests(
+  testPath: string | undefined,
+  options: TestCommandOptions
+): Promise<void> {
+  // Run component tests first
+  const projectInfo = getProjectType(testPath);
+  if (!options.skipBuild) {
+    const componentResult = await runComponentTests(testPath, options, projectInfo);
+    if (componentResult.failed) {
+      logger.error('Component tests failed. Continuing to e2e tests...');
+    }
+  }
+
+  // Run e2e tests
+  const e2eResult = await runE2eTests(testPath, options, projectInfo);
+  if (e2eResult.failed) {
+    logger.error('E2E tests failed.');
+    process.exit(1);
+  }
+
+  logger.success('All tests passed successfully!');
+  process.exit(0);
+}
+```
+
+### Test Health Monitor
+
+ElizaOS includes a sophisticated test health monitoring system:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/utils/testing/test-health-monitor.ts
+export class TestHealthMonitor {
+  private static instance: TestHealthMonitor;
+  private healthChecks: Map<string, HealthCheck> = new Map();
+  private monitoringInterval: NodeJS.Timer | null = null;
+
+  static getInstance(): TestHealthMonitor {
+    if (!TestHealthMonitor.instance) {
+      TestHealthMonitor.instance = new TestHealthMonitor();
+    }
+    return TestHealthMonitor.instance;
+  }
+
+  startMonitoring(intervalMs: number = 30000): void {
+    this.monitoringInterval = setInterval(() => {
+      this.runHealthChecks();
+    }, intervalMs);
+  }
+
+  addHealthCheck(name: string, check: HealthCheck): void {
+    this.healthChecks.set(name, check);
+  }
+
+  getHealth(): HealthStatus {
+    const checks = Array.from(this.healthChecks.entries()).map(([name, check]) => ({
+      name,
+      status: check.isHealthy ? 'healthy' : 'unhealthy',
+      lastCheck: check.lastCheck,
+      error: check.error
+    }));
+
+    return {
+      overall: checks.every(c => c.status === 'healthy') ? 'healthy' : 'unhealthy',
+      checks
+    };
+  }
+
+  private runHealthChecks(): void {
+    for (const [name, check] of this.healthChecks) {
+      try {
+        check.isHealthy = check.checkFunction();
+        check.lastCheck = new Date();
+        check.error = null;
+      } catch (error) {
+        check.isHealthy = false;
+        check.error = error instanceof Error ? error.message : 'Unknown error';
+        check.lastCheck = new Date();
+      }
+    }
+  }
+}
+```
+
+### Timeout Management
+
+The testing system includes sophisticated timeout management:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/utils/testing/timeout-manager.ts
+export class TimeoutManager {
+  private timeouts: Map<string, NodeJS.Timeout> = new Map();
+  private defaultTimeout: number = 30000;
+
+  setDefaultTimeout(timeout: number): void {
+    this.defaultTimeout = timeout;
+  }
+
+  async withTimeout<T>(
+    operation: () => Promise<T>,
+    timeout: number = this.defaultTimeout,
+    timeoutMessage: string = 'Operation timed out'
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(timeoutMessage));
+      }, timeout);
+
+      operation()
+        .then(resolve)
+        .catch(reject)
+        .finally(() => {
+          clearTimeout(timeoutId);
+        });
+    });
+  }
+
+  createTimeout(id: string, callback: () => void, delay: number): void {
+    this.clearTimeout(id);
+    const timeout = setTimeout(() => {
+      callback();
+      this.timeouts.delete(id);
+    }, delay);
+    this.timeouts.set(id, timeout);
+  }
+
+  clearTimeout(id: string): void {
+    const timeout = this.timeouts.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.timeouts.delete(id);
+    }
+  }
+
+  clearAllTimeouts(): void {
+    for (const timeout of this.timeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.timeouts.clear();
+  }
+}
+```
 
 ## Testing Philosophy
 

@@ -1,47 +1,73 @@
 ---
-title: Evaluators
-description: Building evaluation logic for agents
+title: "Evaluators"
+description: "Understanding evaluators in ElizaOS, including the Evaluator interface, reflection patterns, and behavior assessment systems with real examples from plugin-bootstrap"
 ---
 
 # Evaluators
 
-Evaluators are components that assess agent interactions, extract insights, and enable agents to learn from conversations. They run after message processing to analyze performance, identify patterns, and store knowledge.
+Evaluators are assessment systems that analyze agent behavior and interactions in ElizaOS. They provide continuous monitoring, reflection, and learning capabilities that help agents improve their performance over time. This page covers the Evaluator interface, implementation patterns, and the reflection evaluator from plugin-bootstrap.
 
 ## Evaluator Interface
 
-From `@elizaos/core/src/types/components.ts`:
+The Evaluator interface defines the structure for all agent evaluators:
 
 ```typescript
-/**
- * Evaluator for assessing agent responses
- */
-export interface Evaluator {
-  /** Whether to always run */
+interface Evaluator {
+  /** Whether to always run this evaluator */
   alwaysRun?: boolean;
   
-  /** Detailed description */
+  /** Detailed description of what the evaluator does */
   description: string;
   
-  /** Similar evaluator descriptions */
+  /** Similar evaluator descriptions for context */
   similes?: string[];
   
-  /** Example evaluations */
+  /** Example evaluation scenarios */
   examples: EvaluationExample[];
   
-  /** Handler function */
+  /** Handler function that performs the evaluation */
   handler: Handler;
   
-  /** Evaluator name */
+  /** Evaluator name/identifier */
   name: string;
   
-  /** Validation function */
+  /** Validation function to determine if evaluator should run */
   validate: Validator;
 }
+```
 
-/**
- * Example for evaluating agent behavior
- */
-export interface EvaluationExample {
+### Core Components
+
+#### Handler Function
+The handler performs the actual evaluation logic:
+
+```typescript
+type Handler = (
+  runtime: IAgentRuntime,
+  message: Memory,
+  state?: State,
+  options?: { [key: string]: unknown },
+  callback?: HandlerCallback,
+  responses?: Memory[]
+) => Promise<unknown>;
+```
+
+#### Validator Function
+The validator determines if an evaluator should execute:
+
+```typescript
+type Validator = (
+  runtime: IAgentRuntime,
+  message: Memory,
+  state?: State
+) => Promise<boolean>;
+```
+
+#### EvaluationExample
+Examples demonstrate evaluation scenarios:
+
+```typescript
+interface EvaluationExample {
   /** Evaluation context */
   prompt: string;
   
@@ -51,115 +77,18 @@ export interface EvaluationExample {
   /** Expected outcome */
   outcome: string;
 }
-
-// Supporting types (same as Actions)
-export type Handler = (
-  runtime: IAgentRuntime,
-  message: Memory,
-  state?: State,
-  options?: { [key: string]: unknown },
-  callback?: HandlerCallback,
-  responses?: Memory[]
-) => Promise<unknown>;
-
-export type Validator = (
-  runtime: IAgentRuntime,
-  message: Memory,
-  state?: State
-) => Promise<boolean>;
 ```
 
-## Creating Evaluators
+## Real-World Example: Reflection Evaluator
 
-### Basic Evaluator Structure
-
-```typescript
-import type { 
-  Evaluator, 
-  IAgentRuntime, 
-  Memory, 
-  State,
-  EvaluationExample 
-} from '@elizaos/core';
-
-export const sentimentEvaluator: Evaluator = {
-  name: 'SENTIMENT_ANALYSIS',
-  similes: ['ANALYZE_SENTIMENT', 'CHECK_MOOD', 'EVALUATE_TONE'],
-  description: 'Analyzes the emotional tone of conversations',
-  
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    // Run periodically, not on every message
-    const messageCount = await runtime.getMemoriesCount({
-      roomId: message.roomId,
-      tableName: 'messages'
-    });
-    
-    // Evaluate every 10 messages
-    return messageCount % 10 === 0;
-  },
-  
-  handler: async (
-    runtime: IAgentRuntime,
-    message: Memory,
-    state?: State,
-    options?: any,
-    callback?: HandlerCallback,
-    responses?: Memory[]
-  ) => {
-    // Get recent messages
-    const recentMessages = await runtime.getMemories({
-      roomId: message.roomId,
-      tableName: 'messages',
-      count: 10
-    });
-    
-    // Analyze sentiment
-    const sentiments = recentMessages.map(msg => 
-      analyzeSentiment(msg.content.text)
-    );
-    
-    const averageSentiment = sentiments.reduce((a, b) => a + b, 0) / sentiments.length;
-    
-    // Store insight
-    await runtime.createMemory({
-      entityId: message.agentId,
-      content: {
-        text: `Conversation sentiment: ${averageSentiment > 0 ? 'positive' : 'negative'}`,
-        metadata: {
-          sentiment: averageSentiment,
-          messageCount: sentiments.length
-        }
-      },
-      roomId: message.roomId
-    }, 'sentiments');
-    
-    return {
-      sentiment: averageSentiment,
-      trend: calculateTrend(sentiments)
-    };
-  },
-  
-  examples: [
-    {
-      prompt: 'Analyzing a friendly conversation',
-      messages: [
-        { name: 'User', content: { text: 'This is amazing! Thank you so much!' } },
-        { name: 'Agent', content: { text: 'You\'re very welcome! Happy to help!' } }
-      ],
-      outcome: 'Positive sentiment detected (0.8)'
-    }
-  ] as EvaluationExample[]
-};
-```
-
-### Real Example: Reflection Evaluator
-
-From `@elizaos/plugin-bootstrap/src/evaluators/reflection.ts`, this evaluator demonstrates advanced evaluation capabilities:
+Let's examine the reflection evaluator from plugin-bootstrap, which demonstrates advanced evaluation patterns:
 
 ```typescript
 export const reflectionEvaluator: Evaluator = {
   name: 'REFLECTION',
   similes: ['REFLECT', 'SELF_REFLECT', 'EVALUATE_INTERACTION', 'ASSESS_SITUATION'],
+  description: 'Generate a self-reflective thought on the conversation, then extract facts and relationships between entities in the conversation.',
+  
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const lastMessageId = await runtime.getCache<string>(
       `${message.roomId}-reflection-last-processed`
@@ -180,526 +109,795 @@ export const reflectionEvaluator: Evaluator = {
     const reflectionInterval = Math.ceil(runtime.getConversationLength() / 4);
     return messages.length > reflectionInterval;
   },
-  description:
-    'Generate a self-reflective thought on the conversation, then extract facts and relationships between entities in the conversation.',
+  
   handler: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    const { agentId, roomId } = message;
-
-    if (!agentId || !roomId) {
-      logger.warn('Missing agentId or roomId in message', message);
-      return;
-    }
-
-    // Run all queries in parallel for performance
-    const [existingRelationships, entities, knownFacts] = await Promise.all([
-      runtime.getRelationships({
-        entityId: message.entityId,
-      }),
-      getEntityDetails({ runtime, roomId }),
-      runtime.getMemories({
-        tableName: 'facts',
-        roomId,
-        count: 30,
-        unique: true,
-      }),
-    ]);
-
-    const prompt = composePrompt({
-      state: {
-        ...(state?.values || {}),
-        knownFacts: formatFacts(knownFacts),
-        roomType: message.content.channelType as string,
-        entitiesInRoom: JSON.stringify(entities),
-        existingRelationships: JSON.stringify(existingRelationships),
-        senderId: message.entityId,
-      },
-      template: runtime.character.templates?.reflectionTemplate || reflectionTemplate,
-    });
-
-    try {
-      const reflection = await runtime.useModel(ModelType.OBJECT_SMALL, {
-        prompt,
-      });
-
-      if (!reflection) {
-        logger.warn('Getting reflection failed - empty response', prompt);
-        return;
-      }
-
-      // Validate structure
-      if (!reflection.facts || !Array.isArray(reflection.facts)) {
-        logger.warn('Getting reflection failed - invalid facts structure', reflection);
-        return;
-      }
-
-      if (!reflection.relationships || !Array.isArray(reflection.relationships)) {
-        logger.warn('Getting reflection failed - invalid relationships structure', reflection);
-        return;
-      }
-
-      // Store new facts
-      const newFacts =
-        reflection.facts.filter(
-          (fact) =>
-            fact &&
-            typeof fact === 'object' &&
-            !fact.already_known &&
-            !fact.in_bio &&
-            fact.claim &&
-            typeof fact.claim === 'string' &&
-            fact.claim.trim() !== ''
-        ) || [];
-
-      await Promise.all(
-        newFacts.map(async (fact) => {
-          const factMemory = await runtime.addEmbeddingToMemory({
-            entityId: agentId,
-            agentId,
-            content: { text: fact.claim },
-            roomId,
-            createdAt: Date.now(),
-          });
-          return runtime.createMemory(factMemory, 'facts', true);
-        })
-      );
-
-      // Update or create relationships
-      for (const relationship of reflection.relationships) {
-        let sourceId: UUID;
-        let targetId: UUID;
-
-        try {
-          sourceId = resolveEntity(relationship.sourceEntityId, entities);
-          targetId = resolveEntity(relationship.targetEntityId, entities);
-        } catch (error) {
-          console.warn('Failed to resolve relationship entities:', error);
-          console.warn('relationship:\n', relationship);
-          continue; // Skip this relationship if we can't resolve the IDs
-        }
-
-        const existingRelationship = existingRelationships.find((r) => {
-          return r.sourceEntityId === sourceId && r.targetEntityId === targetId;
-        });
-
-        if (existingRelationship) {
-          const updatedMetadata = {
-            ...existingRelationship.metadata,
-            interactions:
-              ((existingRelationship.metadata?.interactions as number | undefined) || 0) + 1,
-          };
-
-          const updatedTags = Array.from(
-            new Set([...(existingRelationship.tags || []), ...relationship.tags])
-          );
-
-          await runtime.updateRelationship({
-            ...existingRelationship,
-            tags: updatedTags,
-            metadata: updatedMetadata,
-          });
-        } else {
-          await runtime.createRelationship({
-            sourceEntityId: sourceId,
-            targetEntityId: targetId,
-            tags: relationship.tags,
-            metadata: {
-              interactions: 1,
-              ...relationship.metadata,
-            },
-          });
-        }
-      }
-
-      await runtime.setCache<string>(
-        `${message.roomId}-reflection-last-processed`,
-        message?.id || ''
-      );
-
-      return reflection;
-    } catch (error) {
-      logger.error('Error in reflection handler:', error);
-      return;
-    }
+    // Implementation details below...
   },
+  
   examples: [
-    // ... (examples follow the same pattern as in the original file)
-  ],
+    // Example scenarios below...
+  ]
 };
 ```
 
-## Types of Evaluators
+### Reflection Handler Implementation
 
-### 1. Performance Evaluators
-
-Assess agent effectiveness:
+The reflection handler performs complex evaluation including self-reflection, fact extraction, and relationship analysis:
 
 ```typescript
-export const responseQualityEvaluator: Evaluator = {
-  name: 'RESPONSE_QUALITY',
-  description: 'Evaluates the quality and helpfulness of agent responses',
-  
-  handler: async (runtime, message, state) => {
-    const metrics = {
-      relevance: assessRelevance(message, state),
-      completeness: assessCompleteness(message, state),
-      accuracy: assessAccuracy(message, state),
-      clarity: assessClarity(message.content.text)
-    };
-    
-    const overallScore = calculateOverallScore(metrics);
-    
-    // Store evaluation
-    await runtime.createMemory({
-      entityId: message.agentId,
-      content: {
-        text: `Response quality score: ${overallScore}/10`,
-        metadata: metrics
-      },
-      roomId: message.roomId
-    }, 'evaluations');
-    
-    // Trigger improvement if score is low
-    if (overallScore < 6) {
-      await runtime.queueTask({
-        name: 'IMPROVE_RESPONSE_QUALITY',
-        metadata: { metrics, messageId: message.id }
-      });
-    }
-    
-    return metrics;
+async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
+  const { agentId, roomId } = message;
+
+  if (!agentId || !roomId) {
+    logger.warn('Missing agentId or roomId in message', message);
+    return;
   }
-};
-```
 
-### 2. Learning Evaluators
+  // Run all queries in parallel
+  const [existingRelationships, entities, knownFacts] = await Promise.all([
+    runtime.getRelationships({
+      entityId: message.entityId,
+    }),
+    getEntityDetails({ runtime, roomId }),
+    runtime.getMemories({
+      tableName: 'facts',
+      roomId,
+      count: 30,
+      unique: true,
+    }),
+  ]);
 
-Extract knowledge from conversations:
+  const prompt = composePrompt({
+    state: {
+      ...(state?.values || {}),
+      knownFacts: formatFacts(knownFacts),
+      roomType: message.content.channelType as string,
+      entitiesInRoom: JSON.stringify(entities),
+      existingRelationships: JSON.stringify(existingRelationships),
+      senderId: message.entityId,
+    },
+    template: runtime.character.templates?.reflectionTemplate || reflectionTemplate,
+  });
 
-```typescript
-export const knowledgeExtractionEvaluator: Evaluator = {
-  name: 'KNOWLEDGE_EXTRACTION',
-  description: 'Extracts and stores new information from conversations',
-  
-  handler: async (runtime, message, state) => {
-    // Extract entities
-    const entities = await extractEntities(message.content.text);
-    
-    // Extract facts
-    const facts = await extractFacts(message.content.text, entities);
-    
-    // Extract procedures/instructions
-    const procedures = await extractProcedures(message.content.text);
-    
-    // Store extracted knowledge
-    for (const entity of entities) {
-      await runtime.createEntity(entity);
-    }
-    
-    for (const fact of facts) {
-      await runtime.createMemory({
-        entityId: message.entityId,
-        content: { text: fact.statement },
-        roomId: message.roomId
-      }, 'facts');
-    }
-    
-    return {
-      entitiesFound: entities.length,
-      factsExtracted: facts.length,
-      proceduresIdentified: procedures.length
-    };
-  }
-};
-```
-
-### 3. Behavioral Evaluators
-
-Monitor and adjust agent behavior:
-
-```typescript
-export const conversationFlowEvaluator: Evaluator = {
-  name: 'CONVERSATION_FLOW',
-  description: 'Monitors conversation dynamics and agent participation',
-  alwaysRun: true,
-  
-  handler: async (runtime, message, state) => {
-    const recentMessages = await runtime.getMemories({
-      roomId: message.roomId,
-      tableName: 'messages',
-      count: 20
+  try {
+    const reflection = await runtime.useModel(ModelType.OBJECT_SMALL, {
+      prompt,
     });
-    
-    // Analyze conversation patterns
-    const analysis = {
-      agentMessageRatio: calculateAgentRatio(recentMessages),
-      averageResponseTime: calculateAvgResponseTime(recentMessages),
-      topicChanges: countTopicChanges(recentMessages),
-      userEngagement: measureEngagement(recentMessages)
-    };
-    
-    // Adjust behavior based on analysis
-    if (analysis.agentMessageRatio > 0.7) {
-      // Agent is dominating - be more passive
-      await runtime.updateState({
-        responseMode: 'concise',
-        askQuestions: true
-      });
-    } else if (analysis.userEngagement < 0.3) {
-      // Low engagement - be more proactive
-      await runtime.updateState({
-        responseMode: 'engaging',
-        suggestTopics: true
-      });
+
+    if (!reflection) {
+      logger.warn('Getting reflection failed - empty response', prompt);
+      return;
     }
-    
-    return analysis;
+
+    // Perform basic structure validation
+    if (!reflection.facts || !Array.isArray(reflection.facts)) {
+      logger.warn('Getting reflection failed - invalid facts structure', reflection);
+      return;
+    }
+
+    if (!reflection.relationships || !Array.isArray(reflection.relationships)) {
+      logger.warn('Getting reflection failed - invalid relationships structure', reflection);
+      return;
+    }
+
+    // Store new facts
+    const newFacts = reflection.facts.filter(
+      (fact) =>
+        fact &&
+        typeof fact === 'object' &&
+        !fact.already_known &&
+        !fact.in_bio &&
+        fact.claim &&
+        typeof fact.claim === 'string' &&
+        fact.claim.trim() !== ''
+    ) || [];
+
+    await Promise.all(
+      newFacts.map(async (fact) => {
+        const factMemory = await runtime.addEmbeddingToMemory({
+          entityId: agentId,
+          agentId,
+          content: { text: fact.claim },
+          roomId,
+          createdAt: Date.now(),
+        });
+        return runtime.createMemory(factMemory, 'facts', true);
+      })
+    );
+
+    // Update or create relationships
+    for (const relationship of reflection.relationships) {
+      let sourceId: UUID;
+      let targetId: UUID;
+
+      try {
+        sourceId = resolveEntity(relationship.sourceEntityId, entities);
+        targetId = resolveEntity(relationship.targetEntityId, entities);
+      } catch (error) {
+        console.warn('Failed to resolve relationship entities:', error);
+        continue;
+      }
+
+      const existingRelationship = existingRelationships.find((r) => {
+        return r.sourceEntityId === sourceId && r.targetEntityId === targetId;
+      });
+
+      if (existingRelationship) {
+        const updatedMetadata = {
+          ...existingRelationship.metadata,
+          interactions: ((existingRelationship.metadata?.interactions as number) || 0) + 1,
+        };
+
+        const updatedTags = Array.from(
+          new Set([...(existingRelationship.tags || []), ...relationship.tags])
+        );
+
+        await runtime.updateRelationship({
+          ...existingRelationship,
+          tags: updatedTags,
+          metadata: updatedMetadata,
+        });
+      } else {
+        await runtime.createRelationship({
+          sourceEntityId: sourceId,
+          targetEntityId: targetId,
+          tags: relationship.tags,
+          metadata: {
+            interactions: 1,
+            ...relationship.metadata,
+          },
+        });
+      }
+    }
+
+    await runtime.setCache<string>(
+      `${message.roomId}-reflection-last-processed`,
+      message?.id || ''
+    );
+
+    return reflection;
+  } catch (error) {
+    logger.error('Error in reflection handler:', error);
+    return;
   }
-};
+}
+```
+
+### Reflection Template
+
+The reflection evaluator uses a comprehensive template for generating self-reflective analysis:
+
+```typescript
+const reflectionTemplate = `# Task: Generate Agent Reflection, Extract Facts and Relationships
+
+{{providers}}
+
+# Examples:
+{{evaluationExamples}}
+
+# Entities in Room
+{{entitiesInRoom}}
+
+# Existing Relationships
+{{existingRelationships}}
+
+# Current Context:
+Agent Name: {{agentName}}
+Room Type: {{roomType}}
+Message Sender: {{senderName}} (ID: {{senderId}})
+
+{{recentMessages}}
+
+# Known Facts:
+{{knownFacts}}
+
+# Instructions:
+1. Generate a self-reflective thought on the conversation about your performance and interaction quality.
+2. Extract new facts from the conversation.
+3. Identify and describe relationships between entities.
+  - The sourceEntityId is the UUID of the entity initiating the interaction.
+  - The targetEntityId is the UUID of the entity being interacted with.
+  - Relationships are one-direction, so a friendship would be two entity relationships where each entity is both the source and the target of the other.
+
+Generate a response in the following format:
+\`\`\`json
+{
+  "thought": "a self-reflective thought on the conversation",
+  "facts": [
+      {
+          "claim": "factual statement",
+          "type": "fact|opinion|status",
+          "in_bio": false,
+          "already_known": false
+      }
+  ],
+  "relationships": [
+      {
+          "sourceEntityId": "entity_initiating_interaction",
+          "targetEntityId": "entity_being_interacted_with",
+          "tags": ["group_interaction|voice_interaction|dm_interaction", "additional_tag1", "additional_tag2"]
+      }
+  ]
+}
+\`\`\``;
 ```
 
 ## Evaluation Examples
 
-Examples help train the evaluator:
+The reflection evaluator includes comprehensive examples demonstrating different evaluation scenarios:
+
+### Example 1: Welcome Interaction
 
 ```typescript
-examples: [
-  {
-    prompt: 'Evaluating a technical support conversation',
-    messages: [
-      {
-        name: 'User',
-        content: { text: 'My application keeps crashing when I upload files' }
-      },
-      {
-        name: 'Agent',
-        content: { 
-          text: 'Let me help you troubleshoot this. First, what file types are you trying to upload?'
-        }
-      },
-      {
-        name: 'User',
-        content: { text: 'PDFs, mostly around 5-10MB' }
-      },
-      {
-        name: 'Agent',
-        content: { 
-          text: 'That size should be fine. Can you check if you have enough storage space available?'
-        }
-      }
-    ],
-    outcome: JSON.stringify({
-      thought: 'I\'m systematically troubleshooting the issue by gathering information about file types and sizes. The conversation is progressing well.',
-      facts: [
-        {
-          claim: 'User experiences crashes when uploading files',
-          type: 'issue',
-          in_bio: false,
-          already_known: false
-        },
-        {
-          claim: 'User primarily uploads PDFs of 5-10MB',
-          type: 'fact',
-          in_bio: false,
-          already_known: false
-        }
-      ],
-      quality: {
-        score: 8,
-        reasoning: 'Good systematic approach to troubleshooting'
-      }
-    })
-  }
-]
-```
-
-## Registering Evaluators
-
-### In Plugins
-
-```typescript
-export const analyticsPlugin: Plugin = {
-  name: 'analytics-plugin',
-  description: 'Analytics and evaluation capabilities',
+{
+  prompt: `Agent Name: Sarah
+Agent Role: Community Manager
+Room Type: group
+Current Room: general-chat
+Message Sender: John (user-123)`,
   
-  evaluators: [
-    sentimentEvaluator,
-    responseQualityEvaluator,
-    knowledgeExtractionEvaluator
+  messages: [
+    {
+      name: 'John',
+      content: { text: "Hey everyone, I'm new here!" },
+    },
+    {
+      name: 'Sarah',
+      content: { text: 'Welcome John! How did you find our community?' },
+    },
+    {
+      name: 'John',
+      content: { text: "Through a friend who's really into AI" },
+    },
   ],
   
-  register: async (runtime: IAgentRuntime) => {
-    // Evaluators are automatically registered
-    runtime.logger.info('Analytics evaluators registered');
-  }
+  outcome: `{
+    "thought": "I'm engaging appropriately with a new community member, maintaining a welcoming and professional tone. My questions are helping to learn more about John and make him feel welcome.",
+    "facts": [
+        {
+            "claim": "John is new to the community",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        },
+        {
+            "claim": "John found the community through a friend interested in AI",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        }
+    ],
+    "relationships": [
+        {
+            "sourceEntityId": "sarah-agent",
+            "targetEntityId": "user-123",
+            "tags": ["group_interaction"]
+        },
+        {
+            "sourceEntityId": "user-123",
+            "targetEntityId": "sarah-agent",
+            "tags": ["group_interaction"]
+        }
+    ]
+}`
+}
+```
+
+### Example 2: Technical Support Interaction
+
+```typescript
+{
+  prompt: `Agent Name: Alex
+Agent Role: Tech Support
+Room Type: group
+Current Room: tech-help
+Message Sender: Emma (user-456)`,
+  
+  messages: [
+    {
+      name: 'Emma',
+      content: { text: 'My app keeps crashing when I try to upload files' },
+    },
+    {
+      name: 'Alex',
+      content: { text: 'Have you tried clearing your cache?' },
+    },
+    {
+      name: 'Emma',
+      content: { text: 'No response...' },
+    },
+    {
+      name: 'Alex',
+      content: {
+        text: 'Emma, are you still there? We can try some other troubleshooting steps.',
+      },
+    },
+  ],
+  
+  outcome: `{
+    "thought": "I'm not sure if I'm being helpful or if Emma is frustrated with my suggestions. The lack of response is concerning - maybe I should have asked for more details about the issue first before jumping to solutions.",
+    "facts": [
+        {
+            "claim": "Emma is having technical issues with file uploads",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        },
+        {
+            "claim": "Emma stopped responding after the first troubleshooting suggestion",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        }
+    ],
+    "relationships": [
+        {
+            "sourceEntityId": "alex-agent",
+            "targetEntityId": "user-456",
+            "tags": ["group_interaction", "support_interaction", "incomplete_interaction"]
+        }
+    ]
+}`
+}
+```
+
+### Example 3: Over-Engagement Analysis
+
+```typescript
+{
+  prompt: `Agent Name: Max
+Agent Role: Discussion Facilitator 
+Room Type: group
+Current Room: book-club
+Message Sender: Lisa (user-789)`,
+  
+  messages: [
+    {
+      name: 'Lisa',
+      content: { text: 'What did everyone think about chapter 5?' },
+    },
+    {
+      name: 'Max',
+      content: {
+        text: 'The symbolism was fascinating! The red door clearly represents danger.',
+      },
+    },
+    {
+      name: 'Max',
+      content: {
+        text: "And did anyone notice how the author used weather to reflect the protagonist's mood?",
+      },
+    },
+    {
+      name: 'Max',
+      content: {
+        text: 'Plus the foreshadowing in the first paragraph was brilliant!',
+      },
+    },
+    {
+      name: 'Max',
+      content: {
+        text: 'I also have thoughts about the character development...',
+      },
+    },
+  ],
+  
+  outcome: `{
+    "thought": "I'm dominating the conversation and not giving others a chance to share their perspectives. I've sent multiple messages in a row without waiting for responses. I need to step back and create space for other members to participate.",
+    "facts": [
+        {
+            "claim": "The discussion is about chapter 5 of a book",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        },
+        {
+            "claim": "Max has sent 4 consecutive messages without user responses",
+            "type": "fact",
+            "in_bio": false,
+            "already_known": false
+        }
+    ],
+    "relationships": [
+        {
+            "sourceEntityId": "max-agent",
+            "targetEntityId": "user-789",
+            "tags": ["group_interaction", "excessive_interaction"]
+        }
+    ]
+}`
+}
+```
+
+## Evaluator Implementation Patterns
+
+### Basic Evaluator Structure
+
+```typescript
+export const myEvaluator: Evaluator = {
+  name: 'MY_EVALUATOR',
+  description: 'Description of what this evaluator does',
+  
+  validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+    // Validation logic
+    return true;
+  },
+  
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: any
+  ) => {
+    // Evaluation logic
+    const evaluation = await performEvaluation();
+    return evaluation;
+  },
+  
+  examples: [
+    {
+      prompt: 'Evaluation context',
+      messages: [
+        // Example messages
+      ],
+      outcome: 'Expected evaluation result'
+    }
+  ]
 };
 ```
 
-### Direct Registration
+### Validation Patterns
 
+#### Interval-Based Validation
 ```typescript
-// Register individual evaluator
-runtime.registerEvaluator(myEvaluator);
-
-// Configure evaluator settings
-runtime.configureEvaluator('SENTIMENT_ANALYSIS', {
-  threshold: 0.7,
-  frequency: 5 // Run every 5 messages
-});
+validate: async (runtime: IAgentRuntime, message: Memory) => {
+  const lastEvaluation = await runtime.getCache(`last-evaluation-${message.roomId}`);
+  const timeSinceLastEval = Date.now() - (lastEvaluation || 0);
+  const evaluationInterval = 5 * 60 * 1000; // 5 minutes
+  
+  return timeSinceLastEval >= evaluationInterval;
+}
 ```
 
-## Evaluation Pipeline
+#### Message Count Validation
+```typescript
+validate: async (runtime: IAgentRuntime, message: Memory) => {
+  const messages = await runtime.getMemories({
+    tableName: 'messages',
+    roomId: message.roomId,
+    count: 10
+  });
+  
+  return messages.length >= 10;
+}
+```
 
-Evaluators run in a specific order:
+#### State-Based Validation
+```typescript
+validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+  const shouldEvaluate = state?.values?.evaluationEnabled === true;
+  const hasMinimumData = state?.values?.messageCount >= 5;
+  
+  return shouldEvaluate && hasMinimumData;
+}
+```
+
+### Handler Patterns
+
+#### Simple Analysis Handler
+```typescript
+handler: async (runtime, message, state) => {
+  const analysis = {
+    messageCount: state?.values?.messageCount || 0,
+    sentiment: analyzeSentiment(message.content.text),
+    timestamp: Date.now()
+  };
+  
+  await runtime.setCache(`analysis-${message.roomId}`, analysis);
+  return analysis;
+}
+```
+
+#### LLM-Based Evaluation Handler
+```typescript
+handler: async (runtime, message, state) => {
+  const prompt = composePrompt({
+    state: {
+      ...state?.values,
+      recentMessages: formatMessages(await getRecentMessages(runtime, message.roomId))
+    },
+    template: evaluationTemplate
+  });
+  
+  const evaluation = await runtime.useModel(ModelType.OBJECT_SMALL, {
+    prompt
+  });
+  
+  // Process evaluation results
+  await processEvaluationResults(runtime, evaluation);
+  
+  return evaluation;
+}
+```
+
+#### Performance Evaluation Handler
+```typescript
+handler: async (runtime, message, state) => {
+  const performance = {
+    responseTime: calculateResponseTime(message),
+    accuracy: assessAccuracy(message, state),
+    userSatisfaction: analyzeSatisfaction(message),
+    improvementAreas: identifyImprovements(message, state)
+  };
+  
+  // Store performance metrics
+  await runtime.createMemory({
+    entityId: runtime.agentId,
+    content: { text: JSON.stringify(performance) },
+    roomId: message.roomId,
+    createdAt: Date.now()
+  }, 'performance');
+  
+  return performance;
+}
+```
+
+## Advanced Evaluator Patterns
+
+### Multi-Faceted Evaluator
 
 ```typescript
-// 1. Message is processed
-const response = await runtime.processMessage(message);
+export const comprehensiveEvaluator: Evaluator = {
+  name: 'COMPREHENSIVE_EVALUATION',
+  description: 'Perform multi-faceted evaluation of agent performance',
+  
+  validate: async (runtime, message) => {
+    const messageCount = await getMessageCount(runtime, message.roomId);
+    return messageCount % 20 === 0; // Evaluate every 20 messages
+  },
+  
+  handler: async (runtime, message, state) => {
+    const evaluations = await Promise.all([
+      evaluateResponseQuality(runtime, message),
+      evaluateUserEngagement(runtime, message),
+      evaluateGoalProgress(runtime, message),
+      evaluateEthicalCompliance(runtime, message)
+    ]);
+    
+    const comprehensive = {
+      responseQuality: evaluations[0],
+      userEngagement: evaluations[1],
+      goalProgress: evaluations[2],
+      ethicalCompliance: evaluations[3],
+      overallScore: calculateOverallScore(evaluations),
+      timestamp: Date.now()
+    };
+    
+    // Store comprehensive evaluation
+    await runtime.createMemory({
+      entityId: runtime.agentId,
+      content: { text: JSON.stringify(comprehensive) },
+      roomId: message.roomId,
+      createdAt: Date.now()
+    }, 'evaluations');
+    
+    return comprehensive;
+  },
+  
+  examples: [
+    {
+      prompt: 'Comprehensive evaluation after 20 messages',
+      messages: [
+        // Sample conversation
+      ],
+      outcome: 'Multi-faceted evaluation with scores and recommendations'
+    }
+  ]
+};
+```
 
-// 2. Always-run evaluators execute
-for (const evaluator of alwaysRunEvaluators) {
-  await evaluator.handler(runtime, message, state);
-}
+### Learning Evaluator
 
-// 3. Conditional evaluators check validation
-for (const evaluator of conditionalEvaluators) {
-  if (await evaluator.validate(runtime, message, state)) {
-    await evaluator.handler(runtime, message, state);
-  }
-}
-
-// 4. Results are stored and available for next interaction
+```typescript
+export const learningEvaluator: Evaluator = {
+  name: 'LEARNING_EVALUATION',
+  description: 'Evaluate and update agent learning progress',
+  
+  validate: async (runtime, message) => {
+    return message.content.text?.includes('feedback') || false;
+  },
+  
+  handler: async (runtime, message, state) => {
+    const feedback = extractFeedback(message.content.text);
+    const currentLearning = await runtime.getCache(`learning-${runtime.agentId}`);
+    
+    const updatedLearning = {
+      ...currentLearning,
+      lastFeedback: feedback,
+      feedbackCount: (currentLearning?.feedbackCount || 0) + 1,
+      learningAdjustments: generateLearningAdjustments(feedback, currentLearning),
+      timestamp: Date.now()
+    };
+    
+    await runtime.setCache(`learning-${runtime.agentId}`, updatedLearning);
+    
+    // Apply learning adjustments
+    await applyLearningAdjustments(runtime, updatedLearning.learningAdjustments);
+    
+    return updatedLearning;
+  },
+  
+  examples: [
+    {
+      prompt: 'User provides feedback on agent behavior',
+      messages: [
+        {
+          name: 'User',
+          content: { text: 'The agent was too verbose in its explanations' }
+        }
+      ],
+      outcome: 'Learning adjustment to reduce verbosity'
+    }
+  ]
+};
 ```
 
 ## Best Practices
 
-### 1. Validation Logic
+### Evaluator Design
 
-- Don't run expensive evaluations on every message
-- Use caching to track evaluation frequency
-- Consider message volume and patterns
+1. **Clear Purpose**: Each evaluator should have a specific evaluation focus
+2. **Appropriate Timing**: Use validation to determine optimal evaluation timing
+3. **Actionable Results**: Generate results that can improve agent behavior
+4. **Performance Impact**: Consider computational cost of evaluation
 
-### 2. Performance
+### Validation Guidelines
 
 ```typescript
+// Good: Specific interval-based validation
 validate: async (runtime, message) => {
-  // Quick checks first
-  if (message.content.text.length < 10) {
-    return false;
-  }
+  const lastEval = await runtime.getCache(`last-eval-${message.roomId}`);
+  const interval = 10 * 60 * 1000; // 10 minutes
+  return !lastEval || (Date.now() - lastEval) >= interval;
+}
+
+// Better: Multi-criteria validation
+validate: async (runtime, message, state) => {
+  const timeCheck = await checkTimeInterval(runtime, message);
+  const activityCheck = await checkActivityLevel(runtime, message);
+  const contextCheck = state?.values?.evaluationContext === 'active';
   
-  // Use cached data when possible
-  const lastRun = await runtime.getCache(`evaluator-${message.roomId}`);
-  if (lastRun && Date.now() - lastRun < 60000) {
-    return false; // Run at most once per minute
-  }
-  
-  return true;
+  return timeCheck && activityCheck && contextCheck;
 }
 ```
 
-### 3. Data Storage
+### Handler Implementation
 
 ```typescript
-// Store evaluations in appropriate tables
-await runtime.createMemory(evaluation, 'evaluations');
-
-// Use metadata for queryability
-const metadata = {
-  evaluatorName: 'SENTIMENT_ANALYSIS',
-  timestamp: Date.now(),
-  score: sentimentScore,
-  version: '1.0'
-};
-```
-
-### 4. Error Handling
-
-```typescript
+// Good: Error handling and result processing
 handler: async (runtime, message, state) => {
   try {
-    const result = await performEvaluation(message, state);
-    return result;
-  } catch (error) {
-    runtime.logger.error('Evaluation failed', {
-      evaluator: 'MY_EVALUATOR',
-      error: error.message,
-      messageId: message.id
-    });
+    const evaluation = await performEvaluation(runtime, message, state);
     
-    // Don't let evaluator errors break message flow
+    // Process and store results
+    await processEvaluationResults(runtime, evaluation);
+    
+    // Update cache for next validation
+    await runtime.setCache(`last-eval-${message.roomId}`, Date.now());
+    
+    return evaluation;
+  } catch (error) {
+    logger.error('Evaluation failed:', error);
     return null;
   }
 }
 ```
 
-### 5. Testing Evaluators
+## Testing Evaluators
+
+### Unit Testing
 
 ```typescript
-import { testEvaluator } from '@elizaos/core/testing';
-
-describe('SentimentEvaluator', () => {
-  it('should detect positive sentiment', async () => {
-    const result = await testEvaluator(sentimentEvaluator, {
-      messages: [
-        { content: { text: 'This is wonderful!' } },
-        { content: { text: 'Thank you so much!' } }
-      ],
-      expectedOutcome: {
-        sentiment: 'positive',
-        score: expect.any(Number)
-      }
-    });
+describe('reflectionEvaluator', () => {
+  it('should validate at correct intervals', async () => {
+    const runtime = mockRuntime();
+    const message = mockMessage();
     
-    expect(result.sentiment).toBe('positive');
-    expect(result.score).toBeGreaterThan(0.5);
+    // Mock conversation length
+    runtime.getConversationLength = jest.fn().returns(20);
+    
+    const isValid = await reflectionEvaluator.validate(runtime, message);
+    expect(isValid).toBe(true);
+  });
+  
+  it('should extract facts correctly', async () => {
+    const runtime = mockRuntime();
+    const message = mockMessage();
+    const state = mockState();
+    
+    const result = await reflectionEvaluator.handler(runtime, message, state);
+    
+    expect(result.facts).toBeInstanceOf(Array);
+    expect(result.relationships).toBeInstanceOf(Array);
   });
 });
 ```
 
-## Common Evaluation Patterns
-
-### Fact Extraction
+### Integration Testing
 
 ```typescript
-const facts = await runtime.useModel(ModelType.OBJECT_SMALL, {
-  prompt: `Extract factual claims from: "${message.content.text}"`,
-  schema: z.object({
-    facts: z.array(z.object({
-      claim: z.string(),
-      confidence: z.number(),
-      source: z.string()
-    }))
-  })
+describe('Evaluator Integration', () => {
+  it('should work with runtime', async () => {
+    const runtime = new AgentRuntime({
+      character: mockCharacter(),
+      // ... other config
+    });
+    
+    runtime.registerEvaluator(myEvaluator);
+    
+    // Process messages to trigger evaluation
+    await runtime.processMessage(mockMessage());
+    
+    const evaluations = await runtime.getMemories({
+      tableName: 'evaluations',
+      roomId: 'test-room'
+    });
+    
+    expect(evaluations.length).toBeGreaterThan(0);
+  });
 });
 ```
 
-### Relationship Mapping
+## Common Pitfalls
+
+### Validation Issues
 
 ```typescript
-const relationships = entities.flatMap(source => 
-  entities
-    .filter(target => target.id !== source.id)
-    .map(target => ({
-      sourceEntityId: source.id,
-      targetEntityId: target.id,
-      tags: detectRelationshipType(source, target, message)
-    }))
-);
+// Bad: Always running (performance impact)
+validate: async () => true
+
+// Bad: No timing consideration
+validate: async (runtime, message) => {
+  return message.content.text?.includes('evaluate');
+}
+
+// Good: Balanced validation
+validate: async (runtime, message) => {
+  const shouldEvaluate = message.content.text?.includes('evaluate');
+  const hasMinInterval = await checkMinInterval(runtime, message);
+  return shouldEvaluate && hasMinInterval;
+}
 ```
 
-### Performance Metrics
+### Handler Problems
 
 ```typescript
-const metrics = {
-  responseLatency: message.timestamp - previousMessage.timestamp,
-  wordCount: message.content.text.split(' ').length,
-  questionAnswered: hasAnsweredQuestion(message, context),
-  topicRelevance: calculateRelevance(message, conversation.topic)
-};
+// Bad: No error handling
+handler: async (runtime, message, state) => {
+  const evaluation = await performComplexEvaluation(); // Can throw
+  return evaluation;
+}
+
+// Good: Proper error handling
+handler: async (runtime, message, state) => {
+  try {
+    const evaluation = await performComplexEvaluation();
+    await saveEvaluationResults(runtime, evaluation);
+    return evaluation;
+  } catch (error) {
+    logger.error('Evaluation failed:', error);
+    return null;
+  }
+}
 ```
 
-## Next Steps
+## Related Components
 
-- Explore [Providers](/docs/core-concepts/agent-development/providers) for supplying context to evaluators
-- Learn about [Tasks](/docs/core-concepts/agent-development/tasks) for scheduled evaluations
-- See [Actions](/docs/core-concepts/agent-development/actions) for triggering evaluations
+- **[Agents](./agents)**: How evaluators integrate with agent runtime
+- **[Actions](./actions)**: How evaluators complement agent actions
+- **[Providers](./providers)**: Data sources for evaluation context
+- **[Character Definition](./character-definition)**: How character traits influence evaluation
+
+## Summary
+
+Evaluators provide the assessment and learning capabilities that enable agents to continuously improve their performance. The reflection evaluator demonstrates sophisticated self-analysis, fact extraction, and relationship management. Well-designed evaluators help agents become more effective over time by providing actionable insights into their interactions and behavior patterns. They are essential for creating intelligent, adaptive agents that can learn from their experiences and provide better user experiences.

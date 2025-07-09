@@ -1,13 +1,28 @@
 ---
-title: WebSockets
-description: Real-time communication with WebSocket implementation in elizaOS
+title: "WebSocket Communication"
+description: "Real-time communication with Socket.IO in ElizaOS"
 ---
 
-# WebSockets
+# WebSocket Communication
 
-elizaOS provides real-time communication capabilities through WebSocket connections, enabling instant message delivery, channel management, and live system monitoring. The WebSocket implementation is built on Socket.IO and integrated with the central message bus.
+ElizaOS provides real-time communication capabilities through WebSocket connections, enabling instant message delivery, channel management, and live system monitoring. The WebSocket implementation is built on Socket.IO and integrated with the central message bus through the `SocketIORouter` class.
 
-## WebSocket Server Setup
+## Architecture
+
+### SocketIORouter Class
+
+The `SocketIORouter` class manages WebSocket connections and routes messages between clients and the central message bus:
+
+```typescript
+export class SocketIORouter {
+  private agents: Map<UUID, IAgentRuntime>;
+  private connections: Map<string, UUID>; // socket.id -> agentId
+  private logStreamConnections: Map<string, { agentName?: string; level?: string }>;
+  private serverInstance: AgentServer;
+}
+```
+
+### WebSocket Server Setup
 
 The WebSocket server is automatically initialized when the AgentServer starts:
 
@@ -17,9 +32,20 @@ import { AgentServer } from '@elizaos/server';
 const server = new AgentServer();
 await server.initialize();
 
-// WebSocket server is automatically created
+// WebSocket server is automatically created and configured
 // Available at ws://localhost:3000 (same port as HTTP server)
 await server.start(3000);
+```
+
+The server configuration includes:
+
+```typescript
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
 ```
 
 ## Connection Events
@@ -69,6 +95,20 @@ enum SOCKET_MESSAGE_TYPE {
 }
 ```
 
+### Event Handling
+
+The SocketIORouter handles these core events:
+
+- `connection` - New client connection
+- `room_joining` / `ROOM_JOINING` - Channel joining requests
+- `send_message` / `SEND_MESSAGE` - Message submission
+- `message` - Generic message handling
+- `subscribe_logs` - Log streaming subscription
+- `unsubscribe_logs` - Log streaming unsubscription
+- `update_log_filters` - Log filter updates
+- `disconnect` - Client disconnection
+- `error` - Socket errors
+
 ## Channel Management
 
 ### Joining Channels
@@ -77,7 +117,7 @@ enum SOCKET_MESSAGE_TYPE {
 // Join a channel/room
 socket.emit(SOCKET_MESSAGE_TYPE.ROOM_JOINING, {
   channelId: '550e8400-e29b-41d4-a716-446655440000',
-  agentId: '550e8400-e29b-41d4-a716-446655440001',
+  agentId: '550e8400-e29b-41d4-a716-446655440001',  // Optional
   entityId: '550e8400-e29b-41d4-a716-446655440002',
   serverId: '00000000-0000-0000-0000-000000000000',
   metadata: {
@@ -86,12 +126,20 @@ socket.emit(SOCKET_MESSAGE_TYPE.ROOM_JOINING, {
   }
 });
 
+// Alternative: Use roomId for backward compatibility
+socket.emit(SOCKET_MESSAGE_TYPE.ROOM_JOINING, {
+  roomId: '550e8400-e29b-41d4-a716-446655440000',  // Same as channelId
+  entityId: '550e8400-e29b-41d4-a716-446655440002',
+  serverId: '00000000-0000-0000-0000-000000000000'
+});
+
 // Listen for join confirmation
 socket.on('channel_joined', (data) => {
   console.log('Successfully joined channel:', data);
   // {
   //   message: 'Socket abc123 successfully joined channel 550e8400-e29b-41d4-a716-446655440000',
   //   channelId: '550e8400-e29b-41d4-a716-446655440000',
+  //   roomId: '550e8400-e29b-41d4-a716-446655440000',
   //   agentId: '550e8400-e29b-41d4-a716-446655440001'
   // }
 });
@@ -99,6 +147,26 @@ socket.on('channel_joined', (data) => {
 // Backward compatibility event
 socket.on('room_joined', (data) => {
   console.log('Room joined (legacy):', data);
+});
+```
+
+### ENTITY_JOINED Event
+
+When joining a channel with `entityId`, the server emits an `ENTITY_JOINED` event for world/entity creation:
+
+```javascript
+// Server-side event emission (automatic)
+runtime.emitEvent(EventType.ENTITY_JOINED, {
+  entityId: entityId,
+  runtime,
+  worldId: serverId,
+  roomId: channelId,
+  metadata: {
+    type: isDm ? ChannelType.DM : ChannelType.GROUP,
+    isDm,
+    ...metadata
+  },
+  source: 'socketio'
 });
 ```
 
@@ -129,7 +197,8 @@ socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
   source: 'web_client',
   metadata: {
     isDm: false,
-    timestamp: Date.now()
+    channelType: 'GROUP',
+    targetUserId: '550e8400-e29b-41d4-a716-446655440002' // For DM channels
   },
   attachments: [
     {
@@ -139,7 +208,43 @@ socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
     }
   ]
 });
+
+// Alternative: Use roomId for backward compatibility
+socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
+  roomId: '550e8400-e29b-41d4-a716-446655440000',
+  serverId: '00000000-0000-0000-0000-000000000000',
+  senderId: '550e8400-e29b-41d4-a716-446655440001',
+  senderName: 'John Doe',
+  message: 'Hello, how can you help me?'
+});
 ```
+
+### Auto-Channel Creation
+
+If a channel doesn't exist, the server automatically creates it:
+
+```javascript
+// For DM channels
+socket.emit(SOCKET_MESSAGE_TYPE.SEND_MESSAGE, {
+  channelId: 'new-dm-channel-id',
+  serverId: '00000000-0000-0000-0000-000000000000',
+  senderId: 'user-id-1',
+  message: 'Hello in new DM!',
+  metadata: {
+    isDm: true,
+    channelType: 'DM',
+    targetUserId: 'user-id-2'  // Second participant
+  }
+});
+```
+
+The server will:
+1. Check if channel exists
+2. Create channel if it doesn't exist
+3. Set up participants (for DM channels)
+4. Store the message in the central database
+5. Emit to internal message bus for agent processing
+6. Broadcast to all channel participants
 
 ### Message Acknowledgment
 
@@ -168,10 +273,23 @@ socket.on('messageBroadcast', (message) => {
   //   senderName: 'Agent Alice',
   //   text: 'Hello! I can help you with various tasks.',
   //   channelId: '550e8400-e29b-41d4-a716-446655440000',
+  //   roomId: '550e8400-e29b-41d4-a716-446655440000', // Backward compatibility
   //   serverId: '00000000-0000-0000-0000-000000000000',
   //   createdAt: 1640995200000,
   //   source: 'agent_response',
-  //   attachments: []
+  //   attachments: [],
+  //   thought: 'The user is asking for help',  // Agent's internal thought
+  //   actions: ['respond'],  // Agent's actions
+  //   clientMessageId: 'client-msg-123'  // Original client message ID (if applicable)
+  // }
+});
+
+// Listen for message completion
+socket.on('messageComplete', (data) => {
+  console.log('Message processing complete:', data);
+  // {
+  //   channelId: '550e8400-e29b-41d4-a716-446655440000',
+  //   serverId: '00000000-0000-0000-0000-000000000000'
   // }
 });
 ```

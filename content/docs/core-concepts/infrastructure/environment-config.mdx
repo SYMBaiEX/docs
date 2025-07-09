@@ -1,11 +1,202 @@
 ---
 title: Environment Configuration
-description: Managing environment variables and configuration in ElizaOS
+description: Managing environment variables and configuration in ElizaOS with actual implementation details
 ---
 
-## Overview
+# Environment Configuration
 
 ElizaOS uses environment variables for configuration across different deployment environments. The system provides comprehensive tools for managing, validating, and securing environment configurations.
+
+## Environment Service Implementation
+
+### EnvFileService
+
+The actual `EnvFileService` class manages environment files:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/services/env-file.service.ts
+export class EnvFileService {
+  private filePath: string;
+
+  constructor(filePath?: string) {
+    this.filePath = filePath || '';
+  }
+
+  async initialize(): Promise<void> {
+    if (!this.filePath) {
+      const envInfo = await UserEnvironment.getInstanceInfo();
+      this.filePath = envInfo.paths.envFilePath;
+    }
+  }
+
+  async read(): Promise<Record<string, string>> {
+    const result: Record<string, string> = {};
+
+    try {
+      if (!existsSync(this.filePath)) {
+        return result;
+      }
+
+      const content = await fs.readFile(this.filePath, 'utf-8');
+      const lines = content.split('\n');
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          const separatorIndex = trimmedLine.indexOf('=');
+          if (separatorIndex > 0) {
+            const key = trimmedLine.substring(0, separatorIndex).trim();
+            const value = trimmedLine.substring(separatorIndex + 1).trim();
+            result[key] = value;
+          }
+        }
+      }
+    } catch (error) {
+      logger.error(`Error reading environment file: ${error}`);
+    }
+
+    return result;
+  }
+
+  async write(vars: Record<string, string>, options: WriteOptions = {}): Promise<void> {
+    const { preserveComments = false, createBackup = false, updateProcessEnv = true } = options;
+
+    try {
+      const dir = path.dirname(this.filePath);
+      if (!existsSync(dir)) {
+        await fs.mkdir(dir, { recursive: true });
+      }
+
+      // Create backup if requested
+      if (createBackup && existsSync(this.filePath)) {
+        const backupPath = `${this.filePath}.${Date.now()}.bak`;
+        await fs.copyFile(this.filePath, backupPath);
+        logger.info(`Created backup at ${backupPath}`);
+      }
+
+      let content = '';
+      const varsCopy = { ...vars };
+
+      if (preserveComments) {
+        // Preserve existing comments
+        const existingEntries = await this.readWithComments();
+        
+        for (const entry of existingEntries) {
+          if (Object.prototype.hasOwnProperty.call(varsCopy, entry.key)) {
+            if (entry.comment) {
+              content += `# ${entry.comment.replace(/\n/g, '\n# ')}\n`;
+            }
+            content += `${entry.key}=${varsCopy[entry.key]}\n`;
+            delete varsCopy[entry.key];
+          }
+        }
+      }
+
+      // Write remaining variables
+      for (const [key, value] of Object.entries(varsCopy)) {
+        if (typeof value === 'string') {
+          content += `${key}=${value}\n`;
+
+          if (updateProcessEnv) {
+            process.env[key] = value;
+          }
+        }
+      }
+
+      await fs.writeFile(this.filePath, content, 'utf-8');
+      logger.info(`Environment variables saved to ${this.filePath}`);
+    } catch (error) {
+      logger.error(`Error writing environment file: ${error}`);
+      throw error;
+    }
+  }
+
+  async validate(): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    try {
+      if (!existsSync(this.filePath)) {
+        return { valid: true, errors: [] };
+      }
+
+      const content = await fs.readFile(this.filePath, 'utf-8');
+      const lines = content.split('\n');
+
+      lines.forEach((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          const separatorIndex = trimmedLine.indexOf('=');
+          if (separatorIndex < 1) {
+            errors.push(`Line ${index + 1}: Invalid format (missing '=' separator)`);
+          } else {
+            const key = trimmedLine.substring(0, separatorIndex).trim();
+            if (!/^[A-Z_][A-Z0-9_]*$/i.test(key)) {
+              errors.push(`Line ${index + 1}: Invalid key format '${key}'`);
+            }
+          }
+        }
+      });
+    } catch (error) {
+      errors.push(`Error reading file: ${error}`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+}
+```
+
+### Configuration Manager
+
+The actual config manager from the codebase:
+
+```typescript
+// From /home/cid/eliza/packages/cli/src/utils/config-manager.ts
+interface AgentConfig {
+  lastUpdated: string;
+  isDefault?: boolean;
+}
+
+export async function loadConfig(): Promise<AgentConfig> {
+  try {
+    const configPath = await getConfigFilePath();
+    if (!(await fileExists(configPath))) {
+      return {
+        lastUpdated: new Date().toISOString(),
+        isDefault: true,
+      };
+    }
+
+    const content = await fs.readFile(configPath, 'utf8');
+    return JSON.parse(content) as AgentConfig;
+  } catch (error) {
+    logger.warn(`Error loading configuration: ${error}`);
+    return {
+      lastUpdated: new Date().toISOString(),
+      isDefault: true,
+    };
+  }
+}
+
+export async function saveConfig(config: AgentConfig): Promise<void> {
+  try {
+    const configPath = await getConfigFilePath();
+    const elizaDir = path.dirname(configPath);
+
+    if (!(await fileExists(elizaDir))) {
+      await fs.mkdir(elizaDir, { recursive: true });
+    }
+
+    config.lastUpdated = new Date().toISOString();
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+    logger.info(`Configuration saved to ${configPath}`);
+  } catch (error) {
+    logger.error(`Error saving configuration: ${error}`);
+  }
+}
+```
 
 ## Environment Files
 

@@ -1,33 +1,88 @@
 ---
 title: Services
-description: Core services and utilities in ElizaOS infrastructure
+description: Core services and utilities in ElizaOS infrastructure with actual implementation details
 ---
 
-## Overview
+# Services
 
 ElizaOS provides a comprehensive set of services and utilities that power the infrastructure, including environment management, file operations, process control, and development tools. These services ensure smooth operation across development, testing, and production environments.
+
+## Service Architecture
+
+### Service Builder Pattern
+
+ElizaOS uses a service builder pattern for type-safe service creation:
+
+```typescript
+import { ServiceBuilder, createService } from '@elizaos/core';
+
+// Create a service with type safety
+const myService = createService<MyService>('MY_SERVICE')
+  .withDescription('Custom service for specific functionality')
+  .withStart(async (runtime: IAgentRuntime) => {
+    // Service initialization logic
+    return new MyService(runtime);
+  })
+  .withStop(async () => {
+    // Service cleanup logic
+  })
+  .build();
+```
+
+### Service Definition
+
+```typescript
+export interface ServiceDefinition<T extends Service = Service> {
+  serviceType: ServiceTypeName;
+  description: string;
+  start: (runtime: IAgentRuntime) => Promise<T>;
+  stop?: () => Promise<void>;
+}
+
+// Define a service with type safety
+export function defineService<T extends Service = Service>(
+  definition: ServiceDefinition<T>
+): new (runtime?: IAgentRuntime) => T {
+  return createService<T>(definition.serviceType)
+    .withDescription(definition.description)
+    .withStart(definition.start)
+    .withStop(definition.stop || (() => Promise.resolve()))
+    .build();
+}
+```
 
 ## Environment Services
 
 ### Environment File Service
 
-Manages `.env` files and environment variables:
+The actual `EnvFileService` implementation manages `.env` files:
 
 ```typescript
-import { EnvFileService } from '@elizaos/cli/services';
+import { EnvFileService, getEnvFileService } from '@elizaos/cli/services';
 
-// Load environment variables
-const envService = new EnvFileService();
-await envService.load();
+// Get the global instance
+const envService = await getEnvFileService();
 
-// Get specific variable
-const apiKey = envService.get('API_KEY');
+// Read environment variables
+const envVars = await envService.read();
 
-// Set variable
-envService.set('API_KEY', 'new-value');
+// Update a single variable
+await envService.update('API_KEY', 'new-value');
 
-// Save changes
-await envService.save();
+// Update multiple variables
+await envService.updateMany({
+  API_KEY: 'key1',
+  DATABASE_URL: 'postgres://localhost:5432/db'
+});
+
+// Delete a variable
+await envService.delete('OLD_VAR');
+
+// Validate environment file
+const validation = await envService.validate();
+if (!validation.valid) {
+  console.error('Validation errors:', validation.errors);
+}
 ```
 
 ### Environment Variable Management

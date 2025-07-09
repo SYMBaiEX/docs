@@ -1,22 +1,19 @@
 ---
-title: Providers
-description: Implementing data providers for agents
+title: "Providers"
+description: "Understanding providers in ElizaOS, including the Provider interface, data retrieval patterns, and real-world examples from plugin-bootstrap for contextual information"
 ---
 
 # Providers
 
-Providers supply contextual data and state information to agents during message processing. They enable agents to access external data sources, system state, and computed values that inform responses.
+Providers are data sources that supply contextual information to agents in ElizaOS. They retrieve, format, and deliver external data and services to enhance agent responses and capabilities. This page covers the Provider interface, implementation patterns, and practical examples from the plugin-bootstrap package.
 
 ## Provider Interface
 
-From `@elizaos/core/src/types/components.ts`:
+The Provider interface defines the structure for all data providers:
 
 ```typescript
-/**
- * Provider for external data/services
- */
-export interface Provider {
-  /** Provider name */
+interface Provider {
+  /** Provider name/identifier */
   name: string;
   
   /** Description of the provider */
@@ -28,587 +25,1089 @@ export interface Provider {
   /** Position of the provider in the provider list, positive or negative */
   position?: number;
   
-  /**
-   * Whether the provider is private
-   * Private providers are not displayed in the regular provider list,
-   * they have to be called explicitly
-   */
+  /** Whether the provider is private */
   private?: boolean;
   
   /** Data retrieval function */
   get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
 }
+```
 
-export interface ProviderResult {
+### Core Components
+
+#### ProviderResult
+The result structure returned by providers:
+
+```typescript
+interface ProviderResult {
+  /** Key-value pairs for template substitution */
   values?: {
     [key: string]: any;
   };
+  
+  /** Additional data for processing */
   data?: {
     [key: string]: any;
   };
+  
+  /** Formatted text for direct inclusion */
   text?: string;
 }
 ```
 
-## Creating Providers
+#### Provider Properties
 
-### Basic Provider Structure
+- **name**: Unique identifier for the provider
+- **description**: Human-readable description of what the provider does
+- **dynamic**: Whether the provider updates dynamically based on context
+- **position**: Controls ordering in provider list (positive or negative values)
+- **private**: If true, provider is not shown in regular lists and must be called explicitly
+- **get**: Function that retrieves and formats data
+
+## Real-World Example: Character Provider
+
+Let's examine the character provider from plugin-bootstrap, which provides character information to agents:
 
 ```typescript
-import type { Provider, IAgentRuntime, Memory, State } from '@elizaos/core';
-
-export const weatherProvider: Provider = {
-  name: 'WEATHER',
-  description: 'Provides current weather information',
-  dynamic: true, // Weather changes frequently
+export const characterProvider: Provider = {
+  name: 'CHARACTER',
+  description: 'Character information',
   
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    // Extract location from message or use default
-    const location = extractLocation(message.content.text) || 'New York';
-    
-    // Fetch weather data
-    const weather = await fetchWeatherData(location);
-    
-    return {
-      values: {
-        temperature: weather.temp,
-        condition: weather.condition,
-        humidity: weather.humidity,
-        location: location
-      },
-      data: weather,
-      text: `Current weather in ${location}: ${weather.temp}°F, ${weather.condition}`
+    const character = runtime.character;
+
+    // Character name
+    const agentName = character.name;
+
+    // Handle bio (string or random selection from array)
+    const bioText = Array.isArray(character.bio)
+      ? character.bio
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 10)
+          .join(' ')
+      : character.bio || '';
+
+    const bio = addHeader(`# About ${character.name}`, bioText);
+
+    // System prompt
+    const system = character.system ?? '';
+
+    // Select random topic if available
+    const topicString =
+      character.topics && character.topics.length > 0
+        ? character.topics[Math.floor(Math.random() * character.topics.length)]
+        : null;
+
+    const topic = topicString || '';
+
+    // Format topics list
+    const topics =
+      character.topics && character.topics.length > 0
+        ? `${character.name} is also interested in ${character.topics
+            .filter((topic) => topic !== topicString)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 5)
+            .map((topic, index, array) => {
+              if (index === array.length - 2) {
+                return `${topic} and `;
+              }
+              if (index === array.length - 1) {
+                return topic;
+              }
+              return `${topic}, `;
+            })
+            .join('')}`
+        : '';
+
+    // Select random adjective if available
+    const adjectiveString =
+      character.adjectives && character.adjectives.length > 0
+        ? character.adjectives[Math.floor(Math.random() * character.adjectives.length)]
+        : '';
+
+    const adjective = adjectiveString || '';
+
+    // Format post examples
+    const formattedCharacterPostExamples = !character.postExamples
+      ? ''
+      : character.postExamples
+          .sort(() => 0.5 - Math.random())
+          .map((post) => {
+            const messageString = `${post}`;
+            return messageString;
+          })
+          .slice(0, 50)
+          .join('\n');
+
+    const characterPostExamples =
+      formattedCharacterPostExamples &&
+      formattedCharacterPostExamples.replaceAll('\n', '').length > 0
+        ? addHeader(`# Example Posts for ${character.name}`, formattedCharacterPostExamples)
+        : '';
+
+    // Format message examples
+    const formattedCharacterMessageExamples = !character.messageExamples
+      ? ''
+      : character.messageExamples
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 5)
+          .map((example) => {
+            const exampleNames = Array.from({ length: 5 }, () =>
+              Math.random().toString(36).substring(2, 8)
+            );
+
+            return example
+              .map((message) => {
+                let messageString = `${message.name}: ${message.content.text}${
+                  message.content.action || message.content.actions
+                    ? ` (actions: ${message.content.action || message.content.actions?.join(', ')})`
+                    : ''
+                }`;
+                exampleNames.forEach((name, index) => {
+                  const placeholder = `{{name${index + 1}}}`;
+                  messageString = messageString.replaceAll(placeholder, name);
+                });
+                return messageString;
+              })
+              .join('\n');
+          })
+          .join('\n\n');
+
+    const characterMessageExamples =
+      formattedCharacterMessageExamples &&
+      formattedCharacterMessageExamples.replaceAll('\n', '').length > 0
+        ? addHeader(
+            `# Example Conversations for ${character.name}`,
+            formattedCharacterMessageExamples
+          )
+        : '';
+
+    const room = state.data.room ?? (await runtime.getRoom(message.roomId));
+
+    const isPostFormat = room?.type === ChannelType.FEED || room?.type === ChannelType.THREAD;
+
+    // Style directions
+    const postDirections =
+      (character?.style?.all?.length && character?.style?.all?.length > 0) ||
+      (character?.style?.post?.length && character?.style?.post?.length > 0)
+        ? addHeader(
+            `# Post Directions for ${character.name}`,
+            (() => {
+              const all = character?.style?.all || [];
+              const post = character?.style?.post || [];
+              return [...all, ...post].join('\n');
+            })()
+          )
+        : '';
+
+    const messageDirections =
+      (character?.style?.all?.length && character?.style?.all?.length > 0) ||
+      (character?.style?.chat?.length && character?.style?.chat?.length > 0)
+        ? addHeader(
+            `# Message Directions for ${character.name}`,
+            (() => {
+              const all = character?.style?.all || [];
+              const chat = character?.style?.chat || [];
+              return [...all, ...chat].join('\n');
+            })()
+          )
+        : '';
+
+    const directions = isPostFormat ? postDirections : messageDirections;
+    const examples = isPostFormat ? characterPostExamples : characterMessageExamples;
+
+    const values = {
+      agentName,
+      bio,
+      system,
+      topic,
+      topics,
+      adjective,
+      messageDirections,
+      postDirections,
+      directions,
+      examples,
+      characterPostExamples,
+      characterMessageExamples,
     };
-  }
-};
-```
 
-### Real Example: Time Provider
-
-From `@elizaos/plugin-bootstrap/src/providers/time.ts`:
-
-```typescript
-import type { IAgentRuntime, Memory, Provider } from '@elizaos/core';
-
-/**
- * Time provider function that retrieves the current date and time in UTC
- * for use in time-based operations or responses.
- */
-export const timeProvider: Provider = {
-  name: 'TIME',
-  get: async (_runtime: IAgentRuntime, _message: Memory) => {
-    const currentDate = new Date();
-
-    // Get UTC time since bots will be communicating with users around the global
-    const options = {
-      timeZone: 'UTC',
-      dateStyle: 'full' as const,
-      timeStyle: 'long' as const,
+    const data = {
+      bio,
+      adjective,
+      topic,
+      topics,
+      character,
+      directions,
+      examples,
+      system,
     };
-    const humanReadable = new Intl.DateTimeFormat('en-US', options).format(currentDate);
+
+    const topicSentence = topicString
+      ? `${character.name} is currently interested in ${topicString}`
+      : '';
+    const adjectiveSentence = adjectiveString ? `${character.name} is ${adjectiveString}` : '';
     
+    // Combine all text sections
+    const text = [bio, adjectiveSentence, topicSentence, topics, directions, examples, system]
+      .filter(Boolean)
+      .join('\n\n');
+
     return {
-      data: {
-        time: currentDate,
-      },
-      values: {
-        time: humanReadable,
-      },
-      text: `The current date and time is ${humanReadable}. Please use this as your reference for any time-based operations or responses.`,
+      values,
+      data,
+      text,
     };
   },
 };
 ```
 
-## Bootstrap Plugin Providers
+## More Provider Examples from Plugin-Bootstrap
 
-The plugin-bootstrap includes many essential providers:
+### Time Provider
 
-### 1. Recent Messages Provider
+```typescript
+export const timeProvider: Provider = {
+  name: 'TIME',
+  description: 'Current time and date information',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const now = new Date();
+    const timeString = now.toLocaleString();
+    const isoString = now.toISOString();
+    const timestamp = now.getTime();
+    
+    const values = {
+      currentTime: timeString,
+      isoTime: isoString,
+      timestamp,
+      dayOfWeek: now.toLocaleDateString('en-US', { weekday: 'long' }),
+      month: now.toLocaleDateString('en-US', { month: 'long' }),
+      year: now.getFullYear(),
+      hour: now.getHours(),
+      minute: now.getMinutes()
+    };
+    
+    const data = {
+      now,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    
+    const text = addHeader('# Current Time', `It is currently ${timeString}`);
+    
+    return {
+      values,
+      data,
+      text
+    };
+  }
+};
+```
 
-From `@elizaos/plugin-bootstrap/src/providers/recentMessages.ts`:
+### Recent Messages Provider
 
 ```typescript
 export const recentMessagesProvider: Provider = {
   name: 'RECENT_MESSAGES',
-  description: 'Provides conversation history and context',
+  description: 'Recent conversation messages',
   
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    // Get recent messages from the conversation
-    const length = runtime.getConversationLength();
-    const messages = await runtime.messageManager.getMessages({
+    const recentMessages = await runtime.getMemories({
+      tableName: 'messages',
       roomId: message.roomId,
-      count: length,
-      unique: true,
+      count: 10,
+      unique: false
     });
     
-    const formattedMessages = messages
+    const formattedMessages = recentMessages
       .reverse()
-      .map((msg) => {
-        return `${msg.name}: ${msg.content.text}${msg.content.action ? ` [${msg.content.action}]` : ''}`;
+      .map(msg => {
+        const timestamp = new Date(msg.createdAt).toLocaleTimeString();
+        return `[${timestamp}] ${msg.entityId}: ${msg.content.text}`;
       })
       .join('\n');
     
+    const values = {
+      recentMessages: formattedMessages,
+      messageCount: recentMessages.length
+    };
+    
+    const data = {
+      messages: recentMessages,
+      oldestMessage: recentMessages[0],
+      newestMessage: recentMessages[recentMessages.length - 1]
+    };
+    
+    const text = addHeader('# Recent Messages', formattedMessages);
+    
     return {
-      text: `Conversation History:\n${formattedMessages}`,
+      values,
+      data,
+      text
     };
   }
 };
 ```
 
-### 2. Settings Provider
-
-From `@elizaos/plugin-bootstrap/src/providers/settings.ts`:
-
-```typescript
-export const settingsProvider: Provider = {
-  name: 'SETTINGS',
-  description: 'Provides agent settings and configuration',
-  
-  get: async (runtime: IAgentRuntime, _message: Memory, state: State) => {
-    const currentState = Array.isArray(state) ? state[0] : state;
-    const agentId = currentState?.agentId || runtime.agentId;
-    const agentName = runtime.character.name || 'The agent';
-    const characterSettings = runtime.character.settings || {};
-    
-    const settingsMarkdown = Object.entries(characterSettings)
-      .map(([key, value]) => `- **${key}**: ${JSON.stringify(value)}`)
-      .join('\n');
-    
-    return {
-      text: `${agentName}'s configuration includes the following settings:\n\n${settingsMarkdown || 'No settings configured'}`,
-    };
-  },
-};
-```
-
-### 3. Facts Provider
-
-From `@elizaos/plugin-bootstrap/src/providers/facts.ts`:
+### Facts Provider
 
 ```typescript
 export const factsProvider: Provider = {
   name: 'FACTS',
-  description: 'Retrieves known facts about entities and topics',
+  description: 'Known facts about entities and topics',
   
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    // Get facts about the user and general knowledge
-    const agentId = runtime.agentId;
-    const agentName = runtime.character.name;
-    
-    const recentFacts = await runtime.getMemories({
+    const facts = await runtime.getMemories({
       tableName: 'facts',
       roomId: message.roomId,
-      entityId: agentId,
-      start: Date.now() - 1000 * 60 * 60 * 24 * 7, // last 7 days
-      end: Date.now(),
-      count: 10,
-      unique: true,
-    });
-    
-    const allFacts = await runtime.getMemories({
-      tableName: 'facts',
-      roomId: message.roomId,
-      entityId: agentId,
       count: 20,
-      unique: true,
+      unique: true
     });
     
-    const formattedFacts = allFacts
-      .reverse()
-      .map((fact) => fact.content.text)
+    const formattedFacts = facts
+      .map(fact => `• ${fact.content.text}`)
       .join('\n');
     
-    return {
-      text: `About ${agentName}:\n${formattedFacts}`,
+    const values = {
+      facts: formattedFacts,
+      factCount: facts.length
     };
-  },
+    
+    const data = {
+      factList: facts,
+      topicFacts: facts.filter(f => f.content.text?.includes('topic')),
+      entityFacts: facts.filter(f => f.content.text?.includes('entity'))
+    };
+    
+    const text = facts.length > 0 
+      ? addHeader('# Known Facts', formattedFacts)
+      : '';
+    
+    return {
+      values,
+      data,
+      text
+    };
+  }
 };
 ```
 
-### 4. Other Bootstrap Providers
-
-The plugin-bootstrap includes many more providers:
-
-- **attachmentsProvider**: Handles message attachments
-- **capabilitiesProvider**: Lists agent capabilities
-- **characterProvider**: Provides character information
-- **choiceProvider**: Manages user choices
-- **entitiesProvider**: Tracks entities in conversations
-- **evaluatorsProvider**: Lists available evaluators
-- **providersProvider**: Lists available providers
-- **relationshipsProvider**: Manages entity relationships
-- **rolesProvider**: Handles user roles
-- **shouldRespondProvider**: Determines if agent should respond
-- **worldProvider**: Provides world/environment context
-- **anxietyProvider**: Tracks conversation anxiety levels
-- **actionsProvider**: Lists available actions
-
-### 5. External Data Providers
-
-Integrate external services:
+### Relationships Provider
 
 ```typescript
-export const stockPriceProvider: Provider = {
-  name: 'STOCK_PRICES',
-  description: 'Provides real-time stock market data',
-  dynamic: true,
-  position: 10, // Higher priority
+export const relationshipsProvider: Provider = {
+  name: 'RELATIONSHIPS',
+  description: 'Entity relationships and connections',
   
-  get: async (runtime: IAgentRuntime, message: Memory) => {
-    // Extract stock symbols from message
-    const symbols = extractStockSymbols(message.content.text);
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const relationships = await runtime.getRelationships({
+      entityId: message.entityId
+    });
     
-    if (symbols.length === 0) {
-      return {
-        text: 'No stock symbols detected in the message.'
-      };
-    }
+    const formattedRelationships = relationships
+      .map(rel => {
+        const tags = rel.tags?.join(', ') || 'no tags';
+        return `• ${rel.sourceEntityId} → ${rel.targetEntityId} (${tags})`;
+      })
+      .join('\n');
     
-    // Fetch stock data
-    const stockData = await Promise.all(
-      symbols.map(symbol => fetchStockPrice(symbol))
+    const values = {
+      relationships: formattedRelationships,
+      relationshipCount: relationships.length
+    };
+    
+    const data = {
+      relationshipList: relationships,
+      groupRelationships: relationships.filter(r => r.tags?.includes('group_interaction')),
+      dmRelationships: relationships.filter(r => r.tags?.includes('dm_interaction'))
+    };
+    
+    const text = relationships.length > 0
+      ? addHeader('# Entity Relationships', formattedRelationships)
+      : '';
+    
+    return {
+      values,
+      data,
+      text
+    };
+  }
+};
+```
+
+### Capabilities Provider
+
+```typescript
+export const capabilitiesProvider: Provider = {
+  name: 'CAPABILITIES',
+  description: 'Agent capabilities and available actions',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const actions = runtime.getActions();
+    const evaluators = runtime.getEvaluators();
+    
+    const actionNames = actions.map(action => action.name);
+    const evaluatorNames = evaluators.map(evaluator => evaluator.name);
+    
+    const formattedActions = actionNames
+      .map(name => `• ${name}`)
+      .join('\n');
+    
+    const formattedEvaluators = evaluatorNames
+      .map(name => `• ${name}`)
+      .join('\n');
+    
+    const values = {
+      actions: formattedActions,
+      evaluators: formattedEvaluators,
+      actionCount: actionNames.length,
+      evaluatorCount: evaluatorNames.length
+    };
+    
+    const data = {
+      actionList: actions,
+      evaluatorList: evaluators,
+      allCapabilities: [...actionNames, ...evaluatorNames]
+    };
+    
+    const capabilities = [
+      addHeader('# Available Actions', formattedActions),
+      addHeader('# Available Evaluators', formattedEvaluators)
+    ].filter(Boolean).join('\n\n');
+    
+    return {
+      values,
+      data,
+      text: capabilities
+    };
+  }
+};
+```
+
+## Provider Implementation Patterns
+
+### Basic Provider Structure
+
+```typescript
+export const myProvider: Provider = {
+  name: 'MY_PROVIDER',
+  description: 'Description of what this provider does',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Data retrieval logic
+    const data = await fetchData();
+    
+    // Format data for template substitution
+    const values = {
+      myValue: data.value,
+      myCount: data.items.length
+    };
+    
+    // Additional structured data
+    const dataObject = {
+      rawData: data,
+      processedData: processData(data)
+    };
+    
+    // Formatted text for direct inclusion
+    const text = formatDataAsText(data);
+    
+    return {
+      values,
+      data: dataObject,
+      text
+    };
+  }
+};
+```
+
+### Data Retrieval Patterns
+
+#### Database Provider
+```typescript
+export const databaseProvider: Provider = {
+  name: 'DATABASE',
+  description: 'Database query results',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const query = state.values?.query || 'SELECT * FROM table';
+    const results = await runtime.database.query(query);
+    
+    const values = {
+      resultCount: results.length,
+      query: query
+    };
+    
+    const data = {
+      results,
+      metadata: {
+        timestamp: Date.now(),
+        queryExecutionTime: results.executionTime
+      }
+    };
+    
+    const text = addHeader('# Database Results', 
+      results.map(row => JSON.stringify(row)).join('\n')
     );
     
-    return {
-      values: Object.fromEntries(
-        stockData.map(data => [data.symbol, data.price])
-      ),
-      data: { stocks: stockData },
-      text: `Stock prices: ${stockData
-        .map(d => `${d.symbol}: $${d.price}`)
-        .join(', ')}`
-    };
+    return { values, data, text };
   }
 };
 ```
 
-## Provider Composition
-
-Providers can be composed in state:
-
+#### API Provider
 ```typescript
-// Compose state with multiple providers
-const state = await runtime.composeState(message, [
-  'TIME',
-  'WEATHER',
-  'FACTS',
-  'RECENT_MESSAGES'
-]);
-
-// State will contain all provider data
-// {
-//   values: {
-//     time: '...',
-//     temperature: 72,
-//     factCount: 15,
-//     ...
-//   }
-// }
-```
-
-## Dynamic Providers
-
-Providers marked as `dynamic` are called fresh each time:
-
-```typescript
-export const randomNumberProvider: Provider = {
-  name: 'RANDOM',
-  dynamic: true, // Always generate new values
+export const apiProvider: Provider = {
+  name: 'API',
+  description: 'External API data',
   
-  get: async () => {
-    const random = Math.random();
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const apiKey = runtime.getSetting('api_key');
+    const endpoint = state.values?.endpoint || 'https://api.example.com/data';
     
-    return {
-      values: {
-        random,
-        dice: Math.floor(random * 6) + 1,
-        coin: random > 0.5 ? 'heads' : 'tails'
-      },
-      text: `Random number: ${random.toFixed(4)}`
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      const values = {
+        status: response.status,
+        dataCount: data.items?.length || 0,
+        lastUpdated: data.lastUpdated
+      };
+      
+      const formattedData = {
+        apiData: data,
+        responseHeaders: Object.fromEntries(response.headers),
+        cached: false
+      };
+      
+      const text = addHeader('# API Data', JSON.stringify(data, null, 2));
+      
+      return { values, data: formattedData, text };
+    } catch (error) {
+      return {
+        values: { error: error.message },
+        data: { error },
+        text: addHeader('# API Error', `Failed to fetch data: ${error.message}`)
+      };
+    }
+  }
+};
+```
+
+#### File System Provider
+```typescript
+export const fileSystemProvider: Provider = {
+  name: 'FILE_SYSTEM',
+  description: 'File system information',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const path = state.values?.path || './';
+    const files = await fs.readdir(path);
+    
+    const fileStats = await Promise.all(
+      files.map(async (file) => {
+        const stats = await fs.stat(`${path}/${file}`);
+        return {
+          name: file,
+          size: stats.size,
+          isDirectory: stats.isDirectory(),
+          modified: stats.mtime
+        };
+      })
+    );
+    
+    const values = {
+      path,
+      fileCount: files.length,
+      totalSize: fileStats.reduce((sum, file) => sum + file.size, 0)
     };
-  }
-};
-```
-
-## Private Providers
-
-Private providers are not shown in listings but can be explicitly requested:
-
-```typescript
-export const debugProvider: Provider = {
-  name: 'DEBUG_INFO',
-  private: true, // Hidden from normal use
-  
-  get: async (runtime: IAgentRuntime, message: Memory) => {
-    return {
-      data: {
-        messageId: message.id,
-        agentId: runtime.agentId,
-        memoryUsage: process.memoryUsage(),
-        uptime: process.uptime()
-      },
-      text: 'Debug information retrieved'
+    
+    const data = {
+      files: fileStats,
+      directories: fileStats.filter(f => f.isDirectory),
+      regularFiles: fileStats.filter(f => !f.isDirectory)
     };
-  }
-};
-
-// Must be explicitly requested
-const state = await runtime.composeState(message, ['DEBUG_INFO']);
-```
-
-## Provider Priority
-
-Use `position` to control provider order:
-
-```typescript
-// High priority - runs first
-export const criticalDataProvider: Provider = {
-  name: 'CRITICAL_DATA',
-  position: 100,
-  // ...
-};
-
-// Low priority - runs last
-export const supplementalProvider: Provider = {
-  name: 'SUPPLEMENTAL',
-  position: -10,
-  // ...
-};
-```
-
-## Registering Providers
-
-### In Plugins
-
-```typescript
-export const dataPlugin: Plugin = {
-  name: 'data-plugin',
-  description: 'Data providers for enhanced context',
-  
-  providers: [
-    weatherProvider,
-    stockPriceProvider,
-    newsProvider
-  ],
-  
-  register: async (runtime: IAgentRuntime) => {
-    // Providers are automatically registered
-    runtime.logger.info('Data providers registered');
+    
+    const text = addHeader('# File System', 
+      fileStats.map(f => `${f.name} (${f.size} bytes)`).join('\n')
+    );
+    
+    return { values, data, text };
   }
 };
 ```
 
-### Direct Registration
+### Dynamic Provider Patterns
 
+#### Context-Aware Provider
 ```typescript
-// Register individual provider
-runtime.registerProvider(myProvider);
-
-// Register multiple providers
-const providers = [provider1, provider2, provider3];
-providers.forEach(p => runtime.registerProvider(p));
+export const contextAwareProvider: Provider = {
+  name: 'CONTEXT_AWARE',
+  description: 'Context-sensitive information',
+  dynamic: true,
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const context = analyzeContext(message, state);
+    
+    let data;
+    let text;
+    
+    switch (context.type) {
+      case 'technical':
+        data = await getTechnicalData(context);
+        text = addHeader('# Technical Context', formatTechnicalData(data));
+        break;
+        
+      case 'social':
+        data = await getSocialData(context);
+        text = addHeader('# Social Context', formatSocialData(data));
+        break;
+        
+      default:
+        data = await getGeneralData(context);
+        text = addHeader('# General Context', formatGeneralData(data));
+    }
+    
+    const values = {
+      contextType: context.type,
+      confidence: context.confidence,
+      relevance: context.relevance
+    };
+    
+    return { values, data, text };
+  }
+};
 ```
 
-## Error Handling
+#### Caching Provider
+```typescript
+export const cachingProvider: Provider = {
+  name: 'CACHING',
+  description: 'Cached data with automatic refresh',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const cacheKey = `provider-cache-${message.roomId}`;
+    const cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    
+    let cachedData = await runtime.getCache(cacheKey);
+    
+    if (!cachedData || Date.now() - cachedData.timestamp > cacheTimeout) {
+      // Fetch fresh data
+      const freshData = await fetchExpensiveData();
+      
+      cachedData = {
+        data: freshData,
+        timestamp: Date.now()
+      };
+      
+      await runtime.setCache(cacheKey, cachedData);
+    }
+    
+    const values = {
+      cached: Date.now() - cachedData.timestamp < cacheTimeout,
+      cacheAge: Date.now() - cachedData.timestamp,
+      dataCount: cachedData.data.items?.length || 0
+    };
+    
+    const data = {
+      ...cachedData.data,
+      cacheMetadata: {
+        timestamp: cachedData.timestamp,
+        fresh: Date.now() - cachedData.timestamp < cacheTimeout
+      }
+    };
+    
+    const text = addHeader('# Cached Data', 
+      `Data cached at ${new Date(cachedData.timestamp).toLocaleString()}`
+    );
+    
+    return { values, data, text };
+  }
+};
+```
 
-Providers should handle errors gracefully:
+## Advanced Provider Patterns
+
+### Composite Provider
 
 ```typescript
-get: async (runtime: IAgentRuntime, message: Memory) => {
+export const compositeProvider: Provider = {
+  name: 'COMPOSITE',
+  description: 'Combines multiple data sources',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const [userInfo, preferences, activity] = await Promise.all([
+      getUserInfo(message.entityId),
+      getUserPreferences(message.entityId),
+      getRecentActivity(message.entityId)
+    ]);
+    
+    const values = {
+      userName: userInfo.name,
+      userRole: userInfo.role,
+      preferredLanguage: preferences.language,
+      activityLevel: activity.level,
+      lastActive: activity.lastSeen
+    };
+    
+    const data = {
+      userInfo,
+      preferences,
+      activity,
+      composite: {
+        completeness: calculateCompleteness(userInfo, preferences, activity),
+        riskLevel: assessRiskLevel(userInfo, activity)
+      }
+    };
+    
+    const sections = [
+      addHeader('# User Information', formatUserInfo(userInfo)),
+      addHeader('# Preferences', formatPreferences(preferences)),
+      addHeader('# Activity', formatActivity(activity))
+    ];
+    
+    const text = sections.filter(Boolean).join('\n\n');
+    
+    return { values, data, text };
+  }
+};
+```
+
+### Streaming Provider
+
+```typescript
+export const streamingProvider: Provider = {
+  name: 'STREAMING',
+  description: 'Real-time streaming data',
+  dynamic: true,
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const stream = await getDataStream(message.roomId);
+    const buffer = [];
+    
+    // Collect streaming data for a short period
+    const collectData = new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        stream.close();
+        resolve(buffer);
+      }, 1000); // Collect for 1 second
+      
+      stream.on('data', (chunk) => {
+        buffer.push(chunk);
+      });
+      
+      stream.on('end', () => {
+        clearTimeout(timeout);
+        resolve(buffer);
+      });
+    });
+    
+    const streamData = await collectData;
+    
+    const values = {
+      dataPoints: streamData.length,
+      streamStatus: 'active',
+      lastUpdate: Date.now()
+    };
+    
+    const data = {
+      streamData,
+      statistics: calculateStreamStats(streamData),
+      trends: analyzeTrends(streamData)
+    };
+    
+    const text = addHeader('# Streaming Data', 
+      `Received ${streamData.length} data points in the last second`
+    );
+    
+    return { values, data, text };
+  }
+};
+```
+
+### Conditional Provider
+
+```typescript
+export const conditionalProvider: Provider = {
+  name: 'CONDITIONAL',
+  description: 'Provides different data based on conditions',
+  
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    const userLevel = await getUserLevel(message.entityId);
+    const timeOfDay = new Date().getHours();
+    const isWeekend = [0, 6].includes(new Date().getDay());
+    
+    let data;
+    let text;
+    
+    if (userLevel === 'admin') {
+      data = await getAdminData();
+      text = addHeader('# Admin Data', formatAdminData(data));
+    } else if (timeOfDay >= 22 || timeOfDay <= 6) {
+      data = await getNightModeData();
+      text = addHeader('# Night Mode', formatNightData(data));
+    } else if (isWeekend) {
+      data = await getWeekendData();
+      text = addHeader('# Weekend Info', formatWeekendData(data));
+    } else {
+      data = await getStandardData();
+      text = addHeader('# Standard Info', formatStandardData(data));
+    }
+    
+    const values = {
+      userLevel,
+      timeOfDay,
+      isWeekend,
+      dataType: determineDataType(userLevel, timeOfDay, isWeekend)
+    };
+    
+    return { values, data, text };
+  }
+};
+```
+
+## Best Practices
+
+### Provider Design
+
+1. **Single Responsibility**: Each provider should have a clear, focused purpose
+2. **Efficient Data Retrieval**: Cache expensive operations and use appropriate timeouts
+3. **Error Handling**: Gracefully handle failures and provide fallback data
+4. **Consistent Formatting**: Use standard formatting patterns for text output
+
+### Performance Optimization
+
+```typescript
+// Good: Efficient data retrieval with caching
+get: async (runtime, message, state) => {
+  const cacheKey = `provider-${message.roomId}`;
+  const cached = await runtime.getCache(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < 60000) {
+    return cached.data;
+  }
+  
+  const data = await fetchData();
+  await runtime.setCache(cacheKey, { data, timestamp: Date.now() });
+  
+  return data;
+}
+
+// Better: Parallel data fetching
+get: async (runtime, message, state) => {
+  const [userData, preferences, activity] = await Promise.all([
+    getUserData(message.entityId),
+    getUserPreferences(message.entityId),
+    getRecentActivity(message.entityId)
+  ]);
+  
+  return formatCombinedData(userData, preferences, activity);
+}
+```
+
+### Error Handling
+
+```typescript
+// Good: Comprehensive error handling
+get: async (runtime, message, state) => {
   try {
     const data = await fetchExternalData();
-    
-    return {
-      values: processData(data),
-      text: formatDataAsText(data)
-    };
-    
+    return formatData(data);
   } catch (error) {
-    runtime.logger.error('Provider error', {
-      provider: 'MY_PROVIDER',
-      error: error.message
-    });
+    logger.error('Provider failed:', error);
     
     // Return fallback data
     return {
-      values: {
-        error: true,
-        message: 'Data temporarily unavailable'
-      },
-      text: 'Unable to retrieve data at this time.'
+      values: { error: 'Data unavailable' },
+      data: { error },
+      text: addHeader('# Error', 'Unable to retrieve data at this time')
     };
   }
 }
 ```
 
-## Caching Provider Data
-
-For expensive operations, implement caching:
+### Data Formatting
 
 ```typescript
-export const cachedDataProvider: Provider = {
-  name: 'CACHED_DATA',
+// Good: Consistent formatting
+const formatData = (data) => {
+  const values = {
+    count: data.items?.length || 0,
+    status: data.status || 'unknown',
+    lastUpdated: data.timestamp || Date.now()
+  };
   
-  get: async (runtime: IAgentRuntime, message: Memory) => {
-    const cacheKey = `provider-data-${message.roomId}`;
-    
-    // Check cache
-    const cached = await runtime.getCache<ProviderData>(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutes
-      return cached.result;
-    }
-    
-    // Fetch fresh data
-    const freshData = await fetchExpensiveData();
-    const result = {
-      values: freshData,
-      text: formatData(freshData)
-    };
-    
-    // Cache result
-    await runtime.setCache(cacheKey, {
-      result,
-      timestamp: Date.now()
-    });
-    
-    return result;
+  const formattedText = data.items
+    ? data.items.map(item => `• ${item.name}: ${item.value}`).join('\n')
+    : 'No data available';
+  
+  return {
+    values,
+    data: { raw: data, processed: processData(data) },
+    text: addHeader('# Data', formattedText)
+  };
+};
+```
+
+## Provider Configuration
+
+### Private Providers
+
+```typescript
+// Private provider - must be called explicitly
+export const privateProvider: Provider = {
+  name: 'PRIVATE_DATA',
+  description: 'Sensitive information',
+  private: true,
+  
+  get: async (runtime, message, state) => {
+    // Only accessible through explicit calls
+    const sensitiveData = await getSensitiveData();
+    return formatSensitiveData(sensitiveData);
+  }
+};
+```
+
+### Positioned Providers
+
+```typescript
+// High priority provider (runs first)
+export const urgentProvider: Provider = {
+  name: 'URGENT',
+  description: 'Urgent information',
+  position: -100,
+  
+  get: async (runtime, message, state) => {
+    return getUrgentData();
+  }
+};
+
+// Low priority provider (runs last)
+export const supplementaryProvider: Provider = {
+  name: 'SUPPLEMENTARY',
+  description: 'Additional information',
+  position: 100,
+  
+  get: async (runtime, message, state) => {
+    return getSupplementaryData();
   }
 };
 ```
 
 ## Testing Providers
 
-```typescript
-import { testProvider } from '@elizaos/core/testing';
+### Unit Testing
 
-describe('WeatherProvider', () => {
-  it('should provide weather data', async () => {
-    const result = await testProvider(weatherProvider, {
-      message: { content: { text: 'What\'s the weather in Seattle?' } },
-      expectedKeys: ['temperature', 'condition', 'location']
-    });
+```typescript
+describe('characterProvider', () => {
+  it('should return character information', async () => {
+    const runtime = mockRuntime();
+    const message = mockMessage();
+    const state = mockState();
     
-    expect(result.values.location).toBe('Seattle');
-    expect(result.values.temperature).toBeGreaterThan(-50);
-    expect(result.text).toContain('Seattle');
+    const result = await characterProvider.get(runtime, message, state);
+    
+    expect(result.values.agentName).toBe('TestAgent');
+    expect(result.text).toContain('About TestAgent');
+  });
+  
+  it('should handle array bio correctly', async () => {
+    const runtime = mockRuntime();
+    runtime.character.bio = ['Bio 1', 'Bio 2', 'Bio 3'];
+    
+    const result = await characterProvider.get(runtime, mockMessage(), mockState());
+    
+    expect(result.values.bio).toContain('Bio');
+    expect(result.data.bio).toContain('Bio');
   });
 });
 ```
 
-## Best Practices
-
-### 1. Data Structure
-
-- Use `values` for structured, queryable data
-- Use `data` for raw data objects
-- Always provide `text` for human-readable context
-
-### 2. Performance
+### Integration Testing
 
 ```typescript
-// Batch operations when possible
-get: async (runtime, message) => {
-  const [userData, systemData, externalData] = await Promise.all([
-    fetchUserData(message.entityId),
-    getSystemStatus(),
-    fetchExternalAPI()
-  ]);
-  
-  return combineResults(userData, systemData, externalData);
-}
-```
-
-### 3. Error Recovery
-
-```typescript
-// Provide meaningful fallbacks
-get: async (runtime, message) => {
-  let data;
-  
-  try {
-    data = await primaryDataSource();
-  } catch (error) {
-    try {
-      data = await fallbackDataSource();
-    } catch (fallbackError) {
-      data = getDefaultData();
-    }
-  }
-  
-  return formatProviderResult(data);
-}
-```
-
-### 4. Documentation
-
-```typescript
-export const wellDocumentedProvider: Provider = {
-  name: 'USER_PROFILE',
-  description: 'Provides user profile information including preferences, history, and settings',
-  
-  get: async (runtime, message) => {
-    // Implementation with clear variable names
-    const userProfile = await loadUserProfile(message.entityId);
-    const preferences = extractPreferences(userProfile);
-    const history = summarizeHistory(userProfile.history);
+describe('Provider Integration', () => {
+  it('should work with runtime', async () => {
+    const runtime = new AgentRuntime({
+      character: mockCharacter(),
+      // ... other config
+    });
     
-    return {
-      values: {
-        userName: userProfile.name,
-        memberSince: userProfile.createdAt,
-        preferredLanguage: preferences.language,
-        interactionCount: history.totalInteractions
-      },
-      text: `User ${userProfile.name} (member since ${formatDate(userProfile.createdAt)})`
-    };
-  }
-};
-```
-
-## Common Provider Patterns
-
-### Conditional Data
-
-```typescript
-get: async (runtime, message, state) => {
-  const userRole = state.values.userRole;
-  
-  if (userRole === 'premium') {
-    return getPremiumData();
-  } else {
-    return getBasicData();
-  }
-}
-```
-
-### Aggregated Data
-
-```typescript
-get: async (runtime, message) => {
-  const memories = await runtime.getMemories({
-    roomId: message.roomId,
-    tableName: 'messages',
-    count: 100
+    runtime.registerProvider(myProvider);
+    
+    const state = await runtime.composeState(mockMessage(), ['MY_PROVIDER']);
+    
+    expect(state.values.myProviderData).toBeDefined();
   });
-  
-  const stats = {
-    totalMessages: memories.length,
-    uniqueUsers: new Set(memories.map(m => m.entityId)).size,
-    averageLength: memories.reduce((sum, m) => 
-      sum + (m.content.text?.length || 0), 0
-    ) / memories.length
-  };
-  
-  return {
-    values: stats,
-    text: `Conversation stats: ${stats.totalMessages} messages from ${stats.uniqueUsers} users`
-  };
+});
+```
+
+## Common Pitfalls
+
+### Performance Issues
+
+```typescript
+// Bad: Synchronous expensive operations
+get: async (runtime, message, state) => {
+  const data = expensiveOperation(); // Blocks execution
+  return formatData(data);
+}
+
+// Good: Asynchronous operations with timeout
+get: async (runtime, message, state) => {
+  const data = await Promise.race([
+    expensiveOperation(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    )
+  ]);
+  return formatData(data);
 }
 ```
 
-## Next Steps
+### Data Consistency Issues
 
-- Learn about [Tasks](/docs/core-concepts/agent-development/tasks) for scheduled data updates
-- Explore [Actions](/docs/core-concepts/agent-development/actions) that use provider data
-- See [Evaluators](/docs/core-concepts/agent-development/evaluators) for assessing provider effectiveness
+```typescript
+// Bad: Inconsistent data structure
+get: async (runtime, message, state) => {
+  if (someCondition) {
+    return { values: { count: 5 } };
+  } else {
+    return { data: { items: [] } }; // Inconsistent structure
+  }
+}
+
+// Good: Consistent structure
+get: async (runtime, message, state) => {
+  const baseResult = {
+    values: {},
+    data: {},
+    text: ''
+  };
+  
+  if (someCondition) {
+    baseResult.values.count = 5;
+  } else {
+    baseResult.data.items = [];
+  }
+  
+  return baseResult;
+}
+```
+
+## Related Components
+
+- **[Agents](./agents)**: How providers integrate with agent runtime
+- **[Actions](./actions)**: How providers supply data to actions
+- **[Evaluators](./evaluators)**: How providers support evaluation processes
+- **[Character Definition](./character-definition)**: How character provider works with definitions
+
+## Summary
+
+Providers are the data backbone of ElizaOS agents, supplying contextual information that enables intelligent responses and behaviors. The character provider demonstrates sophisticated data formatting and context awareness, while other providers show patterns for different data sources. Well-designed providers are efficient, reliable, and provide consistent data structures that enhance agent capabilities without compromising performance.
