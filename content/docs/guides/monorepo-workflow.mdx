@@ -21,22 +21,23 @@ The Eliza monorepo is structured to support rapid development and deployment of 
 
 ### Directory Structure
 
-```
-eliza/
-├── packages/           # Core packages and plugins
-│   ├── core/          # Core framework
-│   ├── cli/           # Command-line interface
-│   ├── client/        # Frontend client
-│   ├── app/           # Main application
-│   ├── server/        # Server implementation
-│   ├── plugin-*/      # Plugin packages
-│   └── ...
-├── plugin-specification/  # Plugin specs
-├── scripts/              # Build and dev scripts
-├── lerna.json           # Lerna configuration
-├── turbo.json           # Turbo configuration
-└── package.json         # Root package configuration
-```
+<Files>
+  <Folder name="eliza">
+    <Folder name="packages">
+      <Folder name="core" />
+      <Folder name="cli" />
+      <Folder name="client" />
+      <Folder name="app" />
+      <Folder name="server" />
+      <Folder name="plugin-*" />
+    </Folder>
+    <Folder name="plugin-specification" />
+    <Folder name="scripts" />
+    <File name="lerna.json" />
+    <File name="turbo.json" />
+    <File name="package.json" />
+  </Folder>
+</Files>
 
 ## Development Workflow
 

@@ -9,7 +9,10 @@ description: Create your first AI agent in 5 minutes
 
 This guide will walk you through creating and deploying your first ElizaOS agent. No coding experience required!
 
-## Step 1: Install ElizaOS CLI
+<Steps>
+<Step>
+
+## Install ElizaOS CLI
 
 First, install the ElizaOS command-line interface:
 
@@ -25,34 +28,53 @@ elizaos create my-first-agent
 
 This will create a new directory with all the files you need.
 
-## Step 2: Get an AI Key
+</Step>
+
+<Step>
+
+## Get an AI Key
 
 You'll need an API key from one of these providers:
 
-### Option A: OpenAI (Recommended for beginners)
+<Tabs items={['OpenAI', 'Anthropic', 'Local AI']}>
+  <Tab value="OpenAI">
+    
 1. Go to [OpenAI API](https://platform.openai.com/api-keys)
 2. Create an account and get your API key
 3. Add it to your `.env` file
 
-### Option B: Claude (Anthropic)
+```bash
+OPENAI_API_KEY=your_key_here
+```
+
+  </Tab>
+  <Tab value="Anthropic">
+    
 1. Go to [Anthropic Console](https://console.anthropic.com/)
 2. Create an account and get your API key
 3. Add it to your `.env` file
 
-### Option C: Local AI
+```bash
+ANTHROPIC_API_KEY=your_key_here
+```
+
+  </Tab>
+  <Tab value="Local AI">
+    
 1. Install a local AI model (like Ollama)
 2. Configure the local endpoint
 3. No API key needed!
 
-Add your key to the `.env` file:
+**No environment variable required**
 
-```bash
-OPENAI_API_KEY=your_key_here
-# or
-ANTHROPIC_API_KEY=your_key_here
-```
+  </Tab>
+</Tabs>
 
-## Step 3: Configure Your Agent
+</Step>
+
+<Step>
+
+## Configure Your Agent
 
 Customize your agent by editing `agent/eliza.character.json`:
 
@@ -73,7 +95,11 @@ You can customize:
 - **Plugins**: What capabilities your agent has
 - **Clients**: Where your agent will run
 
-## Step 4: Start Your Agent
+</Step>
+
+<Step>
+
+## Start Your Agent
 
 Start your agent locally:
 
@@ -86,12 +112,19 @@ Your agent will start and you can access the web chat at:
 http://localhost:3000
 ```
 
-## Step 5: Test Your Agent
+</Step>
+
+<Step>
+
+## Test Your Agent
 
 1. Open your browser to `http://localhost:3000`
 2. Start chatting with your agent
 3. Test different questions and commands
 4. Refine the personality if needed
+
+</Step>
+</Steps>
 
 ## Next Steps
 

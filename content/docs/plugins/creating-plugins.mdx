@@ -57,19 +57,21 @@ This command:
 
 Both options create a standard plugin structure:
 
-```
-my-plugin/
-├── src/
-│   ├── actions/       # Plugin actions
-│   ├── evaluators/    # Plugin evaluators
-│   ├── providers/     # Context providers
-│   ├── services/      # Background services
-│   ├── index.ts       # Plugin entry point
-│   └── plugin.ts      # Plugin definition
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+<Files>
+  <Folder name="my-plugin">
+    <Folder name="src">
+      <Folder name="actions" />
+      <Folder name="evaluators" />
+      <Folder name="providers" />
+      <Folder name="services" />
+      <File name="index.ts" />
+      <File name="plugin.ts" />
+    </Folder>
+    <File name="package.json" />
+    <File name="tsconfig.json" />
+    <File name="README.md" />
+  </Folder>
+</Files>
 
 ## Next Steps
 

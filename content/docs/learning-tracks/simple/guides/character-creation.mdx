@@ -34,15 +34,20 @@ Here's the simplest character file:
 }
 ```
 
-> **Important:** The `plugins` array must include these three plugins in this exact order:
->
-> 1. `@elizaos/plugin-sql` - Provides database functionality (must be first!)
-> 2. A model provider plugin (e.g., `@elizaos/plugin-openai`, `@elizaos/plugin-anthropic`, or `@elizaos/plugin-ollama`)
-> 3. `@elizaos/plugin-bootstrap` - Provides core messaging and interaction capabilities
+<Callout type="warn" title="Important Plugin Order">
+The `plugins` array must include these three plugins in this exact order:
+
+1. `@elizaos/plugin-sql` - Provides database functionality (must be first!)
+2. A model provider plugin (e.g., `@elizaos/plugin-openai`, `@elizaos/plugin-anthropic`, or `@elizaos/plugin-ollama`)
+3. `@elizaos/plugin-bootstrap` - Provides core messaging and interaction capabilities
+</Callout>
 
 ## 🎨 Step-by-Step Character Creation
 
-### Step 1: Choose a Name
+<Steps>
+<Step>
+
+### Choose a Name
 
 Pick something memorable and fitting:
 
@@ -50,7 +55,11 @@ Pick something memorable and fitting:
 "name": "Luna"
 ```
 
-### Step 2: Write the Biography
+</Step>
+
+<Step>
+
+### Write the Biography
 
 Tell your agent's story (2-5 sentences):
 
@@ -62,7 +71,11 @@ Tell your agent's story (2-5 sentences):
 ]
 ```
 
-### Step 3: Define Personality Traits
+</Step>
+
+<Step>
+
+### Define Personality Traits
 
 List 3-7 personality traits:
 
@@ -72,7 +85,11 @@ List 3-7 personality traits:
 }
 ```
 
-### Step 4: Add Favorite Topics
+</Step>
+
+<Step>
+
+### Add Favorite Topics
 
 What does your agent love to discuss?
 
@@ -80,7 +97,11 @@ What does your agent love to discuss?
 "topics": ["space", "astronomy", "science", "exploration", "the universe", "stars"]
 ```
 
-### Step 5: Create Example Conversations
+</Step>
+
+<Step>
+
+### Create Example Conversations
 
 Show how your agent should respond:
 
@@ -92,6 +113,9 @@ Show how your agent should respond:
   ["agent", "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing! ✨"]
 ]
 ```
+
+</Step>
+</Steps>
 
 ## 🌟 Complete Character Examples
 
@@ -223,13 +247,15 @@ Make your agent unique:
 
 Save your character file as:
 
-```text
-my-agent/
-├── agent/
-│   └── character.json  ← Your character file
-├── .env
-└── package.json
-```
+<Files>
+  <Folder name="my-agent">
+    <Folder name="agent">
+      <File name="character.json" />
+    </Folder>
+    <File name=".env" />
+    <File name="package.json" />
+  </Folder>
+</Files>
 
 ## 🔄 Testing Your Character
 

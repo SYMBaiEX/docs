@@ -11,6 +11,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
+          <p>ElizaOS Docs</p>
         <RootProvider>{children}</RootProvider>
       </body>
     </html>
