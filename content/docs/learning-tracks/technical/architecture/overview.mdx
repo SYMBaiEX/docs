@@ -8,7 +8,7 @@ description: Comprehensive technical overview of the ElizaOS architecture
 This document provides a comprehensive technical overview of the ElizaOS architecture, designed for
 developers who want to understand the system's internals and build upon it.
 
-## 🏗️ System Architecture
+## System Architecture
 
 ElizaOS follows a modular, plugin-based architecture that enables flexible AI agent creation and
 deployment across multiple platforms.
@@ -65,7 +65,7 @@ graph TB
     TR --> WB
 ```
 
-## 🧩 Core Components
+## Core Components
 
 ### Runtime Engine (`packages/core/src/runtime.ts`)
 
@@ -150,7 +150,7 @@ interface State {
 }
 ```
 
-## 🔌 Plugin Architecture
+## Plugin Architecture
 
 ### Plugin Types
 
@@ -211,7 +211,7 @@ sequenceDiagram
     R->>P: initialize()
 ```
 
-## 🌐 Platform Abstraction
+## Platform Abstraction
 
 ### Room/Channel Abstraction
 
@@ -243,7 +243,7 @@ interface Message {
 }
 ```
 
-## 🔄 Request Flow
+## Request Flow
 
 ### Message Processing Pipeline
 
@@ -271,7 +271,7 @@ sequenceDiagram
     T->>C: Platform Response
 ```
 
-## 💾 Database Architecture
+## Database Architecture
 
 ### Schema Design
 
@@ -315,7 +315,7 @@ CREATE TABLE goals (
 - **SQLite/PGLite**: Lightweight for development
 - **In-Memory**: Testing and ephemeral agents
 
-## 🚀 Performance Considerations
+## Performance Considerations
 
 ### Caching Strategy
 
@@ -340,7 +340,7 @@ class CacheManager {
 - **AI Calls**: Request pooling and rate limiting
 - **Plugin Execution**: Isolated execution contexts
 
-## 🔐 Security Architecture
+## Security Architecture
 
 ### Authentication & Authorization
 
@@ -367,7 +367,7 @@ interface SecurityContext {
 - API access controlled by permissions
 - No direct database access
 
-## 📊 Monitoring & Observability
+## Monitoring & Observability
 
 ### Metrics Collection
 
@@ -396,7 +396,7 @@ interface Metrics {
 - Automatic PII redaction
 - Log aggregation support
 
-## 🔄 Deployment Architecture
+## Deployment Architecture
 
 ### Horizontal Scaling
 
@@ -440,7 +440,7 @@ graph LR
 - Automatic failover
 - Health checks and self-healing
 
-## 🛠️ Development Patterns
+## Development Patterns
 
 ### Service Pattern
 
@@ -475,7 +475,7 @@ runtime.on("goal:completed", async (goal) => {
 });
 ```
 
-## 📚 Further Reading
+## Further Reading
 
 - [Core Concepts Deep Dive](./core-concepts)
 - [Plugin Development Guide](../development/plugin-development)

@@ -46,6 +46,7 @@ bun run lint:mdx     # Check MDX content quality
 - Forget to update `meta.json` when adding new pages
 - Use inline code blocks (e.g., `` ```bash # comment ``)
 - Compress multi-line content into single lines in MDX components
+- **NO EMOJI EVER in documentation content**
 
 ### Code Block Formatting
 
@@ -265,7 +266,7 @@ Create a new character file:
       },
       {
         "name": "Ada",
-        "content": { 
+        "content": {
           "text": "I can help you with a variety of tasks! I'm here to answer questions, provide information, and assist with anything you need.",
           "providers": ["KNOWLEDGE"]
         }
@@ -295,18 +296,18 @@ Your agent is now running and connected to Discord!
 Now that you've created your first agent:
 
 <Cards>
-  <Card 
-    title="Add Custom Actions" 
+  <Card
+    title="Add Custom Actions"
     description="Learn how to create custom actions for your agent"
     href="/advanced/custom-actions"
   />
-  <Card 
-    title="Deploy to Production" 
+  <Card
+    title="Deploy to Production"
     description="Deploy your agent using Docker or cloud services"
     href="/advanced/deployment"
   />
-  <Card 
-    title="Add More Plugins" 
+  <Card
+    title="Add More Plugins"
     description="Integrate Twitter, Telegram, and blockchain"
     href="/plugins"
   />
@@ -651,12 +652,12 @@ Registers a new service with the runtime.
     ```typescript
     class CustomService extends Service {
       static serviceType = 'custom';
-      
+
       async start() {
         // Initialize service
       }
     }
-    
+
     runtime.registerService({
       service: new CustomService(),
       serviceType: CustomService.serviceType
