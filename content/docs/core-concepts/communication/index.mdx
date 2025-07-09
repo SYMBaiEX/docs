@@ -11,9 +11,11 @@ architecture, and seamless integration with various messaging platforms.
 
 ## Core Components
 
-### [Server Architecture](./server)
+### Server Architecture
 
 The AgentServer (`@elizaos/server`) provides HTTP and WebSocket endpoints for agent communication:
+
+[Learn more about Server Architecture →](./server)
 
 **Server Features**:
 
@@ -36,10 +38,12 @@ interface AgentServer {
 }
 ```
 
-### [REST API](./rest-api)
+### REST API
 
 A comprehensive REST API for agent management, messaging, memory operations, and system
 administration:
+
+[Learn more about REST API →](./rest-api)
 
 **Core Endpoints**:
 
@@ -58,10 +62,12 @@ administration:
 - **Pagination**: Support for large dataset pagination
 - **Filtering**: Advanced filtering and search capabilities
 
-### [WebSockets](./websockets)
+### WebSockets
 
 Real-time communication capabilities with Socket.IO for live chat, notifications, and system
 monitoring:
+
+[Learn more about WebSockets →](./websockets)
 
 **WebSocket Features**:
 
@@ -90,10 +96,12 @@ interface SocketEvents {
 }
 ```
 
-### [Message Bus](./message-bus)
+### Message Bus
 
 Internal event-driven communication system for decoupled agent-to-agent and agent-to-service
 communication:
+
+[Learn more about Message Bus →](./message-bus)
 
 **Message Bus Features**:
 
@@ -114,9 +122,11 @@ interface MessageBus {
 }
 ```
 
-### [Event System](./events)
+### Event System
 
 Comprehensive event handling for message processing, user interactions, and system events:
+
+[Learn more about Event System →](./events)
 
 **Event Types**:
 
@@ -136,10 +146,12 @@ interface EventProcessor {
 }
 ```
 
-### [Message Handlers](./message-handlers)
+### Message Handlers
 
 Intelligent message processing pipeline that determines actions, generates responses, and manages
 conversation flow:
+
+[Learn more about Message Handlers →](./message-handlers)
 
 **Processing Pipeline**:
 

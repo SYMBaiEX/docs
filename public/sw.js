@@ -2,7 +2,7 @@
 // This file exists to handle browser requests for service workers
 // without any actual service worker functionality
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function(_event) {
   // Skip waiting to activate immediately
   self.skipWaiting();
 });
