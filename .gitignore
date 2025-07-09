@@ -1,6 +1,19 @@
 # deps
 /node_modules
 
+# env
+.env
+
+# claude
+.claude.md
+.claude/
+
+# cursor
+.cursor.md
+.cursor/
+.cursorrules.md
+.cursorrules/
+
 # generated content
 .contentlayer
 .content-collections

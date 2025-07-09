@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "learning-tracks",
+    "core-concepts",
+    "cookbook",
+    "api-reference",
+    "migration",
+    "plugins"
+  ]
+}
