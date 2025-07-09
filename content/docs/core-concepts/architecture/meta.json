@@ -1,9 +1,9 @@
 {
   "title": "Architecture & Core",
   "pages": [
-    "index",
     "runtime",
     "client-server",
+    "database-system",
     "project-structure",
     "package-organization",
     "plugin-system"

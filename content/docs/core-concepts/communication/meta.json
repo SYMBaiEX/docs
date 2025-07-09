@@ -1,7 +1,6 @@
 {
   "title": "Communication & Events",
   "pages": [
-    "index",
     "client-server-summary",
     "server",
     "rest-api",

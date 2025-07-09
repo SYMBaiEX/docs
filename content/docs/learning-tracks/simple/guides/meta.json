@@ -1,0 +1,11 @@
+{
+  "title": "Guides",
+  "pages": [
+    "quickstart-comprehensive",
+    "character-creation",
+    "choosing-development-approach",
+    "cli-reference",
+    "deployment-guide",
+    "troubleshooting-guide"
+  ]
+}

@@ -3,7 +3,7 @@ title: Configuration
 description: Complete configuration guide for ElizaOS v1.2.0
 ---
 
-# Configuration
+## Configuration
 
 This guide covers comprehensive configuration for ElizaOS v1.2.0, including environment setup,
 development workflows, project types, and best practices.
@@ -552,29 +552,105 @@ elizaos publish
 
 <Tabs items={["Environment", "Database", "Plugins", "CLI"]}>
   <Tab value="Environment">
-    **API Key Issues** ```bash # Check if API key is loaded elizaos env list | grep OPENAI_API_KEY #
-    Test API key validity elizaos env test-keys # Common issues: # - Extra spaces or quotes in .env
-    # - Wrong API key format # - Insufficient API credits ``` **Environment Loading Issues** ```bash
-    # Check .env file format cat .env | head -5 # Test environment loading node -e
-    "console.log(process.env.OPENAI_API_KEY)" # Reset environment elizaos env reset ```
+    **API Key Issues**
+    
+    ```bash
+    # Check if API key is loaded
+    elizaos env list | grep OPENAI_API_KEY
+    
+    # Test API key validity
+    elizaos env test-keys
+    
+    # Common issues:
+    # - Extra spaces or quotes in .env
+    # - Wrong API key format
+    # - Insufficient API credits
+    ```
+    
+    **Environment Loading Issues**
+    
+    ```bash
+    # Check .env file format
+    cat .env | head -5
+    
+    # Test environment loading
+    node -e "console.log(process.env.OPENAI_API_KEY)"
+    
+    # Reset environment
+    elizaos env reset
+    ```
   </Tab>
   <Tab value="Database">
-    **Database Connection Issues** ```bash # Test database connection elizaos env test-db # Check
-    database URL elizaos env list | grep POSTGRES_URL # Switch to PGLite for development echo
-    "PGLITE_DATA_DIR=./data/pglite" >> .env ``` **Database Migration Issues** ```bash # Reset
-    database rm -rf ./data/pglite # Recreate database elizaos start --build ```
+    **Database Connection Issues**
+    
+    ```bash
+    # Test database connection
+    elizaos env test-db
+    
+    # Check database URL
+    elizaos env list | grep POSTGRES_URL
+    
+    # Switch to PGLite for development
+    echo "PGLITE_DATA_DIR=./data/pglite" >> .env
+    ```
+    
+    **Database Migration Issues**
+    
+    ```bash
+    # Reset database
+    rm -rf ./data/pglite
+    
+    # Recreate database
+    elizaos start --build
+    ```
   </Tab>
   <Tab value="Plugins">
-    **Plugin Installation Issues** ```bash # List installed plugins elizaos plugins
-    installed-plugins # Remove problematic plugin elizaos plugins remove @elizaos/plugin-name #
-    Update all plugins elizaos update --packages ``` **Plugin Compatibility Issues** ```bash # Check
-    plugin versions elizaos plugins list --all # Install specific version elizaos plugins add
-    @elizaos/plugin-name@1.2.0 ```
+    **Plugin Installation Issues**
+    
+    ```bash
+    # List installed plugins
+    elizaos plugins installed-plugins
+    
+    # Remove problematic plugin
+    elizaos plugins remove @elizaos/plugin-name
+    
+    # Update all plugins
+    elizaos update --packages
+    ```
+    
+    **Plugin Compatibility Issues**
+    
+    ```bash
+    # Check plugin versions
+    elizaos plugins list --all
+    
+    # Install specific version
+    elizaos plugins add @elizaos/plugin-name@1.2.0
+    ```
   </Tab>
   <Tab value="CLI">
-    **CLI Issues** ```bash # Update CLI bun update -g @elizaos/cli # Check CLI version elizaos
-    --version # Get help elizaos --help ``` **Permission Issues** ```bash # Fix permissions sudo
-    chown -R $(whoami) ~/.bun # Or use sudo for global install sudo bun install -g @elizaos/cli ```
+    **CLI Issues**
+    
+    ```bash
+    # Update CLI
+    bun update -g @elizaos/cli
+    
+    # Check CLI version
+    elizaos --version
+    
+    # Get help
+    elizaos --help
+    ```
+    
+    **Permission Issues**
+    
+    ```bash
+    # Fix permissions
+    sudo chown -R $(whoami) ~/.bun
+    
+    # Or use sudo for global install
+    sudo bun install -g @elizaos/cli
+    ```
   </Tab>
 </Tabs>
 

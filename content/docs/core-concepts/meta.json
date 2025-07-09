@@ -1,7 +1,6 @@
 {
   "title": "Core Concepts",
   "pages": [
-    "index",
     "architecture",
     "agent-development",
     "ai-models",

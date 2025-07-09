@@ -1,4 +1,4 @@
 {
   "title": "Migration",
-  "pages": ["index", "v1.2.0-migration", "migration-helper", "api-migration"]
+  "pages": ["v1.2.0-migration", "migration-helper", "api-migration"]
 }
