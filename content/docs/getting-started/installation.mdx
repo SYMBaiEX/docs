@@ -9,6 +9,8 @@ This guide covers the complete installation process for ElizaOS, including syste
 
 
 
+
+
 **Note:** ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
 
 ## System Requirements
@@ -56,8 +58,6 @@ This guide covers the complete installation process for ElizaOS, including syste
 
 ## Installing Dependencies
 
-
-
 ### Install Node.js
 
 #### macOS
@@ -88,11 +88,11 @@ node --version  # Should show v23.3.0
 ```
 
 **macOS-specific notes:**
-- Apple Silicon (M1/M2) users: All tools are fully compatible
-- Intel Mac users: No special configuration needed
-- If you encounter permission issues, avoid using `sudo` with npm
+
+Apple Silicon (M1/M2) users: All tools are fully compatible. Intel Mac users: No special configuration needed. If you encounter permission issues, avoid using `sudo` with npm.
 
 #### Linux
+
 
 **Using Node Version Manager (nvm) - Recommended:**
 ```bash
@@ -127,10 +127,11 @@ node --version  # Should show v23.3.0
 ```
 
 **Linux-specific notes:**
-- Ensure you have build tools: `sudo apt-get install build-essential`
-- For older distributions, use nvm instead of package managers
+
+Ensure you have build tools: `sudo apt-get install build-essential`. For older distributions, use nvm instead of package managers.
 
 #### Windows
+
 
 **Install WSL 2 first (Required):**
 ```powershell
@@ -162,10 +163,10 @@ node --version  # Should show v23.3.0
 ```
 
 **Windows-specific notes:**
-- WSL 2 is required - native Windows installation is not supported
-- Install WSL 2 with Ubuntu distribution for best compatibility
-- Use WSL 2 terminal for all ElizaOS development
-- Avoid mixing Windows and WSL file systems for better performance
+
+WSL 2 is required - native Windows installation is not supported. Install WSL 2 with Ubuntu distribution for best compatibility. Use WSL 2 terminal for all ElizaOS development. Avoid mixing Windows and WSL file systems for better performance.
+
+
 
 ### Install Bun (Recommended)
 
@@ -188,6 +189,8 @@ bun --version  # Should show v1.2.15 or newer
 - **Linux**: Compatible with most distributions
 - **Windows**: Must be installed within WSL 2, not native Windows
 - **Alternative**: You can use `npm` instead of `bun`, but `bun` is recommended for better performance
+
+
 
 ### Verify Installation
 
