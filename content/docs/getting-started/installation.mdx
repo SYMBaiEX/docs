@@ -610,11 +610,11 @@ elizaos update --check
 
 A successful verification should show:
 
-- ✅ Node.js version (v23.3.0)
-- ✅ Bun version (v1.2.15)
-- ✅ ElizaOS CLI installed and accessible
-- ✅ Project creation works
-- ✅ Help commands respond correctly
+- Node.js version (v23.3.0)
+- Bun version (v1.2.15)
+- ElizaOS CLI installed and accessible
+- Project creation works
+- Help commands respond correctly
 
 **Common Verification Issues:**
 
@@ -879,9 +879,9 @@ cat .env | head -5
 node -e "console.log(process.env.OPENAI_API_KEY)"
 
 # Common .env file issues:
-# ❌ OPENAI_API_KEY = "sk-..."  (spaces and quotes)
-# ❌ OPENAI_API_KEY=sk-... # comment  (inline comments)
-# ✅ OPENAI_API_KEY=sk-...  (clean format)
+# WRONG: OPENAI_API_KEY = "sk-..."  (spaces and quotes)
+# WRONG: OPENAI_API_KEY=sk-... # comment  (inline comments)
+# CORRECT: OPENAI_API_KEY=sk-...  (clean format)
 ```
 
 #### macOS Specific Issues

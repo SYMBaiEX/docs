@@ -1,0 +1,1085 @@
+---
+title: Memory Management
+description: Memory Management endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Get Room Memories
+
+Get memories for a specific room and agent
+
+### Endpoint
+
+```
+GET /api/memory/{agentId}/rooms/{roomId}/memories
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| limit | integer | query | No | 50 |
+| agentId | string | path | Yes | - |
+| roomId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/rooms/{roomId}/memories
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms/{roomId}/memories', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/memory/{agentId}/rooms/{roomId}/memories',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Agent Memories
+
+Get all memories for an agent
+
+### Endpoint
+
+```
+GET /api/memory/{agentId}/memories
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| limit | integer | query | No | 50 |
+| agentId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/memories
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/memories', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/memory/{agentId}/memories',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Create Memory
+
+Create a new memory for an agent
+
+### Endpoint
+
+```
+POST /api/memory/{agentId}/memories
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "content": "New memory content",
+      "importance": 0.8,
+      "roomId": "{{roomId}}",
+      "metadata": {}
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/{agentId}/memories
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/memories', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/memory/{agentId}/memories',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Memory
+
+Update a specific memory
+
+### Endpoint
+
+```
+PATCH /api/memory/{agentId}/memories/{memoryId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+| memoryId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "content": "Updated memory content",
+      "importance": 0.8
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X PATCH \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/{agentId}/memories/{memoryId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/memories/{memoryId}', {
+      method: 'PATCH',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.patch(
+        'http://localhost:3000/api/memory/{agentId}/memories/{memoryId}',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete Memory
+
+Delete a specific memory
+
+### Endpoint
+
+```
+DELETE /api/memory/{agentId}/memories/{memoryId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+| memoryId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/memories/{memoryId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/memories/{memoryId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/memory/{agentId}/memories/{memoryId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete All Room Memories
+
+Delete all memories for a specific room
+
+### Endpoint
+
+```
+DELETE /api/memory/{agentId}/memories/all/{roomId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+| roomId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/memories/all/{roomId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/memories/all/{roomId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/memory/{agentId}/memories/all/{roomId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Memory Group
+
+Get memory group details for a server
+
+### Endpoint
+
+```
+GET /api/memory/groups/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/groups/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/groups/{serverId}', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/memory/groups/{serverId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Create Memory Group
+
+Create a memory group for a server
+
+### Endpoint
+
+```
+POST /api/memory/groups/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| serverId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Memory Group Name",
+      "description": "Group description"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/groups/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/groups/{serverId}', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/memory/groups/{serverId}',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Memory Group
+
+Update memory group for a server
+
+### Endpoint
+
+```
+PATCH /api/memory/groups/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| serverId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Updated Memory Group Name",
+      "description": "Updated group description"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X PATCH \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/groups/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/groups/{serverId}', {
+      method: 'PATCH',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.patch(
+        'http://localhost:3000/api/memory/groups/{serverId}',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete Memory Group
+
+Delete a memory group
+
+### Endpoint
+
+```
+DELETE /api/memory/groups/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/groups/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/groups/{serverId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/memory/groups/{serverId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Clear Group Memories
+
+Clear all memories from a group
+
+### Endpoint
+
+```
+DELETE /api/memory/groups/{serverId}/memories
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/groups/{serverId}/memories
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/groups/{serverId}/memories', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/memory/groups/{serverId}/memories',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Create Room
+
+Create a new room for an agent
+
+### Endpoint
+
+```
+POST /api/memory/{agentId}/rooms
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Room Name",
+      "type": "dm",
+      "source": "client",
+      "worldId": "{{worldId}}",
+      "serverId": "{{serverId}}",
+      "metadata": {}
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/{agentId}/rooms
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/memory/{agentId}/rooms',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Agent Rooms
+
+Get all rooms for an agent
+
+### Endpoint
+
+```
+GET /api/memory/{agentId}/rooms
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/rooms
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/memory/{agentId}/rooms',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Specific Room
+
+Get details of a specific room
+
+### Endpoint
+
+```
+GET /api/memory/{agentId}/rooms/{roomId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+| roomId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/rooms/{roomId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms/{roomId}', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/memory/{agentId}/rooms/{roomId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Room
+
+Update room details
+
+### Endpoint
+
+```
+PATCH /api/memory/{agentId}/rooms/{roomId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+| roomId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Updated Room Name",
+      "metadata": {
+        "updated": true
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X PATCH \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/memory/{agentId}/rooms/{roomId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms/{roomId}', {
+      method: 'PATCH',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.patch(
+        'http://localhost:3000/api/memory/{agentId}/rooms/{roomId}',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete Room
+
+Delete a specific room
+
+### Endpoint
+
+```
+DELETE /api/memory/{agentId}/rooms/{roomId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+| roomId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/memory/{agentId}/rooms/{roomId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/memory/{agentId}/rooms/{roomId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/memory/{agentId}/rooms/{roomId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

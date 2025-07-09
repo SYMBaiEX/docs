@@ -488,28 +488,28 @@ elizaos migrate --dry-run
 
 After migration, verify these items:
 
-#### ✅ API Endpoints
+#### API Endpoints
 
 - [ ] Message submission uses `/api/messaging/submit`
 - [ ] Audio endpoints use `/api/audio/{agentId}/`
 - [ ] WebSocket connections use Socket.IO
 - [ ] All API responses follow new format
 
-#### ✅ Character Definitions
+#### Character Definitions
 
 - [ ] All characters have valid plugin ordering
 - [ ] Message examples use `name` field instead of `user`
 - [ ] Plugin list includes required minimum plugins
 - [ ] All validation passes without errors
 
-#### ✅ Plugin System
+#### Plugin System
 
 - [ ] Plugins load in correct order
 - [ ] All custom plugins updated to v1.2.0 interface
 - [ ] Plugin dependencies resolved correctly
 - [ ] No deprecated plugin methods used
 
-#### ✅ Runtime Configuration
+#### Runtime Configuration
 
 - [ ] Database adapter configured and working
 - [ ] Environment variables set correctly

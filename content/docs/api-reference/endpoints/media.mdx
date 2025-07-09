@@ -1,0 +1,140 @@
+---
+title: Media Upload
+description: Media Upload endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Upload Agent Media
+
+Upload media file for an agent
+
+### Endpoint
+
+```
+POST /api/media/agents/{agentId}/upload-media
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/media/agents/{agentId}/upload-media
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/media/agents/{agentId}/upload-media', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/media/agents/{agentId}/upload-media',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Upload Channel Media
+
+Upload media file for a channel
+
+### Endpoint
+
+```
+POST /api/messaging/channels/{channelId}/upload-media
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| channelId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/channels/{channelId}/upload-media
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/channels/{channelId}/upload-media', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/channels/{channelId}/upload-media',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

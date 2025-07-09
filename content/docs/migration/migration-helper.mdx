@@ -51,7 +51,7 @@ function migrateCharacterFile(filePath) {
 
   // Write back the migrated file
   fs.writeFileSync(filePath, JSON.stringify(character, null, 2));
-  console.log(`✅ Migrated: ${filePath}`);
+  console.log(`Migrated: ${filePath}`);
 }
 
 // Migrate all character files in a directory
@@ -64,7 +64,7 @@ function migrateCharactersDirectory(dir) {
       try {
         migrateCharacterFile(filePath);
       } catch (error) {
-        console.error(`❌ Error migrating ${filePath}:`, error.message);
+        console.error(`Error migrating ${filePath}:`, error.message);
       }
     }
   });
@@ -134,9 +134,9 @@ function migrateAPIFile(filePath) {
 
   if (changed) {
     fs.writeFileSync(filePath, content);
-    console.log(`✅ Migrated: ${filePath}`);
+    console.log(`Migrated: ${filePath}`);
   } else {
-    console.log(`⏭️  No changes needed: ${filePath}`);
+    console.log(`No changes needed: ${filePath}`);
   }
 }
 
@@ -153,7 +153,7 @@ function migrateDirectory(dir) {
       try {
         migrateAPIFile(filePath);
       } catch (error) {
-        console.error(`❌ Error migrating ${filePath}:`, error.message);
+        console.error(`Error migrating ${filePath}:`, error.message);
       }
     }
   });
@@ -226,9 +226,9 @@ function migratePluginFile(filePath) {
 
   if (changed) {
     fs.writeFileSync(filePath, content);
-    console.log(`✅ Migrated: ${filePath}`);
+    console.log(`Migrated: ${filePath}`);
   } else {
-    console.log(`⏭️  No changes needed: ${filePath}`);
+    console.log(`No changes needed: ${filePath}`);
   }
 }
 
@@ -245,7 +245,7 @@ function migratePluginsDirectory(dir) {
       try {
         migratePluginFile(filePath);
       } catch (error) {
-        console.error(`❌ Error migrating ${filePath}:`, error.message);
+        console.error(`Error migrating ${filePath}:`, error.message);
       }
     }
   });
@@ -272,16 +272,16 @@ const { execSync } = require("child_process");
 
 // Complete migration script
 async function migrateProject() {
-  console.log("🚀 Starting ElizaOS v1.2.0 migration...\n");
+  console.log("Starting ElizaOS v1.2.0 migration...\n");
 
   // Step 1: Backup
-  console.log("📦 Creating backup...");
+  console.log("Creating backup...");
   const backupDir = `./backup-${Date.now()}`;
   execSync(`cp -r . ${backupDir}`, { stdio: "inherit" });
-  console.log(`✅ Backup created: ${backupDir}\n`);
+  console.log(`Backup created: ${backupDir}\n`);
 
   // Step 2: Update package.json
-  console.log("📝 Updating package.json...");
+  console.log("Updating package.json...");
   if (fs.existsSync("./package.json")) {
     const packageJson = JSON.parse(fs.readFileSync("./package.json", "utf8"));
 
@@ -309,36 +309,36 @@ async function migrateProject() {
     dependencies["socket.io-client"] = "^4.0.0";
 
     fs.writeFileSync("./package.json", JSON.stringify(packageJson, null, 2));
-    console.log("✅ package.json updated\n");
+    console.log("package.json updated\n");
   }
 
   // Step 3: Install dependencies
-  console.log("📦 Installing dependencies...");
+  console.log("Installing dependencies...");
   try {
     execSync("npm install", { stdio: "inherit" });
-    console.log("✅ Dependencies installed\n");
+    console.log("Dependencies installed\n");
   } catch (error) {
-    console.error("❌ Failed to install dependencies:", error.message);
+    console.error("Failed to install dependencies:", error.message);
   }
 
   // Step 4: Migrate characters
-  console.log("👤 Migrating characters...");
+  console.log("Migrating characters...");
   if (fs.existsSync("./characters")) {
     // Run character migration (using the logic from above)
     migrateCharactersDirectory("./characters");
-    console.log("✅ Characters migrated\n");
+    console.log("Characters migrated\n");
   }
 
   // Step 5: Migrate API calls
-  console.log("🔄 Migrating API calls...");
+  console.log("Migrating API calls...");
   if (fs.existsSync("./src")) {
     // Run API migration (using the logic from above)
     migrateAPIDirectory("./src");
-    console.log("✅ API calls migrated\n");
+    console.log("API calls migrated\n");
   }
 
   // Step 6: Create .env template
-  console.log("🔧 Creating .env template...");
+  console.log("Creating .env template...");
   const envTemplate = `# ElizaOS v1.2.0 Configuration
 
 # Database (required)
@@ -357,21 +357,21 @@ ENABLE_WEB_SEARCH=true
 
   if (!fs.existsSync("./.env")) {
     fs.writeFileSync("./.env", envTemplate);
-    console.log("✅ .env template created\n");
+    console.log(".env template created\n");
   }
 
   // Step 7: Validation
-  console.log("🔍 Running validation...");
+  console.log("Running validation...");
   try {
     // This would use the ElizaOS CLI validation
     execSync("npx @elizaos/cli validate", { stdio: "inherit" });
-    console.log("✅ Validation passed\n");
+    console.log("Validation passed\n");
   } catch (error) {
-    console.warn("⚠️  Validation warnings (check manually):", error.message);
+    console.warn("Validation warnings (check manually):", error.message);
   }
 
   // Step 8: Final instructions
-  console.log("🎉 Migration complete!\n");
+  console.log("Migration complete!\n");
   console.log("Next steps:");
   console.log("1. Review and update your .env file");
   console.log("2. Test your application in development");

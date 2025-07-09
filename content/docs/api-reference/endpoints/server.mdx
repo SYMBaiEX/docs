@@ -1,0 +1,519 @@
+---
+title: Server Health & Status
+description: Server Health & Status endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Ping
+
+Health check ping endpoint
+
+### Endpoint
+
+```
+GET /api/server/ping
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/ping
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/ping', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/ping',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Hello
+
+Hello endpoint
+
+### Endpoint
+
+```
+GET /api/server/hello
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/hello
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/hello', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/hello',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Server Status
+
+Get server status information
+
+### Endpoint
+
+```
+GET /api/server/status
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/status
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/status', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/status',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Health Check
+
+Detailed health check
+
+### Endpoint
+
+```
+GET /api/server/health
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/health
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/health', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/health',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Stop Server
+
+Stop the server
+
+### Endpoint
+
+```
+POST /api/server/stop
+```
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/server/stop
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/stop', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/server/stop',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Server Logs
+
+Get server logs
+
+### Endpoint
+
+```
+GET /api/server/logs
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| limit | integer | query | No | 100 |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/logs
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/logs', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/logs',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Server Logs (POST)
+
+Get server logs using POST method with query parameters in body
+
+### Endpoint
+
+```
+POST /api/server/logs
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "since": "2024-01-01T00:00:00Z",
+      "level": "info",
+      "agentName": "Agent Name",
+      "agentId": "{{agentId}}",
+      "limit": 100
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/server/logs
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/logs', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/server/logs',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Clear Server Logs
+
+Clear all server logs
+
+### Endpoint
+
+```
+DELETE /api/server/logs
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/logs
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/logs', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/server/logs',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Server List
+
+Get server debug information
+
+### Endpoint
+
+```
+GET /api/server/servers
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/server/servers
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/server/servers', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/server/servers',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

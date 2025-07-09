@@ -135,43 +135,43 @@ Each project type has its own structure:
 <Tabs items={["Project Structure", "Plugin Structure", "Agent Structure"]}>
   <Tab value="Project Structure">
     ```
-my-agent/
-├── .env                    # Environment variables
-├── .env.example           # Environment template
-├── package.json           # Dependencies and scripts
-├── tsconfig.json          # TypeScript configuration
-├── characters/            # Agent character definitions
-│   └── default.json       # Default character
-├── knowledge/             # Knowledge base files
-├── src/                   # Source code
-│   ├── index.ts          # Main entry point
-│   └── plugins/          # Custom plugins
-├── tests/                 # Test files
-└── docs/                  # Documentation
+    my-agent/
+    ├── .env                # Environment variables
+    ├── .env.example        # Environment template
+    ├── package.json        # Dependencies and scripts
+    ├── tsconfig.json       # TypeScript configuration
+    ├── characters/         # Agent character definitions
+    │   └── default.json    # Default character
+    ├── knowledge/          # Knowledge base files
+    ├── src/                # Source code
+    │   ├── index.ts        # Main entry point
+    │   └── plugins/        # Custom plugins
+    ├── tests/              # Test files
+    └── docs/               # Documentation
     ```
   </Tab>
   <Tab value="Plugin Structure">
     ```
-plugin-my-plugin/
-├── package.json           # Plugin metadata
-├── tsconfig.json          # TypeScript configuration
-├── src/
-│   ├── index.ts          # Plugin entry point
-│   ├── actions/          # Custom actions
-│   ├── providers/        # Custom providers
-│   └── evaluators/       # Custom evaluators
-├── tests/                 # Plugin tests
-├── examples/              # Usage examples
-└── README.md              # Plugin documentation
+    plugin-my-plugin/
+    ├── package.json        # Plugin metadata
+    ├── tsconfig.json       # TypeScript configuration
+    ├── src/
+    │   ├── index.ts        # Plugin entry point
+    │   ├── actions/        # Custom actions
+    │   ├── providers/      # Custom providers
+    │   └── evaluators/     # Custom evaluators
+    ├── tests/              # Plugin tests
+    ├── examples/           # Usage examples
+    └── README.md           # Plugin documentation
     ```
   </Tab>
   <Tab value="Agent Structure">
     ```
-my-character/
-├── character.json         # Agent definition
-├── knowledge/             # Knowledge files
-├── prompts/               # Custom prompts
-└── config/                # Configuration files
+    my-character/
+    ├── character.json      # Agent definition
+    ├── knowledge/          # Knowledge files
+    ├── prompts/            # Custom prompts
+    └── config/             # Configuration files
     ```
   </Tab>
 </Tabs>
@@ -187,17 +187,22 @@ my-character/
 elizaos dev
 
 # Start with specific character
+
 elizaos dev --character characters/my-agent.json
 
 # Start with build
+
 elizaos dev --build
 
 # Start on custom port
+
 elizaos dev --port 8080
 
 # Reconfigure services
+
 elizaos dev --configure
-```
+
+````
     **Development Features:** - Hot-reload on file changes - Detailed logging and debugging - Live
     configuration updates - Real-time error reporting
   </Tab>
@@ -218,7 +223,7 @@ elizaos test --coverage
 # Run specific test file
 elizaos test --file my-test.spec.ts
     ```
-    
+
     **Testing Features:** - Unit and
     integration tests - Component testing framework - End-to-end testing support - Coverage
     reporting
@@ -237,7 +242,7 @@ nohup elizaos start > elizaos.log 2>&1 &
 # With environment file
 elizaos start --env production
     ```
-    
+
     **Deployment Features:** - Production optimizations -
     Environment-specific configs - Background process support - Logging and monitoring
   </Tab>
@@ -262,7 +267,7 @@ elizaos plugins remove @elizaos/plugin-discord
 
 # Update plugins
 elizaos update --packages
-```
+````
 
 ### Popular Plugins
 
@@ -373,9 +378,10 @@ EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key
 EVM_CHAINS=mainnet,sepolia,base,arbitrum
 
 # Solana Configuration
-SOLANA_PRIVATE_KEY=your_solana_private_key
-SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-```
+
+SOLANA_PRIVATE_KEY=your_solana_private_key SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+
+````
   </Tab>
 </Tabs>
 
@@ -392,7 +398,7 @@ Start with the provided `.env.example` file:
 
 ```bash
 cp .env.example .env
-```
+````
 
 </Step>
 <Step>
@@ -668,16 +674,16 @@ elizaos publish
 ## Next Steps
 
 <Cards>
-  <Card title="Core Concepts" href="/docs/core-concepts" icon="🧠">
+  <Card title="Core Concepts" href="/docs/core-concepts">
     Learn about ElizaOS architecture and concepts
   </Card>
-  <Card title="Plugin Development" href="/docs/plugins/creating-plugins" icon="🔧">
+  <Card title="Plugin Development" href="/docs/plugins/creating-plugins">
     Build your own plugins for ElizaOS
   </Card>
-  <Card title="Advanced Features" href="/docs/advanced" icon="🚀">
+  <Card title="Advanced Features" href="/docs/advanced">
     Explore advanced ElizaOS features
   </Card>
-  <Card title="Deployment" href="/docs/advanced/deployment" icon="📦">
+  <Card title="Deployment" href="/docs/advanced/deployment">
     Deploy your agents to production
   </Card>
 </Cards>

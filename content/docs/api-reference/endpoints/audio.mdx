@@ -1,0 +1,432 @@
+---
+title: Audio Processing
+description: Audio Processing endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Synthesize Audio Message
+
+Synthesize text to audio message
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/audio-messages/synthesize
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "text": "Hello, this is a test message",
+      "voice": "default"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/audio-messages/synthesize
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/audio-messages/synthesize', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/audio-messages/synthesize',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Generate Speech
+
+Generate speech from text
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/speech/generate
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "text": "Text to convert to speech",
+      "voice": "default"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/speech/generate
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/speech/generate', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/speech/generate',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Process Conversation Audio
+
+Process audio for conversation
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/speech/conversation
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/speech/conversation
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/speech/conversation', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/speech/conversation',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Process Audio Message
+
+Process an audio message
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/audio-messages
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/audio-messages
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/audio-messages', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/audio-messages',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Transcribe Audio
+
+Transcribe audio to text
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/transcribe
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/transcribe
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/transcribe', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/transcribe',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Process Audio
+
+Process audio file
+
+### Endpoint
+
+```
+POST /api/audio/{agentId}/process
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | multipart/form-data |
+| agentId | string | path | Yes | - |
+
+### Request Body
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/audio/{agentId}/process
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/audio/{agentId}/process', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/audio/{agentId}/process',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

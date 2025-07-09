@@ -1,0 +1,101 @@
+---
+title: API Endpoints
+description: Complete reference for all ElizaOS REST API endpoints
+---
+
+import { Cards, Card } from "fumadocs-ui/components/card";
+
+The ElizaOS REST API provides comprehensive access to agent management, messaging, memory, and more.
+
+## Base URL
+
+```
+http://localhost:3000
+```
+
+## Authentication
+
+All API requests require authentication using an API key:
+
+```bash
+curl -H "apikey: your-api-key" http://localhost:3000/api/agents
+```
+
+## API Categories
+
+<Cards>
+  <Card
+    title="Server Health & Status"
+    description="Health checks, server status, and logs"
+    href="/docs/api-reference/endpoints/server"
+  />
+  <Card
+    title="Agents Management"
+    description="Create, manage, and control agents"
+    href="/docs/api-reference/endpoints/agents"
+  />
+  <Card
+    title="Messaging System"
+    description="Message submission and server management"
+    href="/docs/api-reference/endpoints/messaging"
+  />
+  <Card
+    title="Memory Management"
+    description="Agent memory operations and search"
+    href="/docs/api-reference/endpoints/memory"
+  />
+  <Card
+    title="Audio Processing"
+    description="Audio transcription and processing"
+    href="/docs/api-reference/endpoints/audio"
+  />
+  <Card
+    title="Media Upload"
+    description="File upload and media management"
+    href="/docs/api-reference/endpoints/media"
+  />
+</Cards>
+
+## Quick Reference
+
+### Common Response Codes
+
+| Status Code | Description |
+|------------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 404 | Not Found |
+| 500 | Internal Server Error |
+
+### Request Headers
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| apikey | Yes | Your API authentication key |
+| Content-Type | Yes* | Required for POST/PUT requests (application/json) |
+
+## Environment Variables
+
+Configure your API client with these environment variables:
+
+```bash
+# API Base URL
+ELIZA_API_URL=http://localhost:3000
+
+# API Key
+ELIZA_API_KEY=your-api-key-here
+```
+
+## Rate Limiting
+
+The API implements rate limiting to ensure fair usage:
+- 100 requests per minute per API key
+- 1000 requests per hour per API key
+
+## Need Help?
+
+- Check the [TypeScript SDK](/docs/api-reference/sdk) for client examples
+- View the [Postman Collection](https://github.com/elizaos/eliza/blob/main/eliza.postman.json)
+- Join our [Discord](https://discord.gg/elizaos) for support

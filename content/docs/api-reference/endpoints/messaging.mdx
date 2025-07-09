@@ -1,0 +1,898 @@
+---
+title: Messaging System
+description: Messaging System endpoints reference
+---
+
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+
+## Submit Message
+
+Submit a message from an agent or system (already processed messages)
+
+### Endpoint
+
+```
+POST /api/messaging/submit
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "channel_id": "{{channelId}}",
+      "server_id": "00000000-0000-0000-0000-000000000000",
+      "author_id": "{{userId}}",
+      "content": "Hello from API",
+      "source_type": "user_message",
+      "raw_message": {
+        "text": "Hello from API"
+      },
+      "metadata": {
+        "platform": "api"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/submit
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/submit', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/submit',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Complete Message
+
+Notify that message processing is complete
+
+### Endpoint
+
+```
+POST /api/messaging/complete
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "channel_id": "{{channelId}}",
+      "server_id": "{{serverId}}"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/complete
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/complete', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/complete',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Ingest External Message
+
+Ingest a message from an external source for agent processing
+
+### Endpoint
+
+```
+POST /api/messaging/ingest-external
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "channel_id": "{{channelId}}",
+      "server_id": "{{serverId}}",
+      "author_id": "{{userId}}",
+      "author_display_name": "External User",
+      "content": "Message from external system",
+      "source_id": "external-msg-123",
+      "source_type": "discord",
+      "raw_message": {
+        "text": "Message from external system"
+      },
+      "metadata": {
+        "platform": "discord"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/ingest-external
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/ingest-external', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/ingest-external',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Central Servers
+
+Get all central messaging servers
+
+### Endpoint
+
+```
+GET /api/messaging/central-servers
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/central-servers
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/central-servers', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/messaging/central-servers',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get All Servers
+
+Get all messaging servers
+
+### Endpoint
+
+```
+GET /api/messaging/servers
+```
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/servers
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/messaging/servers',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Create Server
+
+Create a new messaging server
+
+### Endpoint
+
+```
+POST /api/messaging/servers
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Server Name",
+      "description": "Server description"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/servers
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/servers',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Specific Server
+
+Get details of a specific server
+
+### Endpoint
+
+```
+GET /api/messaging/servers/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/servers/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/messaging/servers/{serverId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Server
+
+Update server details
+
+### Endpoint
+
+```
+PATCH /api/messaging/servers/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| serverId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "name": "Updated Server Name",
+      "description": "Updated server description"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X PATCH \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/servers/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
+      method: 'PATCH',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.patch(
+        'http://localhost:3000/api/messaging/servers/{serverId}',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete Server
+
+Delete a messaging server
+
+### Endpoint
+
+```
+DELETE /api/messaging/servers/{serverId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/servers/{serverId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/messaging/servers/{serverId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Add Agent to Server
+
+Add an agent to a messaging server
+
+### Endpoint
+
+```
+POST /api/messaging/servers/{serverId}/agents
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| Content-Type | string | header | No | application/json |
+| serverId | string | path | Yes | - |
+
+### Request Body
+
+<Tabs items={["Example", "Schema"]}>
+  <Tab value="Example">
+    ```json
+    {
+      "agentId": "{{agentId}}"
+    }
+    ```
+  </Tab>
+  <Tab value="Schema">
+    Content-Type: `*/*`
+  </Tab>
+</Tabs>
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X POST \
+      -H "apikey: your-api-key" \
+      -H "Content-Type: application/json" \
+      -d '{"example": "data"}' \
+      http://localhost:3000/api/messaging/servers/{serverId}/agents
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents', {
+      method: 'POST',
+      headers: {
+        'apikey': 'your-api-key',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ example: 'data' }),
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        'http://localhost:3000/api/messaging/servers/{serverId}/agents',
+        headers={'apikey': 'your-api-key'},
+        json={'example': 'data'}
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Server Agents
+
+Get all agents for a server
+
+### Endpoint
+
+```
+GET /api/messaging/servers/{serverId}/agents
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/servers/{serverId}/agents
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/messaging/servers/{serverId}/agents',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Remove Agent from Server
+
+Remove an agent from a messaging server
+
+### Endpoint
+
+```
+DELETE /api/messaging/servers/{serverId}/agents/{agentId}
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| serverId | string | path | Yes | - |
+| agentId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X DELETE \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}', {
+      method: 'DELETE',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.delete(
+        'http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Get Agent Servers
+
+Get all servers for an agent
+
+### Endpoint
+
+```
+GET /api/messaging/agents/{agentId}/servers
+```
+
+### Parameters
+
+| Name | Type | In | Required | Description |
+|------|------|-----|----------|-------------|
+| agentId | string | path | Yes | - |
+
+### Response
+
+**Status Code:** 200 OK
+
+Successful response
+
+### Example
+
+<Tabs items={["cURL", "TypeScript", "Python"]}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET \
+      -H "apikey: your-api-key" \
+      http://localhost:3000/api/messaging/agents/{agentId}/servers
+    ```
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('http://localhost:3000/api/messaging/agents/{agentId}/servers', {
+      method: 'GET',
+      headers: {
+        'apikey': 'your-api-key',
+      },
+    });
+    const data = await response.json();
+    ```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
+
+    response = requests.get(
+        'http://localhost:3000/api/messaging/agents/{agentId}/servers',
+        headers={'apikey': 'your-api-key'},
+    )
+    data = response.json()
+    ```
+  </Tab>
+</Tabs>
+
+---
+

@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "index",
+    "server",
+    "agents",
+    "messaging",
+    "channels",
+    "memory",
+    "audio",
+    "media",
+    "system",
+    "static"
+  ]
+}

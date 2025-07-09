@@ -1,0 +1,1842 @@
+openapi: 3.0.0
+info:
+  title: Eliza AI Framework API Collection
+  description: >-
+    Complete Postman collection for the Eliza AI Framework REST API endpoints.
+    Updated to match actual API implementation.
+  version: 1.0.0
+servers:
+  - url: http://{{baseurl}}
+components:
+  securitySchemes:
+    apikeyAuth:
+      type: http
+      scheme: apikey
+security:
+  - apikeyAuth: []
+tags:
+  - name: Server Health & Status
+  - name: Agents Management
+  - name: Messaging System
+  - name: Channels & Messages
+  - name: Memory Management
+  - name: Audio Processing
+  - name: Media Upload
+  - name: System Configuration
+  - name: Static Media Files
+paths:
+  /api/server/ping:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Ping
+      description: Health check ping endpoint
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/hello:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Hello
+      description: Hello endpoint
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/status:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Server Status
+      description: Get server status information
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/health:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Health Check
+      description: Detailed health check
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/stop:
+    post:
+      tags:
+        - Server Health & Status
+      summary: Stop Server
+      description: Stop the server
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/logs:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Get Server Logs
+      description: Get server logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: '100'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Server Health & Status
+      summary: Get Server Logs (POST)
+      description: Get server logs using POST method with query parameters in body
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"since\": \"2024-01-01T00:00:00Z\",\n  \"level\":
+                \"info\",\n  \"agentName\": \"Agent Name\",\n  \"agentId\":
+                \"{{agentId}}\",\n  \"limit\": 100\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Server Health & Status
+      summary: Clear Server Logs
+      description: Clear all server logs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/server/servers:
+    get:
+      tags:
+        - Server Health & Status
+      summary: Get Server List
+      description: Get server debug information
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents:
+    get:
+      tags:
+        - Agents Management
+      summary: List All Agents
+      description: Get a list of all agents with minimal details
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Agents Management
+      summary: Create Agent
+      description: Create a new agent
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Agent Name\",\n  \"bio\": \"Agent
+                description\",\n  \"settings\": {\n    \"model\":
+                \"gpt-4\",\n    \"temperature\": 0.7\n  }\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}:
+    get:
+      tags:
+        - Agents Management
+      summary: Get Agent Details
+      description: Get specific agent details by ID
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+        - Agents Management
+      summary: Update Agent (Partial)
+      description: Update an existing agent (partial update)
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Agent Name\",\n  \"bio\": \"Updated
+                description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    put:
+      tags:
+        - Agents Management
+      summary: Update Agent (Full)
+      description: Update an existing agent (full replacement)
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Agent Name\",\n  \"bio\": \"Updated
+                description\",\n  \"settings\": {\n    \"model\":
+                \"gpt-4\",\n    \"temperature\": 0.7\n  }\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Agents Management
+      summary: Delete Agent
+      description: Delete an agent
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/start:
+    post:
+      tags:
+        - Agents Management
+      summary: Start Agent
+      description: Start an existing agent
+      requestBody:
+        content: {}
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/stop:
+    post:
+      tags:
+        - Agents Management
+      summary: Stop Agent
+      description: Stop a running agent
+      requestBody:
+        content: {}
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/panels:
+    get:
+      tags:
+        - Agents Management
+      summary: Get Agent Panels
+      description: Get agent panels configuration
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/logs:
+    get:
+      tags:
+        - Agents Management
+      summary: Get Agent Logs
+      description: Get agent logs with filtering options
+      parameters:
+        - name: roomId
+          in: query
+          schema:
+            type: string
+          description: Filter by room ID
+          example: '{{roomId}}'
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Filter by log type
+          example: info
+        - name: count
+          in: query
+          schema:
+            type: integer
+          description: Limit number of results
+          example: '50'
+        - name: offset
+          in: query
+          schema:
+            type: integer
+          description: Pagination offset
+          example: '0'
+        - name: excludeTypes
+          in: query
+          schema:
+            type: string
+          description: Exclude specific log types
+          example: debug,trace
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/logs/{logId}:
+    delete:
+      tags:
+        - Agents Management
+      summary: Delete Agent Log
+      description: Delete a specific agent log entry
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: logId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/worlds:
+    get:
+      tags:
+        - Agents Management
+      summary: Get All Worlds
+      description: Get all available worlds
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/worlds:
+    post:
+      tags:
+        - Agents Management
+      summary: Create World for Agent
+      description: Create a new world for an agent
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"World Name\",\n  \"description\": \"World
+                description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/agents/{agentId}/worlds/{worldId}:
+    patch:
+      tags:
+        - Agents Management
+      summary: Update Agent World
+      description: Update an agent's world
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated World Name\",\n  \"description\":
+                \"Updated description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: worldId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Agents Management
+      summary: Delete Agent World
+      description: Delete an agent's world
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: worldId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/submit:
+    post:
+      tags:
+        - Messaging System
+      summary: Submit Message
+      description: Submit a message from an agent or system (already processed messages)
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"channel_id\": \"{{channelId}}\",\n  \"server_id\":
+                \"00000000-0000-0000-0000-000000000000\",\n  \"author_id\":
+                \"{{userId}}\",\n  \"content\": \"Hello from API\",\n 
+                \"source_type\": \"user_message\",\n  \"raw_message\": {\n   
+                \"text\": \"Hello from API\"\n  },\n  \"metadata\": {\n   
+                \"platform\": \"api\"\n  }\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/complete:
+    post:
+      tags:
+        - Messaging System
+      summary: Complete Message
+      description: Notify that message processing is complete
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"channel_id\": \"{{channelId}}\",\n  \"server_id\":
+                \"{{serverId}}\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/ingest-external:
+    post:
+      tags:
+        - Messaging System
+      summary: Ingest External Message
+      description: Ingest a message from an external source for agent processing
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"channel_id\": \"{{channelId}}\",\n  \"server_id\":
+                \"{{serverId}}\",\n  \"author_id\": \"{{userId}}\",\n 
+                \"author_display_name\": \"External User\",\n  \"content\":
+                \"Message from external system\",\n  \"source_id\":
+                \"external-msg-123\",\n  \"source_type\": \"discord\",\n 
+                \"raw_message\": {\n    \"text\": \"Message from external
+                system\"\n  },\n  \"metadata\": {\n    \"platform\":
+                \"discord\"\n  }\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-servers:
+    get:
+      tags:
+        - Messaging System
+      summary: Get Central Servers
+      description: Get all central messaging servers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/servers:
+    get:
+      tags:
+        - Messaging System
+      summary: Get All Servers
+      description: Get all messaging servers
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Messaging System
+      summary: Create Server
+      description: Create a new messaging server
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Server Name\",\n  \"description\": \"Server
+                description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/servers/{serverId}:
+    get:
+      tags:
+        - Messaging System
+      summary: Get Specific Server
+      description: Get details of a specific server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+        - Messaging System
+      summary: Update Server
+      description: Update server details
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Server Name\",\n  \"description\":
+                \"Updated server description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Messaging System
+      summary: Delete Server
+      description: Delete a messaging server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/servers/{serverId}/agents:
+    post:
+      tags:
+        - Messaging System
+      summary: Add Agent to Server
+      description: Add an agent to a messaging server
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: '"{\n  \"agentId\": \"{{agentId}}\"\n}"'
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Messaging System
+      summary: Get Server Agents
+      description: Get all agents for a server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/servers/{serverId}/agents/{agentId}:
+    delete:
+      tags:
+        - Messaging System
+      summary: Remove Agent from Server
+      description: Remove an agent from a messaging server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/agents/{agentId}/servers:
+    get:
+      tags:
+        - Messaging System
+      summary: Get Agent Servers
+      description: Get all servers for an agent
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/messages:
+    post:
+      tags:
+        - Channels & Messages
+      summary: Create Channel Message
+      description: Create a new message in a channel
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"content\": \"Message content\",\n  \"userId\":
+                \"user-id\",\n  \"agentId\": \"{{agentId}}\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Channels & Messages
+      summary: Get Channel Messages
+      description: Get messages from a channel
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: '50'
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Channels & Messages
+      summary: Clear Channel Messages
+      description: Clear all messages from a channel
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-servers/{serverId}/channels:
+    get:
+      tags:
+        - Channels & Messages
+      summary: Get Server Channels
+      description: Get all channels for a server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/channels:
+    post:
+      tags:
+        - Channels & Messages
+      summary: Create Channel
+      description: Create a regular channel
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Channel Name\",\n  \"description\": \"Channel
+                description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/dm-channel:
+    get:
+      tags:
+        - Channels & Messages
+      summary: Get or Create DM Channel
+      description: Get or create a direct message channel
+      parameters:
+        - name: userId1
+          in: query
+          schema:
+            type: string
+          example: user1
+        - name: userId2
+          in: query
+          schema:
+            type: string
+          example: user2
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels:
+    post:
+      tags:
+        - Channels & Messages
+      summary: Create Central Channel
+      description: Create a central channel
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Central Channel Name\",\n  \"serverId\":
+                \"{{serverId}}\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/details:
+    get:
+      tags:
+        - Channels & Messages
+      summary: Get Channel Details
+      description: Get detailed channel information
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/participants:
+    get:
+      tags:
+        - Channels & Messages
+      summary: Get Channel Participants
+      description: Get channel participants
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/messages/{messageId}:
+    delete:
+      tags:
+        - Channels & Messages
+      summary: Delete Channel Message
+      description: Delete a specific message from a channel
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: messageId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/agents:
+    post:
+      tags:
+        - Channels & Messages
+      summary: Add Agent to Channel
+      description: Add an agent to a channel
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: '"{\n  \"agentId\": \"{{agentId}}\"\n}"'
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Channels & Messages
+      summary: List Channel Agents
+      description: List all agents in a channel
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}/agents/{agentId}:
+    delete:
+      tags:
+        - Channels & Messages
+      summary: Remove Agent from Channel
+      description: Remove an agent from a channel
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/central-channels/{channelId}:
+    patch:
+      tags:
+        - Channels & Messages
+      summary: Update Channel
+      description: Update channel information
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Channel Name\",\n  \"description\":
+                \"Updated description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Channels & Messages
+      summary: Delete Channel
+      description: Delete a channel
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/group-channels:
+    post:
+      tags:
+        - Channels & Messages
+      summary: Create Group Channel (Legacy)
+      description: Create a group channel (legacy endpoint)
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Group Channel Name\",\n  \"participants\":
+                [\"user1\", \"user2\", \"user3\"]\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/rooms/{roomId}/memories:
+    get:
+      tags:
+        - Memory Management
+      summary: Get Room Memories
+      description: Get memories for a specific room and agent
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: '50'
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: roomId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/memories:
+    get:
+      tags:
+        - Memory Management
+      summary: Get Agent Memories
+      description: Get all memories for an agent
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          example: '50'
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Memory Management
+      summary: Create Memory
+      description: Create a new memory for an agent
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"content\": \"New memory content\",\n  \"importance\":
+                0.8,\n  \"roomId\": \"{{roomId}}\",\n  \"metadata\": {}\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/memories/{memoryId}:
+    patch:
+      tags:
+        - Memory Management
+      summary: Update Memory
+      description: Update a specific memory
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"content\": \"Updated memory content\",\n 
+                \"importance\": 0.8\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: memoryId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Memory Management
+      summary: Delete Memory
+      description: Delete a specific memory
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: memoryId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/memories/all/{roomId}:
+    delete:
+      tags:
+        - Memory Management
+      summary: Delete All Room Memories
+      description: Delete all memories for a specific room
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: roomId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/groups/{serverId}:
+    get:
+      tags:
+        - Memory Management
+      summary: Get Memory Group
+      description: Get memory group details for a server
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - Memory Management
+      summary: Create Memory Group
+      description: Create a memory group for a server
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Memory Group Name\",\n  \"description\":
+                \"Group description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+        - Memory Management
+      summary: Update Memory Group
+      description: Update memory group for a server
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Memory Group Name\",\n 
+                \"description\": \"Updated group description\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Memory Management
+      summary: Delete Memory Group
+      description: Delete a memory group
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/groups/{serverId}/memories:
+    delete:
+      tags:
+        - Memory Management
+      summary: Clear Group Memories
+      description: Clear all memories from a group
+      parameters:
+        - name: serverId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/rooms:
+    post:
+      tags:
+        - Memory Management
+      summary: Create Room
+      description: Create a new room for an agent
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Room Name\",\n  \"type\": \"dm\",\n 
+                \"source\": \"client\",\n  \"worldId\": \"{{worldId}}\",\n 
+                \"serverId\": \"{{serverId}}\",\n  \"metadata\": {}\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+        - Memory Management
+      summary: Get Agent Rooms
+      description: Get all rooms for an agent
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/memory/{agentId}/rooms/{roomId}:
+    get:
+      tags:
+        - Memory Management
+      summary: Get Specific Room
+      description: Get details of a specific room
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: roomId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+        - Memory Management
+      summary: Update Room
+      description: Update room details
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"name\": \"Updated Room Name\",\n  \"metadata\": {\n   
+                \"updated\": true\n  }\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: roomId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+        - Memory Management
+      summary: Delete Room
+      description: Delete a specific room
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: roomId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/audio-messages/synthesize:
+    post:
+      tags:
+        - Audio Processing
+      summary: Synthesize Audio Message
+      description: Synthesize text to audio message
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"text\": \"Hello, this is a test message\",\n  \"voice\":
+                \"default\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/speech/generate:
+    post:
+      tags:
+        - Audio Processing
+      summary: Generate Speech
+      description: Generate speech from text
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: >-
+                "{\n  \"text\": \"Text to convert to speech\",\n  \"voice\":
+                \"default\"\n}"
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/speech/conversation:
+    post:
+      tags:
+        - Audio Processing
+      summary: Process Conversation Audio
+      description: Process audio for conversation
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                roomId:
+                  type: string
+                  example: '{{roomId}}'
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/audio-messages:
+    post:
+      tags:
+        - Audio Processing
+      summary: Process Audio Message
+      description: Process an audio message
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/transcribe:
+    post:
+      tags:
+        - Audio Processing
+      summary: Transcribe Audio
+      description: Transcribe audio to text
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/audio/{agentId}/process:
+    post:
+      tags:
+        - Audio Processing
+      summary: Process Audio
+      description: Process audio file
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/media/agents/{agentId}/upload-media:
+    post:
+      tags:
+        - Media Upload
+      summary: Upload Agent Media
+      description: Upload media file for an agent
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/messaging/channels/{channelId}/upload-media:
+    post:
+      tags:
+        - Media Upload
+      summary: Upload Channel Media
+      description: Upload media file for a channel
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: multipart/form-data
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /api/system/env/local:
+    get:
+      tags:
+        - System Configuration
+      summary: Get Local Environment
+      description: Get local environment configuration
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    post:
+      tags:
+        - System Configuration
+      summary: Update Local Environment
+      description: Update local environment configuration
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: string
+              example: '"{\n  \"key\": \"value\",\n  \"setting\": \"updated_value\"\n}"'
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /media/uploads/{agentId}/filename.jpg:
+    get:
+      tags:
+        - Static Media Files
+      summary: Get Agent Media File
+      description: Serve uploaded agent media files
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /media/generated/{agentId}/filename.jpg:
+    get:
+      tags:
+        - Static Media Files
+      summary: Get Generated Agent File
+      description: Serve generated agent files
+      parameters:
+        - name: agentId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /media/uploads/channels/{channelId}/filename.jpg:
+    get:
+      tags:
+        - Static Media Files
+      summary: Get Channel Media File
+      description: Serve uploaded channel media files
+      parameters:
+        - name: channelId
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
