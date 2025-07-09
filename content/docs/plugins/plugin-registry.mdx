@@ -21,20 +21,20 @@ functionality to specialized integrations.
     **Dependencies**: None
   </Card>
 
-  <Card title="SQL Plugin">
-    Database connectivity and management for persistent storage **Package**: `@elizaos/plugin-sql`
-    **Installation**: `elizaos plugins add sql` **Features**: - PostgreSQL support - SQLite support
-    - Database migrations - Schema management - Connection pooling **Environment Variables**: -
-    `DATABASE_URL`: Database connection string - `DB_POOL_SIZE`: Connection pool size (default: 10)
-    **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="SQL Plugin">
+  Database connectivity and management for persistent storage **Package**: `@elizaos/plugin-sql`
+  **Installation**: `elizaos plugins add sql` **Features**: - PostgreSQL support - SQLite support -
+  Database migrations - Schema management - Connection pooling **Environment Variables**: -
+  `DATABASE_URL`: Database connection string - `DB_POOL_SIZE`: Connection pool size (default: 10)
+  **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
-  <Card title="Dummy Services">
-    Testing and development utilities for plugin development **Package**:
-    `@elizaos/plugin-dummy-services` **Installation**: `elizaos plugins add dummy-services`
-    **Features**: - Mock service providers - Test data generation - Development utilities - Plugin
-    testing framework **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Dummy Services">
+  Testing and development utilities for plugin development **Package**:
+  `@elizaos/plugin-dummy-services` **Installation**: `elizaos plugins add dummy-services`
+  **Features**: - Mock service providers - Test data generation - Development utilities - Plugin
+  testing framework **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Plugin Starter">
     Template and utilities for creating new plugins **Package**: `@elizaos/plugin-starter`
@@ -58,22 +58,22 @@ functionality to specialized integrations.
     Sampling temperature **Dependencies**: `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="Anthropic Plugin">
-    Integration with Anthropic's Claude models **Package**: `@elizaos/plugin-anthropic`
-    **Installation**: `elizaos plugins add anthropic` **Features**: - Claude 3 family support -
-    Advanced reasoning - Code generation - Analysis tasks - Function calling **Environment
-    Variables**: - `ANTHROPIC_API_KEY`: Your Anthropic API key - `ANTHROPIC_MODEL`: Model to use
-    (default: claude-3-sonnet) - `ANTHROPIC_MAX_TOKENS`: Maximum tokens per request
-    **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Anthropic Plugin">
+  Integration with Anthropic's Claude models **Package**: `@elizaos/plugin-anthropic`
+  **Installation**: `elizaos plugins add anthropic` **Features**: - Claude 3 family support -
+  Advanced reasoning - Code generation - Analysis tasks - Function calling **Environment
+  Variables**: - `ANTHROPIC_API_KEY`: Your Anthropic API key - `ANTHROPIC_MODEL`: Model to use
+  (default: claude-3-sonnet) - `ANTHROPIC_MAX_TOKENS`: Maximum tokens per request **Dependencies**:
+  `@elizaos/plugin-bootstrap`
+</Card>
 
-  <Card title="Google AI Plugin">
-    Integration with Google's Gemini models **Package**: `@elizaos/plugin-google-ai`
-    **Installation**: `elizaos plugins add google-ai` **Features**: - Gemini Pro and Ultra models -
-    Multimodal capabilities - Code generation - Function calling **Environment Variables**: -
-    `GOOGLE_API_KEY`: Google AI API key - `GOOGLE_MODEL`: Model to use (default: gemini-pro)
-    **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Google AI Plugin">
+  Integration with Google's Gemini models **Package**: `@elizaos/plugin-google-ai` **Installation**:
+  `elizaos plugins add google-ai` **Features**: - Gemini Pro and Ultra models - Multimodal
+  capabilities - Code generation - Function calling **Environment Variables**: - `GOOGLE_API_KEY`:
+  Google AI API key - `GOOGLE_MODEL`: Model to use (default: gemini-pro) **Dependencies**:
+  `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Local LLM Plugin">
     Support for locally hosted language models **Package**: `@elizaos/plugin-local-llm`
@@ -117,22 +117,22 @@ functionality to specialized integrations.
     - `DISCORD_GUILD_ID`: Target guild ID **Dependencies**: `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="Telegram Plugin">
-    Telegram bot integration and messaging **Package**: `@elizaos/plugin-telegram` **Installation**:
-    `elizaos plugins add telegram` **Features**: - Bot API integration - Message handling - Inline
-    keyboards - File uploads - Channel management - Group administration **Environment Variables**:
-    - `TELEGRAM_BOT_TOKEN`: Telegram bot token - `TELEGRAM_WEBHOOK_URL`: Webhook URL (optional)
-    **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Telegram Plugin">
+  Telegram bot integration and messaging **Package**: `@elizaos/plugin-telegram` **Installation**:
+  `elizaos plugins add telegram` **Features**: - Bot API integration - Message handling - Inline
+  keyboards - File uploads - Channel management - Group administration **Environment Variables**: -
+  `TELEGRAM_BOT_TOKEN`: Telegram bot token - `TELEGRAM_WEBHOOK_URL`: Webhook URL (optional)
+  **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
-  <Card title="Twitter Plugin">
-    Twitter/X integration for social media engagement **Package**: `@elizaos/plugin-twitter`
-    **Installation**: `elizaos plugins add twitter` **Features**: - Tweet posting - Timeline reading
-    - Mention handling - Direct messages - Media uploads - Thread management **Environment
-    Variables**: - `TWITTER_API_KEY`: Twitter API key - `TWITTER_API_SECRET`: Twitter API secret -
-    `TWITTER_ACCESS_TOKEN`: Access token - `TWITTER_ACCESS_SECRET`: Access token secret
-    **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Twitter Plugin">
+  Twitter/X integration for social media engagement **Package**: `@elizaos/plugin-twitter`
+  **Installation**: `elizaos plugins add twitter` **Features**: - Tweet posting - Timeline reading -
+  Mention handling - Direct messages - Media uploads - Thread management **Environment Variables**:
+  - `TWITTER_API_KEY`: Twitter API key - `TWITTER_API_SECRET`: Twitter API secret -
+  `TWITTER_ACCESS_TOKEN`: Access token - `TWITTER_ACCESS_SECRET`: Access token secret
+  **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Reddit Plugin">
     Reddit integration for community engagement **Package**: `@elizaos/plugin-reddit`
@@ -156,13 +156,13 @@ functionality to specialized integrations.
     `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="Microsoft Teams Plugin">
-    Microsoft Teams integration **Package**: `@elizaos/plugin-teams` **Installation**: `elizaos
-    plugins add teams` **Features**: - Team collaboration - Channel messaging - Meeting integration
-    - File sharing - Notification handling **Environment Variables**: - `TEAMS_APP_ID`: Teams app ID
-    - `TEAMS_APP_SECRET`: Teams app secret - `TEAMS_TENANT_ID`: Azure tenant ID **Dependencies**:
-    `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Microsoft Teams Plugin">
+  Microsoft Teams integration **Package**: `@elizaos/plugin-teams` **Installation**: `elizaos
+  plugins add teams` **Features**: - Team collaboration - Channel messaging - Meeting integration -
+  File sharing - Notification handling **Environment Variables**: - `TEAMS_APP_ID`: Teams app ID -
+  `TEAMS_APP_SECRET`: Teams app secret - `TEAMS_TENANT_ID`: Azure tenant ID **Dependencies**:
+  `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="WhatsApp Plugin">
     WhatsApp Business API integration **Package**: `@elizaos/plugin-whatsapp` **Installation**:
@@ -186,14 +186,13 @@ functionality to specialized integrations.
     (mainnet/devnet/testnet) **Dependencies**: `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="Ethereum Plugin">
-    Ethereum blockchain integration **Package**: `@elizaos/plugin-ethereum` **Installation**:
-    `elizaos plugins add ethereum` **Features**: - Smart contract interaction - Token operations -
-    DeFi protocols - NFT management - Gas optimization **Environment Variables**: -
-    `ETHEREUM_RPC_URL`: Ethereum RPC endpoint - `ETHEREUM_PRIVATE_KEY`: Wallet private key -
-    `ETHEREUM_NETWORK`: Network (mainnet/goerli/sepolia) **Dependencies**:
-    `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Ethereum Plugin">
+  Ethereum blockchain integration **Package**: `@elizaos/plugin-ethereum` **Installation**: `elizaos
+  plugins add ethereum` **Features**: - Smart contract interaction - Token operations - DeFi
+  protocols - NFT management - Gas optimization **Environment Variables**: - `ETHEREUM_RPC_URL`:
+  Ethereum RPC endpoint - `ETHEREUM_PRIVATE_KEY`: Wallet private key - `ETHEREUM_NETWORK`: Network
+  (mainnet/goerli/sepolia) **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Bitcoin Plugin">
     Bitcoin blockchain integration **Package**: `@elizaos/plugin-bitcoin` **Installation**: `elizaos
@@ -237,13 +236,13 @@ functionality to specialized integrations.
     `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="News Plugin">
-    News aggregation and content delivery **Package**: `@elizaos/plugin-news` **Installation**:
-    `elizaos plugins add news` **Features**: - News aggregation - RSS feed support - Content
-    filtering - Trending topics - Sentiment analysis **Environment Variables**: - `NEWS_API_KEY`:
-    News API key - `NEWS_SOURCES`: Comma-separated news sources - `NEWS_CATEGORIES`: Preferred
-    categories **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="News Plugin">
+  News aggregation and content delivery **Package**: `@elizaos/plugin-news` **Installation**:
+  `elizaos plugins add news` **Features**: - News aggregation - RSS feed support - Content filtering
+  - Trending topics - Sentiment analysis **Environment Variables**: - `NEWS_API_KEY`: News API key -
+  `NEWS_SOURCES`: Comma-separated news sources - `NEWS_CATEGORIES`: Preferred categories
+  **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Search Plugin">
     Web search integration **Package**: `@elizaos/plugin-search` **Installation**: `elizaos plugins
@@ -265,13 +264,13 @@ functionality to specialized integrations.
     Repository owner - `GITHUB_REPO`: Repository name **Dependencies**: `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="GitLab Plugin">
-    GitLab integration for project management **Package**: `@elizaos/plugin-gitlab`
-    **Installation**: `elizaos plugins add gitlab` **Features**: - Project management - Merge
-    request handling - Pipeline monitoring - Issue management - Wiki management **Environment
-    Variables**: - `GITLAB_TOKEN`: GitLab access token - `GITLAB_URL`: GitLab instance URL -
-    `GITLAB_PROJECT_ID`: Project ID **Dependencies**: `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="GitLab Plugin">
+  GitLab integration for project management **Package**: `@elizaos/plugin-gitlab` **Installation**:
+  `elizaos plugins add gitlab` **Features**: - Project management - Merge request handling -
+  Pipeline monitoring - Issue management - Wiki management **Environment Variables**: -
+  `GITLAB_TOKEN`: GitLab access token - `GITLAB_URL`: GitLab instance URL - `GITLAB_PROJECT_ID`:
+  Project ID **Dependencies**: `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Docker Plugin">
     Docker container management **Package**: `@elizaos/plugin-docker` **Installation**: `elizaos
@@ -295,13 +294,13 @@ functionality to specialized integrations.
     file size **Dependencies**: `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="HTTP Plugin">
-    HTTP request handling and API integration **Package**: `@elizaos/plugin-http` **Installation**:
-    `elizaos plugins add http` **Features**: - HTTP requests - API integration - Webhook handling -
-    Rate limiting - Response caching **Environment Variables**: - `HTTP_TIMEOUT`: Request timeout -
-    `HTTP_RETRY_COUNT`: Retry attempts - `HTTP_USER_AGENT`: User agent string **Dependencies**:
-    `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="HTTP Plugin">
+  HTTP request handling and API integration **Package**: `@elizaos/plugin-http` **Installation**:
+  `elizaos plugins add http` **Features**: - HTTP requests - API integration - Webhook handling -
+  Rate limiting - Response caching **Environment Variables**: - `HTTP_TIMEOUT`: Request timeout -
+  `HTTP_RETRY_COUNT`: Retry attempts - `HTTP_USER_AGENT`: User agent string **Dependencies**:
+  `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="Scheduler Plugin">
     Task scheduling and automation **Package**: `@elizaos/plugin-scheduler` **Installation**:
@@ -324,14 +323,14 @@ functionality to specialized integrations.
     `@elizaos/plugin-bootstrap`
   </Card>
 
-  <Card title="Email Plugin">
-    Email integration and automation **Package**: `@elizaos/plugin-email` **Installation**: `elizaos
-    plugins add email` **Features**: - Email sending - Inbox monitoring - Template management -
-    Automation workflows - Attachment handling **Environment Variables**: - `EMAIL_PROVIDER`:
-    Provider (gmail/outlook/smtp) - `SMTP_HOST`: SMTP server host - `SMTP_PORT`: SMTP server port -
-    `SMTP_USER`: SMTP username - `SMTP_PASS`: SMTP password **Dependencies**:
-    `@elizaos/plugin-bootstrap`
-  </Card>
+<Card title="Email Plugin">
+  Email integration and automation **Package**: `@elizaos/plugin-email` **Installation**: `elizaos
+  plugins add email` **Features**: - Email sending - Inbox monitoring - Template management -
+  Automation workflows - Attachment handling **Environment Variables**: - `EMAIL_PROVIDER`: Provider
+  (gmail/outlook/smtp) - `SMTP_HOST`: SMTP server host - `SMTP_PORT`: SMTP server port -
+  `SMTP_USER`: SMTP username - `SMTP_PASS`: SMTP password **Dependencies**:
+  `@elizaos/plugin-bootstrap`
+</Card>
 
   <Card title="CRM Plugin">
     Customer relationship management **Package**: `@elizaos/plugin-crm` **Installation**: `elizaos

@@ -32,6 +32,7 @@ bun run lint:mdx     # Check MDX content quality
 ### When Creating/Editing Documentation
 
 **DO:**
+
 - Place MDX files in `/docs` with `.mdx` extension
 - Include frontmatter: `title` and `description` (required)
 - Use H2 (`##`) as highest heading level in content
@@ -40,31 +41,33 @@ bun run lint:mdx     # Check MDX content quality
 - Test changes with `bun dev` before committing
 
 **DON'T:**
+
 - Use H1 (`#`) headers in content (title comes from frontmatter)
 - Create files outside `/docs` for documentation content
 - Mix code and documentation in the same PR
 - Forget to update `meta.json` when adding new pages
-- Use inline code blocks (e.g., `` ```bash # comment ``)
+- Use inline code blocks (e.g., ` ```bash # comment `)
 - Compress multi-line content into single lines in MDX components
 - **NO EMOJI EVER in documentation content**
 
 ### Code Block Formatting
 
 **❌ WRONG - Inline code blocks:**
-```mdx
-<Tab value="Testing">
-  ```bash # This is wrong - don't put code blocks inline
-</Tab>
-```
+
+````mdx
+<Tab value="Testing">```bash # This is wrong - don't put code blocks inline</Tab>
+````
 
 **✅ CORRECT - Properly formatted:**
-```mdx
+
+````mdx
 <Tab value="Testing">
   ```bash
   # This is correct - code block on separate lines
   bun test
   bun test --coverage
-  ```
+````
+
 </Tab>
 ```
 
@@ -111,6 +114,7 @@ Q&A or collapsible content? → <Accordions> with <Accordion>
 - Use section dividers in meta.json: `"---Section Name---"`
 
 **Advanced meta.json Example:**
+
 ```json
 {
   "title": "Getting Started",
@@ -135,7 +139,7 @@ Q&A or collapsible content? → <Accordions> with <Accordion>
 
 Structure your tutorial pages to guide users through a complete workflow:
 
-```mdx
+````mdx
 ---
 title: Build Your First ElizaOS Agent
 description: Create an AI agent with memory, actions, and Discord integration in 10 minutes
@@ -147,25 +151,24 @@ Learn how to build your first ElizaOS agent with Discord integration.
 ## What you'll build
 
 In this tutorial, you'll create an agent that can:
+
 - Respond intelligently on Discord
 - Remember conversation context
 - Execute the REPLY action
 - Use OpenAI for responses
 
-<Callout type="info">
-This tutorial takes approximately 10 minutes to complete.
-</Callout>
+<Callout type="info">This tutorial takes approximately 10 minutes to complete.</Callout>
 
 ## Prerequisites
 
 Before starting, ensure you have:
 
-| Requirement | Version | Check Command |
-|------------|---------|---------------|
-| Node.js | 20.18+ | `node --version` |
-| Bun | 1.1.43+ | `bun --version` |
-| Git | Any | `git --version` |
-| OpenAI API Key | - | [Get from OpenAI](https://platform.openai.com) |
+| Requirement    | Version | Check Command                                  |
+| -------------- | ------- | ---------------------------------------------- |
+| Node.js        | 20.18+  | `node --version`                               |
+| Bun            | 1.1.43+ | `bun --version`                                |
+| Git            | Any     | `git --version`                                |
+| OpenAI API Key | -       | [Get from OpenAI](https://platform.openai.com) |
 
 ## Build your agent
 
@@ -179,12 +182,14 @@ First, install the ElizaOS CLI globally:
 ```bash
 bun install -g @elizaos/cli
 ```
+````
 
 Verify the installation:
 
 ```bash
 elizaos --version
 ```
+
 </Step>
 
 <Step>
@@ -233,6 +238,7 @@ OPENAI_API_KEY=sk-your-openai-key
 DISCORD_BOT_TOKEN=your-discord-token
 DISCORD_APPLICATION_ID=your-app-id
 ```
+
 </Step>
 
 <Step>
@@ -248,9 +254,9 @@ Create a new character file:
     "She specializes in answering questions and helping users."
   ],
   "plugins": [
-    "@elizaos/plugin-sql",      // Required first
-    "@elizaos/plugin-openai",   // AI provider
-    "@elizaos/plugin-discord",  // Discord integration
+    "@elizaos/plugin-sql", // Required first
+    "@elizaos/plugin-openai", // AI provider
+    "@elizaos/plugin-discord", // Discord integration
     "@elizaos/plugin-bootstrap" // Required last
   ],
   "settings": {
@@ -275,6 +281,7 @@ Create a new character file:
   ]
 }
 ```
+
 </Step>
 
 <Step>
@@ -286,8 +293,7 @@ Run your agent in development mode:
 elizaos dev --character characters/my-agent.json
 ```
 
-Your agent is now running and connected to Discord!
-</Step>
+Your agent is now running and connected to Discord! </Step>
 
 </Steps>
 
@@ -318,7 +324,7 @@ Now that you've created your first agent:
 
 For conceptual documentation, use this pattern:
 
-```mdx
+````mdx
 ---
 title: Understanding AgentRuntime in ElizaOS
 description: Core concepts of the AgentRuntime orchestration system
@@ -330,13 +336,15 @@ AgentRuntime is the central orchestration system that powers ElizaOS agents.
 ## What is AgentRuntime?
 
 AgentRuntime is the core class that:
+
 - Orchestrates all agent operations
 - Manages plugins and services
 - Handles memory and state
 - Processes messages through actions
 
 <Callout type="lightbulb">
-Think of AgentRuntime as the brain of your agent - it coordinates all components to create intelligent behavior.
+  Think of AgentRuntime as the brain of your agent - it coordinates all components to create
+  intelligent behavior.
 </Callout>
 
 ## Core concepts
@@ -345,12 +353,12 @@ Think of AgentRuntime as the brain of your agent - it coordinates all components
 
 The AgentRuntime goes through several lifecycle stages:
 
-| Stage | Description | Key Methods |
-|-------|-------------|-------------|
-| **Initialization** | Load character and plugins | `runtime.initialize()` |
-| **Registration** | Register services and actions | `runtime.registerService()` |
-| **Active** | Process messages and events | `runtime.processActions()` |
-| **Shutdown** | Clean up resources | `runtime.stop()` |
+| Stage              | Description                   | Key Methods                 |
+| ------------------ | ----------------------------- | --------------------------- |
+| **Initialization** | Load character and plugins    | `runtime.initialize()`      |
+| **Registration**   | Register services and actions | `runtime.registerService()` |
+| **Active**         | Process messages and events   | `runtime.processActions()`  |
+| **Shutdown**       | Clean up resources            | `runtime.stop()`            |
 
 ### Runtime vs. Character
 
@@ -358,20 +366,12 @@ Understanding the separation of concerns:
 
 <Tabs>
   <Tab value="runtime">
-    **AgentRuntime**
-    - Execution engine
-    - Service management
-    - Memory operations
-    - Plugin coordination
-    - State composition
+    **AgentRuntime** - Execution engine - Service management - Memory operations - Plugin
+    coordination - State composition
   </Tab>
   <Tab value="character">
-    **Character**
-    - Personality definition
-    - Response style
-    - Knowledge base
-    - Example messages
-    - Settings & secrets
+    **Character** - Personality definition - Response style - Knowledge base - Example messages -
+    Settings & secrets
   </Tab>
 </Tabs>
 
@@ -388,6 +388,7 @@ graph TD
     D --> G
     G --> H[Response Output]
 ```
+````
 
 ## Common patterns
 
@@ -397,12 +398,12 @@ Use typed service access for type safety:
 
 ```typescript title="examples/service-access.ts"
 // Get a typed service instance
-const twitterService = runtime.getTypedService<TwitterService>('twitter');
+const twitterService = runtime.getTypedService<TwitterService>("twitter");
 
 // Use the service
 await twitterService.postTweet({
   text: "Hello from ElizaOS!",
-  mediaIds: []
+  mediaIds: [],
 });
 ```
 
@@ -415,7 +416,7 @@ Compose runtime state for context:
 const state = await runtime.composeState(message, {
   useRecentMessages: true,
   useKnowledge: true,
-  useMemories: true
+  useMemories: true,
 });
 
 // Access composed data
@@ -432,14 +433,14 @@ Work with the memory system:
 await runtime.createMemory({
   content: "User prefers technical explanations",
   entityId: message.userId,
-  type: "preference"
+  type: "preference",
 });
 
 // Search memories
 const memories = await runtime.searchMemories({
   tableName: "memories",
   query: "technical preferences",
-  limit: 10
+  limit: 10,
 });
 ```
 
@@ -452,7 +453,7 @@ const myPlugin: Plugin = {
   actions: [replyAction, analyzeAction],
   providers: [knowledgeProvider],
   services: [backgroundService],
-  evaluators: [sentimentEvaluator]
+  evaluators: [sentimentEvaluator],
 };
 
 // Register during initialization
@@ -476,7 +477,8 @@ Always ensure plugin-sql is loaded first and plugin-bootstrap is loaded last.
 - [Action Development](/advanced/custom-actions)
 - [Memory Systems](/core-concepts/memory)
 - [Plugin Development](/plugins/creating-plugins)
-```
+
+````
 
 **3. API Reference Pages**
 
@@ -522,7 +524,7 @@ const runtime = new AgentRuntime({
 });
 
 await runtime.initialize();
-```
+````
 
 ## Constructor
 
@@ -532,13 +534,13 @@ Creates a new AgentRuntime instance.
 
 #### Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `config.token` | `string` | Yes | - | Unique agent identifier |
-| `config.character` | `Character` | Yes | - | Agent character definition |
-| `config.plugins` | `Plugin[]` | No | `[]` | Runtime plugins to load |
-| `config.services` | `Service[]` | No | `[]` | Services to register |
-| `config.providers` | `Provider[]` | No | `[]` | Context providers |
+| Parameter          | Type         | Required | Default | Description                |
+| ------------------ | ------------ | -------- | ------- | -------------------------- |
+| `config.token`     | `string`     | Yes      | -       | Unique agent identifier    |
+| `config.character` | `Character`  | Yes      | -       | Agent character definition |
+| `config.plugins`   | `Plugin[]`   | No       | `[]`    | Runtime plugins to load    |
+| `config.services`  | `Service[]`  | No       | `[]`    | Services to register       |
+| `config.providers` | `Provider[]` | No       | `[]`    | Context providers          |
 
 #### Returns
 
@@ -552,8 +554,8 @@ const runtime = new AgentRuntime({
   character: {
     name: "Ada",
     bio: ["AI researcher and assistant"],
-    plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
-  }
+    plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  },
 });
 ```
 
@@ -577,15 +579,15 @@ Processes a message through all registered actions.
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `message` | `Memory` | Yes | Input message to process |
-| `responses` | `Memory[]` | Yes | Array to collect responses |
+| Parameter   | Type       | Required | Description                |
+| ----------- | ---------- | -------- | -------------------------- |
+| `message`   | `Memory`   | Yes      | Input message to process   |
+| `responses` | `Memory[]` | Yes      | Array to collect responses |
 
 #### Returns
 
 ```typescript
-Promise<void>
+Promise<void>;
 ```
 
 #### Example
@@ -594,7 +596,7 @@ Promise<void>
 const message = {
   content: { text: "What's the weather?" },
   userId: "user123",
-  roomId: "room456"
+  roomId: "room456",
 };
 
 const responses: Memory[] = [];
@@ -607,17 +609,17 @@ Composes the current runtime state.
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `message` | `Memory` | Yes | Current message context |
-| `options.useRecentMessages` | `boolean` | No | Include recent messages |
-| `options.useKnowledge` | `boolean` | No | Include knowledge base |
-| `options.useMemories` | `boolean` | No | Include relevant memories |
+| Parameter                   | Type      | Required | Description               |
+| --------------------------- | --------- | -------- | ------------------------- |
+| `message`                   | `Memory`  | Yes      | Current message context   |
+| `options.useRecentMessages` | `boolean` | No       | Include recent messages   |
+| `options.useKnowledge`      | `boolean` | No       | Include knowledge base    |
+| `options.useMemories`       | `boolean` | No       | Include relevant memories |
 
 #### Returns
 
 ```typescript
-Promise<State>
+Promise<State>;
 ```
 
 #### Example
@@ -626,7 +628,7 @@ Promise<State>
 const state = await runtime.composeState(message, {
   useRecentMessages: true,
   useKnowledge: true,
-  useMemories: true
+  useMemories: true,
 });
 
 console.log(state.recentMessages);
@@ -663,6 +665,7 @@ Registers a new service with the runtime.
       serviceType: CustomService.serviceType
     });
     ```
+
   </Tab>
 </Tabs>
 
@@ -671,7 +674,7 @@ Registers a new service with the runtime.
 Gets a typed service instance.
 
 ```typescript
-const twitter = runtime.getTypedService<TwitterService>('twitter');
+const twitter = runtime.getTypedService<TwitterService>("twitter");
 await twitter.postTweet({ text: "Hello world!" });
 ```
 
@@ -683,20 +686,24 @@ Creates a new memory entry.
 
 #### Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `memory` | `Memory` | Yes | - | Memory object to store |
-| `tableName` | `string` | No | `'memories'` | Target table |
-| `unique` | `boolean` | No | `false` | Prevent duplicates |
+| Parameter   | Type      | Required | Default      | Description            |
+| ----------- | --------- | -------- | ------------ | ---------------------- |
+| `memory`    | `Memory`  | Yes      | -            | Memory object to store |
+| `tableName` | `string`  | No       | `'memories'` | Target table           |
+| `unique`    | `boolean` | No       | `false`      | Prevent duplicates     |
 
 #### Example
 
 ```typescript
-await runtime.createMemory({
-  content: { text: "User likes TypeScript" },
-  entityId: message.userId,
-  type: "preference"
-}, "preferences", true);
+await runtime.createMemory(
+  {
+    content: { text: "User likes TypeScript" },
+    entityId: message.userId,
+    type: "preference",
+  },
+  "preferences",
+  true
+);
 ```
 
 ### `searchMemories(params)`
@@ -708,7 +715,7 @@ const memories = await runtime.searchMemories({
   tableName: "memories",
   query: "programming preferences",
   match_count: 10,
-  unique: true
+  unique: true,
 });
 ```
 
@@ -723,7 +730,7 @@ const customPlugin: Plugin = {
   name: "custom-plugin",
   actions: [customAction],
   providers: [customProvider],
-  services: [customService]
+  services: [customService],
 };
 
 runtime.registerPlugin(customPlugin);
@@ -736,9 +743,9 @@ runtime.registerPlugin(customPlugin);
 Emits a custom event.
 
 ```typescript
-runtime.emitEvent('agent:thinking', {
+runtime.emitEvent("agent:thinking", {
   message: "Processing request...",
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 ```
 
@@ -748,10 +755,10 @@ Registers a custom event handler.
 
 ```typescript
 runtime.registerEvent({
-  name: 'agent:thinking',
+  name: "agent:thinking",
   handler: async (data) => {
-    console.log('Agent is thinking:', data.message);
-  }
+    console.log("Agent is thinking:", data.message);
+  },
 });
 ```
 
@@ -766,12 +773,12 @@ Uses a model for completion or embedding.
 const completion = await runtime.useModel(ModelType.COMPLETION, {
   prompt: "Translate to Spanish: Hello",
   temperature: 0.7,
-  max_tokens: 100
+  max_tokens: 100,
 });
 
 // Generate embedding
 const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: "ElizaOS is amazing"
+  text: "ElizaOS is amazing",
 });
 ```
 
@@ -837,15 +844,15 @@ Always handle async operations and potential service failures.
 ```typescript
 try {
   await runtime.initialize();
-  const service = runtime.getTypedService<TwitterService>('twitter');
+  const service = runtime.getTypedService<TwitterService>("twitter");
   await service.postTweet({ text: "Hello!" });
 } catch (error) {
-  if (error.message.includes('not registered')) {
-    console.error('Service not found');
-  } else if (error.code === 'RATE_LIMIT') {
-    console.error('Rate limited');
+  if (error.message.includes("not registered")) {
+    console.error("Service not found");
+  } else if (error.code === "RATE_LIMIT") {
+    console.error("Rate limited");
   } else {
-    console.error('Unexpected error:', error);
+    console.error("Unexpected error:", error);
   }
 }
 ```
@@ -856,7 +863,8 @@ try {
 - [Action Development](/advanced/custom-actions)
 - [Plugin Architecture](/plugins)
 - [Memory Systems](/core-concepts/memory)
-```
+
+````
 
 ### Content Guidelines
 
@@ -895,7 +903,7 @@ try {
 export const config = {
   // Code here
 };
-```
+````
 
 For package installation:
 

@@ -1,11 +1,4 @@
 {
   "title": "Agent Development",
-  "pages": [
-    "agents",
-    "character-definition",
-    "actions",
-    "evaluators",
-    "providers",
-    "tasks"
-  ]
+  "pages": ["agents", "character-definition", "actions", "evaluators", "providers", "tasks"]
 }
