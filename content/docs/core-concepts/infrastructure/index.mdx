@@ -3,60 +3,135 @@ title: Overview
 description: ElizaOS infrastructure components and development tools
 ---
 
-# Infrastructure Overview
+# Overview
 
-ElizaOS infrastructure provides a comprehensive set of tools and services for building, testing, deploying, and managing AI agents. The infrastructure is designed to be developer-friendly, scalable, and secure.
+ElizaOS infrastructure provides a comprehensive set of tools and services for building, testing, deploying, and managing AI agents. The infrastructure is designed to be developer-friendly, scalable, and secure, supporting the full development lifecycle from initial project creation to production deployment.
 
 ## Core Components
 
-### CLI Tools
+### [CLI Tools](./cli-tools)
 
-The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers:
+The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers, providing a comprehensive toolkit for agent development:
 
-- **Project Management** - Create and manage projects, plugins, and agents
-- **Development Tools** - Hot reload, auto-rebuild, and debugging
-- **Testing Framework** - Unit, integration, and E2E testing
-- **Deployment Utilities** - Build, package, and deploy to various platforms
+**Command Categories**:
+- **Project Management**: `create`, `start`, `dev` - Project lifecycle management
+- **Agent Operations**: `agent` - Agent-specific commands and management
+- **Plugin Management**: `plugins` - Plugin discovery, installation, and management
+- **Testing**: `test` - Comprehensive testing framework
+- **Environment**: `env` - Environment configuration and validation
+- **Publishing**: `publish` - Plugin and project publishing
+- **Deployment**: `tee` - Trusted Execution Environment deployment
+- **Maintenance**: `update`, `monorepo` - System maintenance and updates
 
-[Learn more about CLI Tools →](/docs/core-concepts/infrastructure/cli-tools)
+**Key Features**:
+- **Auto-Installation**: Automatic dependency management with Bun
+- **Hot Reloading**: Real-time development with instant rebuilds
+- **Port Management**: Intelligent port allocation and conflict resolution
+- **Process Control**: Robust process management and cleanup
+- **Template System**: Project and plugin templates for rapid development
+- **Configuration Management**: Hierarchical configuration with validation
 
-### Environment Configuration
+**CLI Architecture**:
+```typescript
+interface CLICommand {
+  name: string;
+  description: string;
+  options: CommandOption[];
+  action: (options: any) => Promise<void>;
+  preAction?: (options: any) => Promise<void>;
+}
+```
 
-Flexible environment management system:
+### [Environment Configuration](./environment-config)
 
-- **Hierarchical Configuration** - Environment files with inheritance
-- **Security Features** - Secret management and validation
-- **Plugin Integration** - Per-plugin environment variables
-- **Dynamic Updates** - Runtime configuration changes
+Flexible environment management system with hierarchical configuration:
 
-[Learn more about Environment Configuration →](/docs/core-concepts/infrastructure/environment-config)
+**Configuration Features**:
+- **Hierarchical Structure**: Environment files with inheritance patterns
+- **Secret Management**: Secure handling of API keys and sensitive data
+- **Plugin Integration**: Per-plugin environment variable management
+- **Dynamic Updates**: Runtime configuration changes and hot reloading
+- **Validation**: Schema-based configuration validation
+- **Encryption**: Optional secret encryption for enhanced security
 
-### Testing Infrastructure
+**Environment Structure**:
+```bash
+project/
+├── .env                    # Base environment
+├── .env.local             # Local overrides
+├── .env.production        # Production settings
+├── .env.development       # Development settings
+└── .env.plugin-*          # Plugin-specific settings
+```
 
-Comprehensive testing framework:
+**Environment Management**:
+```typescript
+interface EnvironmentConfig {
+  load(): Promise<void>;
+  get(key: string): string | undefined;
+  set(key: string, value: string): void;
+  validate(schema: EnvSchema): ValidationResult;
+  encrypt(value: string): string;
+  decrypt(value: string): string;
+}
+```
 
-- **Multiple Test Types** - Unit, integration, E2E, and shell tests
-- **Test Utilities** - Port management, process control, timeouts
-- **CI/CD Integration** - GitHub Actions and automated testing
-- **Coverage Reports** - Code coverage analysis
+### [Testing Infrastructure](./testing)
 
-[Learn more about Testing →](/docs/core-concepts/infrastructure/testing)
+Comprehensive testing framework supporting multiple test types and environments:
 
-### Core Services
+**Test Types**:
+- **Unit Tests**: Component isolation and functionality testing
+- **Integration Tests**: Feature integration and component interaction
+- **E2E Tests**: Full workflow and user journey testing
+- **Performance Tests**: Load testing and performance benchmarking
+- **Shell Tests**: CLI command testing using BATS framework
 
-Essential services powering the platform:
+**Testing Architecture**:
+```typescript
+interface TestFramework {
+  runTests(type: TestType, options: TestOptions): Promise<TestResult>;
+  generateCoverage(): Promise<CoverageReport>;
+  setupTestEnvironment(): Promise<void>;
+  teardownTestEnvironment(): Promise<void>;
+}
+```
 
-- **File System Services** - Template management, directory operations
-- **Process Management** - Server control, port handling
-- **Plugin Services** - Discovery, loading, and registry
-- **Documentation Tools** - Automated documentation generation
+**Test Utilities**:
+- **Port Management**: Automatic port allocation for test environments
+- **Process Control**: Test process isolation and cleanup
+- **Timeout Management**: Configurable timeouts for different test types
+- **Mock Services**: Mock external services and dependencies
+- **Test Data**: Fixtures and test data management
 
-[Learn more about Services →](/docs/core-concepts/infrastructure/services)
+### [Services](./services)
+
+Essential services powering the platform infrastructure:
+
+**Core Services**:
+- **File System Services**: Template management and directory operations
+- **Process Management**: Server control and port handling
+- **Plugin Services**: Discovery, loading, and registry management
+- **Documentation Tools**: Automated documentation generation
+- **Build Services**: Compilation and asset processing
+- **Deployment Services**: Production deployment and containerization
+
+**Service Architecture**:
+```typescript
+interface Service {
+  name: string;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  getStatus(): ServiceStatus;
+  getHealth(): HealthStatus;
+}
+```
 
 ## Development Workflow
 
-### Quick Start
+### Project Creation and Setup
 
+**Quick Start**:
 ```bash
 # Install CLI globally
 bun install -g @elizaos/cli
@@ -69,174 +144,354 @@ cd my-project
 elizaos dev
 ```
 
-### Project Structure
-
+**Project Structure**:
 ```
 project/
-├── src/               # Source code
-├── tests/             # Test files
-├── .env              # Environment configuration
-├── package.json      # Project configuration
-└── tsconfig.json     # TypeScript configuration
+├── src/
+│   ├── index.ts          # Main entry point
+│   ├── character.ts      # Character definition
+│   └── plugin.ts         # Custom plugin
+├── tests/
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   └── e2e/              # End-to-end tests
+├── .env                  # Environment configuration
+├── package.json          # Project configuration
+├── tsconfig.json         # TypeScript configuration
+└── README.md            # Documentation
 ```
 
 ### Development Commands
 
+**Core Development**:
 ```bash
 # Development mode with hot reload
 elizaos dev
 
-# Run tests
+# Start with specific character
+elizaos dev --character my-agent.json
+
+# Debug mode with verbose logging
+elizaos dev --debug
+
+# Development with custom port
+elizaos dev --port 4000
+```
+
+**Testing Commands**:
+```bash
+# Run all tests
 elizaos test
 
+# Run specific test types
+elizaos test --type unit
+elizaos test --type integration
+elizaos test --type e2e
+
+# Run with coverage
+elizaos test --coverage
+
+# Run specific test file
+elizaos test path/to/test.ts
+```
+
+**Build and Deployment**:
+```bash
 # Build for production
 elizaos start --build
 
-# Manage plugins
-elizaos plugins list
-elizaos plugins add @elizaos/plugin-openai
-```
-
-## Plugin Development
-
-### Creating Plugins
-
-```bash
-# Create new plugin
-elizaos create my-plugin --type plugin
-
-# Develop plugin
-cd plugin-my-plugin
-elizaos dev
-
-# Test plugin
-elizaos test
-
-# Publish plugin
-elizaos publish
-```
-
-### Plugin Structure
-
-```
-plugin-name/
-├── src/
-│   └── index.ts      # Plugin definition
-├── tests/            # Plugin tests
-├── images/           # Required for registry
-│   ├── logo.jpg      # 400x400px
-│   └── banner.jpg    # 1280x640px
-├── package.json      # With agentConfig
-└── README.md         # Documentation
-```
-
-## Deployment Options
-
-### Local Development
-
-```bash
-# Start local server
-elizaos start
-
-# With specific configuration
-elizaos start --port 4000 --character agent.json
-```
-
-### Cloud Deployment
-
-```bash
-# Build for production
-elizaos start --build
+# Start production server
+elizaos start --character agent.json
 
 # Deploy to TEE
 elizaos tee phala cvms create
 ```
 
-### Container Deployment
+## Plugin Development
 
+### Plugin Creation Workflow
+
+**Plugin Scaffolding**:
+```bash
+# Create new plugin
+elizaos create my-plugin --type plugin
+
+# Navigate to plugin directory
+cd plugin-my-plugin
+
+# Install dependencies
+bun install
+
+# Start development
+elizaos dev
+```
+
+**Plugin Structure**:
+```
+plugin-name/
+├── src/
+│   ├── index.ts          # Plugin exports
+│   ├── actions/          # Custom actions
+│   ├── evaluators/       # Custom evaluators
+│   ├── providers/        # Custom providers
+│   └── services/         # Custom services
+├── tests/
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   └── e2e/              # End-to-end tests
+├── images/               # Plugin assets
+│   ├── logo.jpg          # 400x400px logo
+│   └── banner.jpg        # 1280x640px banner
+├── package.json          # Plugin configuration
+├── README.md             # Plugin documentation
+└── tsconfig.json         # TypeScript configuration
+```
+
+### Plugin Development Patterns
+
+**Plugin Definition**:
+```typescript
+import { Plugin } from '@elizaos/core';
+
+export const myPlugin: Plugin = {
+  name: 'my-plugin',
+  description: 'Custom plugin for specific functionality',
+  actions: [
+    // Custom actions
+  ],
+  evaluators: [
+    // Custom evaluators
+  ],
+  providers: [
+    // Custom providers
+  ],
+  services: [
+    // Custom services
+  ]
+};
+```
+
+**Plugin Testing**:
+```bash
+# Test plugin in isolation
+elizaos test
+
+# Test with specific agent
+elizaos test --character test-agent.json
+
+# Integration testing
+elizaos test --type integration
+```
+
+**Plugin Publishing**:
+```bash
+# Validate plugin structure
+elizaos publish --validate
+
+# Publish to registry
+elizaos publish
+
+# Update plugin version
+elizaos publish --version patch
+```
+
+## Deployment Architecture
+
+### Local Development Deployment
+
+**Development Server**:
+```bash
+# Start local development server
+elizaos start
+
+# With specific configuration
+elizaos start --port 4000 --character agent.json
+
+# With debug logging
+elizaos start --debug
+```
+
+**Development Features**:
+- **Hot Reloading**: Automatic restart on code changes
+- **Debug Mode**: Verbose logging and error reporting
+- **Port Management**: Automatic port allocation
+- **Process Monitoring**: Health checks and automatic recovery
+
+### Production Deployment
+
+**Container Deployment**:
 ```bash
 # Build Docker image
 docker build -t my-agent .
 
 # Run container
 docker run -p 3000:3000 my-agent
+
+# With environment variables
+docker run -e OPENAI_API_KEY=your_key -p 3000:3000 my-agent
+```
+
+**Cloud Deployment**:
+```bash
+# Build for production
+elizaos start --build
+
+# Deploy to various platforms
+elizaos deploy --platform docker
+elizaos deploy --platform fly
+elizaos deploy --platform vercel
+```
+
+**TEE Deployment**:
+```bash
+# Deploy to Trusted Execution Environment
+elizaos tee phala cvms create
+
+# Monitor TEE deployment
+elizaos tee status
+
+# Update TEE deployment
+elizaos tee update
 ```
 
 ## Build System
 
-### TypeScript Build
+### TypeScript Build Pipeline
 
-- **Fast Builds** - Using `tsup` for optimized builds
-- **Type Safety** - Strict TypeScript configuration
-- **Source Maps** - Full debugging support
-- **Tree Shaking** - Optimized bundle sizes
+**Build Configuration**:
+- **tsup**: Fast TypeScript bundler for optimized builds
+- **Type Safety**: Strict TypeScript configuration with full type checking
+- **Source Maps**: Complete debugging support with source maps
+- **Tree Shaking**: Dead code elimination for smaller bundles
+- **Module Resolution**: Advanced module resolution and path mapping
 
-### Frontend Build
+**Build Process**:
+```typescript
+interface BuildConfig {
+  entry: string[];
+  outDir: string;
+  target: 'node' | 'browser';
+  format: 'cjs' | 'esm';
+  sourcemap: boolean;
+  minify: boolean;
+  treeshake: boolean;
+}
+```
 
-- **Vite Integration** - Fast HMR and builds
-- **React Support** - Modern React development
-- **Asset Optimization** - Image and CSS processing
-- **Production Ready** - Minified and optimized output
+### Frontend Build System
+
+**Vite Integration**:
+- **Hot Module Replacement**: Instant updates during development
+- **React Support**: Modern React development with JSX/TSX
+- **Asset Optimization**: Image and CSS processing
+- **Production Ready**: Minified and optimized output
+- **Plugin Ecosystem**: Extensive plugin support
+
+**Build Optimization**:
+- **Code Splitting**: Automatic code splitting for better loading
+- **Asset Optimization**: Image compression and optimization
+- **Bundle Analysis**: Bundle size analysis and optimization
+- **Caching**: Intelligent caching for faster builds
 
 ## Testing Strategy
 
-### Test Levels
+### Test Architecture
 
-1. **Unit Tests** - Component isolation
-2. **Integration Tests** - Feature integration
-3. **E2E Tests** - Full workflow testing
-4. **Performance Tests** - Load and stress testing
+**Test Levels**:
+1. **Unit Tests**: Component isolation and functionality testing
+2. **Integration Tests**: Feature integration and component interaction
+3. **E2E Tests**: Full workflow and user journey testing
+4. **Performance Tests**: Load testing and performance benchmarking
+5. **Security Tests**: Vulnerability scanning and security testing
 
-### Test Execution
-
+**Test Execution**:
 ```bash
 # Run all tests
 elizaos test
 
-# Specific test types
+# Run specific test types
 elizaos test --type unit
+elizaos test --type integration
 elizaos test --type e2e
+elizaos test --type performance
 
-# With coverage
-bun test --coverage
+# Run with coverage
+elizaos test --coverage
+
+# Run in watch mode
+elizaos test --watch
 ```
 
-## Security Features
+### Test Utilities
 
-### Environment Security
+**Test Framework Integration**:
+- **Bun Test**: Native Bun testing framework
+- **Jest**: JavaScript testing framework
+- **Cypress**: End-to-end testing
+- **Playwright**: Cross-browser testing
+- **BATS**: Shell script testing
 
-- **Secret Management** - Secure handling of API keys
-- **Validation** - Schema-based configuration validation
-- **Access Control** - Limited environment exposure
-- **Encryption** - Optional secret encryption
+**Test Utilities**:
+```typescript
+interface TestUtilities {
+  setupAgent(config: AgentConfig): Promise<IAgentRuntime>;
+  createMockMessage(content: string): Memory;
+  waitForPort(port: number): Promise<void>;
+  cleanupProcesses(): Promise<void>;
+  generateCoverage(): Promise<CoverageReport>;
+}
+```
 
-### Build Security
+## Security and Compliance
 
-- **Dependency Scanning** - Vulnerability detection
-- **Code Analysis** - Security linting
-- **Secure Defaults** - Safe configuration out of the box
-- **Audit Trails** - Logging and monitoring
+### Security Features
+
+**Environment Security**:
+- **Secret Management**: Secure handling of API keys and sensitive data
+- **Validation**: Schema-based configuration validation
+- **Access Control**: Limited environment exposure and role-based access
+- **Encryption**: Optional secret encryption for enhanced security
+- **Audit Logging**: Comprehensive logging of security events
+
+**Build Security**:
+- **Dependency Scanning**: Vulnerability detection in dependencies
+- **Code Analysis**: Static code analysis and security linting
+- **Secure Defaults**: Safe configuration out of the box
+- **Supply Chain Security**: Verified dependencies and build integrity
+
+### Compliance
+
+**Data Protection**:
+- **Privacy Controls**: Data anonymization and privacy protection
+- **Audit Trails**: Complete audit trails for compliance
+- **Data Retention**: Configurable data retention policies
+- **Access Logging**: Detailed access logging and monitoring
 
 ## Performance Optimization
 
 ### Development Performance
 
-- **Hot Module Replacement** - Instant updates
-- **Incremental Builds** - Fast rebuilds
-- **Parallel Processing** - Multi-core utilization
-- **Caching** - Smart dependency caching
+**Development Optimization**:
+- **Hot Module Replacement**: Instant updates without full reload
+- **Incremental Builds**: Fast rebuilds with change detection
+- **Parallel Processing**: Multi-core utilization for builds
+- **Caching**: Smart dependency caching for faster builds
+- **Memory Management**: Efficient memory usage during development
 
 ### Runtime Performance
 
-- **Lazy Loading** - On-demand module loading
-- **Connection Pooling** - Database optimization
-- **Memory Management** - Efficient resource usage
-- **Request Batching** - API call optimization
+**Production Optimization**:
+- **Lazy Loading**: On-demand module loading
+- **Connection Pooling**: Database and API connection pooling
+- **Memory Management**: Efficient resource usage and cleanup
+- **Request Batching**: API call optimization and batching
+- **Caching**: Intelligent caching at multiple levels
 
-## Monitoring and Debugging
+## Monitoring and Observability
 
-### Development Tools
+### Development Monitoring
 
+**Debug Tools**:
 ```typescript
 // Enable debug logging
 process.env.DEBUG = 'elizaos:*';
@@ -245,57 +500,113 @@ process.env.DEBUG = 'elizaos:*';
 const start = performance.now();
 // ... operation
 console.log(`Operation took ${performance.now() - start}ms`);
+
+// Memory monitoring
+console.log('Memory usage:', process.memoryUsage());
 ```
 
 ### Production Monitoring
 
-- **Health Checks** - Service availability monitoring
-- **Error Tracking** - Centralized error collection
-- **Performance Metrics** - Response time tracking
-- **Resource Usage** - CPU and memory monitoring
+**Observability Features**:
+- **Health Checks**: Service availability monitoring
+- **Error Tracking**: Centralized error collection and alerting
+- **Performance Metrics**: Response time and throughput tracking
+- **Resource Usage**: CPU, memory, and disk monitoring
+- **Distributed Tracing**: Request tracing across services
+
+**Monitoring Integration**:
+```typescript
+interface MonitoringService {
+  recordMetric(name: string, value: number): void;
+  recordError(error: Error): void;
+  startTrace(name: string): Trace;
+  healthCheck(): Promise<HealthStatus>;
+}
+```
 
 ## Best Practices
 
-### Development
+### Development Best Practices
 
-1. **Use TypeScript** - Type safety and better tooling
-2. **Write Tests** - Comprehensive test coverage
-3. **Environment Variables** - Configuration management
-4. **Version Control** - Git best practices
+1. **Use TypeScript**: Leverage type safety and better tooling
+2. **Write Tests**: Maintain comprehensive test coverage
+3. **Environment Variables**: Proper configuration management
+4. **Version Control**: Follow Git best practices and branching strategies
+5. **Code Quality**: Use linting and formatting tools
+6. **Documentation**: Maintain clear and up-to-date documentation
 
-### Deployment
+### Deployment Best Practices
 
-1. **Build Optimization** - Production builds
-2. **Environment Separation** - Dev/staging/prod
-3. **Health Monitoring** - Service availability
-4. **Backup Strategy** - Data protection
+1. **Build Optimization**: Use production builds for deployment
+2. **Environment Separation**: Maintain separate dev/staging/prod environments
+3. **Health Monitoring**: Implement comprehensive health monitoring
+4. **Backup Strategy**: Maintain robust backup and recovery strategies
+5. **Security**: Implement security best practices throughout the pipeline
+6. **Performance**: Monitor and optimize performance continuously
 
-### Security
+### Security Best Practices
 
-1. **Secret Management** - Never commit secrets
-2. **Input Validation** - Sanitize all inputs
-3. **Access Control** - Principle of least privilege
-4. **Regular Updates** - Keep dependencies current
+1. **Secret Management**: Never commit secrets to version control
+2. **Input Validation**: Sanitize and validate all inputs
+3. **Access Control**: Implement principle of least privilege
+4. **Regular Updates**: Keep dependencies and systems current
+5. **Audit Logging**: Maintain comprehensive audit trails
+6. **Security Testing**: Regular security testing and vulnerability scanning
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Port Conflicts** - Use custom ports or kill processes
-2. **Build Failures** - Check TypeScript errors
-3. **Test Failures** - Clean state and retry
-4. **Environment Issues** - Verify configuration
+**Development Issues**:
+1. **Port Conflicts**: Use custom ports or kill conflicting processes
+2. **Build Failures**: Check TypeScript errors and dependency issues
+3. **Test Failures**: Clean state and retry, check test isolation
+4. **Environment Issues**: Verify configuration and environment variables
+5. **Performance Issues**: Profile and optimize critical paths
 
-### Getting Help
+**Production Issues**:
+1. **Deployment Failures**: Check build configuration and dependencies
+2. **Runtime Errors**: Monitor logs and error tracking
+3. **Performance Issues**: Analyze metrics and optimize bottlenecks
+4. **Security Issues**: Review security logs and implement fixes
 
-- **Documentation** - Comprehensive guides
-- **Community** - Discord and GitHub discussions
-- **Issue Tracking** - GitHub issues
-- **Support** - Commercial support available
+### Debugging Tools
 
-## Related Documentation
+**Development Debugging**:
+- **Debug Logging**: Comprehensive logging with configurable levels
+- **Performance Profiling**: Built-in performance profiling tools
+- **Memory Analysis**: Memory usage analysis and leak detection
+- **Network Monitoring**: API call monitoring and analysis
 
-- [Architecture Overview](/docs/core-concepts/architecture)
-- [Plugin System](/docs/core-concepts/architecture/plugin-system)
-- [Agent Development](/docs/core-concepts/agent-development)
-- [Deployment Guide](/docs/deployment)
+**Production Debugging**:
+- **Error Tracking**: Centralized error collection and analysis
+- **Performance Monitoring**: Real-time performance metrics
+- **Health Checks**: Service health monitoring and alerting
+- **Log Analysis**: Structured logging and analysis tools
+
+## Getting Help
+
+### Support Resources
+
+- **Documentation**: Comprehensive guides and API reference
+- **Community**: Discord community and GitHub discussions
+- **Issue Tracking**: GitHub issues for bug reports and feature requests
+- **Commercial Support**: Professional support and consulting services
+
+### Contributing
+
+- **Open Source**: Contribute to the open source project
+- **Plugin Development**: Create and share plugins
+- **Documentation**: Improve documentation and examples
+- **Testing**: Help with testing and quality assurance
+
+## Getting Started
+
+Explore the following sections to understand the infrastructure components in detail:
+
+- **[CLI Tools](./cli-tools)** - Command-line interface and development tools
+- **[Environment Configuration](./environment-config)** - Configuration management
+- **[Testing Infrastructure](./testing)** - Testing framework and utilities
+- **[Services](./services)** - Core services and utilities
+
+This comprehensive infrastructure provides everything needed to build, test, deploy, and maintain sophisticated AI agents while ensuring security, performance, and reliability throughout the development lifecycle.
