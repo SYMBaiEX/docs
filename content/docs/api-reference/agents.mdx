@@ -5,7 +5,8 @@ description: Comprehensive API documentation for agent management and operations
 
 # Agents API
 
-The Agents API provides comprehensive endpoints for managing agent lifecycle, memory, and operations. All agent endpoints are prefixed with `/api/agents`.
+The Agents API provides comprehensive endpoints for managing agent lifecycle, memory, and
+operations. All agent endpoints are prefixed with `/api/agents`.
 
 ## Overview
 
@@ -42,6 +43,7 @@ GET /api/agents
 Returns a list of all agents with their basic information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -68,9 +70,11 @@ GET /api/agents/:agentId
 Returns detailed information about a specific agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -100,6 +104,7 @@ POST /api/agents
 Creates a new agent from character configuration.
 
 **Request Body:**
+
 ```json
 {
   "characterJson": {
@@ -116,6 +121,7 @@ Creates a new agent from character configuration.
 ```
 
 **Alternative using character path:**
+
 ```json
 {
   "characterPath": "/path/to/character.json"
@@ -123,6 +129,7 @@ Creates a new agent from character configuration.
 ```
 
 **Alternative using agent object:**
+
 ```json
 {
   "agent": {
@@ -134,6 +141,7 @@ Creates a new agent from character configuration.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -157,9 +165,11 @@ PATCH /api/agents/:agentId
 Updates an existing agent's configuration.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Agent Name",
@@ -174,6 +184,7 @@ Updates an existing agent's configuration.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -195,9 +206,11 @@ DELETE /api/agents/:agentId
 Deletes an agent and all associated data.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -213,9 +226,11 @@ POST /api/agents/:agentId/start
 Starts an agent runtime.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -239,9 +254,11 @@ POST /api/agents/:agentId/stop
 Stops a running agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -254,14 +271,17 @@ Stops a running agent.
 
 ### Get Agent Status
 
-The agent status is included in the main agent details endpoint. To check if an agent is active, use the GET endpoint and check the `status` field.
+The agent status is included in the main agent details endpoint. To check if an agent is active, use
+the GET endpoint and check the `status` field.
 
 **Alternative - Check Active Agents:**
+
 ```http
 GET /api/agents
 ```
 
-This returns all agents with their current status (active/inactive) based on whether they have a running runtime.
+This returns all agents with their current status (active/inactive) based on whether they have a
+running runtime.
 
 ## Agent Memory Management
 
@@ -274,15 +294,18 @@ GET /api/agents/:agentId/memories
 Gets all memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `tableName` (string) - Table to query (default: "messages")
 - `includeEmbedding` (boolean) - Include embedding vectors (default: false)
 - `channelId` (UUID) - Filter by channel (converted to unique roomId)
 - `roomId` (UUID) - Filter by room (backward compatibility)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -311,10 +334,12 @@ PATCH /api/agents/:agentId/memories/:memoryId
 Updates an existing memory.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -327,6 +352,7 @@ Updates an existing memory.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -346,16 +372,19 @@ GET /api/agents/:agentId/rooms/:roomId/memories
 Gets all memories for an agent in a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of memories to return (default: 20)
 - `before` (number) - Timestamp for pagination (default: current time)
 - `includeEmbedding` (boolean) - Include embedding vectors (default: false)
 - `tableName` (string) - Table to query (default: "messages")
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -383,10 +412,12 @@ DELETE /api/agents/:agentId/memories/:memoryId
 Removes a specific memory from an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `memoryId` (UUID) - Memory identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -405,9 +436,11 @@ DELETE /api/agents/:agentId/memories
 Removes all memories for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -427,10 +460,12 @@ DELETE /api/agents/:agentId/memories/all/:roomId
 Removes all memories for an agent in a specific room.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `roomId` (UUID) - Room identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -439,24 +474,28 @@ Removes all memories for an agent in a specific room.
 
 ### Get Agent Logs
 
-Agent logs are available through the Server API and WebSocket streaming. Individual agent logs can be filtered through the centralized logging system.
+Agent logs are available through the Server API and WebSocket streaming. Individual agent logs can
+be filtered through the centralized logging system.
 
 **Alternative - Server Logs:**
+
 ```http
 GET /api/server/logs
 ```
 
 **WebSocket Log Streaming:**
+
 ```javascript
-socket.emit('subscribe_logs');
-socket.on('log_stream', (data) => {
-  if (data.payload.agentId === 'target-agent-id') {
-    console.log('Agent log:', data.payload);
+socket.emit("subscribe_logs");
+socket.on("log_stream", (data) => {
+  if (data.payload.agentId === "target-agent-id") {
+    console.log("Agent log:", data.payload);
   }
 });
 ```
 
-For detailed log streaming implementation, see the [WebSocket Events documentation](../core-concepts/communication/websocket-events).
+For detailed log streaming implementation, see the
+[WebSocket Events documentation](../core-concepts/communication/websocket-events).
 
 ## Agent Worlds and Environments
 
@@ -469,9 +508,11 @@ GET /api/agents/:agentId/worlds
 Lists all worlds/environments for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -497,9 +538,11 @@ POST /api/agents/:agentId/worlds
 Creates a new world for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "World Name",
@@ -512,6 +555,7 @@ Creates a new world for an agent.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -528,9 +572,11 @@ Creates a new world for an agent.
 
 ### List Agent Rooms
 
-Room management is handled through the Memory API. For agent-specific room operations, use the Memory API endpoints.
+Room management is handled through the Memory API. For agent-specific room operations, use the
+Memory API endpoints.
 
 **Alternative - Memory API:**
+
 ```http
 GET /api/memory/agents/:agentId/rooms
 ```
@@ -556,9 +602,11 @@ GET /api/agents/:agentId/panels
 Gets UI panels for an agent (implementation in progress).
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -568,7 +616,7 @@ Gets UI panels for an agent (implementation in progress).
 }
 ```
 
-*Note: Panel functionality is currently under development.*
+_Note: Panel functionality is currently under development._
 
 ## Error Handling
 
@@ -586,6 +634,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_ID` - Invalid UUID format
 - `NOT_FOUND` - Agent not found
 - `INVALID_REQUEST` - Invalid request parameters
@@ -597,6 +646,7 @@ Common error codes:
 ## Rate Limiting
 
 Agent endpoints are subject to rate limiting:
+
 - Standard operations: 100 requests per minute
 - Agent creation: 10 requests per minute
 - Memory operations: 50 requests per minute

@@ -5,11 +5,15 @@ description: Language model plugins and integrations for elizaOS
 
 # LLM Plugins
 
-LLM plugins in elizaOS provide model providers with standardized interfaces for integrating different AI models into your agents. These plugins handle the communication between your agent and various AI services, enabling seamless model switching and multi-model support.
+LLM plugins in elizaOS provide model providers with standardized interfaces for integrating
+different AI models into your agents. These plugins handle the communication between your agent and
+various AI services, enabling seamless model switching and multi-model support.
 
 ## Overview
 
-The LLM plugin system is built around a centralized model registry that allows runtime model switching, priority-based selection, and provider abstraction. Each plugin registers handlers for specific model types, which are then accessed through the unified `useModel` API.
+The LLM plugin system is built around a centralized model registry that allows runtime model
+switching, priority-based selection, and provider abstraction. Each plugin registers handlers for
+specific model types, which are then accessed through the unified `useModel` API.
 
 ## Core Architecture
 
@@ -20,8 +24,8 @@ Every LLM plugin registers model handlers through the `registerModel` method:
 ```typescript
 // Plugin registration example
 const plugin: Plugin = {
-  name: 'openai',
-  description: 'OpenAI GPT models',
+  name: "openai",
+  description: "OpenAI GPT models",
   models: {
     [ModelType.TEXT_SMALL]: async (runtime, params) => {
       // Handler for small text models
@@ -87,12 +91,12 @@ elizaOS supports various model types for different AI tasks:
 ### Basic Plugin Template
 
 ```typescript
-import { Plugin, ModelType, IAgentRuntime } from '@elizaos/core';
+import { IAgentRuntime, ModelType, Plugin } from "@elizaos/core";
 
 const myLLMPlugin: Plugin = {
-  name: 'my-llm-provider',
-  description: 'Custom LLM provider integration',
-  
+  name: "my-llm-provider",
+  description: "Custom LLM provider integration",
+
   // Model implementations
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
@@ -100,19 +104,19 @@ const myLLMPlugin: Plugin = {
       // Your model implementation
       return await callYourAPI(prompt, { temperature, maxTokens });
     },
-    
+
     [ModelType.TEXT_EMBEDDING]: async (runtime, params) => {
       const { text } = params;
       // Your embedding implementation
       return await generateEmbedding(text);
     },
   },
-  
+
   // Plugin initialization
   async init(config) {
     // Setup API keys, validate configuration
     if (!config.API_KEY) {
-      throw new Error('API key required');
+      throw new Error("API key required");
     }
   },
 };
@@ -128,7 +132,7 @@ Control model selection priority:
 
 ```typescript
 const plugin: Plugin = {
-  name: 'premium-provider',
+  name: "premium-provider",
   priority: 1000, // Higher priority = preferred selection
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
@@ -145,14 +149,14 @@ Plugins can implement dynamic model selection logic:
 
 ```typescript
 const adaptivePlugin: Plugin = {
-  name: 'adaptive-provider',
+  name: "adaptive-provider",
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
       // Choose model based on context
-      const model = params.prompt.length > 1000 ? 'gpt-4' : 'gpt-3.5-turbo';
+      const model = params.prompt.length > 1000 ? "gpt-4" : "gpt-3.5-turbo";
       return await openai.chat.completions.create({
         model,
-        messages: [{ role: 'user', content: params.prompt }],
+        messages: [{ role: "user", content: params.prompt }],
       });
     },
   },
@@ -178,6 +182,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1  // Optional
 ```
 
 **Supported Models:**
+
 - GPT-4, GPT-3.5-turbo (TEXT_LARGE, TEXT_SMALL)
 - text-embedding-3-large (TEXT_EMBEDDING)
 - DALL-E 3 (IMAGE)
@@ -199,6 +204,7 @@ ANTHROPIC_API_KEY=your-api-key
 ```
 
 **Supported Models:**
+
 - Claude-3 Opus, Sonnet, Haiku (TEXT_LARGE, TEXT_SMALL)
 - Claude-3 Vision (IMAGE_DESCRIPTION)
 
@@ -223,6 +229,7 @@ OLLAMA_MODEL=llama3.1
 ```
 
 **Supported Models:**
+
 - Llama 3.1, Mistral, CodeLlama (TEXT_LARGE, TEXT_SMALL)
 - nomic-embed-text (TEXT_EMBEDDING)
 
@@ -242,6 +249,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-api-key
 ```
 
 **Supported Models:**
+
 - Gemini Pro, Gemini Flash (TEXT_LARGE, TEXT_SMALL)
 - text-embedding-004 (TEXT_EMBEDDING)
 
@@ -252,17 +260,17 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-api-key
 1. **Set up plugin structure:**
 
 ```typescript
-import { Plugin, ModelType, GenerateTextParams } from '@elizaos/core';
+import { GenerateTextParams, ModelType, Plugin } from "@elizaos/core";
 
 export default {
-  name: 'custom-ai-provider',
-  description: 'Custom AI service integration',
-  
+  name: "custom-ai-provider",
+  description: "Custom AI service integration",
+
   async init(config) {
     // Initialize your API client
     this.client = new CustomAIClient(config.API_KEY);
   },
-  
+
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params: GenerateTextParams) => {
       const response = await this.client.generateText({
@@ -285,7 +293,7 @@ models: {
     const text = typeof params === 'string' ? params : params.text;
     return await generateEmbedding(text);
   },
-  
+
   [ModelType.IMAGE_DESCRIPTION]: async (runtime, params) => {
     const imageUrl = typeof params === 'string' ? params : params.imageUrl;
     return await describeImage(imageUrl);
@@ -316,7 +324,7 @@ async init(config) {
   if (!config.API_KEY) {
     throw new Error('API_KEY is required for custom provider');
   }
-  
+
   // Test API connection
   await this.client.testConnection();
 }
@@ -353,13 +361,13 @@ Use multiple providers for different model types:
 
 ```typescript
 const character = {
-  name: 'MyAgent',
+  name: "MyAgent",
   plugins: [
-    '@elizaos/plugin-sql',         // Always first
-    '@elizaos/plugin-anthropic',   // For text generation
-    '@elizaos/plugin-openai',      // For embeddings and fallback
-    '@elizaos/plugin-ollama',      // For local models
-  ]
+    "@elizaos/plugin-sql", // Always first
+    "@elizaos/plugin-anthropic", // For text generation
+    "@elizaos/plugin-openai", // For embeddings and fallback
+    "@elizaos/plugin-ollama", // For local models
+  ],
 };
 ```
 
@@ -370,7 +378,7 @@ Implement fallback mechanisms:
 ```typescript
 // Higher priority provider
 const primaryPlugin: Plugin = {
-  name: 'primary-provider',
+  name: "primary-provider",
   priority: 1000,
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
@@ -386,7 +394,7 @@ const primaryPlugin: Plugin = {
 
 // Lower priority backup
 const backupPlugin: Plugin = {
-  name: 'backup-provider',
+  name: "backup-provider",
   priority: 500,
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
@@ -421,8 +429,8 @@ Enable debug logging:
 
 ```typescript
 // In your plugin
-runtime.logger.debug('Model call parameters:', params);
-runtime.logger.debug('Model response:', response);
+runtime.logger.debug("Model call parameters:", params);
+runtime.logger.debug("Model response:", response);
 ```
 
 ## Performance Optimization
@@ -435,11 +443,11 @@ const cache = new Map();
 models: {
   [ModelType.TEXT_EMBEDDING]: async (runtime, params) => {
     const cacheKey = `embed:${params.text}`;
-    
+
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey);
     }
-    
+
     const embedding = await generateEmbedding(params.text);
     cache.set(cacheKey, embedding);
     return embedding;
@@ -453,7 +461,7 @@ models: {
 // Reuse connections
 class ModelClient {
   private pool: ConnectionPool;
-  
+
   constructor() {
     this.pool = new ConnectionPool({
       maxConnections: 10,
@@ -468,17 +476,17 @@ class ModelClient {
 ```typescript
 // Based on the actual starter plugin from elizaOS
 const plugin: Plugin = {
-  name: 'starter',
-  description: 'A starter plugin for Eliza',
-  
+  name: "starter",
+  description: "A starter plugin for Eliza",
+
   models: {
     [ModelType.TEXT_SMALL]: async (
       _runtime,
       { prompt, stopSequences = [] }: GenerateTextParams
     ) => {
-      return 'Never gonna give you up, never gonna let you down, never gonna run around and desert you...';
+      return "Never gonna give you up, never gonna let you down, never gonna run around and desert you...";
     },
-    
+
     [ModelType.TEXT_LARGE]: async (
       _runtime,
       {
@@ -490,25 +498,25 @@ const plugin: Plugin = {
         presencePenalty = 0.7,
       }: GenerateTextParams
     ) => {
-      return 'Never gonna make you cry, never gonna say goodbye, never gonna tell a lie and hurt you...';
+      return "Never gonna make you cry, never gonna say goodbye, never gonna tell a lie and hurt you...";
     },
   },
-  
+
   routes: [
     {
-      name: 'helloworld',
-      path: '/helloworld',
-      type: 'GET',
+      name: "helloworld",
+      path: "/helloworld",
+      type: "GET",
       handler: async (_req: any, res: any) => {
-        res.json({ message: 'Hello World!' });
+        res.json({ message: "Hello World!" });
       },
     },
   ],
-  
+
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
-        console.log('MESSAGE_RECEIVED event received');
+        console.log("MESSAGE_RECEIVED event received");
         console.log(Object.keys(params));
       },
     ],
@@ -525,18 +533,20 @@ export default plugin;
 const envConfig = {
   // OpenAI
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-  
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+
   // Anthropic
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-  
+
   // Ollama
-  OLLAMA_API_ENDPOINT: process.env.OLLAMA_API_ENDPOINT || 'http://localhost:11434',
-  OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.1',
-  
+  OLLAMA_API_ENDPOINT: process.env.OLLAMA_API_ENDPOINT || "http://localhost:11434",
+  OLLAMA_MODEL: process.env.OLLAMA_MODEL || "llama3.1",
+
   // Google
   GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 };
 ```
 
-LLM plugins provide the foundation for AI model integration in elizaOS. By following these patterns and best practices, you can create robust, scalable model providers that work seamlessly with the elizaOS runtime system.
+LLM plugins provide the foundation for AI model integration in elizaOS. By following these patterns
+and best practices, you can create robust, scalable model providers that work seamlessly with the
+elizaOS runtime system.

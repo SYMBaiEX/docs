@@ -5,7 +5,8 @@ description: Runtime health and system monitoring capabilities
 
 # Server API
 
-The Server API provides runtime health monitoring, system control, and debugging capabilities for the ElizaOS server. All server endpoints are prefixed with `/api/server`.
+The Server API provides runtime health monitoring, system control, and debugging capabilities for
+the ElizaOS server. All server endpoints are prefixed with `/api/server`.
 
 ## Overview
 
@@ -41,6 +42,7 @@ GET /api/server/ping
 Simple health check endpoint for monitoring tools.
 
 **Response:**
+
 ```json
 {
   "pong": true,
@@ -49,6 +51,7 @@ Simple health check endpoint for monitoring tools.
 ```
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/api/server/ping
 ```
@@ -62,6 +65,7 @@ GET /api/server/hello
 Basic connectivity test endpoint.
 
 **Response:**
+
 ```json
 {
   "message": "Hello World!"
@@ -77,6 +81,7 @@ GET /api/server/status
 Gets basic system status information.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -86,6 +91,7 @@ Gets basic system status information.
 ```
 
 **Notes:**
+
 - `agentCount` shows number of active agent runtimes
 - `timestamp` is in ISO format
 - Status is always "ok" if server is responsive
@@ -99,6 +105,7 @@ GET /api/server/health
 Detailed health check with dependency status.
 
 **Response:**
+
 ```json
 {
   "status": "OK",
@@ -111,10 +118,12 @@ Detailed health check with dependency status.
 ```
 
 **Status Codes:**
+
 - `200 OK` - All dependencies healthy
 - `503 Service Unavailable` - No agents available or critical issues
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/api/server/health
 ```
@@ -130,6 +139,7 @@ POST /api/server/stop
 Gracefully shuts down the server.
 
 **Response:**
+
 ```json
 {
   "message": "Server stopping..."
@@ -137,11 +147,13 @@ Gracefully shuts down the server.
 ```
 
 **Notes:**
+
 - Triggers graceful shutdown sequence
 - Existing connections are allowed to complete
 - Agents are stopped before server shutdown
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/server/stop \
   -H "X-API-KEY: your-api-key"
@@ -158,6 +170,7 @@ GET /api/server/debug/state
 Gets current server debug state and runtime information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -187,6 +200,7 @@ GET /api/server/debug/metrics
 Gets detailed performance metrics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -227,6 +241,7 @@ GET /api/server/debug/env
 Gets environment and configuration information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -258,12 +273,14 @@ GET /api/server/logs
 Retrieves recent server logs.
 
 **Query Parameters:**
+
 - `limit` (number) - Number of log entries (default: 100, max: 1000)
 - `level` (string) - Minimum log level (debug, info, warn, error)
 - `since` (string) - ISO timestamp for logs since this time
 - `agentId` (UUID) - Filter by specific agent
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -302,6 +319,7 @@ GET /api/server/logs/stream
 Streams real-time server logs via Server-Sent Events.
 
 **Response:**
+
 ```
 Content-Type: text/event-stream
 Cache-Control: no-cache
@@ -315,9 +333,10 @@ data: {"level":"error","time":1704067320000,"msg":"Database connection lost","er
 ```
 
 **Example:**
+
 ```javascript
-const eventSource = new EventSource('/api/server/logs/stream');
-eventSource.onmessage = function(event) {
+const eventSource = new EventSource("/api/server/logs/stream");
+eventSource.onmessage = function (event) {
   const logEntry = JSON.parse(event.data);
   console.log(`[${logEntry.level}] ${logEntry.msg}`);
 };
@@ -334,6 +353,7 @@ GET /api/server/metrics
 Gets comprehensive performance metrics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -381,6 +401,7 @@ GET /api/server/resources
 Gets current resource usage statistics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -422,6 +443,7 @@ GET /api/server/websockets
 Gets WebSocket connection statistics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -454,6 +476,7 @@ GET /api/server/websockets/connections
 Lists active WebSocket connections.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -486,6 +509,7 @@ GET /api/server/info
 Gets comprehensive system information.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -525,6 +549,7 @@ GET /api/server/config
 Gets server configuration (non-sensitive values only).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -568,6 +593,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_REQUEST` - Invalid request parameters
 - `UNAUTHORIZED` - Authentication required
 - `FORBIDDEN` - Insufficient permissions
@@ -578,6 +604,7 @@ Common error codes:
 ## Rate Limiting
 
 Server endpoints have different rate limits:
+
 - Health checks: 300 requests per minute
 - Debug endpoints: 60 requests per minute
 - Log endpoints: 30 requests per minute
@@ -652,18 +679,18 @@ curl "http://localhost:3000/api/server/logs?agentId=agent-uuid" \
 // Health check with retry logic
 const checkHealth = async () => {
   try {
-    const response = await fetch('/api/server/health');
+    const response = await fetch("/api/server/health");
     const data = await response.json();
-    
-    if (data.status === 'OK') {
-      console.log('Server is healthy');
+
+    if (data.status === "OK") {
+      console.log("Server is healthy");
       return true;
     } else {
-      console.warn('Server health check failed:', data);
+      console.warn("Server health check failed:", data);
       return false;
     }
   } catch (error) {
-    console.error('Health check error:', error);
+    console.error("Health check error:", error);
     return false;
   }
 };
@@ -671,38 +698,38 @@ const checkHealth = async () => {
 // Monitor performance metrics
 const monitorPerformance = async () => {
   try {
-    const response = await fetch('/api/server/metrics', {
+    const response = await fetch("/api/server/metrics", {
       headers: {
-        'X-API-KEY': 'your-api-key'
-      }
+        "X-API-KEY": "your-api-key",
+      },
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
       const metrics = data.data;
-      console.log('Memory usage:', metrics.server.memoryUsage);
-      console.log('Active agents:', metrics.agents.active);
-      console.log('Request rate:', metrics.requests.perSecond);
+      console.log("Memory usage:", metrics.server.memoryUsage);
+      console.log("Active agents:", metrics.agents.active);
+      console.log("Request rate:", metrics.requests.perSecond);
     }
   } catch (error) {
-    console.error('Failed to get metrics:', error);
+    console.error("Failed to get metrics:", error);
   }
 };
 
 // Real-time log streaming
 const streamLogs = () => {
-  const eventSource = new EventSource('/api/server/logs/stream');
-  
+  const eventSource = new EventSource("/api/server/logs/stream");
+
   eventSource.onmessage = (event) => {
     const logEntry = JSON.parse(event.data);
     console.log(`[${logEntry.level.toUpperCase()}] ${logEntry.msg}`);
   };
-  
+
   eventSource.onerror = (error) => {
-    console.error('Log stream error:', error);
+    console.error("Log stream error:", error);
   };
-  
+
   return eventSource;
 };
 ```
@@ -745,4 +772,4 @@ echo "✓ Active agents: $AGENT_COUNT"
 echo "Server is healthy!"
 ```
 
-*Note: Debug and control endpoints require proper authentication in production environments.*
+_Note: Debug and control endpoints require proper authentication in production environments._

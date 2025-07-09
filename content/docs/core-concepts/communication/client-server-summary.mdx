@@ -8,7 +8,7 @@ description: Quick reference guide for ElizaOS client-server architecture
 ElizaOS implements a modern client-server architecture with:
 
 - **Server**: Express.js + Socket.IO (`@elizaos/server`)
-- **Client**: React 19 SPA (`@elizaos/client`)  
+- **Client**: React 19 SPA (`@elizaos/client`)
 - **API Client**: TypeScript SDK (`@elizaos/api-client`)
 
 ## Key Components
@@ -56,6 +56,7 @@ ElizaOS implements a modern client-server architecture with:
 ## Communication Flow
 
 ### REST API Flow
+
 ```
 Client → HTTP Request → Server → Database
                             ↓
@@ -63,6 +64,7 @@ Client ← HTTP Response ← Server
 ```
 
 ### WebSocket Flow
+
 ```
 Client → Socket Event → Server → Message Bus → Agents
             ↑                         ↓
@@ -70,6 +72,7 @@ Client → Socket Event → Server → Message Bus → Agents
 ```
 
 ### Message Processing
+
 ```
 1. Client sends message via WebSocket
 2. Server validates and stores in database
@@ -85,8 +88,8 @@ Client → Socket Event → Server → Message Bus → Agents
 ```typescript
 const server = new AgentServer();
 await server.initialize({
-  dataDir: './data',
-  postgresUrl: process.env.DATABASE_URL
+  dataDir: "./data",
+  postgresUrl: process.env.DATABASE_URL,
 });
 await server.start(3000);
 ```
@@ -96,8 +99,8 @@ await server.start(3000);
 ```typescript
 // API Client
 const client = new ElizaClient({
-  baseUrl: 'http://localhost:3000',
-  apiKey: process.env.API_KEY
+  baseUrl: "http://localhost:3000",
+  apiKey: process.env.API_KEY,
 });
 
 // WebSocket
@@ -109,6 +112,7 @@ socketManager.joinChannel(channelId);
 ## API Endpoints
 
 ### Core Domains
+
 - `/api/agents` - Agent management
 - `/api/messaging` - Messages & channels
 - `/api/memory` - Agent memory
@@ -120,11 +124,13 @@ socketManager.joinChannel(channelId);
 ### WebSocket Events
 
 **Client → Server:**
+
 - `ROOM_JOINING` - Join channel
 - `SEND_MESSAGE` - Send message
 - `subscribe_logs` - Log streaming
 
 **Server → Client:**
+
 - `messageBroadcast` - New message
 - `controlMessage` - UI control
 - `log_stream` - Log entries
@@ -132,10 +138,12 @@ socketManager.joinChannel(channelId);
 ## Security
 
 ### Authentication
+
 - Optional API key via `X-API-KEY` header
 - Environment: `ELIZA_SERVER_AUTH_TOKEN`
 
 ### Security Features
+
 - Helmet.js security headers
 - CORS protection
 - Rate limiting
@@ -145,6 +153,7 @@ socketManager.joinChannel(channelId);
 ## Performance
 
 ### Optimizations
+
 - Connection pooling
 - Query caching
 - Optimistic updates
@@ -152,6 +161,7 @@ socketManager.joinChannel(channelId);
 - Resource cleanup
 
 ### Scaling
+
 - Horizontal scaling ready
 - Message bus upgradeable to Redis/RabbitMQ
 - Database connection pooling
@@ -160,6 +170,7 @@ socketManager.joinChannel(channelId);
 ## Error Handling
 
 ### API Errors
+
 ```json
 {
   "success": false,
@@ -172,21 +183,24 @@ socketManager.joinChannel(channelId);
 ```
 
 ### WebSocket Errors
+
 ```javascript
-socket.on('messageError', (data) => {
-  console.error('Error:', data.error);
+socket.on("messageError", (data) => {
+  console.error("Error:", data.error);
 });
 ```
 
 ## Development Tips
 
 1. **Enable Debug Logging**
+
    ```bash
    DEBUG=socket.io:* node server.js
    localStorage.debug = 'socket.io-client:*'
    ```
 
 2. **Monitor Events**
+
    ```javascript
    socket.onAny((event, ...args) => {
      console.log(`Event: ${event}`, args);
@@ -194,6 +208,7 @@ socket.on('messageError', (data) => {
    ```
 
 3. **Test API Endpoints**
+
    ```bash
    curl -X GET http://localhost:3000/api/agents \
      -H "X-API-KEY: your-key"
@@ -201,42 +216,45 @@ socket.on('messageError', (data) => {
 
 4. **Mock Services**
    ```typescript
-   jest.mock('@/lib/api-client-config', () => ({
-     createElizaClient: () => mockClient
+   jest.mock("@/lib/api-client-config", () => ({
+     createElizaClient: () => mockClient,
    }));
    ```
 
 ## Common Patterns
 
 ### Optimistic Updates
+
 ```typescript
 // Update UI immediately
-setMessages(prev => [...prev, optimisticMessage]);
+setMessages((prev) => [...prev, optimisticMessage]);
 
 // Send to server
 await socketManager.sendMessage(text, channelId);
 
 // Handle confirmation/rollback
-socket.on('messageAck', updateWithServerId);
+socket.on("messageAck", updateWithServerId);
 ```
 
 ### Connection Management
+
 ```typescript
 const { status } = useConnection();
 
-if (status === 'connected') {
+if (status === "connected") {
   // Enable features
-} else if (status === 'disconnected') {
+} else if (status === "disconnected") {
   // Show offline UI
 }
 ```
 
 ### Error Recovery
+
 ```typescript
 try {
   const result = await client.agents.create(data);
 } catch (error) {
-  if (error.code === 'NETWORK_ERROR') {
+  if (error.code === "NETWORK_ERROR") {
     // Retry with backoff
   }
 }

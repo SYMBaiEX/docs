@@ -1,17 +1,22 @@
 ---
 title: Client-Server Architecture
-description: Understanding ElizaOS's client-server implementation with REST API and real-time communication
+description:
+  Understanding ElizaOS's client-server implementation with REST API and real-time communication
 ---
 
 ## Overview
 
-ElizaOS implements a robust client-server architecture that combines RESTful APIs for structured data operations with WebSocket-based real-time communication for instant messaging and event streaming. The architecture is designed to support multiple concurrent agents, scalable deployment, and flexible client integrations.
+ElizaOS implements a robust client-server architecture that combines RESTful APIs for structured
+data operations with WebSocket-based real-time communication for instant messaging and event
+streaming. The architecture is designed to support multiple concurrent agents, scalable deployment,
+and flexible client integrations.
 
 ## Architecture Components
 
 ### Server Architecture (`@elizaos/server`)
 
-The server is built using Express.js and Socket.IO, providing both HTTP REST endpoints and WebSocket connections:
+The server is built using Express.js and Socket.IO, providing both HTTP REST endpoints and WebSocket
+connections:
 
 ```typescript
 export class AgentServer {
@@ -20,17 +25,18 @@ export class AgentServer {
   public server: http.Server;
   public socketIO: SocketIOServer;
   public database: DatabaseAdapter;
-  
+
   // Server lifecycle methods
-  public async initialize(options?: ServerOptions): Promise<void>
-  public async start(port: number): Promise<void>
-  public async stop(): Promise<void>
+  public async initialize(options?: ServerOptions): Promise<void>;
+  public async start(port: number): Promise<void>;
+  public async stop(): Promise<void>;
 }
 ```
 
 ### Client Architecture (`@elizaos/client`)
 
 The client is a React-based web application using:
+
 - **React 19.1.0** with TypeScript
 - **React Query** for server state management
 - **Socket.IO Client** for real-time communication
@@ -56,15 +62,16 @@ export class ElizaClient {
 
 ### Initialization and Setup
 
-The server initializes with database connections, middleware configuration, and service registration:
+The server initializes with database connections, middleware configuration, and service
+registration:
 
 ```typescript
 // Server initialization
 const server = new AgentServer();
 await server.initialize({
-  dataDir: './data',
+  dataDir: "./data",
   middlewares: [customMiddleware],
-  postgresUrl: process.env.DATABASE_URL
+  postgresUrl: process.env.DATABASE_URL,
 });
 
 // Start server
@@ -123,9 +130,9 @@ export class SocketIORouter {
   private agents: Map<UUID, IAgentRuntime>;
   private connections: Map<string, UUID>;
   private serverInstance: AgentServer;
-  
+
   setupListeners(io: SocketIOServer) {
-    io.on('connection', (socket: Socket) => {
+    io.on("connection", (socket: Socket) => {
       this.handleNewConnection(socket, io);
     });
   }
@@ -168,14 +175,14 @@ The client manages WebSocket connections through a singleton:
 export class SocketIOManager extends EventAdapter {
   private static instance: SocketIOManager | null = null;
   private socket: Socket | null = null;
-  
-  public async joinChannel(channelId: string): Promise<void>
+
+  public async joinChannel(channelId: string): Promise<void>;
   public async sendMessage(
     message: string,
     channelId: string,
     serverId: string,
     source: string
-  ): Promise<void>
+  ): Promise<void>;
 }
 ```
 
@@ -236,12 +243,12 @@ Optional API key authentication:
 
 ```typescript
 // Server configuration
-process.env.ELIZA_SERVER_AUTH_TOKEN = "your-secret-key"
+process.env.ELIZA_SERVER_AUTH_TOKEN = "your-secret-key";
 
 // Client usage
 const client = new ElizaClient({
-  baseUrl: 'http://localhost:3000',
-  apiKey: 'your-secret-key'
+  baseUrl: "http://localhost:3000",
+  apiKey: "your-secret-key",
 });
 ```
 
@@ -263,6 +270,7 @@ const internalMessageBus = new InternalMessageBus();
 ```
 
 This enables:
+
 - Decoupled agent-server communication
 - Event-driven message processing
 - Scalable message distribution
@@ -288,6 +296,7 @@ Files are organized by agent and type:
 ### Media Serving
 
 Static file serving with security:
+
 - UUID validation for paths
 - Agent-specific access control
 - Proper MIME type handling
@@ -374,9 +383,9 @@ ELIZA_UI_ENABLE=false  # Disable UI in production
 ```typescript
 // Initialize client
 const client = new ElizaClient({
-  baseUrl: 'http://localhost:3000',
+  baseUrl: "http://localhost:3000",
   apiKey: process.env.API_KEY,
-  timeout: 30000
+  timeout: 30000,
 });
 
 // Use typed services
@@ -389,9 +398,9 @@ const messages = await client.messaging.getMessages(channelId);
 ### Server Logging
 
 ```typescript
-logger.info('[API] Request received', { method, path });
-logger.error('[WebSocket] Connection error', error);
-logger.debug('[Message Bus] Event emitted', { event, data });
+logger.info("[API] Request received", { method, path });
+logger.error("[WebSocket] Connection error", error);
+logger.debug("[Message Bus] Event emitted", { event, data });
 ```
 
 ### Client Debugging
@@ -403,4 +412,7 @@ logger.debug('[Message Bus] Event emitted', { event, data });
 
 ## Conclusion
 
-The ElizaOS client-server architecture provides a solid foundation for building AI agent applications with real-time communication capabilities. The combination of REST APIs for structured operations and WebSockets for real-time events enables responsive, scalable applications while maintaining clean separation of concerns.
+The ElizaOS client-server architecture provides a solid foundation for building AI agent
+applications with real-time communication capabilities. The combination of REST APIs for structured
+operations and WebSockets for real-time events enables responsive, scalable applications while
+maintaining clean separation of concerns.

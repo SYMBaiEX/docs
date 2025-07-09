@@ -5,7 +5,9 @@ description: Secure agent execution with TEE support including Phala Network and
 
 # TEE (Trusted Execution Environment) Integration
 
-Trusted Execution Environments (TEEs) provide hardware-based security for Eliza agents, ensuring code and data confidentiality even from system administrators. The TEE integration enables agents to run in secure enclaves with cryptographic attestation capabilities.
+Trusted Execution Environments (TEEs) provide hardware-based security for Eliza agents, ensuring
+code and data confidentiality even from system administrators. The TEE integration enables agents to
+run in secure enclaves with cryptographic attestation capabilities.
 
 ## Overview
 
@@ -185,7 +187,7 @@ phala cvms upgrade -c docker-compose.yaml
 ### Docker Compose Configuration
 
 ```yaml
-version: '3'
+version: "3"
 services:
   eliza-tee:
     image: your-registry/eliza-tee:latest
@@ -198,7 +200,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 4G
 ```
 
@@ -216,9 +218,9 @@ services:
 // Verify TEE attestation
 const attestation = await agent.getAttestation();
 const isValid = await verifyAttestation(attestation, {
-  expectedVendor: 'phala',
-  expectedMode: 'PHALA_DSTACK',
-  nonce: 'user_provided_nonce'
+  expectedVendor: "phala",
+  expectedMode: "PHALA_DSTACK",
+  nonce: "user_provided_nonce",
 });
 ```
 
@@ -261,7 +263,7 @@ ELEVENLABS_API_KEY=key       # For voice synthesis
 ### Plugin Configuration
 
 ```typescript
-import { teePlugin } from '@elizaos/plugin-tee';
+import { teePlugin } from "@elizaos/plugin-tee";
 
 const character = {
   name: "Mr. TEE",
@@ -270,9 +272,9 @@ const character = {
     tee: {
       enabled: true,
       attestationInterval: 3600, // seconds
-      requireAttestation: true
-    }
-  }
+      requireAttestation: true,
+    },
+  },
 };
 ```
 
@@ -306,7 +308,7 @@ setInterval(async () => {
 // User-triggered attestation
 if (userRequestsProof) {
   const proof = await agent.getAttestation({
-    nonce: crypto.randomBytes(32).toString('hex')
+    nonce: crypto.randomBytes(32).toString("hex"),
   });
 }
 ```
@@ -317,9 +319,9 @@ if (userRequestsProof) {
 try {
   const result = await agent.performSecureOperation();
 } catch (error) {
-  if (error.code === 'TEE_NOT_AVAILABLE') {
+  if (error.code === "TEE_NOT_AVAILABLE") {
     // Fallback to non-TEE mode
-  } else if (error.code === 'ATTESTATION_FAILED') {
+  } else if (error.code === "ATTESTATION_FAILED") {
     // Handle attestation failure
   }
 }
@@ -348,10 +350,10 @@ TEE_MODE=DOCKER bun test:integration
 
 ```typescript
 // Test attestation generation
-test('should generate valid attestation', async () => {
+test("should generate valid attestation", async () => {
   const attestation = await teePlugin.generateAttestation();
-  expect(attestation).toHaveProperty('report');
-  expect(attestation).toHaveProperty('signature');
+  expect(attestation).toHaveProperty("report");
+  expect(attestation).toHaveProperty("signature");
 });
 ```
 
@@ -360,12 +362,14 @@ test('should generate valid attestation', async () => {
 ### Common Issues
 
 1. **TEE Not Available**
+
    ```
    Error: TEE environment not detected
    Solution: Check TEE_MODE and hardware support
    ```
 
 2. **Attestation Failures**
+
    ```
    Error: Attestation verification failed
    Solution: Ensure TEE vendor matches configuration
@@ -414,11 +418,11 @@ async function getCachedAttestation(nonce) {
   if (cached && Date.now() - cached.timestamp < 3600000) {
     return cached.attestation;
   }
-  
+
   const fresh = await generateAttestation(nonce);
   attestationCache.set(nonce, {
     attestation: fresh,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
   return fresh;
 }
@@ -429,7 +433,7 @@ async function getCachedAttestation(nonce) {
 ### Custom Attestation Handlers
 
 ```typescript
-import { TEEProvider } from '@elizaos/plugin-tee';
+import { TEEProvider } from "@elizaos/plugin-tee";
 
 class CustomTEEProvider extends TEEProvider {
   async generateAttestation(params) {
@@ -445,9 +449,9 @@ class CustomTEEProvider extends TEEProvider {
 ```typescript
 // Support multiple TEE vendors
 const teeConfig = {
-  vendors: ['phala', 'intel'],
-  fallbackOrder: ['phala', 'intel', 'software'],
-  attestationPolicy: 'any' // or 'all'
+  vendors: ["phala", "intel"],
+  fallbackOrder: ["phala", "intel", "software"],
+  attestationPolicy: "any", // or 'all'
 };
 ```
 

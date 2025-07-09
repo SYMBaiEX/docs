@@ -1,90 +1,188 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
-## Project Overview
+## Core Understanding
 
-This is the documentation website for elizaOS/eliza, built with Next.js 15.3.4 and Fumadocs, a modern documentation framework for Next.js. The site uses MDX for content authoring, allowing you to write documentation with React components.
+This is a **Fumadocs-based documentation site** using Next.js. Key principles:
 
-## Development Commands
+- MDX files in `/docs` → Static pages via dynamic routing
+- Fumadocs handles navigation, search, and UI components
+- Build-time processing enables advanced features
+- Everything is file-based and statically generated
+
+## Essential Commands
 
 ```bash
-# Install dependencies
-npm install
+# Development
+bun dev              # Start development server
+bun run build        # Production build (runs linting + processing)
+bun start            # Serve production build
 
-# Run development server with turbo
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
-
-# Post-install script (runs automatically)
-npm run postinstall  # Generates Fumadocs MDX types
+# Code Quality (run these before marking tasks complete)
+bun run lint         # Must pass with zero warnings
+bun run format       # Auto-fix formatting issues
+bun run format:check # Check formatting without fixing (useful for CI)
+bun run lint:mdx     # Check MDX content quality
 ```
 
-The development server runs on http://localhost:3000.
+## Critical Patterns to Follow
 
-## Architecture
+### When Creating/Editing Documentation
 
-### Core Technologies
-- **Next.js 15.3.4** with App Router
-- **React 19.1.0**
-- **TypeScript** with strict mode enabled
-- **Fumadocs** for documentation generation
-- **MDX** for content authoring
-- **Tailwind CSS v4** for styling
+**DO:**
 
-### Directory Structure
-- `/app` - Next.js App Router structure
-  - `(home)/` - Landing page route group
-  - `docs/` - Documentation layout with dynamic routing (`[[...slug]]`)
-  - `api/search/` - Search API endpoint
-- `/docs` - MDX content files (your documentation goes here)
-- `/lib/source.ts` - Fumadocs content source configuration
-- `/.source` - Auto-generated types from Fumadocs MDX (git-ignored)
+- Place MDX files in `/docs` with `.mdx` extension
+- Include frontmatter: `title` and `description` (required)
+- Use H2 (`##`) as highest heading level in content
+- Follow existing URL patterns (check similar pages)
+- Test changes with `bun dev` before committing
 
-### Key Configuration Files
-- `source.config.ts` - Fumadocs MDX configuration (frontmatter schemas)
-- `next.config.mjs` - Next.js configuration with MDX support
-- `tsconfig.json` - TypeScript configuration with path aliases (@/*)
-- `.eslintrc.json` - ESLint extending Next.js rules
+**DON'T:**
 
-## Adding Documentation
+- Use H1 (`#`) headers in content (title comes from frontmatter)
+- Create files outside `/docs` for documentation content
+- Mix code and documentation in the same PR
+- Forget to update `meta.json` when adding new pages
 
-1. Create MDX files in the `/docs` directory
-2. Use frontmatter for metadata (validated by schema in `source.config.ts`)
-3. Files are automatically processed by Fumadocs and available at `/docs/[slug]`
+### MDX Component Usage
 
-Example MDX file structure:
-```mdx
----
-title: "Page Title"
-description: "Page description"
----
+**Decision Tree for Components:**
 
-# Content goes here
-
-You can use React components and MDX features.
+```
+Need to highlight important info? → <Callout>
+Showing step-by-step process? → <Steps> with <Step>
+Multiple ways to do something? → <Tabs> with <Tab>
+Linking to multiple related pages? → <Cards> with <Card>
+Showing file structure? → <Files>, <Folder>, <File>
+Q&A or collapsible content? → <Accordions> with <Accordion>
 ```
 
-## TypeScript Path Aliases
+**Component Rules:**
 
-- `@/*` - Maps to the project root
-- `@/.source` - Maps to the generated Fumadocs source types
+1. Always leave blank lines after opening tags and before closing tags
+2. Each `<Step>` must contain an H2 header
+3. Don't nest interactive components
+4. Components are globally available (no imports needed)
 
-## Linting
+### File Organization Patterns
 
-The project uses ESLint with Next.js configuration. Run linting with:
+```
+/docs
+├── index.mdx                 # ALWAYS: Section overview
+├── meta.json                 # ALWAYS: Navigation config
+├── getting-started/          # Pattern: verb-noun folders
+│   ├── index.mdx            # ALWAYS: Section landing
+│   ├── quickstart.mdx       # Pattern: noun for guides
+│   └── meta.json            # ALWAYS: Section nav
+└── api-reference/           # Pattern: noun-noun folders
+    ├── endpoints/           # Pattern: group by type
+    └── meta.json
+```
+
+**Navigation Rules:**
+
+- `meta.json` defines order: `{"pages": ["quickstart", "installation"]}`
+- Hidden pages: prefix with `_` (e.g., `_draft.mdx`)
+- Landing pages: always `index.mdx` (not in meta.json)
+
+## Text Formatting Standards
+
+### Inline Formatting Quick Reference
+
+- **Bold**: UI elements, important terms → `**Save button**`
+- _Italics_: New concepts, emphasis → `*rarely* need this`
+- `Code`: Commands, filenames, values → `` `bun dev` ``
+- Links: Descriptive text → `[see configuration guide](/guides/config)`
+
+### Code Blocks
+
+```typescript title="app/config.ts"  // Always add filename
+export const config = {
+  // Code here
+};
+```
+
+For package installation:
+
+```package-install
+fumadocs-ui fumadocs-core
+```
+
+## Architecture Decisions
+
+### Why These Patterns Matter
+
+1. **Static Generation**: Pre-building ensures fast loads and SEO
+2. **File-based Routing**: Predictable URLs from file structure
+3. **MDX Processing**: Enables rich content with components
+4. **Fumadocs Conventions**: Following them ensures features work
+
+### Extension Points
+
+When adding capabilities, check these locations:
+
+- `/scripts/*` - Build-time processing examples
+- `/app/api/*` - Runtime features and endpoints
+- `source.config.ts` - MDX processing configuration
+- `package.json` scripts - Build pipeline hooks
+
+Common patterns for new features:
+
+- **Search Enhancement**: Process content → Build index → Serve via API
+- **Analytics**: Add tracking → Collect events → Display insights
+- **LLM Formats**: Parse MDX → Strip formatting → Serve as `/llms.txt`
+- **API Docs**: Parse OpenAPI → Generate MDX → Include in build
+
+## Development Checklist
+
+Before completing any documentation task:
+
+- [ ] All MDX files have required frontmatter
+- [ ] Navigation updated in relevant `meta.json` files
+- [ ] No H1 headers used in content
+- [ ] All internal links use absolute paths without `/docs`
+- [ ] Ran `bun run lint:mdx` and fixed any issues
+- [ ] Tested locally with `bun dev`
+- [ ] Ran `bun run build` successfully (must pass before committing)
+- [ ] Verified navigation and search work correctly
+
+## Quick Decisions Guide
+
+**"Where should I put this new page?"** → Follow existing patterns, check similar content's location
+
+**"What component should I use?"** → See Decision Tree in Critical Patterns section
+
+**"How should I format this?"** → Check similar pages, follow their patterns
+
+**"Should I create a new folder?"** → Only if you have 3+ related pages to group
+
+**"What frontmatter fields do I need?"** → `title` and `description` are required, others optional
+
+## Tools and Helpers
+
+### Context7 MCP Server
+
+Enable for real-time Fumadocs documentation access:
+
+- Provides current component APIs
+- Shows configuration examples
+- Explains advanced patterns
+- Use when: implementing new Fumadocs features
+
+### Build Tools
+
 ```bash
-npx eslint .
+# Optional advanced features
+bun run build:openapi    # Generate API docs from OpenAPI specs
+# Add custom scripts in /scripts for new capabilities
 ```
 
-## Important Notes
+## Remember
 
-- The project uses React 19.1.0 with the new App Router paradigm
-- Fumadocs automatically generates types after install via `postinstall` script
-- The `.source` directory is auto-generated and should not be edited
-- Content organization and navigation can be configured through Fumadocs meta files
+1. **Follow existing patterns** - consistency matters more than perfection
+2. **Test everything locally** - `bun dev` before pushing
+3. **Keep it simple** - use built-in components before custom solutions
+4. **Document as you code** - update docs with feature changes
+5. **Ask when uncertain** - check existing examples first

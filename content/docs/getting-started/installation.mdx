@@ -5,13 +5,11 @@ description: Installing ElizaOS and setting up your environment
 
 # Installation
 
-This guide covers the complete installation process for ElizaOS, including system requirements, dependencies, and different installation methods.
+This guide covers the complete installation process for ElizaOS, including system requirements,
+dependencies, and different installation methods.
 
-
-
-
-
-**Note:** ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
+**Note:** ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal
+compatibility and performance.
 
 ## System Requirements
 
@@ -20,7 +18,7 @@ This guide covers the complete installation process for ElizaOS, including syste
 - **Node.js**: v23.3.0 (exact version required for compatibility)
 - **Memory**: 4GB RAM minimum (8GB recommended)
 - **Storage**: 2GB available disk space
-- **Operating System**: 
+- **Operating System**:
   - Linux (Ubuntu 20.04+, CentOS 8+, Debian 11+)
   - macOS 12.0+ (Apple Silicon and Intel supported)
   - Windows 10/11 with WSL 2
@@ -37,12 +35,14 @@ This guide covers the complete installation process for ElizaOS, including syste
 ### Hardware Recommendations
 
 #### Development Environment
+
 - **CPU**: 4+ cores (Intel i5/AMD Ryzen 5 equivalent or better)
 - **Memory**: 8GB RAM minimum, 16GB recommended
 - **Storage**: SSD with 10GB+ free space
 - **Network**: Stable internet connection for AI model API calls
 
 #### Production Environment
+
 - **CPU**: 8+ cores (Intel i7/AMD Ryzen 7 equivalent or better)
 - **Memory**: 16GB+ RAM (32GB for multiple agents)
 - **Storage**: NVMe SSD with 50GB+ free space
@@ -63,6 +63,7 @@ This guide covers the complete installation process for ElizaOS, including syste
 #### macOS
 
 **Using Homebrew (Recommended):**
+
 ```bash
 # Install Node.js 23.3.0
 brew install node@23
@@ -73,6 +74,7 @@ node --version  # Should show v23.3.0
 ```
 
 **Using Node Version Manager (nvm):**
+
 ```bash
 # Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -89,12 +91,13 @@ node --version  # Should show v23.3.0
 
 **macOS-specific notes:**
 
-Apple Silicon (M1/M2) users: All tools are fully compatible. Intel Mac users: No special configuration needed. If you encounter permission issues, avoid using `sudo` with npm.
+Apple Silicon (M1/M2) users: All tools are fully compatible. Intel Mac users: No special
+configuration needed. If you encounter permission issues, avoid using `sudo` with npm.
 
 #### Linux
 
-
 **Using Node Version Manager (nvm) - Recommended:**
+
 ```bash
 # Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -110,6 +113,7 @@ node --version  # Should show v23.3.0
 ```
 
 **Using Package Manager:**
+
 ```bash
 # Ubuntu/Debian
 curl -fsSL https://deb.nodesource.com/setup_23.x | sudo -E bash -
@@ -128,18 +132,20 @@ node --version  # Should show v23.3.0
 
 **Linux-specific notes:**
 
-Ensure you have build tools: `sudo apt-get install build-essential`. For older distributions, use nvm instead of package managers.
+Ensure you have build tools: `sudo apt-get install build-essential`. For older distributions, use
+nvm instead of package managers.
 
 #### Windows
 
-
 **Install WSL 2 first (Required):**
+
 ```powershell
 # Run in PowerShell as Administrator
 wsl --install -d Ubuntu
 ```
 
 **Configure WSL 2:**
+
 ```powershell
 # Set WSL 2 as default version
 wsl --set-default-version 2
@@ -149,6 +155,7 @@ wsl -d Ubuntu -- sudo apt update && sudo apt upgrade
 ```
 
 **Install Node.js in WSL 2:**
+
 ```bash
 # Open WSL 2 Ubuntu terminal
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -164,15 +171,16 @@ node --version  # Should show v23.3.0
 
 **Windows-specific notes:**
 
-WSL 2 is required - native Windows installation is not supported. Install WSL 2 with Ubuntu distribution for best compatibility. Use WSL 2 terminal for all ElizaOS development. Avoid mixing Windows and WSL file systems for better performance.
-
-
+WSL 2 is required - native Windows installation is not supported. Install WSL 2 with Ubuntu
+distribution for best compatibility. Use WSL 2 terminal for all ElizaOS development. Avoid mixing
+Windows and WSL file systems for better performance.
 
 ### Install Bun (Recommended)
 
 Bun is the recommended package manager for ElizaOS due to its speed and compatibility:
 
 **All Platforms:**
+
 ```bash
 # Install Bun
 curl -fsSL https://bun.sh/install | bash
@@ -185,12 +193,12 @@ bun --version  # Should show v1.2.15 or newer
 ```
 
 **Platform-specific notes:**
+
 - **macOS**: Works on both Intel and Apple Silicon Macs
 - **Linux**: Compatible with most distributions
 - **Windows**: Must be installed within WSL 2, not native Windows
-- **Alternative**: You can use `npm` instead of `bun`, but `bun` is recommended for better performance
-
-
+- **Alternative**: You can use `npm` instead of `bun`, but `bun` is recommended for better
+  performance
 
 ### Verify Installation
 
@@ -204,13 +212,15 @@ node --version  # Should be v23.3.0 (exact version required)
 bun --version   # Should be v1.2.15 (recommended)
 ```
 
-**Warning:** Ensure you have the exact Node.js version v23.3.0 installed. Other versions may cause compatibility issues with ElizaOS.
+**Warning:** Ensure you have the exact Node.js version v23.3.0 installed. Other versions may cause
+compatibility issues with ElizaOS.
 
 ## Installation Methods
 
 ### Method 1: CLI Installation (Recommended)
 
-**Info:** This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most configuration automatically and provides enhanced project management features.
+**Info:** This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most
+configuration automatically and provides enhanced project management features.
 
 The CLI provides the fastest way to get started:
 
@@ -239,7 +249,8 @@ elizaos create my-agent --type project
 
 ### Method 2: Manual Installation
 
-**Warning:** This method requires more manual configuration and is recommended for experienced developers who need full control over the installation process.
+**Warning:** This method requires more manual configuration and is recommended for experienced
+developers who need full control over the installation process.
 
 For developers who want full control:
 
@@ -292,7 +303,8 @@ bun run clean
 
 ### Method 3: Docker Installation
 
-**Info:** Docker installation provides a complete setup with PostgreSQL database and is ideal for production deployments.
+**Info:** Docker installation provides a complete setup with PostgreSQL database and is ideal for
+production deployments.
 
 For containerized deployment with PostgreSQL:
 
@@ -310,6 +322,7 @@ docker-compose up -d
 ```
 
 **Docker Requirements:**
+
 - Docker Engine 20.10+ (24.0+ recommended)
 - Docker Compose 2.0+ (2.20+ recommended)
 - 4GB+ available RAM for containers
@@ -318,6 +331,7 @@ docker-compose up -d
 **Docker Compose Configuration:**
 
 The docker-compose.yaml includes:
+
 - **PostgreSQL**: Database with pgvector extension
 - **ElizaOS**: Main application container
 - **Health Checks**: Automatic service health monitoring
@@ -378,7 +392,8 @@ docker-compose exec elizaos bash
 
 ## Configuration
 
-**Important:** Proper environment configuration is crucial for ElizaOS to function correctly. At minimum, you need to configure a model provider API key.
+**Important:** Proper environment configuration is crucial for ElizaOS to function correctly. At
+minimum, you need to configure a model provider API key.
 
 ### Environment Setup
 
@@ -594,6 +609,7 @@ elizaos update --check
 **Health Check Output:**
 
 A successful verification should show:
+
 - ✅ Node.js version (v23.3.0)
 - ✅ Bun version (v1.2.15)
 - ✅ ElizaOS CLI installed and accessible
@@ -902,6 +918,7 @@ If you encounter issues not covered above:
 4. Review the [FAQ](/docs/faq)
 
 **When reporting issues, please include:**
+
 - Your operating system and version
 - Node.js version (`node --version`)
 - Bun version (`bun --version`)
@@ -919,7 +936,7 @@ Once installation is complete:
 
 ---
 
-**Installation complete!** You're ready to start building AI agents with ElizaOS v1.2.0. 
+**Installation complete!** You're ready to start building AI agents with ElizaOS v1.2.0.
 
 ### Quick Start Commands
 

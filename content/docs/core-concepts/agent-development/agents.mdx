@@ -1,11 +1,16 @@
 ---
 title: "Agents"
-description: "Understanding the Agent and Character interfaces, runtime integration, and agent lifecycle management in ElizaOS v1.2.0"
+description:
+  "Understanding the Agent and Character interfaces, runtime integration, and agent lifecycle
+  management in ElizaOS v1.2.0"
 ---
 
 # Agents
 
-Agents are the core operational units in ElizaOS v1.2.0, representing autonomous entities that can interact with users and systems. This page covers the fundamental concepts of agents, their structure, and how they relate to characters, with enhanced service integration and context tracking.
+Agents are the core operational units in ElizaOS v1.2.0, representing autonomous entities that can
+interact with users and systems. This page covers the fundamental concepts of agents, their
+structure, and how they relate to characters, with enhanced service integration and context
+tracking.
 
 ## Core Concepts
 
@@ -13,8 +18,10 @@ Agents are the core operational units in ElizaOS v1.2.0, representing autonomous
 
 In ElizaOS, there's an important distinction between **Character** and **Agent**:
 
-- **Character**: A static definition that describes an agent's personality, capabilities, and configuration
-- **Agent**: A runtime instance that extends a Character with operational status, timestamps, and database management
+- **Character**: A static definition that describes an agent's personality, capabilities, and
+  configuration
+- **Agent**: A runtime instance that extends a Character with operational status, timestamps, and
+  database management
 
 ```typescript
 // Character - Static definition
@@ -48,12 +55,12 @@ Agents have operational states managed through the enhanced `AgentStatus` enum:
 
 ```typescript
 export enum AgentStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  STARTING = 'starting',    // New in v1.2.0: Agent is initializing
-  STOPPING = 'stopping',    // New in v1.2.0: Agent is shutting down
-  ERROR = 'error',          // New in v1.2.0: Agent encountered an error
-  MAINTENANCE = 'maintenance' // New in v1.2.0: Agent is under maintenance
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  STARTING = "starting", // New in v1.2.0: Agent is initializing
+  STOPPING = "stopping", // New in v1.2.0: Agent is shutting down
+  ERROR = "error", // New in v1.2.0: Agent encountered an error
+  MAINTENANCE = "maintenance", // New in v1.2.0: Agent is under maintenance
 }
 ```
 
@@ -65,19 +72,19 @@ The complete Agent interface extends Character with runtime management fields:
 interface Agent extends Character {
   /** Whether the agent is enabled for operation */
   enabled?: boolean;
-  
+
   /** Current operational status */
   status?: AgentStatus;
-  
+
   /** Timestamp when agent was created in database */
   createdAt: number;
-  
+
   /** Timestamp when agent was last updated */
   updatedAt: number;
-  
+
   /** Current runtime session ID (new in v1.2.0) */
   runId?: UUID;
-  
+
   /** Additional metadata (new in v1.2.0) */
   metadata?: {
     version?: string;
@@ -105,52 +112,52 @@ An Agent's personality and behavior are defined through the Character interface:
 interface Character {
   /** Optional unique identifier */
   id?: UUID;
-  
+
   /** Character name */
   name: string;
-  
+
   /** Optional username for interactions */
   username?: string;
-  
+
   /** System prompt guiding behavior */
   system?: string;
-  
+
   /** Prompt templates for different situations */
   templates?: {
     [key: string]: TemplateType;
   };
-  
+
   /** Character biography */
   bio: string | string[];
-  
+
   /** Example conversations */
   messageExamples?: MessageExample[][];
-  
+
   /** Example posts */
   postExamples?: string[];
-  
+
   /** Topics of interest */
   topics?: string[];
-  
+
   /** Character traits */
   adjectives?: string[];
-  
+
   /** Knowledge base paths */
   knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
-  
+
   /** Available plugins */
   plugins?: string[];
-  
+
   /** Configuration settings */
   settings?: {
     [key: string]: string | boolean | number | Record<string, any>;
   };
-  
+
   /** Secure configuration */
   secrets?: {
     [key: string]: string | boolean | number;
   };
-  
+
   /** Writing style guides */
   style?: {
     all?: string[];
@@ -162,7 +169,8 @@ interface Character {
 
 ## Agent Runtime Integration
 
-Agents are managed through the `IAgentRuntime` interface, which provides comprehensive functionality for agent operations:
+Agents are managed through the `IAgentRuntime` interface, which provides comprehensive functionality
+for agent operations:
 
 ### Core Runtime Interface
 
@@ -172,10 +180,10 @@ interface IAgentRuntime {
   character: Character;
   agentId: UUID;
   runId: UUID; // New in v1.2.0: Current runtime session ID
-  
+
   // State management
   composeState(message: Memory, additionalKeys?: string[]): Promise<State>;
-  
+
   // Memory operations
   addEmbeddingToMemory(memory: Memory): Promise<Memory>;
   createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<Memory>;
@@ -186,7 +194,7 @@ interface IAgentRuntime {
     count?: number;
     unique?: boolean;
   }): Promise<Memory[]>;
-  
+
   // Enhanced memory operations (new in v1.2.0)
   searchMemories(params: {
     tableName: string;
@@ -198,48 +206,48 @@ interface IAgentRuntime {
     entityId?: UUID;
     worldId?: UUID;
   }): Promise<Memory[]>;
-  
+
   // Message processing
   processActions(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
   processEvaluators(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
-  
+
   // Model interaction
   useModel(type: ModelType, params: any): Promise<any>;
-  
+
   // Plugin management
   registerAction(action: Action): void;
   registerEvaluator(evaluator: Evaluator): void;
   registerProvider(provider: Provider): void;
-  
+
   // Service management (enhanced in v1.2.0)
   getService<T extends Service>(serviceName: ServiceTypeName): T | null;
   getAllServices(): Map<ServiceTypeName, Service>;
   registerService(service: typeof Service): Promise<void>;
-  
+
   // Task management
   createTask(task: Task): Promise<Task>;
   updateTask(id: UUID, updates: Partial<Task>): Promise<Task>;
   deleteTask(id: UUID): Promise<void>;
   registerTaskWorker(worker: TaskWorker): void;
   getTaskWorker(name: string): TaskWorker | undefined;
-  
+
   // Relationship management
   createRelationship(relationship: Relationship): Promise<Relationship>;
   updateRelationship(relationship: Relationship): Promise<Relationship>;
   getRelationships(params: { entityId: UUID }): Promise<Relationship[]>;
-  
+
   // Cache operations
   getCache<T>(key: string): Promise<T | undefined>;
   setCache<T>(key: string, value: T): Promise<void>;
-  
+
   // Event system (enhanced in v1.2.0)
   registerEvent(event: string, handler: (params: any) => Promise<void>): void;
   emitEvent(event: string | string[], params: any): Promise<void>;
   emitDomainEvent(domain: string, event: string, params: any): Promise<void>;
-  
+
   // Action context tracking (new in v1.2.0)
   currentActionContext?: ActionContext;
-  
+
   // Configuration
   getConversationLength(): number;
   getSetting(key: string): string | undefined;
@@ -254,44 +262,47 @@ Agents process messages through an enhanced structured pipeline:
 async function processMessage(runtime: IAgentRuntime, message: Memory): Promise<any> {
   // 1. Compose state from providers with enhanced context
   const state = await runtime.composeState(message, [
-    'RECENT_MESSAGES',
-    'CHARACTER', 
-    'RELATIONSHIPS',
-    'TIME',
-    'SERVICES',    // New in v1.2.0: Service status
-    'CAPABILITIES' // New in v1.2.0: Current capabilities
+    "RECENT_MESSAGES",
+    "CHARACTER",
+    "RELATIONSHIPS",
+    "TIME",
+    "SERVICES", // New in v1.2.0: Service status
+    "CAPABILITIES", // New in v1.2.0: Current capabilities
   ]);
-  
+
   // 2. Run evaluators to assess situation
   const evaluationResults = await runtime.processEvaluators(runtime, message, state);
-  
+
   // 3. Determine and execute actions with context tracking
   const actionResults = await runtime.processActions(runtime, message, state);
-  
+
   // 4. Update memory with enhanced metadata
-  await runtime.createMemory({
-    agentId: runtime.agentId,
-    runId: runtime.runId,  // New in v1.2.0
-    content: { text: response.text, actions: actions },
-    roomId: message.roomId,
-    entityId: message.entityId,
-    metadata: {
-      processedAt: new Date().toISOString(),
-      runId: runtime.runId,
-      actionContext: runtime.currentActionContext,
-      evaluationResults: evaluationResults
-    }
-  }, 'messages');
-  
+  await runtime.createMemory(
+    {
+      agentId: runtime.agentId,
+      runId: runtime.runId, // New in v1.2.0
+      content: { text: response.text, actions: actions },
+      roomId: message.roomId,
+      entityId: message.entityId,
+      metadata: {
+        processedAt: new Date().toISOString(),
+        runId: runtime.runId,
+        actionContext: runtime.currentActionContext,
+        evaluationResults: evaluationResults,
+      },
+    },
+    "messages"
+  );
+
   // 5. Emit processing events (new in v1.2.0)
-  await runtime.emitEvent('message_processed', {
+  await runtime.emitEvent("message_processed", {
     messageId: message.id,
     agentId: runtime.agentId,
     runId: runtime.runId,
     actionCount: actionResults.length,
-    processingTime: performance.now() - startTime
+    processingTime: performance.now() - startTime,
   });
-  
+
   return actionResults;
 }
 ```
@@ -314,13 +325,13 @@ interface State {
 
 // Compose state with specific providers
 const state = await runtime.composeState(message, [
-  'CHARACTER',        // Agent personality and bio
-  'RECENT_MESSAGES',  // Conversation history
-  'RELATIONSHIPS',    // Entity relationships
-  'TIME',            // Current timestamp
-  'FACTS',           // Known facts
-  'ANXIETY',         // Agent anxiety level
-  'CAPABILITIES'     // Available actions
+  "CHARACTER", // Agent personality and bio
+  "RECENT_MESSAGES", // Conversation history
+  "RELATIONSHIPS", // Entity relationships
+  "TIME", // Current timestamp
+  "FACTS", // Known facts
+  "ANXIETY", // Agent anxiety level
+  "CAPABILITIES", // Available actions
 ]);
 ```
 
@@ -332,8 +343,8 @@ Agents now have deep integration with the service system:
 
 ```typescript
 // Access services from within agent actions
-const discordService = runtime.getService<DiscordService>('discord');
-const databaseService = runtime.getService<DatabaseService>('database');
+const discordService = runtime.getService<DiscordService>("discord");
+const databaseService = runtime.getService<DatabaseService>("database");
 
 // Get all available services
 const allServices = runtime.getAllServices();
@@ -342,8 +353,8 @@ console.log(`Agent has ${allServices.size} services available`);
 // Service health monitoring
 const serviceStatuses = Array.from(allServices.entries()).map(([name, service]) => ({
   name,
-  status: service.isHealthy ? 'healthy' : 'unhealthy',
-  type: service.constructor.name
+  status: service.isHealthy ? "healthy" : "unhealthy",
+  type: service.constructor.name,
 }));
 ```
 
@@ -355,7 +366,7 @@ Actions now have access to rich context information:
 // In an action handler
 async handler(runtime: IAgentRuntime, message: Memory, state?: State) {
   const context = runtime.currentActionContext;
-  
+
   if (context) {
     console.log(`Action: ${context.actionName}`);
     console.log(`Action ID: ${context.actionId}`);
@@ -363,7 +374,7 @@ async handler(runtime: IAgentRuntime, message: Memory, state?: State) {
     console.log(`Started at: ${context.startTime}`);
     console.log(`Parent action: ${context.metadata?.parentActionId}`);
   }
-  
+
   // Context is automatically logged for debugging
   return true;
 }
@@ -375,21 +386,21 @@ Agents can now emit and listen to domain-specific events:
 
 ```typescript
 // Listen to domain events
-runtime.registerEvent('database:connection_error', async (context) => {
+runtime.registerEvent("database:connection_error", async (context) => {
   console.log(`Database error in run ${context.runId}: ${context.error}`);
   // Handle database connection issues
 });
 
-runtime.registerEvent('ai:model_response', async (context) => {
+runtime.registerEvent("ai:model_response", async (context) => {
   console.log(`AI model ${context.modelType} responded in ${context.executionTime}ms`);
   // Log model performance
 });
 
 // Emit domain events
-await runtime.emitDomainEvent('agent', 'action_completed', {
-  actionName: 'SEND_MESSAGE',
+await runtime.emitDomainEvent("agent", "action_completed", {
+  actionName: "SEND_MESSAGE",
   success: true,
-  duration: 150
+  duration: 150,
 });
 ```
 
@@ -400,30 +411,33 @@ Memory operations now support enhanced search capabilities:
 ```typescript
 // Search memories with enhanced filters
 const relevantMemories = await runtime.searchMemories({
-  tableName: 'messages',
+  tableName: "messages",
   embedding: messageEmbedding,
-  query: 'user preferences',
+  query: "user preferences",
   match_threshold: 0.8,
   count: 10,
   roomId: message.roomId,
   entityId: message.entityId,
-  worldId: worldId  // New filter
+  worldId: worldId, // New filter
 });
 
 // Context-aware memory creation
-await runtime.createMemory({
-  content: { text: response },
-  roomId: message.roomId,
-  entityId: message.entityId,
-  metadata: {
-    runId: runtime.runId,
-    actionContext: runtime.currentActionContext,
-    serviceContext: {
-      availableServices: Array.from(runtime.getAllServices().keys()),
-      activeConnections: await getActiveConnections()
-    }
-  }
-}, 'messages');
+await runtime.createMemory(
+  {
+    content: { text: response },
+    roomId: message.roomId,
+    entityId: message.entityId,
+    metadata: {
+      runId: runtime.runId,
+      actionContext: runtime.currentActionContext,
+      serviceContext: {
+        availableServices: Array.from(runtime.getAllServices().keys()),
+        activeConnections: await getActiveConnections(),
+      },
+    },
+  },
+  "messages"
+);
 ```
 
 ## Practical Example
@@ -431,7 +445,7 @@ await runtime.createMemory({
 Here's a complete example of creating an agent with a character definition:
 
 ```typescript
-import { AgentRuntime, AgentStatus } from '@elizaos/core';
+import { AgentRuntime, AgentStatus } from "@elizaos/core";
 
 // Define character
 const character = {
@@ -445,20 +459,22 @@ const character = {
     [
       {
         name: "User",
-        content: { text: "Can you help me with Python?" }
+        content: { text: "Can you help me with Python?" },
       },
       {
         name: "Ada",
-        content: { text: "Of course! I'd be happy to help with Python. What specific question do you have?" }
-      }
-    ]
+        content: {
+          text: "Of course! I'd be happy to help with Python. What specific question do you have?",
+        },
+      },
+    ],
   ],
   style: {
     all: ["Be concise and helpful", "Use examples when explaining concepts"],
     chat: ["Keep responses conversational", "Ask follow-up questions"],
-    post: ["Write in a professional tone", "Include relevant examples"]
+    post: ["Write in a professional tone", "Include relevant examples"],
   },
-  plugins: ["plugin-bootstrap"]
+  plugins: ["plugin-bootstrap"],
 };
 
 // Create runtime with character
@@ -477,18 +493,21 @@ const runtime = new AgentRuntime({
 ## Agent Lifecycle
 
 ### Creation
+
 1. Character definition is validated
 2. Agent record is created in database
 3. Runtime is initialized with character config
 4. Plugins are loaded based on character.plugins
 
 ### Operation
+
 1. Agent receives messages
 2. Character personality guides responses
 3. Actions and evaluators process interactions
 4. State is maintained between conversations
 
 ### Management
+
 1. Status can be updated (ACTIVE/INACTIVE)
 2. Character configuration can be modified
 3. Plugins can be added or removed
@@ -497,18 +516,21 @@ const runtime = new AgentRuntime({
 ## Best Practices
 
 ### Character Design
+
 - Keep bio concise but informative
 - Provide diverse messageExamples
 - Use specific adjectives for personality
 - Include relevant topics for context
 
 ### Agent Configuration
+
 - Set appropriate enabled/status flags
 - Monitor agent performance
 - Update character as needed
 - Use proper error handling
 
 ### Runtime Integration
+
 - Initialize runtime with complete character
 - Handle agent state changes properly
 - Implement proper cleanup on shutdown
@@ -517,23 +539,25 @@ const runtime = new AgentRuntime({
 ## Common Patterns
 
 ### Multi-Agent Systems
+
 ```typescript
 // Create multiple agents with different characters
 const agents = await Promise.all([
   runtime.createAgent(supportCharacter),
   runtime.createAgent(salesCharacter),
-  runtime.createAgent(technicalCharacter)
+  runtime.createAgent(technicalCharacter),
 ]);
 
 // Route messages based on context
 const routeToAgent = (message, context) => {
-  if (context.type === 'support') return agents[0];
-  if (context.type === 'sales') return agents[1];
+  if (context.type === "support") return agents[0];
+  if (context.type === "sales") return agents[1];
   return agents[2]; // technical
 };
 ```
 
 ### Dynamic Agent Updates
+
 ```typescript
 // Update agent character based on user feedback
 await runtime.updateAgent(agent.id, {
@@ -541,12 +565,13 @@ await runtime.updateAgent(agent.id, {
   character: {
     ...agent.character,
     adjectives: [...agent.character.adjectives, "friendly"],
-    topics: [...agent.character.topics, "customer service"]
-  }
+    topics: [...agent.character.topics, "customer service"],
+  },
 });
 ```
 
 ### Agent Health Monitoring
+
 ```typescript
 // Enhanced agent health monitoring (v1.2.0)
 const checkAgentHealth = async (agent, runtime) => {
@@ -554,9 +579,9 @@ const checkAgentHealth = async (agent, runtime) => {
   const serviceHealth = Array.from(services.entries()).map(([name, service]) => ({
     name,
     healthy: service.isHealthy,
-    type: service.constructor.name
+    type: service.constructor.name,
   }));
-  
+
   return {
     enabled: agent.enabled,
     status: agent.status,
@@ -566,8 +591,8 @@ const checkAgentHealth = async (agent, runtime) => {
     serviceCount: services.size,
     serviceHealth,
     capabilities: agent.metadata?.capabilities || [],
-    version: agent.metadata?.version || '1.0.0',
-    lastHealthCheck: agent.metadata?.lastHealthCheck || Date.now()
+    version: agent.metadata?.version || "1.0.0",
+    lastHealthCheck: agent.metadata?.lastHealthCheck || Date.now(),
   };
 };
 ```
@@ -582,16 +607,22 @@ const checkAgentHealth = async (agent, runtime) => {
 
 ## Summary
 
-Agents in ElizaOS v1.2.0 combine static Character definitions with enhanced runtime operational state. They provide the foundation for autonomous AI entities that can interact naturally with users while maintaining consistent personalities and behaviors. The separation between Character and Agent allows for flexible deployment and management of AI agents in various contexts.
+Agents in ElizaOS v1.2.0 combine static Character definitions with enhanced runtime operational
+state. They provide the foundation for autonomous AI entities that can interact naturally with users
+while maintaining consistent personalities and behaviors. The separation between Character and Agent
+allows for flexible deployment and management of AI agents in various contexts.
 
 ### Key v1.2.0 Improvements
 
-- **Enhanced Status Management**: Expanded status enum with STARTING, STOPPING, ERROR, and MAINTENANCE states
+- **Enhanced Status Management**: Expanded status enum with STARTING, STOPPING, ERROR, and
+  MAINTENANCE states
 - **Run ID Tracking**: Unique session identifiers for better debugging and monitoring
 - **Service Integration**: Deep integration with the service system for enhanced capabilities
 - **Action Context Tracking**: Rich context information for better debugging and monitoring
-- **Domain Event System**: Structured event emission and handling for better inter-component communication
+- **Domain Event System**: Structured event emission and handling for better inter-component
+  communication
 - **Enhanced Memory Operations**: Improved search capabilities with additional filtering options
 - **Metadata Support**: Additional operational metadata for better agent management
 
-These enhancements provide better observability, debugging capabilities, and operational control while maintaining the core agent architecture that makes ElizaOS agents powerful and flexible.
+These enhancements provide better observability, debugging capabilities, and operational control
+while maintaining the core agent architecture that makes ElizaOS agents powerful and flexible.

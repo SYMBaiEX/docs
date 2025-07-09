@@ -5,7 +5,9 @@ description: Understanding communication and event systems in ElizaOS
 
 # Overview
 
-ElizaOS provides a comprehensive communication system that enables agents to interact with users through multiple channels and platforms. The system supports real-time communication, event-driven architecture, and seamless integration with various messaging platforms.
+ElizaOS provides a comprehensive communication system that enables agents to interact with users
+through multiple channels and platforms. The system supports real-time communication, event-driven
+architecture, and seamless integration with various messaging platforms.
 
 ## Core Components
 
@@ -14,6 +16,7 @@ ElizaOS provides a comprehensive communication system that enables agents to int
 The AgentServer (`@elizaos/server`) provides HTTP and WebSocket endpoints for agent communication:
 
 **Server Features**:
+
 - **Express.js Foundation**: Robust HTTP server with middleware support
 - **Multi-Agent Support**: Isolated runtime environments for multiple agents
 - **Room-Based Conversations**: Organized chat channels and group discussions
@@ -22,6 +25,7 @@ The AgentServer (`@elizaos/server`) provides HTTP and WebSocket endpoints for ag
 - **CORS Support**: Cross-origin resource sharing configuration
 
 **Server Architecture**:
+
 ```typescript
 interface AgentServer {
   agents: Map<string, IAgentRuntime>;
@@ -34,9 +38,11 @@ interface AgentServer {
 
 ### [REST API](./rest-api)
 
-A comprehensive REST API for agent management, messaging, memory operations, and system administration:
+A comprehensive REST API for agent management, messaging, memory operations, and system
+administration:
 
 **Core Endpoints**:
+
 - **Agent Management**: `/agents` - Create, update, list, and delete agents
 - **Messaging**: `/agents/:id/message` - Send messages to specific agents
 - **Memory Operations**: `/agents/:id/memory` - Manage agent memory and knowledge
@@ -45,6 +51,7 @@ A comprehensive REST API for agent management, messaging, memory operations, and
 - **System Status**: `/health` - System health and status information
 
 **API Features**:
+
 - **RESTful Design**: Standard HTTP methods and status codes
 - **JSON Responses**: Consistent response format across all endpoints
 - **Error Handling**: Comprehensive error responses with details
@@ -53,9 +60,11 @@ A comprehensive REST API for agent management, messaging, memory operations, and
 
 ### [WebSockets](./websockets)
 
-Real-time communication capabilities with Socket.IO for live chat, notifications, and system monitoring:
+Real-time communication capabilities with Socket.IO for live chat, notifications, and system
+monitoring:
 
 **WebSocket Features**:
+
 - **Real-time Messaging**: Instant message delivery and notifications
 - **Room Support**: Join and leave conversation rooms
 - **Presence Tracking**: Online/offline status and user presence
@@ -64,27 +73,30 @@ Real-time communication capabilities with Socket.IO for live chat, notifications
 - **Connection Management**: Automatic reconnection and heartbeat
 
 **Socket Events**:
+
 ```typescript
 interface SocketEvents {
   // Client to Server
-  'message': (data: MessageData) => void;
-  'join_room': (roomId: string) => void;
-  'leave_room': (roomId: string) => void;
-  'typing': (roomId: string, isTyping: boolean) => void;
-  
+  message: (data: MessageData) => void;
+  join_room: (roomId: string) => void;
+  leave_room: (roomId: string) => void;
+  typing: (roomId: string, isTyping: boolean) => void;
+
   // Server to Client
-  'message_response': (response: MessageResponse) => void;
-  'user_joined': (userId: string, roomId: string) => void;
-  'user_left': (userId: string, roomId: string) => void;
-  'typing_indicator': (userId: string, roomId: string, isTyping: boolean) => void;
+  message_response: (response: MessageResponse) => void;
+  user_joined: (userId: string, roomId: string) => void;
+  user_left: (userId: string, roomId: string) => void;
+  typing_indicator: (userId: string, roomId: string, isTyping: boolean) => void;
 }
 ```
 
 ### [Message Bus](./message-bus)
 
-Internal event-driven communication system for decoupled agent-to-agent and agent-to-service communication:
+Internal event-driven communication system for decoupled agent-to-agent and agent-to-service
+communication:
 
 **Message Bus Features**:
+
 - **Pub/Sub Architecture**: Publish and subscribe to events
 - **Event Routing**: Intelligent routing based on event types
 - **Message Queuing**: Reliable message delivery with queuing
@@ -92,6 +104,7 @@ Internal event-driven communication system for decoupled agent-to-agent and agen
 - **Performance Monitoring**: Message throughput and latency metrics
 
 **Bus Interface**:
+
 ```typescript
 interface MessageBus {
   publish(event: string, data: any): Promise<void>;
@@ -106,12 +119,14 @@ interface MessageBus {
 Comprehensive event handling for message processing, user interactions, and system events:
 
 **Event Types**:
+
 - **Message Events**: User messages, agent responses, system notifications
 - **User Events**: User join/leave, presence changes, profile updates
 - **System Events**: Agent start/stop, plugin load/unload, errors
 - **Custom Events**: Plugin-specific and application-defined events
 
 **Event Processing**:
+
 ```typescript
 interface EventProcessor {
   process(event: Event): Promise<void>;
@@ -123,9 +138,11 @@ interface EventProcessor {
 
 ### [Message Handlers](./message-handlers)
 
-Intelligent message processing pipeline that determines actions, generates responses, and manages conversation flow:
+Intelligent message processing pipeline that determines actions, generates responses, and manages
+conversation flow:
 
 **Processing Pipeline**:
+
 1. **Message Validation**: Input sanitization and validation
 2. **Context Building**: Conversation history and state composition
 3. **Intent Detection**: Determine user intent and required actions
@@ -134,6 +151,7 @@ Intelligent message processing pipeline that determines actions, generates respo
 6. **Memory Storage**: Persist conversation and learned information
 
 **Handler Interface**:
+
 ```typescript
 interface MessageHandler {
   validate(message: Message): Promise<boolean>;
@@ -147,12 +165,14 @@ interface MessageHandler {
 ### Client-Server Communication
 
 **HTTP Request/Response**:
+
 - **Stateless**: Each request contains all necessary information
 - **Cacheable**: Responses can be cached for performance
 - **Standardized**: RESTful API design with consistent patterns
 - **Secure**: HTTPS encryption and authentication
 
 **WebSocket Connections**:
+
 - **Persistent**: Long-lived connections for real-time communication
 - **Bidirectional**: Both client and server can initiate communication
 - **Low Latency**: Minimal overhead for message delivery
@@ -161,12 +181,14 @@ interface MessageHandler {
 ### Agent-to-Agent Communication
 
 **Message Bus Integration**:
+
 - **Decoupled**: Agents communicate through message bus
 - **Scalable**: Support for multiple agents and services
 - **Reliable**: Message delivery guarantees and retry logic
 - **Observable**: Event tracking and monitoring
 
 **Communication Patterns**:
+
 - **Request/Response**: Synchronous communication for immediate responses
 - **Publish/Subscribe**: Asynchronous event broadcasting
 - **Message Queuing**: Reliable message delivery with persistence
@@ -177,6 +199,7 @@ interface MessageHandler {
 ### Multi-Platform Support
 
 **Supported Platforms**:
+
 - **Discord**: Bot integration with Discord servers
 - **Telegram**: Telegram bot API integration
 - **Twitter**: Twitter API for social media interactions
@@ -185,6 +208,7 @@ interface MessageHandler {
 - **Mobile**: React Native and mobile app integration
 
 **Platform Adapters**:
+
 ```typescript
 interface PlatformAdapter {
   platform: string;
@@ -208,12 +232,14 @@ interface PlatformAdapter {
 ### Real-Time Features
 
 **Live Chat**:
+
 - **Instant Messaging**: Real-time message delivery
 - **Typing Indicators**: Live typing status updates
 - **Presence Tracking**: Online/offline status
 - **Message Status**: Read receipts and delivery confirmation
 
 **Notifications**:
+
 - **Push Notifications**: Mobile and desktop notifications
 - **Email Notifications**: Email alerts for important events
 - **Webhook Integration**: External service notifications
@@ -222,12 +248,14 @@ interface PlatformAdapter {
 ### Performance Optimization
 
 **Connection Management**:
+
 - **Connection Pooling**: Reuse connections for efficiency
 - **Load Balancing**: Distribute connections across servers
 - **Auto-Reconnect**: Automatic connection recovery
 - **Health Monitoring**: Connection health tracking
 
 **Message Optimization**:
+
 - **Compression**: Message compression for bandwidth efficiency
 - **Batching**: Batch multiple messages for efficiency
 - **Caching**: Message and response caching
@@ -299,4 +327,6 @@ Explore the following sections to understand the communication system in ElizaOS
 - **[Event System](./events)** - Event handling and processing
 - **[Message Handlers](./message-handlers)** - Message processing pipeline
 
-This comprehensive communication system provides the foundation for building sophisticated, real-time agent interactions across multiple platforms while maintaining security, performance, and reliability.
+This comprehensive communication system provides the foundation for building sophisticated,
+real-time agent interactions across multiple platforms while maintaining security, performance, and
+reliability.

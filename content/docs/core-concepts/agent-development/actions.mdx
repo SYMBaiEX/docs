@@ -1,11 +1,15 @@
 ---
 title: "Actions"
-description: "Complete guide to implementing actions in ElizaOS, including the Action interface, handler patterns, validation, and real-world examples from plugin-bootstrap"
+description:
+  "Complete guide to implementing actions in ElizaOS, including the Action interface, handler
+  patterns, validation, and real-world examples from plugin-bootstrap"
 ---
 
 # Actions
 
-Actions are the interactive behaviors that agents can perform in ElizaOS. They define how agents respond to different situations and execute specific tasks. This page covers the Action interface, implementation patterns, and practical examples from the plugin-bootstrap package.
+Actions are the interactive behaviors that agents can perform in ElizaOS. They define how agents
+respond to different situations and execute specific tasks. This page covers the Action interface,
+implementation patterns, and practical examples from the plugin-bootstrap package.
 
 ## Action Interface
 
@@ -15,19 +19,19 @@ The Action interface defines the structure for all agent actions:
 interface Action {
   /** Similar action descriptions for context */
   similes?: string[];
-  
+
   /** Detailed description of what the action does */
   description: string;
-  
+
   /** Example usage scenarios */
   examples?: ActionExample[][];
-  
+
   /** Core handler function that executes the action */
   handler: Handler;
-  
+
   /** Action name/identifier */
   name: string;
-  
+
   /** Validation function to determine if action should execute */
   validate: Validator;
 }
@@ -36,6 +40,7 @@ interface Action {
 ### Core Components
 
 #### Handler Function
+
 The handler is the core execution logic:
 
 ```typescript
@@ -50,17 +55,15 @@ type Handler = (
 ```
 
 #### Validator Function
+
 The validator determines if an action should execute:
 
 ```typescript
-type Validator = (
-  runtime: IAgentRuntime,
-  message: Memory,
-  state?: State
-) => Promise<boolean>;
+type Validator = (runtime: IAgentRuntime, message: Memory, state?: State) => Promise<boolean>;
 ```
 
 #### HandlerCallback
+
 The callback processes action results:
 
 ```typescript
@@ -68,13 +71,14 @@ type HandlerCallback = (response: Content, files?: any) => Promise<Memory[]>;
 ```
 
 #### ActionExample
+
 Examples demonstrate action usage:
 
 ```typescript
 interface ActionExample {
   /** User associated with the example */
   name: string;
-  
+
   /** Content of the example */
   content: Content;
 }
@@ -86,14 +90,15 @@ Let's examine the reply action from plugin-bootstrap:
 
 ```typescript
 export const replyAction = {
-  name: 'REPLY',
-  similes: ['GREET', 'REPLY_TO_MESSAGE', 'SEND_REPLY', 'RESPOND', 'RESPONSE'],
-  description: 'Replies to the current conversation with the text from the generated message. Default if the agent is responding with a message and no other action. Use REPLY at the beginning of a chain of actions as an acknowledgement, and at the end of a chain of actions as a final response.',
-  
+  name: "REPLY",
+  similes: ["GREET", "REPLY_TO_MESSAGE", "SEND_REPLY", "RESPOND", "RESPONSE"],
+  description:
+    "Replies to the current conversation with the text from the generated message. Default if the agent is responding with a message and no other action. Use REPLY at the beginning of a chain of actions as an acknowledgement, and at the end of a chain of actions as a final response.",
+
   validate: async (_runtime: IAgentRuntime) => {
     return true; // Always valid
   },
-  
+
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
@@ -106,7 +111,7 @@ export const replyAction = {
     const allProviders = responses?.flatMap((res) => res.content?.providers ?? []) ?? [];
 
     // Only generate response using LLM if no suitable response was found
-    state = await runtime.composeState(message, [...(allProviders ?? []), 'RECENT_MESSAGES']);
+    state = await runtime.composeState(message, [...(allProviders ?? []), "RECENT_MESSAGES"]);
 
     const prompt = composePromptFromState({
       state,
@@ -119,47 +124,47 @@ export const replyAction = {
 
     const responseContent = {
       thought: response.thought,
-      text: (response.message as string) || '',
-      actions: ['REPLY'],
+      text: (response.message as string) || "",
+      actions: ["REPLY"],
     };
 
     await callback(responseContent);
 
     return true;
   },
-  
+
   examples: [
     [
       {
-        name: '{{name1}}',
+        name: "{{name1}}",
         content: {
-          text: 'Hello there!',
+          text: "Hello there!",
         },
       },
       {
-        name: '{{name2}}',
+        name: "{{name2}}",
         content: {
-          text: 'Hi! How can I help you today?',
-          actions: ['REPLY'],
+          text: "Hi! How can I help you today?",
+          actions: ["REPLY"],
         },
       },
     ],
     [
       {
-        name: '{{name1}}',
+        name: "{{name1}}",
         content: {
           text: "What's your favorite color?",
         },
       },
       {
-        name: '{{name2}}',
+        name: "{{name2}}",
         content: {
-          text: 'I really like deep shades of blue. They remind me of the ocean and the night sky.',
-          actions: ['REPLY'],
+          text: "I really like deep shades of blue. They remind me of the ocean and the night sky.",
+          actions: ["REPLY"],
         },
       },
-    ]
-  ]
+    ],
+  ],
 } as Action;
 ```
 
@@ -191,14 +196,14 @@ Your response should include the valid JSON block and nothing else.`;
 
 ```typescript
 export const myAction: Action = {
-  name: 'MY_ACTION',
-  description: 'Description of what this action does',
-  
+  name: "MY_ACTION",
+  description: "Description of what this action does",
+
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     // Validation logic
     return true;
   },
-  
+
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
@@ -208,118 +213,125 @@ export const myAction: Action = {
   ) => {
     // Implementation logic
     const result = await performAction();
-    
+
     if (callback) {
       await callback(result);
     }
-    
+
     return result;
   },
-  
+
   examples: [
     // Example interactions
-  ]
+  ],
 };
 ```
 
 ### Validation Patterns
 
 #### Simple Validation
+
 ```typescript
 validate: async (runtime: IAgentRuntime, message: Memory) => {
   // Always execute
   return true;
-}
+};
 ```
 
 #### Conditional Validation
+
 ```typescript
 validate: async (runtime: IAgentRuntime, message: Memory) => {
   // Only execute if user mentions specific keyword
-  return message.content.text?.includes('weather') || false;
-}
+  return message.content.text?.includes("weather") || false;
+};
 ```
 
 #### State-Based Validation
+
 ```typescript
 validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
   // Execute based on current state
-  return state?.values?.userRole === 'admin';
-}
+  return state?.values?.userRole === "admin";
+};
 ```
 
 #### Complex Validation
+
 ```typescript
 validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
   // Multiple conditions
   const hasPermission = await checkUserPermission(message.entityId);
-  const isInCorrectRoom = message.roomId === 'support-room';
+  const isInCorrectRoom = message.roomId === "support-room";
   const isBusinessHours = new Date().getHours() >= 9 && new Date().getHours() <= 17;
-  
+
   return hasPermission && isInCorrectRoom && isBusinessHours;
-}
+};
 ```
 
 ### Handler Patterns
 
 #### Simple Response Handler
+
 ```typescript
 handler: async (runtime, message, state, options, callback) => {
   const responseContent = {
     text: "Action executed successfully",
-    actions: ['MY_ACTION']
+    actions: ["MY_ACTION"],
   };
-  
+
   await callback?.(responseContent);
   return true;
-}
+};
 ```
 
 #### LLM-Based Handler
+
 ```typescript
 handler: async (runtime, message, state, options, callback) => {
   const prompt = composePromptFromState({
     state,
-    template: myTemplate
+    template: myTemplate,
   });
-  
+
   const response = await runtime.useModel(ModelType.OBJECT_LARGE, {
-    prompt
+    prompt,
   });
-  
+
   const responseContent = {
     thought: response.thought,
     text: response.message,
-    actions: ['MY_ACTION']
+    actions: ["MY_ACTION"],
   };
-  
+
   await callback?.(responseContent);
   return response;
-}
+};
 ```
 
 #### Data Processing Handler
+
 ```typescript
 handler: async (runtime, message, state, options, callback) => {
   // Process data
   const data = await fetchExternalData();
   const processedData = processData(data);
-  
+
   // Update state
   await runtime.updateState(message.roomId, {
     lastUpdate: Date.now(),
-    data: processedData
+    data: processedData,
   });
-  
+
   const responseContent = {
     text: `Processed ${processedData.length} items`,
     data: processedData,
-    actions: ['MY_ACTION']
+    actions: ["MY_ACTION"],
   };
-  
+
   await callback?.(responseContent);
   return processedData;
-}
+};
 ```
 
 ## More Action Examples from Plugin-Bootstrap
@@ -328,53 +340,53 @@ handler: async (runtime, message, state, options, callback) => {
 
 ```typescript
 export const sendMessageAction = {
-  name: 'SEND_MESSAGE',
-  similes: ['MESSAGE', 'SEND', 'POST', 'PUBLISH'],
-  description: 'Send a message to a specific room or user',
-  
+  name: "SEND_MESSAGE",
+  similes: ["MESSAGE", "SEND", "POST", "PUBLISH"],
+  description: "Send a message to a specific room or user",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     // Check if user has permission to send messages
     return true;
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
     const targetRoom = options?.roomId || message.roomId;
     const messageText = options?.text || state?.values?.messageText;
-    
+
     if (!messageText) {
-      throw new Error('No message text provided');
+      throw new Error("No message text provided");
     }
-    
+
     // Send message to target room
     await runtime.sendMessage(targetRoom, {
       text: messageText,
-      entityId: runtime.agentId
+      entityId: runtime.agentId,
     });
-    
+
     const responseContent = {
       text: `Message sent to ${targetRoom}`,
-      actions: ['SEND_MESSAGE']
+      actions: ["SEND_MESSAGE"],
     };
-    
+
     await callback?.(responseContent);
     return true;
   },
-  
+
   examples: [
     [
       {
-        name: 'User',
-        content: { text: 'Send a message to the general channel' }
+        name: "User",
+        content: { text: "Send a message to the general channel" },
       },
       {
-        name: 'Agent',
-        content: { 
-          text: 'Message sent to general channel',
-          actions: ['SEND_MESSAGE']
-        }
-      }
-    ]
-  ]
+        name: "Agent",
+        content: {
+          text: "Message sent to general channel",
+          actions: ["SEND_MESSAGE"],
+        },
+      },
+    ],
+  ],
 };
 ```
 
@@ -382,46 +394,46 @@ export const sendMessageAction = {
 
 ```typescript
 export const updateEntityAction = {
-  name: 'UPDATE_ENTITY',
-  similes: ['MODIFY', 'CHANGE', 'UPDATE', 'EDIT'],
-  description: 'Update information about an entity',
-  
+  name: "UPDATE_ENTITY",
+  similes: ["MODIFY", "CHANGE", "UPDATE", "EDIT"],
+  description: "Update information about an entity",
+
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
     // Check if there's an entity to update
     return !!state?.values?.entityId;
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
     const entityId = options?.entityId || state?.values?.entityId;
     const updates = options?.updates || {};
-    
+
     // Update entity in database
     await runtime.updateEntity(entityId, updates);
-    
+
     const responseContent = {
       text: `Entity ${entityId} updated successfully`,
-      actions: ['UPDATE_ENTITY']
+      actions: ["UPDATE_ENTITY"],
     };
-    
+
     await callback?.(responseContent);
     return true;
   },
-  
+
   examples: [
     [
       {
-        name: 'User',
-        content: { text: 'Update user profile with new email' }
+        name: "User",
+        content: { text: "Update user profile with new email" },
       },
       {
-        name: 'Agent',
-        content: { 
-          text: 'User profile updated with new email address',
-          actions: ['UPDATE_ENTITY']
-        }
-      }
-    ]
-  ]
+        name: "Agent",
+        content: {
+          text: "User profile updated with new email address",
+          actions: ["UPDATE_ENTITY"],
+        },
+      },
+    ],
+  ],
 };
 ```
 
@@ -429,45 +441,45 @@ export const updateEntityAction = {
 
 ```typescript
 export const updateSettingsAction = {
-  name: 'UPDATE_SETTINGS',
-  similes: ['CONFIGURE', 'SETTINGS', 'PREFERENCES', 'OPTIONS'],
-  description: 'Update agent or system settings',
-  
+  name: "UPDATE_SETTINGS",
+  similes: ["CONFIGURE", "SETTINGS", "PREFERENCES", "OPTIONS"],
+  description: "Update agent or system settings",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     // Check if user has admin privileges
-    return message.content.text?.includes('settings') || false;
+    return message.content.text?.includes("settings") || false;
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
     const settings = options?.settings || {};
-    
+
     // Update settings
     await runtime.updateSettings(settings);
-    
+
     const responseContent = {
-      text: 'Settings updated successfully',
-      actions: ['UPDATE_SETTINGS']
+      text: "Settings updated successfully",
+      actions: ["UPDATE_SETTINGS"],
     };
-    
+
     await callback?.(responseContent);
     return true;
   },
-  
+
   examples: [
     [
       {
-        name: 'User',
-        content: { text: 'Update my notification settings' }
+        name: "User",
+        content: { text: "Update my notification settings" },
       },
       {
-        name: 'Agent',
-        content: { 
-          text: 'Your notification settings have been updated',
-          actions: ['UPDATE_SETTINGS']
-        }
-      }
-    ]
-  ]
+        name: "Agent",
+        content: {
+          text: "Your notification settings have been updated",
+          actions: ["UPDATE_SETTINGS"],
+        },
+      },
+    ],
+  ],
 };
 ```
 
@@ -479,23 +491,18 @@ Actions can be chained together for complex workflows:
 
 ```typescript
 export const complexWorkflowAction = {
-  name: 'COMPLEX_WORKFLOW',
-  description: 'Execute a complex multi-step workflow',
-  
+  name: "COMPLEX_WORKFLOW",
+  description: "Execute a complex multi-step workflow",
+
   validate: async (runtime, message) => {
-    return message.content.text?.includes('start workflow') || false;
+    return message.content.text?.includes("start workflow") || false;
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
-    const steps = [
-      'VALIDATE_INPUT',
-      'PROCESS_DATA',
-      'SEND_NOTIFICATION',
-      'UPDATE_RECORDS'
-    ];
-    
+    const steps = ["VALIDATE_INPUT", "PROCESS_DATA", "SEND_NOTIFICATION", "UPDATE_RECORDS"];
+
     let results = [];
-    
+
     for (const step of steps) {
       const action = runtime.getAction(step);
       if (action) {
@@ -503,31 +510,31 @@ export const complexWorkflowAction = {
         results.push(result);
       }
     }
-    
+
     const responseContent = {
       text: `Workflow completed with ${results.length} steps`,
-      actions: ['COMPLEX_WORKFLOW']
+      actions: ["COMPLEX_WORKFLOW"],
     };
-    
+
     await callback?.(responseContent);
     return results;
   },
-  
+
   examples: [
     [
       {
-        name: 'User',
-        content: { text: 'Start workflow for new customer' }
+        name: "User",
+        content: { text: "Start workflow for new customer" },
       },
       {
-        name: 'Agent',
-        content: { 
-          text: 'Workflow initiated for new customer processing',
-          actions: ['COMPLEX_WORKFLOW']
-        }
-      }
-    ]
-  ]
+        name: "Agent",
+        content: {
+          text: "Workflow initiated for new customer processing",
+          actions: ["COMPLEX_WORKFLOW"],
+        },
+      },
+    ],
+  ],
 };
 ```
 
@@ -537,59 +544,59 @@ Actions that execute different logic based on conditions:
 
 ```typescript
 export const conditionalAction = {
-  name: 'CONDITIONAL_ACTION',
-  description: 'Execute different logic based on user type',
-  
+  name: "CONDITIONAL_ACTION",
+  description: "Execute different logic based on user type",
+
   validate: async (runtime, message) => {
     return true;
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
-    const userType = state?.values?.userType || 'guest';
-    
+    const userType = state?.values?.userType || "guest";
+
     let responseContent;
-    
+
     switch (userType) {
-      case 'admin':
+      case "admin":
         responseContent = {
-          text: 'Admin features enabled',
-          actions: ['CONDITIONAL_ACTION', 'ADMIN_FEATURES']
+          text: "Admin features enabled",
+          actions: ["CONDITIONAL_ACTION", "ADMIN_FEATURES"],
         };
         break;
-        
-      case 'premium':
+
+      case "premium":
         responseContent = {
-          text: 'Premium features available',
-          actions: ['CONDITIONAL_ACTION', 'PREMIUM_FEATURES']
+          text: "Premium features available",
+          actions: ["CONDITIONAL_ACTION", "PREMIUM_FEATURES"],
         };
         break;
-        
+
       default:
         responseContent = {
-          text: 'Basic features available',
-          actions: ['CONDITIONAL_ACTION', 'BASIC_FEATURES']
+          text: "Basic features available",
+          actions: ["CONDITIONAL_ACTION", "BASIC_FEATURES"],
         };
     }
-    
+
     await callback?.(responseContent);
     return responseContent;
   },
-  
+
   examples: [
     [
       {
-        name: 'Admin',
-        content: { text: 'What can I do?' }
+        name: "Admin",
+        content: { text: "What can I do?" },
       },
       {
-        name: 'Agent',
-        content: { 
-          text: 'Admin features enabled - you have full access',
-          actions: ['CONDITIONAL_ACTION']
-        }
-      }
-    ]
-  ]
+        name: "Agent",
+        content: {
+          text: "Admin features enabled - you have full access",
+          actions: ["CONDITIONAL_ACTION"],
+        },
+      },
+    ],
+  ],
 };
 ```
 
@@ -607,17 +614,17 @@ export const conditionalAction = {
 ```typescript
 // Good: Specific validation
 validate: async (runtime, message) => {
-  return message.content.text?.toLowerCase().includes('weather') || false;
-}
+  return message.content.text?.toLowerCase().includes("weather") || false;
+};
 
 // Better: Comprehensive validation
 validate: async (runtime, message, state) => {
-  const hasWeatherKeyword = message.content.text?.toLowerCase().includes('weather');
+  const hasWeatherKeyword = message.content.text?.toLowerCase().includes("weather");
   const hasLocation = state?.values?.location;
-  const hasApiKey = runtime.getSetting('weather_api_key');
-  
+  const hasApiKey = runtime.getSetting("weather_api_key");
+
   return hasWeatherKeyword && hasLocation && hasApiKey;
-}
+};
 ```
 
 ### Handler Implementation
@@ -627,25 +634,25 @@ validate: async (runtime, message, state) => {
 handler: async (runtime, message, state, options, callback) => {
   try {
     const result = await performAction();
-    
+
     const responseContent = {
-      text: 'Action completed successfully',
+      text: "Action completed successfully",
       data: result,
-      actions: ['MY_ACTION']
+      actions: ["MY_ACTION"],
     };
-    
+
     await callback?.(responseContent);
     return result;
   } catch (error) {
     const errorContent = {
       text: `Action failed: ${error.message}`,
-      actions: ['ERROR']
+      actions: ["ERROR"],
     };
-    
+
     await callback?.(errorContent);
     throw error;
   }
-}
+};
 ```
 
 ### Example Quality
@@ -656,33 +663,33 @@ examples: [
   // Simple case
   [
     {
-      name: 'User',
-      content: { text: 'What is the weather?' }
+      name: "User",
+      content: { text: "What is the weather?" },
     },
     {
-      name: 'Agent',
-      content: { 
-        text: 'The weather is sunny and 72°F',
-        actions: ['WEATHER']
-      }
-    }
+      name: "Agent",
+      content: {
+        text: "The weather is sunny and 72°F",
+        actions: ["WEATHER"],
+      },
+    },
   ],
-  
+
   // Complex case
   [
     {
-      name: 'User',
-      content: { text: 'What is the weather forecast for tomorrow in New York?' }
+      name: "User",
+      content: { text: "What is the weather forecast for tomorrow in New York?" },
     },
     {
-      name: 'Agent',
-      content: { 
-        text: 'Tomorrow in New York: Partly cloudy with a high of 68°F and low of 55°F',
-        actions: ['WEATHER']
-      }
-    }
-  ]
-]
+      name: "Agent",
+      content: {
+        text: "Tomorrow in New York: Partly cloudy with a high of 68°F and low of 55°F",
+        actions: ["WEATHER"],
+      },
+    },
+  ],
+];
 ```
 
 ## Testing Actions
@@ -690,27 +697,27 @@ examples: [
 ### Unit Testing
 
 ```typescript
-describe('replyAction', () => {
-  it('should validate correctly', async () => {
+describe("replyAction", () => {
+  it("should validate correctly", async () => {
     const runtime = mockRuntime();
     const message = mockMessage();
-    
+
     const isValid = await replyAction.validate(runtime, message);
     expect(isValid).toBe(true);
   });
-  
-  it('should handle message properly', async () => {
+
+  it("should handle message properly", async () => {
     const runtime = mockRuntime();
     const message = mockMessage();
     const state = mockState();
     const callback = jest.fn();
-    
+
     await replyAction.handler(runtime, message, state, {}, callback);
-    
+
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({
         text: expect.any(String),
-        actions: ['REPLY']
+        actions: ["REPLY"],
       })
     );
   });
@@ -720,17 +727,17 @@ describe('replyAction', () => {
 ### Integration Testing
 
 ```typescript
-describe('Action Integration', () => {
-  it('should work with runtime', async () => {
+describe("Action Integration", () => {
+  it("should work with runtime", async () => {
     const runtime = new AgentRuntime({
       character: mockCharacter(),
       // ... other config
     });
-    
+
     runtime.registerAction(myAction);
-    
+
     const message = await runtime.processMessage(mockMessage());
-    expect(message.content.actions).toContain('MY_ACTION');
+    expect(message.content.actions).toContain("MY_ACTION");
   });
 });
 ```
@@ -741,17 +748,17 @@ describe('Action Integration', () => {
 
 ```typescript
 // Bad: Overly broad validation
-validate: async () => true
+validate: async () => true;
 
 // Bad: No error handling
 validate: async (runtime, message) => {
-  return message.content.text.includes('keyword'); // Can throw if text is null
-}
+  return message.content.text.includes("keyword"); // Can throw if text is null
+};
 
 // Good: Proper validation
 validate: async (runtime, message) => {
-  return message.content.text?.includes('keyword') || false;
-}
+  return message.content.text?.includes("keyword") || false;
+};
 ```
 
 ### Handler Problems
@@ -761,18 +768,18 @@ validate: async (runtime, message) => {
 handler: async (runtime, message, state, options, callback) => {
   const data = await fetchData(); // Can throw
   await callback({ text: data.result });
-}
+};
 
 // Good: Proper error handling
 handler: async (runtime, message, state, options, callback) => {
   try {
     const data = await fetchData();
-    await callback({ text: data.result, actions: ['MY_ACTION'] });
+    await callback({ text: data.result, actions: ["MY_ACTION"] });
   } catch (error) {
-    await callback({ text: 'Failed to fetch data', actions: ['ERROR'] });
+    await callback({ text: "Failed to fetch data", actions: ["ERROR"] });
     throw error;
   }
-}
+};
 ```
 
 ## Related Components
@@ -784,4 +791,8 @@ handler: async (runtime, message, state, options, callback) => {
 
 ## Summary
 
-Actions are the executable behaviors that give agents their interactive capabilities. They combine validation logic, handler implementation, and examples to create robust, reusable components. The plugin-bootstrap package provides excellent examples of real-world action implementations that demonstrate best practices for validation, error handling, and user interaction patterns. Well-designed actions form the foundation of engaging agent behaviors in ElizaOS.
+Actions are the executable behaviors that give agents their interactive capabilities. They combine
+validation logic, handler implementation, and examples to create robust, reusable components. The
+plugin-bootstrap package provides excellent examples of real-world action implementations that
+demonstrate best practices for validation, error handling, and user interaction patterns.
+Well-designed actions form the foundation of engaging agent behaviors in ElizaOS.

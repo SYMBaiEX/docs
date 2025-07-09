@@ -5,13 +5,17 @@ description: Using the useModel API for AI model interactions in elizaOS
 
 # useModel API
 
-The `useModel` API is the primary interface for interacting with AI models in elizaOS. It provides a unified, type-safe way to access different model types from various providers, with automatic provider selection, error handling, and performance optimization.
+The `useModel` API is the primary interface for interacting with AI models in elizaOS. It provides a
+unified, type-safe way to access different model types from various providers, with automatic
+provider selection, error handling, and performance optimization.
 
 ## Overview
 
-The `useModel` API abstracts the complexity of working with different AI providers, allowing you to focus on your application logic rather than provider-specific implementation details.
+The `useModel` API abstracts the complexity of working with different AI providers, allowing you to
+focus on your application logic rather than provider-specific implementation details.
 
 **Key Features:**
+
 - Type-safe model interactions
 - Automatic provider selection
 - Parameter validation
@@ -24,13 +28,13 @@ The `useModel` API abstracts the complexity of working with different AI provide
 ### Simple Text Generation
 
 ```typescript
-import { ModelType } from '@elizaos/core';
+import { ModelType } from "@elizaos/core";
 
 // Basic text generation
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Explain artificial intelligence in simple terms",
   temperature: 0.7,
-  maxTokens: 500
+  maxTokens: 500,
 });
 
 console.log(response); // "Artificial intelligence (AI) is..."
@@ -47,6 +51,7 @@ async useModel<T extends ModelTypeName, R = ModelResultMap[T]>(
 ```
 
 **Parameters:**
+
 - `modelType`: The type of model to use (e.g., `ModelType.TEXT_LARGE`)
 - `params`: Model-specific parameters (automatically typed based on model type)
 - `provider`: Optional provider override (defaults to automatic selection)
@@ -62,11 +67,11 @@ For complex reasoning and general text generation:
 ```typescript
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Write a product description for a smart home device",
-  temperature: 0.8,        // Creativity level (0.0-1.0)
-  maxTokens: 1000,         // Maximum response length
+  temperature: 0.8, // Creativity level (0.0-1.0)
+  maxTokens: 1000, // Maximum response length
   stopSequences: ["\n\n"], // Stop generation at these sequences
-  frequencyPenalty: 0.1,   // Reduce repetition
-  presencePenalty: 0.1     // Encourage diverse topics
+  frequencyPenalty: 0.1, // Reduce repetition
+  presencePenalty: 0.1, // Encourage diverse topics
 });
 ```
 
@@ -77,8 +82,8 @@ For logical reasoning and problem-solving:
 ```typescript
 const solution = await runtime.useModel(ModelType.TEXT_REASONING_LARGE, {
   prompt: "Solve this logic puzzle: If all roses are flowers...",
-  temperature: 0.1,  // Low temperature for logical consistency
-  maxTokens: 800
+  temperature: 0.1, // Low temperature for logical consistency
+  maxTokens: 800,
 });
 ```
 
@@ -90,7 +95,7 @@ For text completion tasks:
 const completion = await runtime.useModel(ModelType.TEXT_COMPLETION, {
   prompt: "The key to successful project management is",
   temperature: 0.6,
-  maxTokens: 300
+  maxTokens: 300,
 });
 ```
 
@@ -103,15 +108,13 @@ Convert text to vector embeddings:
 ```typescript
 // Simple text embedding
 const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-  text: "This is a sample text for embedding"
+  text: "This is a sample text for embedding",
 });
 
 console.log(embedding); // [0.1, -0.2, 0.5, ...] (number array)
 
 // Alternative parameter formats
-const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, 
-  "Direct text string"
-);
+const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, "Direct text string");
 
 const embedding3 = await runtime.useModel(ModelType.TEXT_EMBEDDING, null);
 ```
@@ -125,7 +128,7 @@ Convert text to tokens:
 ```typescript
 const tokens = await runtime.useModel(ModelType.TEXT_TOKENIZER_ENCODE, {
   prompt: "Hello, world!",
-  modelType: ModelType.TEXT_TOKENIZER_ENCODE
+  modelType: ModelType.TEXT_TOKENIZER_ENCODE,
 });
 
 console.log(tokens); // [15496, 11, 1917, 0] (number array)
@@ -138,7 +141,7 @@ Convert tokens back to text:
 ```typescript
 const text = await runtime.useModel(ModelType.TEXT_TOKENIZER_DECODE, {
   tokens: [15496, 11, 1917, 0],
-  modelType: ModelType.TEXT_TOKENIZER_DECODE
+  modelType: ModelType.TEXT_TOKENIZER_DECODE,
 });
 
 console.log(text); // "Hello, world!"
@@ -154,7 +157,7 @@ Generate images from text descriptions:
 const images = await runtime.useModel(ModelType.IMAGE, {
   prompt: "A serene mountain landscape at sunset",
   size: "1024x1024",
-  count: 1
+  count: 1,
 });
 
 console.log(images); // [{ url: "https://..." }]
@@ -168,11 +171,12 @@ Describe images with text:
 // Using image URL
 const description = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, {
   imageUrl: "https://example.com/image.jpg",
-  prompt: "Describe this image in detail"
+  prompt: "Describe this image in detail",
 });
 
 // Using direct URL
-const description2 = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, 
+const description2 = await runtime.useModel(
+  ModelType.IMAGE_DESCRIPTION,
   "https://example.com/image.jpg"
 );
 
@@ -189,11 +193,11 @@ Convert audio to text:
 // Using audio URL
 const transcript = await runtime.useModel(ModelType.TRANSCRIPTION, {
   audioUrl: "https://example.com/audio.mp3",
-  prompt: "This is a meeting recording"
+  prompt: "This is a meeting recording",
 });
 
 // Using audio buffer
-const audioBuffer = await fs.readFile('audio.wav');
+const audioBuffer = await fs.readFile("audio.wav");
 const transcript2 = await runtime.useModel(ModelType.TRANSCRIPTION, audioBuffer);
 
 console.log(transcript); // "Hello everyone, welcome to the meeting..."
@@ -207,13 +211,11 @@ Convert text to audio:
 const audio = await runtime.useModel(ModelType.TEXT_TO_SPEECH, {
   text: "Hello, this is a test of text-to-speech",
   voice: "alloy",
-  speed: 1.0
+  speed: 1.0,
 });
 
 // Direct text input
-const audio2 = await runtime.useModel(ModelType.TEXT_TO_SPEECH, 
-  "Hello, this is a test"
-);
+const audio2 = await runtime.useModel(ModelType.TEXT_TO_SPEECH, "Hello, this is a test");
 ```
 
 ### Object Generation Models
@@ -230,18 +232,18 @@ const userProfile = await runtime.useModel(ModelType.OBJECT_LARGE, {
     properties: {
       name: { type: "string" },
       age: { type: "number" },
-      skills: { 
-        type: "array", 
-        items: { type: "string" } 
+      skills: {
+        type: "array",
+        items: { type: "string" },
       },
-      experience: { type: "number" }
+      experience: { type: "number" },
     },
-    required: ["name", "age", "skills"]
+    required: ["name", "age", "skills"],
   },
-  temperature: 0.7
+  temperature: 0.7,
 });
 
-console.log(userProfile); 
+console.log(userProfile);
 // { name: "Alex Johnson", age: 28, skills: ["JavaScript", "Python"], ... }
 ```
 
@@ -256,7 +258,7 @@ By default, models are selected based on priority and availability:
 ```typescript
 // Uses the highest priority provider that supports TEXT_LARGE
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Generate a response"
+  prompt: "Generate a response",
 });
 ```
 
@@ -266,14 +268,22 @@ Force a specific provider:
 
 ```typescript
 // Force OpenAI provider
-const response = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Generate a response"
-}, 'openai');
+const response = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Generate a response",
+  },
+  "openai"
+);
 
 // Force Anthropic provider
-const response2 = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Generate a response"
-}, 'anthropic');
+const response2 = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Generate a response",
+  },
+  "anthropic"
+);
 ```
 
 ### Parameter Validation
@@ -284,7 +294,7 @@ The API provides compile-time type checking:
 // TypeScript will catch parameter mismatches
 const response = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
   prompt: "This will cause a type error", // Error: 'prompt' doesn't exist on TextEmbeddingParams
-  text: "This is correct"                 // Correct parameter
+  text: "This is correct", // Correct parameter
 });
 ```
 
@@ -296,18 +306,18 @@ const response = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
 try {
   const response = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt: "Generate a response",
-    temperature: 0.7
+    temperature: 0.7,
   });
-  
+
   console.log(response);
 } catch (error) {
-  console.error('Model generation failed:', error.message);
-  
+  console.error("Model generation failed:", error.message);
+
   // Handle specific error types
-  if (error.message.includes('API key')) {
-    console.error('Check your API key configuration');
-  } else if (error.message.includes('rate limit')) {
-    console.error('Rate limit exceeded, try again later');
+  if (error.message.includes("API key")) {
+    console.error("Check your API key configuration");
+  } else if (error.message.includes("rate limit")) {
+    console.error("Rate limit exceeded, try again later");
   }
 }
 ```
@@ -316,20 +326,24 @@ try {
 
 ```typescript
 async function generateWithFallback(runtime, prompt) {
-  const providers = ['openai', 'anthropic', 'ollama'];
-  
+  const providers = ["openai", "anthropic", "ollama"];
+
   for (const provider of providers) {
     try {
-      return await runtime.useModel(ModelType.TEXT_LARGE, {
-        prompt,
-        temperature: 0.7
-      }, provider);
+      return await runtime.useModel(
+        ModelType.TEXT_LARGE,
+        {
+          prompt,
+          temperature: 0.7,
+        },
+        provider
+      );
     } catch (error) {
       console.warn(`Provider ${provider} failed:`, error.message);
-      
+
       // Continue to next provider
       if (provider === providers[providers.length - 1]) {
-        throw new Error('All providers failed');
+        throw new Error("All providers failed");
       }
     }
   }
@@ -345,16 +359,16 @@ const cache = new Map();
 
 async function getCachedResponse(prompt) {
   const cacheKey = `text_large:${prompt}`;
-  
+
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
   }
-  
+
   const response = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt,
-    temperature: 0.7
+    temperature: 0.7,
   });
-  
+
   cache.set(cacheKey, response);
   return response;
 }
@@ -364,13 +378,13 @@ async function getCachedResponse(prompt) {
 
 ```typescript
 async function processBatch(prompts) {
-  const promises = prompts.map(prompt => 
+  const promises = prompts.map((prompt) =>
     runtime.useModel(ModelType.TEXT_LARGE, {
       prompt,
-      temperature: 0.7
+      temperature: 0.7,
     })
   );
-  
+
   return await Promise.all(promises);
 }
 ```
@@ -387,7 +401,7 @@ const memory = {
   content: { text: "User asked about pricing" },
   entityId: userId,
   roomId: roomId,
-  worldId: worldId
+  worldId: worldId,
 };
 
 const memoryWithEmbedding = await runtime.addEmbeddingToMemory(memory);
@@ -399,19 +413,19 @@ Use models within actions:
 
 ```typescript
 const analyzeAction = {
-  name: 'ANALYZE_DATA',
+  name: "ANALYZE_DATA",
   handler: async (runtime, message, state) => {
     const analysis = await runtime.useModel(ModelType.TEXT_LARGE, {
       prompt: `Analyze this data: ${message.content.text}`,
       temperature: 0.3,
-      maxTokens: 1000
+      maxTokens: 1000,
     });
-    
+
     return {
       text: analysis,
-      action: 'ANALYZE_DATA'
+      action: "ANALYZE_DATA",
     };
-  }
+  },
 };
 ```
 
@@ -421,20 +435,20 @@ Use models within providers:
 
 ```typescript
 const analysisProvider = {
-  name: 'ANALYSIS_PROVIDER',
+  name: "ANALYSIS_PROVIDER",
   get: async (runtime, message, state) => {
     const analysis = await runtime.useModel(ModelType.TEXT_LARGE, {
       prompt: `Provide analysis context for: ${message.content.text}`,
       temperature: 0.5,
-      maxTokens: 500
+      maxTokens: 500,
     });
-    
+
     return {
       text: analysis,
       values: { hasAnalysis: true },
-      data: { analysisResult: analysis }
+      data: { analysisResult: analysis },
     };
-  }
+  },
 };
 ```
 
@@ -454,9 +468,9 @@ const conversationHandler = async (runtime, message, state) => {
     `,
     temperature: 0.8,
     maxTokens: 800,
-    stopSequences: ['\nUser:', '\nAssistant:']
+    stopSequences: ["\nUser:", "\nAssistant:"],
   });
-  
+
   return response;
 };
 ```
@@ -473,9 +487,9 @@ const moderateContent = async (runtime, content) => {
       Respond with: SAFE, INAPPROPRIATE, or HARMFUL
     `,
     temperature: 0.1,
-    maxTokens: 50
+    maxTokens: 50,
   });
-  
+
   return moderation.trim().toUpperCase();
 };
 ```
@@ -499,9 +513,9 @@ const analyzeCode = async (runtime, code) => {
       4. Best practice violations
     `,
     temperature: 0.2,
-    maxTokens: 1500
+    maxTokens: 1500,
   });
-  
+
   return analysis;
 };
 ```
@@ -512,9 +526,9 @@ const analyzeCode = async (runtime, code) => {
 const summarizeDocument = async (runtime, document) => {
   // First, create embedding for the document
   const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: document
+    text: document,
   });
-  
+
   // Generate summary
   const summary = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt: `
@@ -525,12 +539,12 @@ const summarizeDocument = async (runtime, document) => {
       Summary:
     `,
     temperature: 0.3,
-    maxTokens: 300
+    maxTokens: 300,
   });
-  
+
   return {
     summary,
-    embedding
+    embedding,
   };
 };
 ```
@@ -543,16 +557,16 @@ const summarizeDocument = async (runtime, document) => {
 // Use appropriate parameters for your use case
 const creativeResponse = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Write a creative story",
-  temperature: 0.9,    // High creativity
+  temperature: 0.9, // High creativity
   maxTokens: 2000,
-  presencePenalty: 0.2 // Encourage diverse topics
+  presencePenalty: 0.2, // Encourage diverse topics
 });
 
 const factualResponse = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Explain quantum physics",
-  temperature: 0.1,    // Low creativity for accuracy
+  temperature: 0.1, // Low creativity for accuracy
   maxTokens: 1000,
-  frequencyPenalty: 0.1 // Reduce repetition
+  frequencyPenalty: 0.1, // Reduce repetition
 });
 ```
 
@@ -561,11 +575,11 @@ const factualResponse = await runtime.useModel(ModelType.TEXT_LARGE, {
 ```typescript
 // Choose appropriate model sizes
 const quickResponse = await runtime.useModel(ModelType.TEXT_SMALL, {
-  prompt: "What's the weather like?"
+  prompt: "What's the weather like?",
 });
 
 const complexAnalysis = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Analyze the economic implications of this policy"
+  prompt: "Analyze the economic implications of this policy",
 });
 ```
 
@@ -574,7 +588,7 @@ const complexAnalysis = await runtime.useModel(ModelType.TEXT_LARGE, {
 ```typescript
 async function robustModelCall(runtime, params) {
   const maxRetries = 3;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await runtime.useModel(ModelType.TEXT_LARGE, params);
@@ -582,11 +596,9 @@ async function robustModelCall(runtime, params) {
       if (attempt === maxRetries) {
         throw error;
       }
-      
+
       // Exponential backoff
-      await new Promise(resolve => 
-        setTimeout(resolve, Math.pow(2, attempt) * 1000)
-      );
+      await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
 }
@@ -597,28 +609,28 @@ async function robustModelCall(runtime, params) {
 ```typescript
 const monitoredModelCall = async (runtime, modelType, params) => {
   const startTime = Date.now();
-  
+
   try {
     const result = await runtime.useModel(modelType, params);
     const duration = Date.now() - startTime;
-    
-    runtime.logger.info('Model call succeeded', {
+
+    runtime.logger.info("Model call succeeded", {
       modelType,
       duration,
       inputLength: params.prompt?.length || 0,
-      outputLength: result.length || 0
+      outputLength: result.length || 0,
     });
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - startTime;
-    
-    runtime.logger.error('Model call failed', {
+
+    runtime.logger.error("Model call failed", {
       modelType,
       duration,
-      error: error.message
+      error: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -629,19 +641,21 @@ const monitoredModelCall = async (runtime, modelType, params) => {
 ### Common Issues
 
 1. **No model handler found**
+
    ```typescript
    // Check if model type is supported
    const handler = runtime.getModel(ModelType.TEXT_LARGE);
    if (!handler) {
-     console.error('No provider supports TEXT_LARGE');
+     console.error("No provider supports TEXT_LARGE");
    }
    ```
 
 2. **Type errors**
+
    ```typescript
    // Ensure parameters match model type
    const response = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-     text: "Correct parameter" // Use 'text', not 'prompt'
+     text: "Correct parameter", // Use 'text', not 'prompt'
    });
    ```
 
@@ -649,12 +663,16 @@ const monitoredModelCall = async (runtime, modelType, params) => {
    ```typescript
    // Check provider availability
    try {
-     const response = await runtime.useModel(ModelType.TEXT_LARGE, {
-       prompt: "Test"
-     }, 'openai');
+     const response = await runtime.useModel(
+       ModelType.TEXT_LARGE,
+       {
+         prompt: "Test",
+       },
+       "openai"
+     );
    } catch (error) {
-     if (error.message.includes('API key')) {
-       console.error('OpenAI API key not configured');
+     if (error.message.includes("API key")) {
+       console.error("OpenAI API key not configured");
      }
    }
    ```
@@ -665,12 +683,14 @@ Enable detailed logging:
 
 ```typescript
 // Set environment variable for debug logging
-process.env.LOG_LEVEL = 'debug';
+process.env.LOG_LEVEL = "debug";
 
 // The runtime will log model calls automatically
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
-  prompt: "Test prompt"
+  prompt: "Test prompt",
 });
 ```
 
-The `useModel` API provides a powerful, flexible interface for AI model integration in elizaOS. By understanding the different model types, parameters, and patterns, you can build sophisticated AI-powered applications that leverage the best capabilities of each model type and provider.
+The `useModel` API provides a powerful, flexible interface for AI model integration in elizaOS. By
+understanding the different model types, parameters, and patterns, you can build sophisticated
+AI-powered applications that leverage the best capabilities of each model type and provider.

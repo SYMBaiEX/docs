@@ -5,17 +5,21 @@ description: Complete reference for ElizaOS REST API endpoints
 
 ## Overview
 
-The ElizaOS REST API provides comprehensive endpoints for managing agents, messaging, memory, media, and system operations. All endpoints are prefixed with `/api` and return JSON responses.
+The ElizaOS REST API provides comprehensive endpoints for managing agents, messaging, memory, media,
+and system operations. All endpoints are prefixed with `/api` and return JSON responses.
 
 ## Base Configuration
 
 ### Base URL
+
 ```
 http://localhost:3000/api
 ```
 
 ### Authentication
+
 If `ELIZA_SERVER_AUTH_TOKEN` is set, include the API key in headers:
+
 ```http
 X-API-KEY: your-api-key
 ```
@@ -23,14 +27,18 @@ X-API-KEY: your-api-key
 ### Response Format
 
 **Success Response:**
+
 ```json
 {
   "success": true,
-  "data": { /* endpoint-specific data */ }
+  "data": {
+    /* endpoint-specific data */
+  }
 }
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,
@@ -45,11 +53,13 @@ X-API-KEY: your-api-key
 ## Agent Management
 
 ### List All Agents
+
 ```http
 GET /api/agents
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -68,11 +78,13 @@ GET /api/agents
 ```
 
 ### Get Agent Details
+
 ```http
 GET /api/agents/:agentId
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -89,39 +101,50 @@ GET /api/agents/:agentId
 ```
 
 ### Create Agent
+
 ```http
 POST /api/agents
 ```
 
 **Request Body:**
+
 ```json
 {
-  "characterJson": { /* character configuration */ },
+  "characterJson": {
+    /* character configuration */
+  },
   // OR
   "characterPath": "/path/to/character.json",
   // OR
-  "agent": { /* agent configuration */ }
+  "agent": {
+    /* agent configuration */
+  }
 }
 ```
 
 ### Start Agent
+
 ```http
 POST /api/agents/:agentId/start
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
     "id": "agent-uuid",
-    "character": { /* character data */ },
+    "character": {
+      /* character data */
+    },
     "status": "active"
   }
 }
 ```
 
 ### Stop Agent
+
 ```http
 POST /api/agents/:agentId/stop
 ```
@@ -131,11 +154,13 @@ POST /api/agents/:agentId/stop
 ### Core Messaging
 
 #### Submit Message
+
 ```http
 POST /api/messaging/submit
 ```
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -156,11 +181,13 @@ POST /api/messaging/submit
 ```
 
 #### Complete Message
+
 ```http
 POST /api/messaging/complete
 ```
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -169,11 +196,13 @@ POST /api/messaging/complete
 ```
 
 #### Ingest External Message
+
 ```http
 POST /api/messaging/ingest-external
 ```
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -191,11 +220,13 @@ POST /api/messaging/ingest-external
 ### Servers
 
 #### List Servers
+
 ```http
 GET /api/messaging/servers
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -214,6 +245,7 @@ GET /api/messaging/servers
 ```
 
 #### Get Server Details
+
 ```http
 GET /api/messaging/servers/:serverId
 ```
@@ -221,14 +253,17 @@ GET /api/messaging/servers/:serverId
 ### Channels
 
 #### List Channels for Server
+
 ```http
 GET /api/messaging/servers/:serverId/channels
 ```
 
 **Query Parameters:**
+
 - `participantId` - Filter channels by participant
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -247,11 +282,13 @@ GET /api/messaging/servers/:serverId/channels
 ```
 
 #### Create Channel
+
 ```http
 POST /api/messaging/servers/:serverId/channels
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Channel Name",
@@ -262,11 +299,13 @@ POST /api/messaging/servers/:serverId/channels
 ```
 
 #### Send Message to Channel
+
 ```http
 POST /api/messaging/central-channels/:channelId/messages
 ```
 
 **Request Body:**
+
 ```json
 {
   "author_id": "user-uuid",
@@ -282,15 +321,18 @@ POST /api/messaging/central-channels/:channelId/messages
 ```
 
 #### Get Channel Messages
+
 ```http
 GET /api/messaging/central-channels/:channelId/messages
 ```
 
 **Query Parameters:**
+
 - `limit` - Number of messages (default: 50)
 - `before` - ISO timestamp for pagination
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -310,15 +352,18 @@ GET /api/messaging/central-channels/:channelId/messages
 ```
 
 #### Upload File to Channel
+
 ```http
 POST /api/messaging/central-channels/:channelId/upload
 ```
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Media file
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -330,6 +375,7 @@ POST /api/messaging/central-channels/:channelId/upload
 ```
 
 #### Delete Message
+
 ```http
 DELETE /api/messaging/messages/:messageId
 ```
@@ -337,15 +383,18 @@ DELETE /api/messaging/messages/:messageId
 ## Memory Management
 
 ### Search Agent Memory
+
 ```http
 GET /api/memory/agents/:agentId/search
 ```
 
 **Query Parameters:**
+
 - `query` - Search text (required)
 - `limit` - Result limit (default: 10)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -366,11 +415,13 @@ GET /api/memory/agents/:agentId/search
 ```
 
 ### Create Memory
+
 ```http
 POST /api/memory/agents/:agentId/memories
 ```
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -382,38 +433,46 @@ POST /api/memory/agents/:agentId/memories
 ```
 
 ### Get Memories by Room
+
 ```http
 GET /api/memory/agents/:agentId/rooms/:roomId/memories
 ```
 
 **Query Parameters:**
+
 - `unique` - Return only unique memories (default: true)
 
 ### Remove Memory
+
 ```http
 DELETE /api/memory/agents/:agentId/memories/:memoryId
 ```
 
 ### Remove All Memories
+
 ```http
 DELETE /api/memory/agents/:agentId/memories
 ```
 
 **Query Parameters:**
+
 - `confirm` - Must be "true" to execute
 
 ## Audio Processing
 
 ### Transcribe Audio
+
 ```http
 POST /api/audio/transcribe
 ```
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `audio` - Audio file
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -425,11 +484,13 @@ POST /api/audio/transcribe
 ```
 
 ### Generate Speech
+
 ```http
 POST /api/audio/speech
 ```
 
 **Request Body:**
+
 ```json
 {
   "text": "Text to convert to speech",
@@ -439,6 +500,7 @@ POST /api/audio/speech
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -451,16 +513,19 @@ POST /api/audio/speech
 ```
 
 ### Process Audio Conversation
+
 ```http
 POST /api/audio/agents/:agentId/conversation
 ```
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `audio` - Audio file
 - Field: `roomId` - Room UUID
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -475,15 +540,18 @@ POST /api/audio/agents/:agentId/conversation
 ## Media Management
 
 ### Upload Agent Media
+
 ```http
 POST /api/media/agents/:agentId/upload
 ```
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Media file
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -497,16 +565,19 @@ POST /api/media/agents/:agentId/upload
 ```
 
 ### Upload Channel Media
+
 ```http
 POST /api/media/channels/:channelId/upload
 ```
 
 ### Generate Media
+
 ```http
 POST /api/media/agents/:agentId/generate
 ```
 
 **Request Body:**
+
 ```json
 {
   "prompt": "Image generation prompt",
@@ -516,6 +587,7 @@ POST /api/media/agents/:agentId/generate
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -534,11 +606,13 @@ POST /api/media/agents/:agentId/generate
 ### Health Monitoring
 
 #### Ping
+
 ```http
 GET /api/server/ping
 ```
 
 **Response:**
+
 ```json
 {
   "pong": true,
@@ -547,11 +621,13 @@ GET /api/server/ping
 ```
 
 #### Hello World
+
 ```http
 GET /api/server/hello
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Hello World!"
@@ -559,11 +635,13 @@ GET /api/server/hello
 ```
 
 #### System Status
+
 ```http
 GET /api/server/status
 ```
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -573,11 +651,13 @@ GET /api/server/status
 ```
 
 #### Health Check
+
 ```http
 GET /api/server/health
 ```
 
 **Response:**
+
 ```json
 {
   "status": "OK",
@@ -590,11 +670,13 @@ GET /api/server/health
 ```
 
 #### Server Stop
+
 ```http
 POST /api/server/stop
 ```
 
 **Response:**
+
 ```json
 {
   "message": "Server stopping..."
@@ -604,11 +686,13 @@ POST /api/server/stop
 ### Debugging
 
 #### Debug Information
+
 ```http
 GET /api/server/debug
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -624,16 +708,19 @@ GET /api/server/debug
 ### Logging
 
 #### Stream Logs
+
 ```http
 GET /api/server/logs
 ```
 
 **Query Parameters:**
+
 - `level` - Log level filter (debug, info, warn, error)
 - `agentId` - Filter by specific agent
 - `limit` - Number of log entries (default: 100)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -656,11 +743,13 @@ GET /api/server/logs
 ### Environment Management
 
 #### Get Local Environment Variables
+
 ```http
 GET /api/system/env/local
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -673,11 +762,13 @@ GET /api/system/env/local
 ```
 
 #### Update Local Environment Variables
+
 ```http
 POST /api/system/env/local
 ```
 
 **Request Body:**
+
 ```json
 {
   "content": {
@@ -689,6 +780,7 @@ POST /api/system/env/local
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -699,11 +791,13 @@ POST /api/system/env/local
 ### Version Management
 
 #### Get Version Information
+
 ```http
 GET /api/system/version
 ```
 
 **Response:**
+
 ```json
 {
   "version": "1.2.0",
@@ -717,11 +811,13 @@ GET /api/system/version
 ## TEE Operations
 
 ### Generate Remote Attestation
+
 ```http
 POST /api/tee/attestation
 ```
 
 **Request Body:**
+
 ```json
 {
   "reportData": "custom-report-data"
@@ -729,6 +825,7 @@ POST /api/tee/attestation
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -740,11 +837,13 @@ POST /api/tee/attestation
 ```
 
 ### Derive Key
+
 ```http
 POST /api/tee/derive-key
 ```
 
 **Request Body:**
+
 ```json
 {
   "path": "/path/to/derive",
@@ -756,20 +855,21 @@ POST /api/tee/derive-key
 
 Common error codes returned by the API:
 
-| Code | Description |
-|------|-------------|
-| `INVALID_ID` | Invalid UUID format |
-| `NOT_FOUND` | Resource not found |
+| Code              | Description                |
+| ----------------- | -------------------------- |
+| `INVALID_ID`      | Invalid UUID format        |
+| `NOT_FOUND`       | Resource not found         |
 | `INVALID_REQUEST` | Invalid request parameters |
-| `DB_ERROR` | Database operation failed |
-| `AUTH_REQUIRED` | Authentication required |
-| `FORBIDDEN` | Insufficient permissions |
-| `RATE_LIMITED` | Too many requests |
-| `INTERNAL_ERROR` | Server error |
+| `DB_ERROR`        | Database operation failed  |
+| `AUTH_REQUIRED`   | Authentication required    |
+| `FORBIDDEN`       | Insufficient permissions   |
+| `RATE_LIMITED`    | Too many requests          |
+| `INTERNAL_ERROR`  | Server error               |
 
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse:
+
 - Default: 100 requests per minute per IP
 - File uploads: 10 requests per minute per IP
 - Can be configured via environment variables
@@ -777,6 +877,7 @@ API endpoints are rate-limited to prevent abuse:
 ## CORS Configuration
 
 CORS is enabled with the following defaults:
+
 - Origin: Configured via `CORS_ORIGIN` env var or `*`
 - Credentials: Enabled
 - Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS

@@ -5,7 +5,9 @@ description: Complete guide for developing ElizaOS plugins with v1.2.0 features
 
 # Plugin Development Guide
 
-This comprehensive guide covers the complete process of developing ElizaOS plugins with the latest v1.2.0 features, including the enhanced Plugin interface, event system, HTTP routes, testing framework, and more.
+This comprehensive guide covers the complete process of developing ElizaOS plugins with the latest
+v1.2.0 features, including the enhanced Plugin interface, event system, HTTP routes, testing
+framework, and more.
 
 ## Plugin Interface Definition
 
@@ -117,38 +119,38 @@ Actions define what your plugin can do in response to user messages:
 
 ```typescript
 // src/actions/myAction.ts
-import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { Action, IAgentRuntime, Memory, State } from "@elizaos/core";
 
 export const myAction: Action = {
-  name: 'MY_ACTION',
-  similes: ['do something', 'perform action'],
-  description: 'Performs my custom action',
-  
+  name: "MY_ACTION",
+  similes: ["do something", "perform action"],
+  description: "Performs my custom action",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     // Validation logic
     return true;
   },
-  
+
   handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     // Action implementation
     return {
-      text: 'Action completed successfully!',
-      actions: ['MY_ACTION']
+      text: "Action completed successfully!",
+      actions: ["MY_ACTION"],
     };
   },
-  
+
   examples: [
     [
       {
         user: "user",
-        content: { text: "Can you do something?" }
+        content: { text: "Can you do something?" },
       },
       {
         user: "agent",
-        content: { text: "I'll do something for you." }
-      }
-    ]
-  ]
+        content: { text: "I'll do something for you." },
+      },
+    ],
+  ],
 };
 ```
 
@@ -158,19 +160,19 @@ Providers supply data or context to the agent:
 
 ```typescript
 // src/providers/myProvider.ts
-import { Provider, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { IAgentRuntime, Memory, Provider, State } from "@elizaos/core";
 
 export const myProvider: Provider = {
-  name: 'MY_PROVIDER',
-  description: 'Provides data for my plugin',
+  name: "MY_PROVIDER",
+  description: "Provides data for my plugin",
 
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     return {
-      text: 'Provider data',
-      values: { key: 'value' },
-      data: { timestamp: Date.now() }
+      text: "Provider data",
+      values: { key: "value" },
+      data: { timestamp: Date.now() },
     };
-  }
+  },
 };
 ```
 
@@ -180,26 +182,26 @@ Services handle background processing and lifecycle management:
 
 ```typescript
 // src/services/myService.ts
-import { Service, IAgentRuntime, logger } from '@elizaos/core';
+import { IAgentRuntime, Service, logger } from "@elizaos/core";
 
 export class MyService extends Service {
-  static serviceType = 'my-service';
-  
-  capabilityDescription = 'Handles background tasks for my plugin';
+  static serviceType = "my-service";
+
+  capabilityDescription = "Handles background tasks for my plugin";
 
   constructor(protected runtime: IAgentRuntime) {
     super(runtime);
   }
 
   static async start(runtime: IAgentRuntime) {
-    logger.info('Starting my service');
+    logger.info("Starting my service");
     const service = new MyService(runtime);
     // Initialize service resources
     return service;
   }
 
   static async stop(runtime: IAgentRuntime) {
-    logger.info('Stopping my service');
+    logger.info("Stopping my service");
     const service = runtime.getService(MyService.serviceType);
     if (service) {
       await service.stop();
@@ -208,7 +210,7 @@ export class MyService extends Service {
 
   async stop() {
     // Clean up resources
-    logger.info('My service stopped');
+    logger.info("My service stopped");
   }
 }
 ```
@@ -220,30 +222,30 @@ Handle system events in your plugin:
 ```typescript
 // In your plugin definition
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
-        logger.debug('Message received:', params.message);
+        logger.debug("Message received:", params.message);
         // Handle message received event
-      }
+      },
     ],
     VOICE_MESSAGE_RECEIVED: [
       async (params) => {
-        logger.debug('Voice message received:', params.message);
+        logger.debug("Voice message received:", params.message);
         // Handle voice message
-      }
+      },
     ],
     WORLD_CONNECTED: [
       async (params) => {
-        logger.debug('World connected:', params.world);
+        logger.debug("World connected:", params.world);
         // Handle world connection
-      }
-    ]
+      },
+    ],
   },
-  
+
   // ... other plugin properties
 };
 ```
@@ -255,30 +257,30 @@ Add HTTP endpoints to your plugin:
 ```typescript
 // In your plugin definition
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   routes: [
     {
-      name: 'hello-world',
-      path: '/hello',
-      type: 'GET',
+      name: "hello-world",
+      path: "/hello",
+      type: "GET",
       handler: async (req: any, res: any) => {
-        res.json({ message: 'Hello from my plugin!' });
-      }
+        res.json({ message: "Hello from my plugin!" });
+      },
     },
     {
-      name: 'upload-file',
-      path: '/upload',
-      type: 'POST',
+      name: "upload-file",
+      path: "/upload",
+      type: "POST",
       isMultipart: true,
       handler: async (req: any, res: any) => {
         // Handle file upload
         res.json({ success: true });
-      }
-    }
+      },
+    },
   ],
-  
+
   // ... other plugin properties
 };
 ```
@@ -290,20 +292,20 @@ Integrate custom AI models:
 ```typescript
 // In your plugin definition
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   models: {
     [ModelType.TEXT_SMALL]: async (runtime, { prompt, stopSequences = [] }) => {
       // Custom small model implementation
-      return 'Generated text from custom model';
+      return "Generated text from custom model";
     },
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
       // Custom large model implementation
-      return 'Generated text from custom large model';
-    }
+      return "Generated text from custom large model";
+    },
   },
-  
+
   // ... other plugin properties
 };
 ```
@@ -316,44 +318,44 @@ Create end-to-end tests that run in a real ElizaOS runtime:
 
 ```typescript
 // src/__tests__/e2e/my-plugin.ts
-import { TestSuite } from '@elizaos/core';
+import { TestSuite } from "@elizaos/core";
 
 export const MyPluginTestSuite: TestSuite = {
-  name: 'my_plugin_test_suite',
-  description: 'E2E tests for my plugin',
+  name: "my_plugin_test_suite",
+  description: "E2E tests for my plugin",
 
   tests: [
     {
-      name: 'action_test',
+      name: "action_test",
       fn: async (runtime) => {
         // Test action execution
-        const action = runtime.actions?.find(a => a.name === 'MY_ACTION');
+        const action = runtime.actions?.find((a) => a.name === "MY_ACTION");
         if (!action) {
-          throw new Error('Action not found');
+          throw new Error("Action not found");
         }
 
         // Execute action
         const result = await action.handler(runtime, testMessage, testState);
-        
-        if (!result.text.includes('success')) {
-          throw new Error('Action did not succeed');
+
+        if (!result.text.includes("success")) {
+          throw new Error("Action did not succeed");
         }
-      }
+      },
     },
     {
-      name: 'service_test',
+      name: "service_test",
       fn: async (runtime) => {
         // Test service functionality
-        const service = runtime.getService('my-service');
+        const service = runtime.getService("my-service");
         if (!service) {
-          throw new Error('Service not found');
+          throw new Error("Service not found");
         }
-        
+
         // Test service capabilities
         expect(service.capabilityDescription).toBeDefined();
-      }
-    }
-  ]
+      },
+    },
+  ],
 };
 ```
 
@@ -407,27 +409,27 @@ Configure your plugin with environment variables:
 
 ```typescript
 // src/plugin.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 const configSchema = z.object({
-  API_KEY: z.string().min(1, 'API key is required'),
-  ENDPOINT: z.string().url('Must be a valid URL').optional(),
-  TIMEOUT: z.number().int().positive().default(5000)
+  API_KEY: z.string().min(1, "API key is required"),
+  ENDPOINT: z.string().url("Must be a valid URL").optional(),
+  TIMEOUT: z.number().int().positive().default(5000),
 });
 
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   config: {
     API_KEY: process.env.API_KEY,
-    ENDPOINT: process.env.ENDPOINT || 'https://api.example.com',
-    TIMEOUT: parseInt(process.env.TIMEOUT || '5000')
+    ENDPOINT: process.env.ENDPOINT || "https://api.example.com",
+    TIMEOUT: parseInt(process.env.TIMEOUT || "5000"),
   },
 
   async init(config: Record<string, string>) {
     const validatedConfig = await configSchema.parseAsync(config);
-    
+
     // Set environment variables
     for (const [key, value] of Object.entries(validatedConfig)) {
       if (value !== undefined) {
@@ -448,23 +450,23 @@ Define custom entity types:
 
 ```typescript
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   componentTypes: [
     {
-      name: 'MyEntity',
+      name: "MyEntity",
       schema: {
-        id: 'string',
-        name: 'string',
-        metadata: 'object'
+        id: "string",
+        name: "string",
+        metadata: "object",
       },
       validator: (data) => {
-        return typeof data.id === 'string' && typeof data.name === 'string';
-      }
-    }
+        return typeof data.id === "string" && typeof data.name === "string";
+      },
+    },
   ],
-  
+
   // ... other plugin properties
 };
 ```
@@ -475,18 +477,18 @@ Specify plugin dependencies:
 
 ```typescript
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'My awesome plugin',
-  
+  name: "my-plugin",
+  description: "My awesome plugin",
+
   // Runtime dependencies
-  dependencies: ['@elizaos/plugin-knowledge'],
-  
+  dependencies: ["@elizaos/plugin-knowledge"],
+
   // Test dependencies
-  testDependencies: ['@elizaos/plugin-testing-utils'],
-  
+  testDependencies: ["@elizaos/plugin-testing-utils"],
+
   // Plugin loading priority
   priority: 100,
-  
+
   // ... other plugin properties
 };
 ```
@@ -517,6 +519,7 @@ elizaos publish
 ```
 
 This will:
+
 - Publish to npm
 - Create/update GitHub repository
 - Submit to ElizaOS registry

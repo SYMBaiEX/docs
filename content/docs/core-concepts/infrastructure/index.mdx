@@ -5,15 +5,20 @@ description: ElizaOS infrastructure components and development tools
 
 # Overview
 
-ElizaOS infrastructure provides a comprehensive set of tools and services for building, testing, deploying, and managing AI agents. The infrastructure is designed to be developer-friendly, scalable, and secure, supporting the full development lifecycle from initial project creation to production deployment.
+ElizaOS infrastructure provides a comprehensive set of tools and services for building, testing,
+deploying, and managing AI agents. The infrastructure is designed to be developer-friendly,
+scalable, and secure, supporting the full development lifecycle from initial project creation to
+production deployment.
 
 ## Core Components
 
 ### [CLI Tools](./cli-tools)
 
-The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers, providing a comprehensive toolkit for agent development:
+The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers, providing a comprehensive
+toolkit for agent development:
 
 **Command Categories**:
+
 - **Project Management**: `create`, `start`, `dev` - Project lifecycle management
 - **Agent Operations**: `agent` - Agent-specific commands and management
 - **Plugin Management**: `plugins` - Plugin discovery, installation, and management
@@ -24,6 +29,7 @@ The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers, provid
 - **Maintenance**: `update`, `monorepo` - System maintenance and updates
 
 **Key Features**:
+
 - **Auto-Installation**: Automatic dependency management with Bun
 - **Hot Reloading**: Real-time development with instant rebuilds
 - **Port Management**: Intelligent port allocation and conflict resolution
@@ -32,6 +38,7 @@ The ElizaOS CLI (`@elizaos/cli`) is the primary interface for developers, provid
 - **Configuration Management**: Hierarchical configuration with validation
 
 **CLI Architecture**:
+
 ```typescript
 interface CLICommand {
   name: string;
@@ -47,6 +54,7 @@ interface CLICommand {
 Flexible environment management system with hierarchical configuration:
 
 **Configuration Features**:
+
 - **Hierarchical Structure**: Environment files with inheritance patterns
 - **Secret Management**: Secure handling of API keys and sensitive data
 - **Plugin Integration**: Per-plugin environment variable management
@@ -55,6 +63,7 @@ Flexible environment management system with hierarchical configuration:
 - **Encryption**: Optional secret encryption for enhanced security
 
 **Environment Structure**:
+
 ```bash
 project/
 ├── .env                    # Base environment
@@ -65,6 +74,7 @@ project/
 ```
 
 **Environment Management**:
+
 ```typescript
 interface EnvironmentConfig {
   load(): Promise<void>;
@@ -81,6 +91,7 @@ interface EnvironmentConfig {
 Comprehensive testing framework supporting multiple test types and environments:
 
 **Test Types**:
+
 - **Unit Tests**: Component isolation and functionality testing
 - **Integration Tests**: Feature integration and component interaction
 - **E2E Tests**: Full workflow and user journey testing
@@ -88,6 +99,7 @@ Comprehensive testing framework supporting multiple test types and environments:
 - **Shell Tests**: CLI command testing using BATS framework
 
 **Testing Architecture**:
+
 ```typescript
 interface TestFramework {
   runTests(type: TestType, options: TestOptions): Promise<TestResult>;
@@ -98,6 +110,7 @@ interface TestFramework {
 ```
 
 **Test Utilities**:
+
 - **Port Management**: Automatic port allocation for test environments
 - **Process Control**: Test process isolation and cleanup
 - **Timeout Management**: Configurable timeouts for different test types
@@ -109,6 +122,7 @@ interface TestFramework {
 Essential services powering the platform infrastructure:
 
 **Core Services**:
+
 - **File System Services**: Template management and directory operations
 - **Process Management**: Server control and port handling
 - **Plugin Services**: Discovery, loading, and registry management
@@ -117,6 +131,7 @@ Essential services powering the platform infrastructure:
 - **Deployment Services**: Production deployment and containerization
 
 **Service Architecture**:
+
 ```typescript
 interface Service {
   name: string;
@@ -132,6 +147,7 @@ interface Service {
 ### Project Creation and Setup
 
 **Quick Start**:
+
 ```bash
 # Install CLI globally
 bun install -g @elizaos/cli
@@ -145,6 +161,7 @@ elizaos dev
 ```
 
 **Project Structure**:
+
 ```
 project/
 ├── src/
@@ -164,6 +181,7 @@ project/
 ### Development Commands
 
 **Core Development**:
+
 ```bash
 # Development mode with hot reload
 elizaos dev
@@ -179,6 +197,7 @@ elizaos dev --port 4000
 ```
 
 **Testing Commands**:
+
 ```bash
 # Run all tests
 elizaos test
@@ -196,6 +215,7 @@ elizaos test path/to/test.ts
 ```
 
 **Build and Deployment**:
+
 ```bash
 # Build for production
 elizaos start --build
@@ -212,6 +232,7 @@ elizaos tee phala cvms create
 ### Plugin Creation Workflow
 
 **Plugin Scaffolding**:
+
 ```bash
 # Create new plugin
 elizaos create my-plugin --type plugin
@@ -227,6 +248,7 @@ elizaos dev
 ```
 
 **Plugin Structure**:
+
 ```
 plugin-name/
 ├── src/
@@ -250,12 +272,13 @@ plugin-name/
 ### Plugin Development Patterns
 
 **Plugin Definition**:
+
 ```typescript
-import { Plugin } from '@elizaos/core';
+import { Plugin } from "@elizaos/core";
 
 export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  description: 'Custom plugin for specific functionality',
+  name: "my-plugin",
+  description: "Custom plugin for specific functionality",
   actions: [
     // Custom actions
   ],
@@ -267,11 +290,12 @@ export const myPlugin: Plugin = {
   ],
   services: [
     // Custom services
-  ]
+  ],
 };
 ```
 
 **Plugin Testing**:
+
 ```bash
 # Test plugin in isolation
 elizaos test
@@ -284,6 +308,7 @@ elizaos test --type integration
 ```
 
 **Plugin Publishing**:
+
 ```bash
 # Validate plugin structure
 elizaos publish --validate
@@ -300,6 +325,7 @@ elizaos publish --version patch
 ### Local Development Deployment
 
 **Development Server**:
+
 ```bash
 # Start local development server
 elizaos start
@@ -312,6 +338,7 @@ elizaos start --debug
 ```
 
 **Development Features**:
+
 - **Hot Reloading**: Automatic restart on code changes
 - **Debug Mode**: Verbose logging and error reporting
 - **Port Management**: Automatic port allocation
@@ -320,6 +347,7 @@ elizaos start --debug
 ### Production Deployment
 
 **Container Deployment**:
+
 ```bash
 # Build Docker image
 docker build -t my-agent .
@@ -332,6 +360,7 @@ docker run -e OPENAI_API_KEY=your_key -p 3000:3000 my-agent
 ```
 
 **Cloud Deployment**:
+
 ```bash
 # Build for production
 elizaos start --build
@@ -343,6 +372,7 @@ elizaos deploy --platform vercel
 ```
 
 **TEE Deployment**:
+
 ```bash
 # Deploy to Trusted Execution Environment
 elizaos tee phala cvms create
@@ -359,6 +389,7 @@ elizaos tee update
 ### TypeScript Build Pipeline
 
 **Build Configuration**:
+
 - **tsup**: Fast TypeScript bundler for optimized builds
 - **Type Safety**: Strict TypeScript configuration with full type checking
 - **Source Maps**: Complete debugging support with source maps
@@ -366,12 +397,13 @@ elizaos tee update
 - **Module Resolution**: Advanced module resolution and path mapping
 
 **Build Process**:
+
 ```typescript
 interface BuildConfig {
   entry: string[];
   outDir: string;
-  target: 'node' | 'browser';
-  format: 'cjs' | 'esm';
+  target: "node" | "browser";
+  format: "cjs" | "esm";
   sourcemap: boolean;
   minify: boolean;
   treeshake: boolean;
@@ -381,6 +413,7 @@ interface BuildConfig {
 ### Frontend Build System
 
 **Vite Integration**:
+
 - **Hot Module Replacement**: Instant updates during development
 - **React Support**: Modern React development with JSX/TSX
 - **Asset Optimization**: Image and CSS processing
@@ -388,6 +421,7 @@ interface BuildConfig {
 - **Plugin Ecosystem**: Extensive plugin support
 
 **Build Optimization**:
+
 - **Code Splitting**: Automatic code splitting for better loading
 - **Asset Optimization**: Image compression and optimization
 - **Bundle Analysis**: Bundle size analysis and optimization
@@ -398,6 +432,7 @@ interface BuildConfig {
 ### Test Architecture
 
 **Test Levels**:
+
 1. **Unit Tests**: Component isolation and functionality testing
 2. **Integration Tests**: Feature integration and component interaction
 3. **E2E Tests**: Full workflow and user journey testing
@@ -405,6 +440,7 @@ interface BuildConfig {
 5. **Security Tests**: Vulnerability scanning and security testing
 
 **Test Execution**:
+
 ```bash
 # Run all tests
 elizaos test
@@ -425,6 +461,7 @@ elizaos test --watch
 ### Test Utilities
 
 **Test Framework Integration**:
+
 - **Bun Test**: Native Bun testing framework
 - **Jest**: JavaScript testing framework
 - **Cypress**: End-to-end testing
@@ -432,6 +469,7 @@ elizaos test --watch
 - **BATS**: Shell script testing
 
 **Test Utilities**:
+
 ```typescript
 interface TestUtilities {
   setupAgent(config: AgentConfig): Promise<IAgentRuntime>;
@@ -447,6 +485,7 @@ interface TestUtilities {
 ### Security Features
 
 **Environment Security**:
+
 - **Secret Management**: Secure handling of API keys and sensitive data
 - **Validation**: Schema-based configuration validation
 - **Access Control**: Limited environment exposure and role-based access
@@ -454,6 +493,7 @@ interface TestUtilities {
 - **Audit Logging**: Comprehensive logging of security events
 
 **Build Security**:
+
 - **Dependency Scanning**: Vulnerability detection in dependencies
 - **Code Analysis**: Static code analysis and security linting
 - **Secure Defaults**: Safe configuration out of the box
@@ -462,6 +502,7 @@ interface TestUtilities {
 ### Compliance
 
 **Data Protection**:
+
 - **Privacy Controls**: Data anonymization and privacy protection
 - **Audit Trails**: Complete audit trails for compliance
 - **Data Retention**: Configurable data retention policies
@@ -472,6 +513,7 @@ interface TestUtilities {
 ### Development Performance
 
 **Development Optimization**:
+
 - **Hot Module Replacement**: Instant updates without full reload
 - **Incremental Builds**: Fast rebuilds with change detection
 - **Parallel Processing**: Multi-core utilization for builds
@@ -481,6 +523,7 @@ interface TestUtilities {
 ### Runtime Performance
 
 **Production Optimization**:
+
 - **Lazy Loading**: On-demand module loading
 - **Connection Pooling**: Database and API connection pooling
 - **Memory Management**: Efficient resource usage and cleanup
@@ -492,9 +535,10 @@ interface TestUtilities {
 ### Development Monitoring
 
 **Debug Tools**:
+
 ```typescript
 // Enable debug logging
-process.env.DEBUG = 'elizaos:*';
+process.env.DEBUG = "elizaos:*";
 
 // Performance monitoring
 const start = performance.now();
@@ -502,12 +546,13 @@ const start = performance.now();
 console.log(`Operation took ${performance.now() - start}ms`);
 
 // Memory monitoring
-console.log('Memory usage:', process.memoryUsage());
+console.log("Memory usage:", process.memoryUsage());
 ```
 
 ### Production Monitoring
 
 **Observability Features**:
+
 - **Health Checks**: Service availability monitoring
 - **Error Tracking**: Centralized error collection and alerting
 - **Performance Metrics**: Response time and throughput tracking
@@ -515,6 +560,7 @@ console.log('Memory usage:', process.memoryUsage());
 - **Distributed Tracing**: Request tracing across services
 
 **Monitoring Integration**:
+
 ```typescript
 interface MonitoringService {
   recordMetric(name: string, value: number): void;
@@ -558,6 +604,7 @@ interface MonitoringService {
 ### Common Issues
 
 **Development Issues**:
+
 1. **Port Conflicts**: Use custom ports or kill conflicting processes
 2. **Build Failures**: Check TypeScript errors and dependency issues
 3. **Test Failures**: Clean state and retry, check test isolation
@@ -565,6 +612,7 @@ interface MonitoringService {
 5. **Performance Issues**: Profile and optimize critical paths
 
 **Production Issues**:
+
 1. **Deployment Failures**: Check build configuration and dependencies
 2. **Runtime Errors**: Monitor logs and error tracking
 3. **Performance Issues**: Analyze metrics and optimize bottlenecks
@@ -573,12 +621,14 @@ interface MonitoringService {
 ### Debugging Tools
 
 **Development Debugging**:
+
 - **Debug Logging**: Comprehensive logging with configurable levels
 - **Performance Profiling**: Built-in performance profiling tools
 - **Memory Analysis**: Memory usage analysis and leak detection
 - **Network Monitoring**: API call monitoring and analysis
 
 **Production Debugging**:
+
 - **Error Tracking**: Centralized error collection and analysis
 - **Performance Monitoring**: Real-time performance metrics
 - **Health Checks**: Service health monitoring and alerting
@@ -609,4 +659,6 @@ Explore the following sections to understand the infrastructure components in de
 - **[Testing Infrastructure](./testing)** - Testing framework and utilities
 - **[Services](./services)** - Core services and utilities
 
-This comprehensive infrastructure provides everything needed to build, test, deploy, and maintain sophisticated AI agents while ensuring security, performance, and reliability throughout the development lifecycle.
+This comprehensive infrastructure provides everything needed to build, test, deploy, and maintain
+sophisticated AI agents while ensuring security, performance, and reliability throughout the
+development lifecycle.

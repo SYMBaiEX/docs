@@ -1,11 +1,14 @@
 ---
 title: Services
-description: Core services and utilities in ElizaOS infrastructure with actual implementation details
+description:
+  Core services and utilities in ElizaOS infrastructure with actual implementation details
 ---
 
 # Services
 
-ElizaOS provides a comprehensive set of services and utilities that power the infrastructure, including environment management, file operations, process control, and development tools. These services ensure smooth operation across development, testing, and production environments.
+ElizaOS provides a comprehensive set of services and utilities that power the infrastructure,
+including environment management, file operations, process control, and development tools. These
+services ensure smooth operation across development, testing, and production environments.
 
 ## Service Architecture
 
@@ -14,11 +17,11 @@ ElizaOS provides a comprehensive set of services and utilities that power the in
 ElizaOS uses a service builder pattern for type-safe service creation:
 
 ```typescript
-import { ServiceBuilder, createService } from '@elizaos/core';
+import { ServiceBuilder, createService } from "@elizaos/core";
 
 // Create a service with type safety
-const myService = createService<MyService>('MY_SERVICE')
-  .withDescription('Custom service for specific functionality')
+const myService = createService<MyService>("MY_SERVICE")
+  .withDescription("Custom service for specific functionality")
   .withStart(async (runtime: IAgentRuntime) => {
     // Service initialization logic
     return new MyService(runtime);
@@ -58,7 +61,7 @@ export function defineService<T extends Service = Service>(
 The actual `EnvFileService` implementation manages `.env` files:
 
 ```typescript
-import { EnvFileService, getEnvFileService } from '@elizaos/cli/services';
+import { EnvFileService, getEnvFileService } from "@elizaos/cli/services";
 
 // Get the global instance
 const envService = await getEnvFileService();
@@ -67,21 +70,21 @@ const envService = await getEnvFileService();
 const envVars = await envService.read();
 
 // Update a single variable
-await envService.update('API_KEY', 'new-value');
+await envService.update("API_KEY", "new-value");
 
 // Update multiple variables
 await envService.updateMany({
-  API_KEY: 'key1',
-  DATABASE_URL: 'postgres://localhost:5432/db'
+  API_KEY: "key1",
+  DATABASE_URL: "postgres://localhost:5432/db",
 });
 
 // Delete a variable
-await envService.delete('OLD_VAR');
+await envService.delete("OLD_VAR");
 
 // Validate environment file
 const validation = await envService.validate();
 if (!validation.valid) {
-  console.error('Validation errors:', validation.errors);
+  console.error("Validation errors:", validation.errors);
 }
 ```
 
@@ -89,7 +92,7 @@ if (!validation.valid) {
 
 ```typescript
 // Validate required variables
-const required = ['API_KEY', 'DATABASE_URL'];
+const required = ["API_KEY", "DATABASE_URL"];
 const missing = envService.validateRequired(required);
 
 // Get all variables
@@ -106,29 +109,30 @@ await envService.reset();
 Handles project and plugin templates:
 
 ```typescript
-import { copyTemplate } from '@/src/utils/copy-template';
+import { copyTemplate } from "@/src/utils/copy-template";
 
 // Copy template to target directory
-await copyTemplate('plugin-starter', targetDir, {
+await copyTemplate("plugin-starter", targetDir, {
   replacements: {
-    PLUGINNAME: 'my-plugin',
-    PLUGINDESCRIPTION: 'My awesome plugin',
-    GITHUB_USERNAME: 'username'
-  }
+    PLUGINNAME: "my-plugin",
+    PLUGINDESCRIPTION: "My awesome plugin",
+    GITHUB_USERNAME: "username",
+  },
 });
 ```
 
 ### Directory Services
 
 ```typescript
-import { detectDirectoryType } from '@/src/utils/directory-detection';
-
-// Detect project type
-const dirInfo = detectDirectoryType(process.cwd());
+import { detectDirectoryType } from "@/src/utils/directory-detection";
 // Returns: { type: 'project' | 'plugin' | 'monorepo' | 'non-elizaos-dir', hasPackageJson: boolean }
 
 // Get ElizaOS paths
-import { getElizaPaths } from '@/src/utils/eliza-paths';
+import { getElizaPaths } from "@/src/utils/eliza-paths";
+
+// Detect project type
+const dirInfo = detectDirectoryType(process.cwd());
+
 const paths = getElizaPaths();
 // Returns: { root, src, config, data, logs }
 ```
@@ -138,7 +142,7 @@ const paths = getElizaPaths();
 ### Process Control
 
 ```typescript
-import { cleanupProcesses } from '@/src/utils/process-control';
+import { cleanupProcesses } from "@/src/utils/process-control";
 
 // Kill all ElizaOS processes
 await cleanupProcesses();
@@ -150,10 +154,10 @@ await killProcess(pid);
 ### Port Management
 
 ```typescript
-import { validatePort, getAvailablePort } from '@/src/utils/port-utils';
+import { getAvailablePort, validatePort } from "@/src/utils/port-utils";
 
 // Validate port
-const isValid = validatePort('3000'); // Returns port or throws
+const isValid = validatePort("3000"); // Returns port or throws
 
 // Find available port
 const port = await getAvailablePort(3000);
@@ -164,27 +168,27 @@ const port = await getAvailablePort(3000);
 ### Project Building
 
 ```typescript
-import { buildProject } from '@/src/utils/build-project';
+import { buildProject } from "@/src/utils/build-project";
 
 // Build TypeScript project
 await buildProject(projectPath, {
   skipTypeCheck: false,
-  watch: false
+  watch: false,
 });
 ```
 
 ### Development Server
 
 ```typescript
-import { ServerManager } from '@/src/utils/server-manager';
+import { ServerManager } from "@/src/utils/server-manager";
 
 const manager = new ServerManager();
 
 // Start development server
 await manager.start({
   port: 3000,
-  character: 'character.json',
-  watch: true
+  character: "character.json",
+  watch: true,
 });
 
 // Stop server
@@ -196,7 +200,7 @@ await manager.stop();
 ### Plugin Discovery
 
 ```typescript
-import { discoverPlugins } from '@/src/utils/plugin-discovery';
+import { discoverPlugins } from "@/src/utils/plugin-discovery";
 
 // Find all plugins in project
 const plugins = await discoverPlugins(projectPath);
@@ -206,24 +210,24 @@ const plugins = await discoverPlugins(projectPath);
 ### Plugin Loading
 
 ```typescript
-import { loadPlugin } from '@/src/utils/load-plugin';
+import { loadPlugin } from "@/src/utils/load-plugin";
 
 // Load and initialize plugin
-const plugin = await loadPlugin('@elizaos/plugin-openai', {
-  config: { API_KEY: 'key' }
+const plugin = await loadPlugin("@elizaos/plugin-openai", {
+  config: { API_KEY: "key" },
 });
 ```
 
 ### Plugin Context
 
 ```typescript
-import { createPluginContext } from '@/src/utils/plugin-context';
+import { createPluginContext } from "@/src/utils/plugin-context";
 
 // Create context for plugin execution
 const context = createPluginContext({
   runtime,
   services,
-  config
+  config,
 });
 ```
 
@@ -232,15 +236,15 @@ const context = createPluginContext({
 ### Plugin Registry
 
 ```typescript
-import { RegistryClient } from '@/src/utils/registry';
+import { RegistryClient } from "@/src/utils/registry";
 
 const registry = new RegistryClient();
 
 // Search plugins
-const results = await registry.search('openai');
+const results = await registry.search("openai");
 
 // Get plugin details
-const plugin = await registry.getPlugin('@elizaos/plugin-openai');
+const plugin = await registry.getPlugin("@elizaos/plugin-openai");
 
 // Publish plugin
 await registry.publish(pluginMetadata);
@@ -268,12 +272,12 @@ interface PluginMetadata {
 ### Auto Documentation
 
 ```typescript
-import { DocumentationGenerator } from '@elizaos/autodoc';
+import { DocumentationGenerator } from "@elizaos/autodoc";
 
 const generator = new DocumentationGenerator({
   aiService,
   gitManager,
-  configuration
+  configuration,
 });
 
 // Generate documentation
@@ -283,7 +287,7 @@ await generator.generate();
 ### JSDoc Generation
 
 ```typescript
-import { JsDocGenerator } from '@elizaos/autodoc';
+import { JsDocGenerator } from "@elizaos/autodoc";
 
 const jsDocGen = new JsDocGenerator(aiService);
 
@@ -296,7 +300,7 @@ const documented = await jsDocGen.generateForFile(filePath);
 ### Test Runner
 
 ```typescript
-import { TestRunner } from '@/src/utils/test-runner';
+import { TestRunner } from "@/src/utils/test-runner";
 
 const runner = new TestRunner();
 
@@ -304,13 +308,13 @@ const runner = new TestRunner();
 await runner.runAll();
 
 // Run specific test type
-await runner.runByType('component');
+await runner.runByType("component");
 ```
 
 ### Test Health Monitor
 
 ```typescript
-import { TestHealthMonitor } from '@/src/utils/testing/test-health-monitor';
+import { TestHealthMonitor } from "@/src/utils/testing/test-health-monitor";
 
 const monitor = new TestHealthMonitor();
 
@@ -324,7 +328,7 @@ const health = monitor.getHealth();
 ### File Watcher
 
 ```typescript
-import { FileWatcher } from '@/src/utils/file-watcher';
+import { FileWatcher } from "@/src/utils/file-watcher";
 
 const watcher = new FileWatcher();
 
@@ -333,7 +337,7 @@ watcher.watch(projectPath, {
   onChange: async (path) => {
     console.log(`File changed: ${path}`);
     await rebuild();
-  }
+  },
 });
 
 // Stop watching
@@ -343,14 +347,14 @@ watcher.stop();
 ### Hot Reload
 
 ```typescript
-import { HotReloader } from '@/src/utils/hot-reload';
+import { HotReloader } from "@/src/utils/hot-reload";
 
 const reloader = new HotReloader();
 
 // Enable hot reload
 await reloader.enable({
   port: 3000,
-  watch: ['src/**/*.ts']
+  watch: ["src/**/*.ts"],
 });
 ```
 
@@ -359,44 +363,44 @@ await reloader.enable({
 ### Spinner Utils
 
 ```typescript
-import { createSpinner } from '@/src/utils/spinner-utils';
+import { createSpinner } from "@/src/utils/spinner-utils";
 
-const spinner = createSpinner('Loading...');
+const spinner = createSpinner("Loading...");
 spinner.start();
 
 // Update text
-spinner.text = 'Processing...';
+spinner.text = "Processing...";
 
 // Success
-spinner.succeed('Done!');
+spinner.succeed("Done!");
 
 // Error
-spinner.fail('Failed!');
+spinner.fail("Failed!");
 ```
 
 ### Emoji Handler
 
 ```typescript
-import { configureEmojis, getEmoji } from '@/src/utils/emoji-handler';
+import { configureEmojis, getEmoji } from "@/src/utils/emoji-handler";
 
 // Configure emoji support
 configureEmojis({ forceDisable: false });
 
 // Get emoji with fallback
-const checkmark = getEmoji('✅', '[OK]');
+const checkmark = getEmoji("✅", "[OK]");
 ```
 
 ### Error Handling
 
 ```typescript
-import { handleError } from '@/src/utils/handle-error';
+import { handleError } from "@/src/utils/handle-error";
 
 try {
   // Operation that might fail
 } catch (error) {
   handleError(error, {
-    context: 'Plugin installation',
-    suggestions: ['Check network connection', 'Verify plugin name']
+    context: "Plugin installation",
+    suggestions: ["Check network connection", "Verify plugin name"],
   });
 }
 ```
@@ -406,7 +410,7 @@ try {
 ### Config Manager
 
 ```typescript
-import { ConfigManager } from '@/src/utils/config-manager';
+import { ConfigManager } from "@/src/utils/config-manager";
 
 const config = new ConfigManager();
 
@@ -414,10 +418,10 @@ const config = new ConfigManager();
 await config.load();
 
 // Get value
-const value = config.get('setting.nested.value');
+const value = config.get("setting.nested.value");
 
 // Set value
-config.set('setting.nested.value', 'new');
+config.set("setting.nested.value", "new");
 
 // Save configuration
 await config.save();
@@ -426,7 +430,7 @@ await config.save();
 ### Project Configuration
 
 ```typescript
-import { loadProject } from '@/src/project';
+import { loadProject } from "@/src/project";
 
 // Load project configuration
 const project = await loadProject(projectPath);
@@ -440,14 +444,14 @@ const { name, version, agents, plugins } = project;
 ### TEE Integration
 
 ```typescript
-import { TEEService } from '@/src/services/tee';
+import { TEEService } from "@/src/services/tee";
 
 const tee = new TEEService();
 
 // Deploy to TEE
 await tee.deploy({
   project: projectPath,
-  config: teeConfig
+  config: teeConfig,
 });
 
 // Get attestation
@@ -471,7 +475,7 @@ const attestation = await tee.getAttestation(deploymentId);
 ### Dependency Resolution
 
 ```typescript
-import { DependencyResolver } from '@/src/utils/dependency-resolver';
+import { DependencyResolver } from "@/src/utils/dependency-resolver";
 
 const resolver = new DependencyResolver();
 
@@ -485,13 +489,13 @@ await resolver.install(deps);
 ### Version Management
 
 ```typescript
-import { VersionUtils } from '@/src/utils/version-utils';
+import { VersionUtils } from "@/src/utils/version-utils";
 
 // Check version compatibility
-const isCompatible = VersionUtils.isCompatible('1.0.0', '^1.0.0');
+const isCompatible = VersionUtils.isCompatible("1.0.0", "^1.0.0");
 
 // Get latest version
-const latest = await VersionUtils.getLatest('@elizaos/core');
+const latest = await VersionUtils.getLatest("@elizaos/core");
 ```
 
 ## Security Services
@@ -499,7 +503,7 @@ const latest = await VersionUtils.getLatest('@elizaos/core');
 ### Authentication
 
 ```typescript
-import { AuthService } from '@/src/services/auth';
+import { AuthService } from "@/src/services/auth";
 
 const auth = new AuthService();
 
@@ -513,7 +517,7 @@ await auth.githubLogin(token);
 ### Validation
 
 ```typescript
-import { validatePlugin } from '@/src/utils/validation';
+import { validatePlugin } from "@/src/utils/validation";
 
 // Validate plugin structure
 const validation = await validatePlugin(pluginPath);
@@ -527,6 +531,7 @@ if (!validation.isValid) {
 ### Service Usage
 
 1. **Always Handle Errors**
+
    ```typescript
    try {
      await service.operation();
@@ -536,9 +541,10 @@ if (!validation.isValid) {
    ```
 
 2. **Use Type Safety**
+
    ```typescript
-   import type { ServiceConfig } from '@/types';
-   
+   import type { ServiceConfig } from "@/types";
+
    const config: ServiceConfig = {
      // Type-safe configuration
    };
@@ -557,9 +563,10 @@ if (!validation.isValid) {
 ### Performance Optimization
 
 1. **Cache Service Instances**
+
    ```typescript
    let _instance: Service;
-   
+
    export function getService(): Service {
      if (!_instance) {
        _instance = new Service();
@@ -571,7 +578,7 @@ if (!validation.isValid) {
 2. **Use Lazy Loading**
    ```typescript
    const loadService = async () => {
-     const { Service } = await import('./service');
+     const { Service } = await import("./service");
      return new Service();
    };
    ```

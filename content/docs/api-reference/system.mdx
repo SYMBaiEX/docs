@@ -5,7 +5,8 @@ description: Environment and version information endpoints
 
 # System API
 
-The System API provides environment configuration and version information for the ElizaOS server. All system endpoints are prefixed with `/api/system`.
+The System API provides environment configuration and version information for the ElizaOS server.
+All system endpoints are prefixed with `/api/system`.
 
 ## Overview
 
@@ -40,6 +41,7 @@ GET /api/system/version
 Returns comprehensive version information about the ElizaOS server.
 
 **Response:**
+
 ```json
 {
   "version": "1.2.0",
@@ -51,6 +53,7 @@ Returns comprehensive version information about the ElizaOS server.
 ```
 
 **Response Fields:**
+
 - `version` - Semantic version of the server
 - `source` - Always "server" for this endpoint
 - `timestamp` - ISO timestamp of the response
@@ -58,6 +61,7 @@ Returns comprehensive version information about the ElizaOS server.
 - `uptime` - Server uptime in seconds
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/api/system/version
 ```
@@ -71,6 +75,7 @@ GET /api/system/version/build
 Returns detailed build information (if available).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -95,10 +100,12 @@ GET /api/system/version/changelog
 Returns recent changes and release notes.
 
 **Query Parameters:**
+
 - `limit` (number) - Number of releases to return (default: 10)
 - `since` (string) - Version to start from (e.g., "1.1.0")
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -113,18 +120,13 @@ Returns recent changes and release notes.
           "Improved WebSocket handling",
           "Enhanced memory management"
         ],
-        "breaking": [
-          "API endpoints restructured"
-        ]
+        "breaking": ["API endpoints restructured"]
       },
       {
         "version": "1.1.0",
         "date": "2023-12-15T00:00:00Z",
         "type": "minor",
-        "changes": [
-          "Added audio processing",
-          "Improved error handling"
-        ],
+        "changes": ["Added audio processing", "Improved error handling"],
         "breaking": []
       }
     ]
@@ -143,6 +145,7 @@ GET /api/system/env
 Returns environment configuration and system settings.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -182,6 +185,7 @@ GET /api/system/env/variables
 Returns non-sensitive environment variables.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -199,6 +203,7 @@ Returns non-sensitive environment variables.
 ```
 
 **Notes:**
+
 - Sensitive variables (secrets, keys, passwords) are filtered out
 - Only configuration-related variables are returned
 - Values are returned as strings
@@ -212,6 +217,7 @@ PATCH /api/system/env
 Updates runtime environment configuration.
 
 **Request Body:**
+
 ```json
 {
   "rateLimitMax": 200,
@@ -222,16 +228,12 @@ Updates runtime environment configuration.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
-    "updated": [
-      "rateLimitMax",
-      "rateLimitWindow",
-      "maxFileSize",
-      "corsOrigin"
-    ],
+    "updated": ["rateLimitMax", "rateLimitWindow", "maxFileSize", "corsOrigin"],
     "applied": true,
     "restartRequired": false
   }
@@ -239,6 +241,7 @@ Updates runtime environment configuration.
 ```
 
 **Notes:**
+
 - Only runtime-configurable settings can be updated
 - Some changes may require server restart
 - Changes are applied immediately when possible
@@ -254,6 +257,7 @@ GET /api/system/capabilities
 Returns available system capabilities and features.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -316,6 +320,7 @@ GET /api/system/capabilities/features
 Returns the status of individual features.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -362,6 +367,7 @@ GET /api/system/capabilities/services
 Returns the status of external services and dependencies.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -402,6 +408,7 @@ GET /api/system/metrics
 Returns system-level performance metrics.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -451,11 +458,13 @@ GET /api/system/metrics/history
 Returns historical performance data.
 
 **Query Parameters:**
+
 - `period` (string) - Time period (hour, day, week, month)
 - `metric` (string) - Specific metric (cpu, memory, disk, network)
 - `resolution` (string) - Data resolution (minute, hour, day)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -490,6 +499,7 @@ GET /api/system/config
 Returns current system configuration.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -534,6 +544,7 @@ PATCH /api/system/config
 Updates system configuration.
 
 **Request Body:**
+
 ```json
 {
   "security": {
@@ -550,6 +561,7 @@ Updates system configuration.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -582,6 +594,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_REQUEST` - Invalid request parameters
 - `UNAUTHORIZED` - Authentication required
 - `FORBIDDEN` - Insufficient permissions
@@ -592,6 +605,7 @@ Common error codes:
 ## Rate Limiting
 
 System endpoints are subject to rate limiting:
+
 - Version endpoints: 300 requests per minute
 - Environment endpoints: 60 requests per minute
 - Configuration endpoints: 30 requests per minute
@@ -672,21 +686,21 @@ curl "http://localhost:3000/api/system/metrics/history?period=day&metric=memory"
 // Check server compatibility
 const checkCompatibility = async () => {
   try {
-    const response = await fetch('/api/system/version');
+    const response = await fetch("/api/system/version");
     const data = await response.json();
-    
+
     const serverVersion = data.version;
-    const requiredVersion = '1.2.0';
-    
+    const requiredVersion = "1.2.0";
+
     if (compareVersions(serverVersion, requiredVersion) >= 0) {
-      console.log('Server version compatible:', serverVersion);
+      console.log("Server version compatible:", serverVersion);
       return true;
     } else {
-      console.warn('Server version incompatible:', serverVersion);
+      console.warn("Server version incompatible:", serverVersion);
       return false;
     }
   } catch (error) {
-    console.error('Failed to check version:', error);
+    console.error("Failed to check version:", error);
     return false;
   }
 };
@@ -694,23 +708,23 @@ const checkCompatibility = async () => {
 // Feature detection
 const checkFeatures = async () => {
   try {
-    const response = await fetch('/api/system/capabilities');
+    const response = await fetch("/api/system/capabilities");
     const data = await response.json();
-    
+
     const features = data.data;
-    
+
     if (features.audio?.transcription?.available) {
-      console.log('Audio transcription available');
+      console.log("Audio transcription available");
     }
-    
+
     if (features.media?.uploads?.available) {
-      console.log('File uploads available');
-      console.log('Max file size:', features.media.uploads.maxSize);
+      console.log("File uploads available");
+      console.log("Max file size:", features.media.uploads.maxSize);
     }
-    
+
     return features;
   } catch (error) {
-    console.error('Failed to check features:', error);
+    console.error("Failed to check features:", error);
     return null;
   }
 };
@@ -718,22 +732,22 @@ const checkFeatures = async () => {
 // System monitoring
 const monitorSystem = async () => {
   try {
-    const response = await fetch('/api/system/metrics', {
+    const response = await fetch("/api/system/metrics", {
       headers: {
-        'X-API-KEY': 'your-api-key'
-      }
+        "X-API-KEY": "your-api-key",
+      },
     });
-    
+
     const data = await response.json();
-    
+
     if (data.success) {
       const metrics = data.data;
-      console.log('CPU usage:', metrics.system.cpu.usage + '%');
-      console.log('Memory usage:', metrics.system.memory.usage + '%');
-      console.log('Server uptime:', metrics.process.uptime + 's');
+      console.log("CPU usage:", metrics.system.cpu.usage + "%");
+      console.log("Memory usage:", metrics.system.memory.usage + "%");
+      console.log("Server uptime:", metrics.process.uptime + "s");
     }
   } catch (error) {
-    console.error('Failed to get metrics:', error);
+    console.error("Failed to get metrics:", error);
   }
 };
 ```
@@ -744,33 +758,34 @@ const monitorSystem = async () => {
 // Adapt behavior based on environment
 const adaptToEnvironment = async () => {
   try {
-    const response = await fetch('/api/system/env');
+    const response = await fetch("/api/system/env");
     const data = await response.json();
-    
+
     const env = data.data;
-    
-    if (env.environment === 'development') {
-      console.log('Development mode: enabling debug features');
+
+    if (env.environment === "development") {
+      console.log("Development mode: enabling debug features");
       // Enable debugging, verbose logging, etc.
-    } else if (env.environment === 'production') {
-      console.log('Production mode: optimizing for performance');
+    } else if (env.environment === "production") {
+      console.log("Production mode: optimizing for performance");
       // Disable debugging, optimize for performance
     }
-    
+
     // Configure based on available features
     if (env.features.authentication) {
-      console.log('Authentication enabled');
+      console.log("Authentication enabled");
       // Set up authentication flow
     }
-    
+
     if (env.features.websockets) {
-      console.log('WebSockets available');
+      console.log("WebSockets available");
       // Use WebSocket for real-time features
     }
   } catch (error) {
-    console.error('Failed to get environment:', error);
+    console.error("Failed to get environment:", error);
   }
 };
 ```
 
-*Note: System API endpoints provide essential information for client applications to adapt their behavior based on server capabilities and configuration.*
+_Note: System API endpoints provide essential information for client applications to adapt their
+behavior based on server capabilities and configuration._

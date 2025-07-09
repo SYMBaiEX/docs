@@ -5,7 +5,8 @@ description: Ready-to-use templates and examples for creating ElizaOS plugins
 
 # Plugin Templates & Examples
 
-This guide provides ready-to-use templates and examples for creating different types of ElizaOS plugins. Use these as starting points for your own plugin development.
+This guide provides ready-to-use templates and examples for creating different types of ElizaOS
+plugins. Use these as starting points for your own plugin development.
 
 ## Basic Plugin Template
 
@@ -13,21 +14,21 @@ This guide provides ready-to-use templates and examples for creating different t
 
 ```typescript
 // src/index.ts
-import { Plugin } from '@elizaos/core';
+import { Plugin } from "@elizaos/core";
 
 export const basicPlugin: Plugin = {
-  name: 'basic-plugin',
-  description: 'A basic plugin template',
-  
+  name: "basic-plugin",
+  description: "A basic plugin template",
+
   // Optional initialization
   init: async (config, runtime) => {
-    console.log('Plugin initialized');
+    console.log("Plugin initialized");
   },
-  
+
   // Optional configuration
   config: {
-    PLUGIN_ENABLED: process.env.PLUGIN_ENABLED || 'true'
-  }
+    PLUGIN_ENABLED: process.env.PLUGIN_ENABLED || "true",
+  },
 };
 
 export default basicPlugin;
@@ -76,40 +77,40 @@ export default basicPlugin;
 
 ```typescript
 // src/actions/greetAction.ts
-import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { Action, IAgentRuntime, Memory, State } from "@elizaos/core";
 
 export const greetAction: Action = {
-  name: 'GREET',
-  similes: ['hello', 'hi', 'greet', 'greeting'],
-  description: 'Greets the user with a friendly message',
-  
+  name: "GREET",
+  similes: ["hello", "hi", "greet", "greeting"],
+  description: "Greets the user with a friendly message",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     // Validate if action should be triggered
     const text = message.content.text?.toLowerCase();
-    return text?.includes('hello') || text?.includes('hi') || text?.includes('greet');
+    return text?.includes("hello") || text?.includes("hi") || text?.includes("greet");
   },
-  
+
   handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const userName = message.userId || 'friend';
-    
+    const userName = message.userId || "friend";
+
     return {
       text: `Hello ${userName}! How can I help you today?`,
-      actions: ['GREET']
+      actions: ["GREET"],
     };
   },
-  
+
   examples: [
     [
       {
         user: "user",
-        content: { text: "Hello!" }
+        content: { text: "Hello!" },
       },
       {
         user: "agent",
-        content: { text: "Hello friend! How can I help you today?" }
-      }
-    ]
-  ]
+        content: { text: "Hello friend! How can I help you today?" },
+      },
+    ],
+  ],
 };
 ```
 
@@ -117,13 +118,14 @@ export const greetAction: Action = {
 
 ```typescript
 // src/index.ts
-import { Plugin } from '@elizaos/core';
-import { greetAction } from './actions/greetAction';
+import { Plugin } from "@elizaos/core";
+
+import { greetAction } from "./actions/greetAction";
 
 export const greetPlugin: Plugin = {
-  name: 'greet-plugin',
-  description: 'A plugin that greets users',
-  actions: [greetAction]
+  name: "greet-plugin",
+  description: "A plugin that greets users",
+  actions: [greetAction],
 };
 
 export default greetPlugin;
@@ -135,49 +137,49 @@ export default greetPlugin;
 
 ```typescript
 // src/services/NotificationService.ts
-import { Service, IAgentRuntime, logger } from '@elizaos/core';
+import { IAgentRuntime, Service, logger } from "@elizaos/core";
 
 export class NotificationService extends Service {
-  static serviceType = 'notification';
-  
-  capabilityDescription = 'Handles notifications and alerts';
-  
+  static serviceType = "notification";
+
+  capabilityDescription = "Handles notifications and alerts";
+
   private intervalId?: NodeJS.Timeout;
-  
+
   constructor(protected runtime: IAgentRuntime) {
     super(runtime);
   }
-  
+
   static async start(runtime: IAgentRuntime): Promise<NotificationService> {
-    logger.info('Starting notification service');
+    logger.info("Starting notification service");
     const service = new NotificationService(runtime);
-    
+
     // Start background process
     service.intervalId = setInterval(() => {
       service.checkNotifications();
     }, 60000); // Check every minute
-    
+
     return service;
   }
-  
+
   static async stop(runtime: IAgentRuntime) {
-    logger.info('Stopping notification service');
+    logger.info("Stopping notification service");
     const service = runtime.getService(NotificationService.serviceType);
     if (service) {
       await service.stop();
     }
   }
-  
+
   async stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
-    logger.info('Notification service stopped');
+    logger.info("Notification service stopped");
   }
-  
+
   private async checkNotifications() {
     // Check for notifications logic
-    logger.debug('Checking notifications...');
+    logger.debug("Checking notifications...");
   }
 }
 ```
@@ -186,13 +188,14 @@ export class NotificationService extends Service {
 
 ```typescript
 // src/index.ts
-import { Plugin } from '@elizaos/core';
-import { NotificationService } from './services/NotificationService';
+import { Plugin } from "@elizaos/core";
+
+import { NotificationService } from "./services/NotificationService";
 
 export const notificationPlugin: Plugin = {
-  name: 'notification-plugin',
-  description: 'Handles notifications and alerts',
-  services: [NotificationService]
+  name: "notification-plugin",
+  description: "Handles notifications and alerts",
+  services: [NotificationService],
 };
 
 export default notificationPlugin;
@@ -204,36 +207,36 @@ export default notificationPlugin;
 
 ```typescript
 // src/providers/weatherProvider.ts
-import { Provider, IAgentRuntime, Memory, State } from '@elizaos/core';
+import { IAgentRuntime, Memory, Provider, State } from "@elizaos/core";
 
 export const weatherProvider: Provider = {
-  name: 'WEATHER_PROVIDER',
-  description: 'Provides current weather information',
-  
+  name: "WEATHER_PROVIDER",
+  description: "Provides current weather information",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const location = extractLocation(message.content.text) || 'New York';
-    
+    const location = extractLocation(message.content.text) || "New York";
+
     try {
       const weather = await fetchWeatherData(location);
-      
+
       return {
         text: `Current weather in ${location}: ${weather.temperature}°F, ${weather.conditions}`,
         values: {
           location,
           temperature: weather.temperature,
           conditions: weather.conditions,
-          humidity: weather.humidity
+          humidity: weather.humidity,
         },
-        data: weather
+        data: weather,
       };
     } catch (error) {
       return {
         text: `Unable to fetch weather data for ${location}`,
         values: { error: error.message },
-        data: null
+        data: null,
       };
     }
-  }
+  },
 };
 
 function extractLocation(text: string): string | null {
@@ -246,8 +249,8 @@ async function fetchWeatherData(location: string) {
   // Mock weather API call
   return {
     temperature: 72,
-    conditions: 'Sunny',
-    humidity: 45
+    conditions: "Sunny",
+    humidity: 45,
   };
 }
 ```
@@ -256,17 +259,18 @@ async function fetchWeatherData(location: string) {
 
 ```typescript
 // src/index.ts
-import { Plugin } from '@elizaos/core';
-import { weatherProvider } from './providers/weatherProvider';
+import { Plugin } from "@elizaos/core";
+
+import { weatherProvider } from "./providers/weatherProvider";
 
 export const weatherPlugin: Plugin = {
-  name: 'weather-plugin',
-  description: 'Provides weather information',
+  name: "weather-plugin",
+  description: "Provides weather information",
   providers: [weatherProvider],
-  
+
   config: {
-    WEATHER_API_KEY: process.env.WEATHER_API_KEY
-  }
+    WEATHER_API_KEY: process.env.WEATHER_API_KEY,
+  },
 };
 
 export default weatherPlugin;
@@ -278,85 +282,89 @@ export default weatherPlugin;
 
 ```typescript
 // src/services/ApiService.ts
-import { Service, IAgentRuntime, logger } from '@elizaos/core';
+import { IAgentRuntime, Service, logger } from "@elizaos/core";
 
 export class ApiService extends Service {
-  static serviceType = 'api-service';
-  
-  capabilityDescription = 'Integrates with external REST APIs';
-  
+  static serviceType = "api-service";
+
+  capabilityDescription = "Integrates with external REST APIs";
+
   private baseUrl: string;
   private apiKey: string;
-  
+
   constructor(protected runtime: IAgentRuntime) {
     super(runtime);
-    this.baseUrl = runtime.getSetting('API_BASE_URL') || 'https://api.example.com';
-    this.apiKey = runtime.getSetting('API_KEY');
+    this.baseUrl = runtime.getSetting("API_BASE_URL") || "https://api.example.com";
+    this.apiKey = runtime.getSetting("API_KEY");
   }
-  
+
   static async start(runtime: IAgentRuntime): Promise<ApiService> {
-    logger.info('Starting API service');
+    logger.info("Starting API service");
     const service = new ApiService(runtime);
-    
+
     // Test API connection
     await service.testConnection();
-    
+
     return service;
   }
-  
+
   static async stop(runtime: IAgentRuntime) {
-    logger.info('Stopping API service');
+    logger.info("Stopping API service");
     const service = runtime.getService(ApiService.serviceType);
     if (service) {
       await service.stop();
     }
   }
-  
+
   async stop() {
-    logger.info('API service stopped');
+    logger.info("API service stopped");
   }
-  
+
   private async testConnection() {
     try {
       const response = await fetch(`${this.baseUrl}/health`, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error(`API connection failed: ${response.status}`);
       }
-      
-      logger.info('API connection successful');
+
+      logger.info("API connection successful");
     } catch (error) {
-      logger.error('API connection failed:', error);
+      logger.error("API connection failed:", error);
       throw error;
     }
   }
-  
-  async makeRequest(endpoint: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: any) {
+
+  async makeRequest(
+    endpoint: string,
+    method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+    data?: any
+  ) {
     const url = `${this.baseUrl}${endpoint}`;
     const options: RequestInit = {
       method,
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
     };
-    
-    if (data && method !== 'GET') {
+
+    if (data && method !== "GET") {
       options.body = JSON.stringify(data);
     }
-    
+
     try {
       const response = await fetch(url, options);
-      
+
       if (!response.ok) {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       logger.error(`API request failed for ${endpoint}:`, error);
@@ -370,58 +378,59 @@ export class ApiService extends Service {
 
 ```typescript
 // src/actions/apiAction.ts
-import { Action, IAgentRuntime, Memory, State } from '@elizaos/core';
-import { ApiService } from '../services/ApiService';
+import { Action, IAgentRuntime, Memory, State } from "@elizaos/core";
+
+import { ApiService } from "../services/ApiService";
 
 export const apiAction: Action = {
-  name: 'API_CALL',
-  similes: ['call api', 'fetch data', 'get information'],
-  description: 'Makes API calls to external services',
-  
+  name: "API_CALL",
+  similes: ["call api", "fetch data", "get information"],
+  description: "Makes API calls to external services",
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const text = message.content.text?.toLowerCase();
-    return text?.includes('api') || text?.includes('fetch') || text?.includes('get data');
+    return text?.includes("api") || text?.includes("fetch") || text?.includes("get data");
   },
-  
+
   handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const apiService = runtime.getService(ApiService.serviceType) as ApiService;
-    
+
     if (!apiService) {
       return {
-        text: 'API service is not available',
-        actions: ['API_CALL']
+        text: "API service is not available",
+        actions: ["API_CALL"],
       };
     }
-    
+
     try {
-      const endpoint = extractEndpoint(message.content.text) || '/data';
+      const endpoint = extractEndpoint(message.content.text) || "/data";
       const data = await apiService.makeRequest(endpoint);
-      
+
       return {
         text: `API data retrieved: ${JSON.stringify(data, null, 2)}`,
-        actions: ['API_CALL'],
-        data
+        actions: ["API_CALL"],
+        data,
       };
     } catch (error) {
       return {
         text: `Failed to fetch API data: ${error.message}`,
-        actions: ['API_CALL']
+        actions: ["API_CALL"],
       };
     }
   },
-  
+
   examples: [
     [
       {
         user: "user",
-        content: { text: "Can you fetch the latest data from the API?" }
+        content: { text: "Can you fetch the latest data from the API?" },
       },
       {
         user: "agent",
-        content: { text: "I'll fetch the latest data for you." }
-      }
-    ]
-  ]
+        content: { text: "I'll fetch the latest data for you." },
+      },
+    ],
+  ],
 };
 
 function extractEndpoint(text: string): string | null {
@@ -436,121 +445,122 @@ function extractEndpoint(text: string): string | null {
 
 ```typescript
 // src/index.ts
-import { Plugin } from '@elizaos/core';
-import { ApiService } from './services/ApiService';
-import { apiAction } from './actions/apiAction';
-import { dataProvider } from './providers/dataProvider';
-import { dataEvaluator } from './evaluators/dataEvaluator';
+import { Plugin } from "@elizaos/core";
+
+import { apiAction } from "./actions/apiAction";
+import { dataEvaluator } from "./evaluators/dataEvaluator";
+import { dataProvider } from "./providers/dataProvider";
+import { ApiService } from "./services/ApiService";
 
 export const complexPlugin: Plugin = {
-  name: 'complex-plugin',
-  description: 'A complex plugin with multiple components',
-  
+  name: "complex-plugin",
+  description: "A complex plugin with multiple components",
+
   // Configuration
   config: {
     API_KEY: process.env.API_KEY,
-    API_BASE_URL: process.env.API_BASE_URL || 'https://api.example.com',
-    CACHE_ENABLED: process.env.CACHE_ENABLED === 'true'
+    API_BASE_URL: process.env.API_BASE_URL || "https://api.example.com",
+    CACHE_ENABLED: process.env.CACHE_ENABLED === "true",
   },
-  
+
   // Initialization
   init: async (config, runtime) => {
     if (!config.API_KEY) {
-      throw new Error('API_KEY is required for complex-plugin');
+      throw new Error("API_KEY is required for complex-plugin");
     }
-    
+
     // Initialize cache if enabled
     if (config.CACHE_ENABLED) {
       await initializeCache(runtime);
     }
   },
-  
+
   // Components
   services: [ApiService],
   actions: [apiAction],
   providers: [dataProvider],
   evaluators: [dataEvaluator],
-  
+
   // HTTP Routes
   routes: [
     {
-      name: 'plugin-status',
-      path: '/api/complex-plugin/status',
-      type: 'GET',
+      name: "plugin-status",
+      path: "/api/complex-plugin/status",
+      type: "GET",
       handler: async (req, res) => {
-        res.json({ 
-          status: 'running',
-          timestamp: new Date().toISOString()
+        res.json({
+          status: "running",
+          timestamp: new Date().toISOString(),
         });
-      }
+      },
     },
     {
-      name: 'plugin-data',
-      path: '/api/complex-plugin/data',
-      type: 'POST',
+      name: "plugin-data",
+      path: "/api/complex-plugin/data",
+      type: "POST",
       handler: async (req, res) => {
         // Handle data submission
         const data = req.body;
         res.json({ received: data });
-      }
-    }
+      },
+    },
   ],
-  
+
   // Event Handlers
   events: {
     MESSAGE_RECEIVED: [
       async (params) => {
         // Log all received messages
-        console.log('Message received:', params.message.content.text);
-      }
+        console.log("Message received:", params.message.content.text);
+      },
     ],
     ACTION_COMPLETED: [
       async (params) => {
         // Track action completions
-        console.log('Action completed:', params.action.name);
-      }
-    ]
+        console.log("Action completed:", params.action.name);
+      },
+    ],
   },
-  
+
   // Test Suite
   tests: [
     {
-      name: 'complex_plugin_test_suite',
-      description: 'Test suite for complex plugin',
+      name: "complex_plugin_test_suite",
+      description: "Test suite for complex plugin",
       tests: [
         {
-          name: 'service_initialization',
+          name: "service_initialization",
           fn: async (runtime) => {
             const service = runtime.getService(ApiService.serviceType);
             expect(service).toBeDefined();
-          }
+          },
         },
         {
-          name: 'action_validation',
+          name: "action_validation",
           fn: async (runtime) => {
-            const action = runtime.actions?.find(a => a.name === 'API_CALL');
+            const action = runtime.actions?.find((a) => a.name === "API_CALL");
             expect(action).toBeDefined();
-            
+
             const isValid = await action.validate(runtime, {
-              content: { text: 'call api' }
+              content: { text: "call api" },
             });
             expect(isValid).toBe(true);
-          }
-        }
-      ]
-    }
+          },
+        },
+      ],
+    },
   ],
-  
+
   // Dependencies
-  dependencies: ['@elizaos/plugin-bootstrap'],
-  
+  dependencies: ["@elizaos/plugin-bootstrap"],
+
   // Priority
-  priority: 10
+  priority: 10,
 };
 
 async function initializeCache(runtime: IAgentRuntime) {
   // Initialize caching system
-  console.log('Initializing cache for complex plugin');
+  console.log("Initializing cache for complex plugin");
 }
 
 export default complexPlugin;
@@ -562,47 +572,48 @@ export default complexPlugin;
 
 ```typescript
 // src/__tests__/plugin.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { IAgentRuntime } from '@elizaos/core';
-import { complexPlugin } from '../index';
+import { IAgentRuntime } from "@elizaos/core";
+import { beforeEach, describe, expect, it } from "vitest";
+
+import { complexPlugin } from "../index";
 
 // Mock runtime
 const mockRuntime = {
   getSetting: (key: string) => {
     const settings = {
-      'API_KEY': 'test-api-key',
-      'API_BASE_URL': 'https://test-api.com'
+      API_KEY: "test-api-key",
+      API_BASE_URL: "https://test-api.com",
     };
     return settings[key];
   },
   getService: (type: string) => null,
   actions: [],
   providers: [],
-  evaluators: []
+  evaluators: [],
 } as unknown as IAgentRuntime;
 
-describe('Complex Plugin', () => {
+describe("Complex Plugin", () => {
   beforeEach(() => {
     // Reset mocks
   });
-  
-  it('should initialize with valid configuration', async () => {
+
+  it("should initialize with valid configuration", async () => {
     const config = {
-      API_KEY: 'test-key',
-      API_BASE_URL: 'https://test.com'
+      API_KEY: "test-key",
+      API_BASE_URL: "https://test.com",
     };
-    
+
     await expect(complexPlugin.init(config, mockRuntime)).resolves.not.toThrow();
   });
-  
-  it('should throw error without API key', async () => {
+
+  it("should throw error without API key", async () => {
     const config = {};
-    
-    await expect(complexPlugin.init(config, mockRuntime)).rejects.toThrow('API_KEY is required');
+
+    await expect(complexPlugin.init(config, mockRuntime)).rejects.toThrow("API_KEY is required");
   });
-  
-  it('should have required components', () => {
-    expect(complexPlugin.name).toBe('complex-plugin');
+
+  it("should have required components", () => {
+    expect(complexPlugin.name).toBe("complex-plugin");
     expect(complexPlugin.services).toBeDefined();
     expect(complexPlugin.actions).toBeDefined();
     expect(complexPlugin.providers).toBeDefined();
@@ -615,44 +626,44 @@ describe('Complex Plugin', () => {
 
 ```typescript
 // src/__tests__/e2e/plugin-e2e.test.ts
-import { TestSuite } from '@elizaos/core';
+import { TestSuite } from "@elizaos/core";
 
 export const ComplexPluginE2ETestSuite: TestSuite = {
-  name: 'complex_plugin_e2e_test_suite',
-  description: 'End-to-end tests for complex plugin',
-  
+  name: "complex_plugin_e2e_test_suite",
+  description: "End-to-end tests for complex plugin",
+
   tests: [
     {
-      name: 'full_workflow_test',
+      name: "full_workflow_test",
       fn: async (runtime) => {
         // Test complete workflow
-        const service = runtime.getService('api-service');
+        const service = runtime.getService("api-service");
         expect(service).toBeDefined();
-        
-        const action = runtime.actions?.find(a => a.name === 'API_CALL');
+
+        const action = runtime.actions?.find((a) => a.name === "API_CALL");
         expect(action).toBeDefined();
-        
-        const provider = runtime.providers?.find(p => p.name === 'DATA_PROVIDER');
+
+        const provider = runtime.providers?.find((p) => p.name === "DATA_PROVIDER");
         expect(provider).toBeDefined();
-      }
+      },
     },
     {
-      name: 'integration_test',
+      name: "integration_test",
       fn: async (runtime) => {
         // Test integration between components
         const testMessage = {
-          content: { text: 'call api endpoint /test' },
-          userId: 'test-user'
+          content: { text: "call api endpoint /test" },
+          userId: "test-user",
         };
-        
-        const action = runtime.actions?.find(a => a.name === 'API_CALL');
+
+        const action = runtime.actions?.find((a) => a.name === "API_CALL");
         const result = await action.handler(runtime, testMessage, {});
-        
+
         expect(result).toBeDefined();
-        expect(result.text).toContain('API data retrieved');
-      }
-    }
-  ]
+        expect(result.text).toContain("API data retrieved");
+      },
+    },
+  ],
 };
 ```
 
@@ -695,4 +706,5 @@ elizaos dev
 - **Use environment variables** for configuration
 - **Implement proper logging**
 
-These templates provide a solid foundation for creating ElizaOS plugins. Customize them based on your specific needs and requirements.
+These templates provide a solid foundation for creating ElizaOS plugins. Customize them based on
+your specific needs and requirements.

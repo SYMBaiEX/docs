@@ -5,7 +5,9 @@ description: Get up and running with ElizaOS quickly and create your first AI ag
 
 # Getting Started
 
-Welcome to ElizaOS! This guide will help you create your first AI agent in minutes. ElizaOS is a powerful framework for building multi-agent systems with support for Discord, Telegram, Twitter, and many more platforms.
+Welcome to ElizaOS! This guide will help you create your first AI agent in minutes. ElizaOS is a
+powerful framework for building multi-agent systems with support for Discord, Telegram, Twitter, and
+many more platforms.
 
 <Cards>
   <Card title="Quick Start" href="/docs/getting-started/quickstart" icon="🚀">
@@ -39,49 +41,34 @@ Before you begin, ensure you have:
 
 <Steps>
   <Step>
-    **Node.js** (v23.3.0 or higher)
-    
-    Download from [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm).
+    **Node.js** (v23.3.0 or higher) Download from [nodejs.org](https://nodejs.org/) or use a version
+    manager like [nvm](https://github.com/nvm-sh/nvm).
   </Step>
   <Step>
-    **Bun** (recommended package manager)
-    
-    Install from [bun.sh](https://bun.sh/docs/installation)
+    **Bun** (recommended package manager) Install from [bun.sh](https://bun.sh/docs/installation)
   </Step>
   <Step>
-    **API Keys** for your chosen model provider
-    
-    - OpenAI API key (recommended for beginners)
-    - Anthropic API key (for Claude models)
-    - Or set up local models with Ollama
+    **API Keys** for your chosen model provider - OpenAI API key (recommended for beginners) -
+    Anthropic API key (for Claude models) - Or set up local models with Ollama
   </Step>
   <Step>
-    **Windows Users**: WSL 2 required
-    
-    Install [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install-manual) for Windows compatibility.
+    **Windows Users**: WSL 2 required Install [WSL
+    2](https://learn.microsoft.com/en-us/windows/wsl/install-manual) for Windows compatibility.
   </Step>
 </Steps>
 
 ## Choose Your Path
 
-<Tabs items={['Quick Start', 'Detailed Setup']}>
+<Tabs items={["Quick Start", "Detailed Setup"]}>
   <Tab value="Quick Start">
-    **Perfect for**: First-time users who want to see ElizaOS in action immediately.
-    
-    **What you get**: A working agent with basic configuration in under 5 minutes.
-    
-    **Time required**: 5-10 minutes
-    
-    [Start Quick Setup →](/docs/getting-started/quickstart)
+    **Perfect for**: First-time users who want to see ElizaOS in action immediately. **What you
+    get**: A working agent with basic configuration in under 5 minutes. **Time required**: 5-10
+    minutes [Start Quick Setup →](/docs/getting-started/quickstart)
   </Tab>
   <Tab value="Detailed Setup">
-    **Perfect for**: Developers who want to understand the full installation process.
-    
-    **What you get**: Complete understanding of ElizaOS architecture and configuration options.
-    
-    **Time required**: 15-30 minutes
-    
-    [Start Detailed Setup →](/docs/getting-started/installation)
+    **Perfect for**: Developers who want to understand the full installation process. **What you
+    get**: Complete understanding of ElizaOS architecture and configuration options. **Time
+    required**: 15-30 minutes [Start Detailed Setup →](/docs/getting-started/installation)
   </Tab>
 </Tabs>
 
@@ -157,7 +144,11 @@ Once you've completed the basic setup:
   <Card title="Connect to Platforms" href="/docs/getting-started/configuration" icon="🔗">
     Set up Discord, Telegram, or Twitter connections
   </Card>
-  <Card title="Customize Behavior" href="/docs/core-concepts/agent-development/character-definition" icon="🎭">
+  <Card
+    title="Customize Behavior"
+    href="/docs/core-concepts/agent-development/character-definition"
+    icon="🎭"
+  >
     Learn how to define your agent's personality and capabilities
   </Card>
   <Card title="Add Plugins" href="/docs/plugins" icon="🔌">
@@ -174,17 +165,22 @@ Once you've completed the basic setup:
 ## Common Issues
 
 <Callout type="info">
-  **Getting stuck?** Check out our [troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide) for solutions to common problems.
+  **Getting stuck?** Check out our [troubleshooting
+  guide](/docs/learning-tracks/simple/guides/troubleshooting-guide) for solutions to common
+  problems.
 </Callout>
 
 ### Quick Fixes
 
 - **Node.js version issues**: Ensure you're using Node.js v23.3.0 (exact version required)
-- **CLI installation issues**: Try `bun update -g @elizaos/cli` or reinstall with `bun install -g @elizaos/cli`
+- **CLI installation issues**: Try `bun update -g @elizaos/cli` or reinstall with
+  `bun install -g @elizaos/cli`
 - **Permission errors**: Fix with `sudo chown -R $(whoami) ~/.bun` or use `sudo` for global installs
 - **API key errors**: Verify your API keys are correctly set in the `.env` file
-- **Port conflicts**: ElizaOS uses port 3000 by default - ensure it's available or use `--port` option
-- **Database connection errors**: Check your database URL in `.env` or switch to `pglite` for development
+- **Port conflicts**: ElizaOS uses port 3000 by default - ensure it's available or use `--port`
+  option
+- **Database connection errors**: Check your database URL in `.env` or switch to `pglite` for
+  development
 
 ## Community & Support
 

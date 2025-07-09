@@ -1,11 +1,15 @@
 ---
 title: "Tasks"
-description: "Understanding task management in ElizaOS, including Task and TaskWorker interfaces, scheduling patterns, and the TaskService implementation from plugin-bootstrap"
+description:
+  "Understanding task management in ElizaOS, including Task and TaskWorker interfaces, scheduling
+  patterns, and the TaskService implementation from plugin-bootstrap"
 ---
 
 # Tasks
 
-Tasks enable agents to perform scheduled or queued operations independently of message processing. They support background processing, recurring activities, and complex workflows that extend beyond simple message-response patterns.
+Tasks enable agents to perform scheduled or queued operations independently of message processing.
+They support background processing, recurring activities, and complex workflows that extend beyond
+simple message-response patterns.
 
 ## Task Interface
 
@@ -19,27 +23,27 @@ From `@elizaos/core/src/types/task.ts`:
 export interface Task {
   /** Optional. A Universally Unique Identifier for the task. Generated if not provided. */
   id?: UUID;
-  
+
   /** The name of the task, which should correspond to a registered TaskWorker.name. */
   name: string;
-  
+
   /** Optional. Timestamp of the last update to this task. */
   updatedAt?: number;
-  
+
   /** Optional. Metadata associated with the task, conforming to TaskMetadata. */
   metadata?: TaskMetadata;
-  
+
   /** A human-readable description of what the task does or its purpose. */
   description: string;
-  
+
   /** Optional. The UUID of the room this task is associated with. */
   roomId?: UUID;
-  
+
   /** Optional. The UUID of the world this task is associated with. */
   worldId?: UUID;
-  
+
   entityId?: UUID;
-  
+
   tags: string[];
 }
 
@@ -50,13 +54,13 @@ export interface Task {
 export type TaskMetadata = {
   /** Optional. If the task is recurring, this specifies the interval in milliseconds between updates or executions. */
   updateInterval?: number;
-  
+
   /** Optional. Describes options or parameters that can be configured for this task, often for UI presentation. */
   options?: {
     name: string;
     description: string;
   }[];
-  
+
   /** Allows for other dynamic metadata properties related to the task. */
   [key: string]: unknown;
 };
@@ -74,7 +78,7 @@ From `@elizaos/core/src/types/task.ts`:
 export interface TaskWorker {
   /** The unique name of the task type this worker handles. This name links Task instances to this worker. */
   name: string;
-  
+
   /**
    * The core execution logic for the task. This function is called by the runtime when a task needs to be processed.
    * It receives the AgentRuntime, task-specific options, and the Task object itself.
@@ -84,7 +88,7 @@ export interface TaskWorker {
     options: { [key: string]: unknown },
     task: Task
   ) => Promise<void>;
-  
+
   /**
    * Optional validation function that can be used to determine if a task is valid or should be executed,
    * often based on the current message and state. This might be used by an action or evaluator
@@ -99,20 +103,20 @@ export interface TaskWorker {
 ### Basic Task Worker Structure
 
 ```typescript
-import type { TaskWorker, IAgentRuntime, Task } from '@elizaos/core';
+import type { IAgentRuntime, Task, TaskWorker } from "@elizaos/core";
 
 export const reminderTaskWorker: TaskWorker = {
-  name: 'SEND_REMINDER',
-  
+  name: "SEND_REMINDER",
+
   execute: async (runtime: IAgentRuntime, options: { [key: string]: unknown }, task: Task) => {
     const { message, timestamp } = options as { message: string; timestamp: number };
-    
+
     // Check if it's time to send the reminder
     if (Date.now() < timestamp) {
       // Task will be checked again on next tick
       return;
     }
-    
+
     // Send the reminder
     await runtime.messageManager.sendMessage({
       roomId: task.roomId!,
@@ -120,19 +124,19 @@ export const reminderTaskWorker: TaskWorker = {
         text: `⏰ Reminder: ${message}`,
         metadata: {
           taskId: task.id,
-          type: 'reminder'
-        }
-      }
+          type: "reminder",
+        },
+      },
     });
-    
+
     // Non-repeating tasks are automatically deleted after execution
     // No need to manually mark as completed
   },
-  
+
   validate: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     // Optional: Validate if reminders are enabled
     return runtime.character.settings?.enableReminders !== false;
-  }
+  },
 };
 ```
 
@@ -140,33 +144,36 @@ export const reminderTaskWorker: TaskWorker = {
 
 ```typescript
 export const analyticsTaskWorker: TaskWorker = {
-  name: 'COLLECT_ANALYTICS',
-  
+  name: "COLLECT_ANALYTICS",
+
   execute: async (runtime: IAgentRuntime, options: any, task: Task) => {
     // Collect analytics data
     const messages = await runtime.getMemories({
-      tableName: 'messages',
+      tableName: "messages",
       roomId: task.roomId,
-      startTime: task.updatedAt || Date.now() - 3600000 // Last hour
+      startTime: task.updatedAt || Date.now() - 3600000, // Last hour
     });
-    
+
     const analytics = {
       messageCount: messages.length,
-      uniqueUsers: new Set(messages.map(m => m.entityId)).size,
+      uniqueUsers: new Set(messages.map((m) => m.entityId)).size,
       averageResponseTime: calculateAvgResponseTime(messages),
-      sentiment: analyzeSentiment(messages)
+      sentiment: analyzeSentiment(messages),
     };
-    
+
     // Store analytics
-    await runtime.createMemory({
-      entityId: runtime.agentId,
-      content: {
-        text: 'Hourly analytics collected',
-        metadata: analytics
+    await runtime.createMemory(
+      {
+        entityId: runtime.agentId,
+        content: {
+          text: "Hourly analytics collected",
+          metadata: analytics,
+        },
+        roomId: task.roomId,
       },
-      roomId: task.roomId
-    }, 'analytics');
-    
+      "analytics"
+    );
+
     // Update task for next run
     await runtime.updateTask({
       ...task,
@@ -174,16 +181,16 @@ export const analyticsTaskWorker: TaskWorker = {
       metadata: {
         ...task.metadata,
         lastRun: Date.now(),
-        runCount: (task.metadata?.runCount || 0) + 1
-      }
+        runCount: (task.metadata?.runCount || 0) + 1,
+      },
     });
   },
-  
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     // Only enable for specific rooms or conditions
     const settings = runtime.character.settings;
     return settings?.enableAnalytics === true;
-  }
+  },
 };
 ```
 
@@ -191,66 +198,65 @@ export const analyticsTaskWorker: TaskWorker = {
 
 ```typescript
 export const contentGenerationTaskWorker: TaskWorker = {
-  name: 'GENERATE_CONTENT',
-  
+  name: "GENERATE_CONTENT",
+
   execute: async (runtime: IAgentRuntime, options: any, task: Task) => {
     const { topic, format, schedule } = options;
-    
+
     try {
       // Step 1: Research topic
-      const research = await runtime.executeAction('RESEARCH_TOPIC', {
+      const research = await runtime.executeAction("RESEARCH_TOPIC", {
         topic,
-        depth: 'comprehensive'
+        depth: "comprehensive",
       });
-      
+
       // Step 2: Generate content
       const content = await runtime.useModel(ModelType.CREATIVE, {
         prompt: `Generate ${format} content about ${topic} based on: ${research.summary}`,
-        temperature: 0.8
+        temperature: 0.8,
       });
-      
+
       // Step 3: Review and refine
-      const refined = await runtime.executeAction('REFINE_CONTENT', {
+      const refined = await runtime.executeAction("REFINE_CONTENT", {
         content,
-        style: runtime.character.style
+        style: runtime.character.style,
       });
-      
+
       // Step 4: Publish or schedule
-      if (schedule === 'immediate') {
+      if (schedule === "immediate") {
         await runtime.sendMessage({
           roomId: task.roomId!,
           content: {
             text: refined.content,
             metadata: {
-              type: 'generated_content',
+              type: "generated_content",
               topic,
-              format
-            }
-          }
+              format,
+            },
+          },
         });
       } else {
         // Create scheduled post task
         await runtime.createTask({
-          name: 'SCHEDULED_POST',
+          name: "SCHEDULED_POST",
           description: `Post content about ${topic}`,
           metadata: {
             content: refined.content,
-            scheduledTime: schedule
+            scheduledTime: schedule,
           },
           roomId: task.roomId,
-          tags: ['content', 'scheduled']
+          tags: ["content", "scheduled"],
         });
       }
-      
+
       // Complete task
       await runtime.completeTask(task.id!);
-      
     } catch (error) {
-      runtime.logger.error('Content generation failed', {
+      runtime.logger.error("Content generation failed", {
         taskId: task.id,
-        error: error.message
+        error: error.message,
       });
-      
+
       // Retry logic
       const retryCount = task.metadata?.retryCount || 0;
       if (retryCount < 3) {
@@ -259,15 +265,15 @@ export const contentGenerationTaskWorker: TaskWorker = {
           metadata: {
             ...task.metadata,
             retryCount: retryCount + 1,
-            lastError: error.message
-          }
+            lastError: error.message,
+          },
         });
       } else {
         // Max retries reached
         await runtime.failTask(task.id!, error.message);
       }
     }
-  }
+  },
 };
 ```
 
@@ -276,43 +282,43 @@ export const contentGenerationTaskWorker: TaskWorker = {
 ### Creating Tasks from Actions
 
 ```typescript
-import type { Action } from '@elizaos/core';
+import type { Action } from "@elizaos/core";
 
 export const scheduleReminderAction: Action = {
-  name: 'SCHEDULE_REMINDER',
-  
+  name: "SCHEDULE_REMINDER",
+
   handler: async (runtime, message, state, options, callback) => {
     const { reminderText, delay } = extractReminderDetails(message.content.text);
-    
+
     // Register the task worker if not already registered
     runtime.registerTaskWorker(reminderTaskWorker);
-    
+
     // Create task with proper tags for the TaskService
     const task = await runtime.createTask({
-      name: 'SEND_REMINDER',
+      name: "SEND_REMINDER",
       description: `Reminder: ${reminderText}`,
       metadata: {
         message: reminderText,
         timestamp: Date.now() + delay,
-        createdBy: message.entityId
+        createdBy: message.entityId,
       },
       roomId: message.roomId,
       entityId: message.entityId,
-      tags: ['queue', 'reminder'] // 'queue' tag required for TaskService to pick it up
+      tags: ["queue", "reminder"], // 'queue' tag required for TaskService to pick it up
     });
-    
+
     const response = {
       text: `I'll remind you about "${reminderText}" in ${formatDelay(delay)}.`,
-      actions: ['SCHEDULE_REMINDER'],
-      metadata: { taskId: task.id }
+      actions: ["SCHEDULE_REMINDER"],
+      metadata: { taskId: task.id },
     };
-    
+
     if (callback) {
       await callback(response);
     }
-    
+
     return task;
-  }
+  },
 };
 ```
 
@@ -320,24 +326,24 @@ export const scheduleReminderAction: Action = {
 
 ```typescript
 export const maintenanceEvaluator: Evaluator = {
-  name: 'SYSTEM_MAINTENANCE',
-  
+  name: "SYSTEM_MAINTENANCE",
+
   handler: async (runtime, message, state) => {
     const memoryUsage = await runtime.getMemoryUsage();
-    
+
     if (memoryUsage.percentage > 80) {
       // Create cleanup task
       await runtime.createTask({
-        name: 'MEMORY_CLEANUP',
-        description: 'Clean up old memories and optimize storage',
+        name: "MEMORY_CLEANUP",
+        description: "Clean up old memories and optimize storage",
         metadata: {
           triggerPercentage: memoryUsage.percentage,
-          targetPercentage: 60
+          targetPercentage: 60,
         },
-        tags: ['maintenance', 'system']
+        tags: ["maintenance", "system"],
       });
     }
-  }
+  },
 };
 ```
 
@@ -348,19 +354,19 @@ export const maintenanceEvaluator: Evaluator = {
 ```typescript
 // Get all tasks for a room
 const roomTasks = await runtime.getTasks({
-  roomId: message.roomId
+  roomId: message.roomId,
 });
 
 // Get tasks by type
 const reminders = await runtime.getTasks({
-  name: 'SEND_REMINDER',
-  entityId: userId
+  name: "SEND_REMINDER",
+  entityId: userId,
 });
 
 // Get tasks by tags
 const scheduledTasks = await runtime.getTasks({
-  tags: ['scheduled'],
-  status: 'pending'
+  tags: ["scheduled"],
+  status: "pending",
 });
 ```
 
@@ -373,8 +379,8 @@ await runtime.updateTask({
   metadata: {
     ...task.metadata,
     progress: 50,
-    lastUpdate: Date.now()
-  }
+    lastUpdate: Date.now(),
+  },
 });
 
 // Reschedule task
@@ -382,8 +388,8 @@ await runtime.updateTask({
   ...task,
   metadata: {
     ...task.metadata,
-    updateInterval: 3600000 // Change to hourly
-  }
+    updateInterval: 3600000, // Change to hourly
+  },
 });
 ```
 
@@ -392,9 +398,9 @@ await runtime.updateTask({
 ```typescript
 // Create task
 const task = await runtime.createTask({
-  name: 'PROCESS_DATA',
-  description: 'Process user data batch',
-  tags: ['data-processing']
+  name: "PROCESS_DATA",
+  description: "Process user data batch",
+  tags: ["data-processing"],
 });
 
 // Task is picked up by worker
@@ -404,7 +410,7 @@ const task = await runtime.createTask({
 await runtime.completeTask(task.id);
 
 // Or fail task
-await runtime.failTask(task.id, 'Processing error');
+await runtime.failTask(task.id, "Processing error");
 
 // Or cancel task
 await runtime.cancelTask(task.id);
@@ -417,30 +423,30 @@ Tasks with `updateInterval` run periodically:
 ```typescript
 // Create daily report task
 await runtime.createTask({
-  name: 'DAILY_REPORT',
-  description: 'Generate daily activity report',
+  name: "DAILY_REPORT",
+  description: "Generate daily activity report",
   metadata: {
     updateInterval: 86400000, // 24 hours
-    reportType: 'summary',
-    recipients: ['admin@example.com'],
-    updatedAt: Date.now() // Initial timestamp
+    reportType: "summary",
+    recipients: ["admin@example.com"],
+    updatedAt: Date.now(), // Initial timestamp
   },
-  tags: ['queue', 'repeat', 'reporting'] // 'queue' and 'repeat' tags required
+  tags: ["queue", "repeat", "reporting"], // 'queue' and 'repeat' tags required
 });
 
 // Task worker handles recurrence
 export const dailyReportWorker: TaskWorker = {
-  name: 'DAILY_REPORT',
-  
+  name: "DAILY_REPORT",
+
   execute: async (runtime, options, task) => {
     // Generate report
     const report = await generateDailyReport(runtime, task.roomId);
-    
+
     // Send report
     await sendReport(report, task.metadata?.recipients);
-    
+
     // Task automatically reschedules based on updateInterval
-  }
+  },
 };
 ```
 
@@ -450,40 +456,40 @@ Tasks can create and manage other tasks:
 
 ```typescript
 export const orchestratorTaskWorker: TaskWorker = {
-  name: 'CONTENT_PIPELINE',
-  
+  name: "CONTENT_PIPELINE",
+
   execute: async (runtime, options, task) => {
     const { contentType, topics } = options;
-    
+
     // Create subtasks for each topic
     const subtasks = await Promise.all(
-      topics.map(topic => 
+      topics.map((topic) =>
         runtime.createTask({
-          name: 'RESEARCH_TOPIC',
+          name: "RESEARCH_TOPIC",
           description: `Research ${topic}`,
           metadata: {
             topic,
             parentTaskId: task.id,
-            stage: 'research'
+            stage: "research",
           },
           roomId: task.roomId,
-          tags: ['subtask', 'research']
+          tags: ["subtask", "research"],
         })
       )
     );
-    
+
     // Update parent task with subtask IDs
     await runtime.updateTask({
       ...task,
       metadata: {
         ...task.metadata,
-        subtaskIds: subtasks.map(t => t.id),
-        status: 'awaiting_subtasks'
-      }
+        subtaskIds: subtasks.map((t) => t.id),
+        status: "awaiting_subtasks",
+      },
     });
-    
+
     // Parent task will check subtask completion
-  }
+  },
 };
 ```
 
@@ -495,59 +501,58 @@ Robust error handling for tasks:
 execute: async (runtime, options, task) => {
   const maxRetries = task.metadata?.maxRetries || 3;
   const retryCount = task.metadata?.retryCount || 0;
-  
+
   try {
     // Execute task logic
     await performTaskOperation(options);
-    
+
     // Success - complete task
     await runtime.completeTask(task.id!);
-    
   } catch (error) {
-    runtime.logger.error('Task execution failed', {
+    runtime.logger.error("Task execution failed", {
       taskId: task.id,
       taskName: task.name,
       error: error.message,
-      retryCount
+      retryCount,
     });
-    
+
     if (retryCount < maxRetries) {
       // Retry with exponential backoff
       const backoffDelay = Math.pow(2, retryCount) * 1000;
-      
+
       await runtime.updateTask({
         ...task,
         metadata: {
           ...task.metadata,
           retryCount: retryCount + 1,
           nextRetry: Date.now() + backoffDelay,
-          lastError: error.message
-        }
+          lastError: error.message,
+        },
       });
     } else {
       // Max retries exceeded
-      await runtime.failTask(task.id!, 
-        `Failed after ${maxRetries} attempts: ${error.message}`);
-      
+      await runtime.failTask(task.id!, `Failed after ${maxRetries} attempts: ${error.message}`);
+
       // Optionally notify
       await runtime.sendMessage({
         roomId: task.roomId!,
         content: {
           text: `Task "${task.description}" failed after multiple attempts.`,
-          metadata: { taskId: task.id, error: error.message }
-        }
+          metadata: { taskId: task.id, error: error.message },
+        },
       });
     }
   }
-}
+};
 ```
 
 ## Task Service
 
-The bootstrap plugin provides a comprehensive task service from `@elizaos/plugin-bootstrap/src/services/task.ts`:
+The bootstrap plugin provides a comprehensive task service from
+`@elizaos/plugin-bootstrap/src/services/task.ts`:
 
 ```typescript
-import { Service, ServiceType, type IAgentRuntime } from '@elizaos/core';
+import { type IAgentRuntime, Service, ServiceType } from "@elizaos/core";
 
 /**
  * TaskService class representing a service that schedules and executes tasks.
@@ -560,7 +565,7 @@ export class TaskService extends Service {
   private timer: NodeJS.Timeout | null = null;
   private readonly TICK_INTERVAL = 1000; // Check every second
   static serviceType = ServiceType.TASK;
-  capabilityDescription = 'The agent is able to schedule and execute tasks';
+  capabilityDescription = "The agent is able to schedule and execute tasks";
 
   static async start(runtime: IAgentRuntime): Promise<Service> {
     const service = new TaskService(runtime);
@@ -572,7 +577,7 @@ export class TaskService extends Service {
     try {
       // Get all tasks with "queue" tag
       const allTasks = await this.runtime.getTasks({
-        tags: ['queue'],
+        tags: ["queue"],
       });
 
       // Validate the tasks
@@ -581,7 +586,7 @@ export class TaskService extends Service {
 
       for (const task of tasks) {
         // Non-repeating tasks execute immediately
-        if (!task.tags?.includes('repeat')) {
+        if (!task.tags?.includes("repeat")) {
           await this.executeTask(task);
           continue;
         }
@@ -595,7 +600,7 @@ export class TaskService extends Service {
         }
       }
     } catch (error) {
-      logger.error('[Bootstrap] Error checking tasks:', error);
+      logger.error("[Bootstrap] Error checking tasks:", error);
     }
   }
 
@@ -608,7 +613,7 @@ export class TaskService extends Service {
       }
 
       // Handle repeating vs non-repeating tasks
-      if (task.tags?.includes('repeat')) {
+      if (task.tags?.includes("repeat")) {
         // Update timestamp for next run
         await this.runtime.updateTask(task.id, {
           metadata: {
@@ -622,7 +627,7 @@ export class TaskService extends Service {
       await worker.execute(this.runtime, task.metadata || {}, task);
 
       // Delete non-repeating tasks after execution
-      if (!task.tags?.includes('repeat')) {
+      if (!task.tags?.includes("repeat")) {
         await this.runtime.deleteTask(task.id);
       }
     } catch (error) {
@@ -648,16 +653,16 @@ execute: async (runtime, options, task) => {
   // Check if already processed
   const processed = await runtime.getCache(`task-${task.id}-processed`);
   if (processed) {
-    runtime.logger.info('Task already processed', { taskId: task.id });
+    runtime.logger.info("Task already processed", { taskId: task.id });
     return;
   }
-  
+
   // Process task
   await processTask(options);
-  
+
   // Mark as processed
   await runtime.setCache(`task-${task.id}-processed`, true);
-}
+};
 ```
 
 ### 3. Resource Management
@@ -666,7 +671,7 @@ execute: async (runtime, options, task) => {
 execute: async (runtime, options, task) => {
   // Acquire resources
   const lock = await runtime.acquireLock(`resource-${task.roomId}`);
-  
+
   try {
     // Use resources
     await performOperation();
@@ -674,7 +679,7 @@ execute: async (runtime, options, task) => {
     // Always release
     await lock.release();
   }
-}
+};
 ```
 
 ### 4. Monitoring
@@ -684,52 +689,51 @@ execute: async (runtime, options, task) => {
 const taskMetrics = {
   startTime: Date.now(),
   taskId: task.id,
-  taskName: task.name
+  taskName: task.name,
 };
 
 try {
   await executeTask();
-  
+
   taskMetrics.duration = Date.now() - taskMetrics.startTime;
-  taskMetrics.status = 'success';
-  
+  taskMetrics.status = "success";
 } catch (error) {
   taskMetrics.duration = Date.now() - taskMetrics.startTime;
-  taskMetrics.status = 'failed';
+  taskMetrics.status = "failed";
   taskMetrics.error = error.message;
 } finally {
-  await runtime.logMetrics('task_execution', taskMetrics);
+  await runtime.logMetrics("task_execution", taskMetrics);
 }
 ```
 
 ### 5. Testing Tasks
 
 ```typescript
-import { testTaskWorker } from '@elizaos/core/testing';
+import { testTaskWorker } from "@elizaos/core/testing";
 
-describe('ReminderTaskWorker', () => {
-  it('should send reminder at correct time', async () => {
+describe("ReminderTaskWorker", () => {
+  it("should send reminder at correct time", async () => {
     const task = {
-      id: 'test-task-1',
-      name: 'SEND_REMINDER',
-      description: 'Test reminder',
+      id: "test-task-1",
+      name: "SEND_REMINDER",
+      description: "Test reminder",
       metadata: {
-        message: 'Test message',
-        timestamp: Date.now() + 1000
+        message: "Test message",
+        timestamp: Date.now() + 1000,
       },
-      roomId: 'test-room',
-      tags: ['test']
+      roomId: "test-room",
+      tags: ["test"],
     };
-    
+
     const result = await testTaskWorker(reminderTaskWorker, {
       task,
       options: task.metadata,
       expectedMessages: 1,
-      expectedCompletion: true
+      expectedCompletion: true,
     });
-    
+
     expect(result.completed).toBe(true);
-    expect(result.messages[0].content.text).toContain('Test message');
+    expect(result.messages[0].content.text).toContain("Test message");
   });
 });
 ```
@@ -740,13 +744,13 @@ describe('ReminderTaskWorker', () => {
 
 ```typescript
 await runtime.createTask({
-  name: 'SCHEDULED_MESSAGE',
+  name: "SCHEDULED_MESSAGE",
   metadata: {
-    message: 'Good morning! Ready to start the day?',
+    message: "Good morning! Ready to start the day?",
     scheduleTime: getTomorrowMorning(),
     recurring: true,
-    timezone: 'America/New_York'
-  }
+    timezone: "America/New_York",
+  },
 });
 ```
 
@@ -754,12 +758,12 @@ await runtime.createTask({
 
 ```typescript
 await runtime.createTask({
-  name: 'SYNC_DATA',
+  name: "SYNC_DATA",
   metadata: {
     updateInterval: 300000, // 5 minutes
-    source: 'external_api',
-    lastSync: Date.now()
-  }
+    source: "external_api",
+    lastSync: Date.now(),
+  },
 });
 ```
 
@@ -767,13 +771,13 @@ await runtime.createTask({
 
 ```typescript
 await runtime.createTask({
-  name: 'BATCH_PROCESS',
+  name: "BATCH_PROCESS",
   metadata: {
     batchSize: 100,
     totalItems: 1000,
     currentOffset: 0,
-    operation: 'import_contacts'
-  }
+    operation: "import_contacts",
+  },
 });
 ```
 
@@ -781,4 +785,5 @@ await runtime.createTask({
 
 - Review [Agents](/docs/core-concepts/agent-development/agents) to understand the runtime context
 - Explore [Actions](/docs/core-concepts/agent-development/actions) that create tasks
-- Learn about [Evaluators](/docs/core-concepts/agent-development/evaluators) that monitor task performance
+- Learn about [Evaluators](/docs/core-concepts/agent-development/evaluators) that monitor task
+  performance

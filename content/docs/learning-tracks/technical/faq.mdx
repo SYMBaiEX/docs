@@ -10,13 +10,19 @@ Technical questions and answers for the Technical Learning Track.
 ## Architecture & Design
 
 ### Q: How does UUID swizzling work?
-A: UUID swizzling enables "Memory Isolation" while allowing cross-agent communication. Each agent has its own memory space but can still communicate with other agents when needed.
+
+A: UUID swizzling enables "Memory Isolation" while allowing cross-agent communication. Each agent
+has its own memory space but can still communicate with other agents when needed.
 
 ### Q: What's the plugin loading order?
-A: Plugin loading order is critical. Core infrastructure and AI providers load first, followed by actions, evaluators, and providers. This ensures dependencies are available when needed.
+
+A: Plugin loading order is critical. Core infrastructure and AI providers load first, followed by
+actions, evaluators, and providers. This ensures dependencies are available when needed.
 
 ### Q: What are the different component types?
+
 A: Components serve distinct roles:
+
 - **Actions**: Handle user interactions and responses
 - **Providers**: Supply data and context to agents
 - **Evaluators**: Make decisions about agent behavior
@@ -25,24 +31,32 @@ A: Components serve distinct roles:
 ## Development Best Practices
 
 ### Q: Should I use monorepo or standalone development?
-A: Use monorepo for core development and plugin creation when contributing to ElizaOS. Use standalone projects for custom applications and specific use cases.
+
+A: Use monorepo for core development and plugin creation when contributing to ElizaOS. Use
+standalone projects for custom applications and specific use cases.
 
 ### Q: How do I handle async errors in plugins?
+
 A: Implement proper async error handling in plugins:
+
 ```typescript
 try {
   await someAsyncOperation();
 } catch (error) {
-  console.error('Plugin error:', error);
+  console.error("Plugin error:", error);
   // Handle gracefully
 }
 ```
 
 ### Q: How do I extend database schemas?
-A: Extend database schemas using migration files. Create migration files in the migrations directory and run them during startup.
+
+A: Extend database schemas using migration files. Create migration files in the migrations directory
+and run them during startup.
 
 ### Q: How do I create custom model providers?
+
 A: Create custom model providers by implementing the `IModelProvider` interface:
+
 ```typescript
 export class MyModelProvider implements IModelProvider {
   async generateText(params: GenerateTextParams): Promise<string> {
@@ -54,21 +68,27 @@ export class MyModelProvider implements IModelProvider {
 ## Performance Optimization
 
 ### Q: How do I optimize memory searches?
+
 A: Use embedding caches and pagination for memory searches:
+
 - Cache frequently accessed embeddings
 - Implement pagination for large memory sets
 - Use similarity thresholds to limit results
 
 ### Q: How do I handle rate limiting?
+
 A: Implement exponential backoff with jitter for rate limiting:
+
 ```typescript
 const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
 const jitter = Math.random() * 1000;
-await new Promise(resolve => setTimeout(resolve, delay + jitter));
+await new Promise((resolve) => setTimeout(resolve, delay + jitter));
 ```
 
 ### Q: How do I monitor performance?
+
 A: Enable performance monitoring with:
+
 - Sampling and custom metrics
 - Response time tracking
 - Memory usage monitoring
@@ -77,14 +97,18 @@ A: Enable performance monitoring with:
 ## Security
 
 ### Q: How do I handle sensitive data?
+
 A: Follow security best practices:
+
 - Never store sensitive data in character files
 - Use environment variables for secrets
 - Encrypt data at rest using secure storage techniques
 - Implement proper authentication and authorization
 
 ### Q: What are the security considerations for plugins?
+
 A: Plugin security considerations:
+
 - Validate all input data
 - Sanitize user-generated content
 - Use secure communication protocols
@@ -93,17 +117,21 @@ A: Plugin security considerations:
 ## Testing
 
 ### Q: What testing strategies should I use?
+
 A: Implement comprehensive testing:
+
 - **Unit tests**: Test individual components
 - **Integration tests**: Test plugin interactions
 - **End-to-end tests**: Test complete agent workflows
 - **Performance tests**: Test under load
 
 ### Q: How do I test plugins?
+
 A: Test plugins with:
+
 ```typescript
-describe('MyPlugin', () => {
-  it('should handle actions correctly', async () => {
+describe("MyPlugin", () => {
+  it("should handle actions correctly", async () => {
     const plugin = new MyPlugin();
     const result = await plugin.execute(mockContext);
     expect(result).toBeDefined();
@@ -114,14 +142,18 @@ describe('MyPlugin', () => {
 ## Deployment
 
 ### Q: How do I deploy agents at scale?
+
 A: For production deployment:
+
 - Use containerization (Docker)
 - Implement horizontal scaling
 - Set up monitoring and alerting
 - Use load balancers for high availability
 
 ### Q: What are the infrastructure requirements?
+
 A: Production infrastructure needs:
+
 - Node.js runtime environment
 - Database (PostgreSQL recommended)
 - Redis for caching
@@ -130,7 +162,9 @@ A: Production infrastructure needs:
 ## Troubleshooting
 
 ### Q: My agent isn't responding - what should I check?
+
 A: Common debugging steps:
+
 1. Check API key configuration
 2. Verify plugin loading order
 3. Review error logs
@@ -138,7 +172,9 @@ A: Common debugging steps:
 5. Check network connectivity
 
 ### Q: How do I debug plugin issues?
+
 A: Plugin debugging techniques:
+
 - Use console.log for development
 - Implement proper error handling
 - Test plugins in isolation
@@ -146,4 +182,5 @@ A: Plugin debugging techniques:
 
 ## More Questions?
 
-Check the detailed [Architecture documentation](../../core-concepts/architecture/) or join our technical discussions in the Discord community.
+Check the detailed [Architecture documentation](../../core-concepts/architecture/) or join our
+technical discussions in the Discord community.

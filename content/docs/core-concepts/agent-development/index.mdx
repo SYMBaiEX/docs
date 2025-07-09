@@ -5,15 +5,19 @@ description: Comprehensive guide to developing agents in ElizaOS
 
 # Overview
 
-Agent development in ElizaOS involves creating intelligent, autonomous entities that can interact with users, perform actions, and maintain persistent memory. The framework provides a complete toolkit for building sophisticated agents with personality, knowledge, and capabilities.
+Agent development in ElizaOS involves creating intelligent, autonomous entities that can interact
+with users, perform actions, and maintain persistent memory. The framework provides a complete
+toolkit for building sophisticated agents with personality, knowledge, and capabilities.
 
 ## Core Components
 
 ### [Character Definition](./character-definition)
 
-Character definitions are JSON-based configurations that define an agent's personality, knowledge, and behavior:
+Character definitions are JSON-based configurations that define an agent's personality, knowledge,
+and behavior:
 
 **Character Schema**:
+
 ```typescript
 interface Character {
   name: string;
@@ -37,6 +41,7 @@ interface Character {
 ```
 
 **Key Features**:
+
 - **Personality Definition**: Bio, lore, and behavioral traits
 - **Knowledge Base**: Domain-specific information and facts
 - **Communication Style**: Tone, language patterns, and response styles
@@ -45,9 +50,11 @@ interface Character {
 
 ### [Actions](./actions)
 
-Actions are executable behaviors that agents can perform in response to user interactions or system events:
+Actions are executable behaviors that agents can perform in response to user interactions or system
+events:
 
 **Action Interface**:
+
 ```typescript
 interface Action {
   name: string;
@@ -59,6 +66,7 @@ interface Action {
 ```
 
 **Built-in Actions**:
+
 - **Message Processing**: Text analysis and response generation
 - **Media Handling**: Image, audio, and video processing
 - **Web Integration**: API calls and web scraping
@@ -66,6 +74,7 @@ interface Action {
 - **Social Media**: Platform-specific interactions
 
 **Custom Actions**:
+
 - Plugin-based extensibility
 - Event-driven execution
 - Context-aware processing
@@ -76,6 +85,7 @@ interface Action {
 Evaluators assess situations and determine appropriate responses:
 
 **Evaluator Interface**:
+
 ```typescript
 interface Evaluator {
   name: string;
@@ -88,6 +98,7 @@ interface Evaluator {
 ```
 
 **Evaluation Types**:
+
 - **Sentiment Analysis**: Emotional tone detection
 - **Intent Recognition**: Purpose and goal identification
 - **Context Assessment**: Situational understanding
@@ -99,6 +110,7 @@ interface Evaluator {
 Providers integrate external services and data sources:
 
 **Provider Interface**:
+
 ```typescript
 interface Provider {
   get: (runtime: IAgentRuntime, message: Memory) => Promise<string>;
@@ -106,6 +118,7 @@ interface Provider {
 ```
 
 **Provider Types**:
+
 - **Time Provider**: Current time and scheduling information
 - **Facts Provider**: Verified information and knowledge
 - **Browser Provider**: Web search and content retrieval
@@ -117,17 +130,19 @@ interface Provider {
 Tasks manage long-running operations and background processes:
 
 **Task Interface**:
+
 ```typescript
 interface Task {
   id: UUID;
   name: string;
   description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   handler: (runtime: IAgentRuntime) => Promise<void>;
 }
 ```
 
 **Task Management**:
+
 - **Scheduling**: Cron-like scheduling for recurring tasks
 - **Queue Management**: Priority-based task execution
 - **Error Handling**: Retry logic and failure recovery
@@ -138,6 +153,7 @@ interface Task {
 Agents are complete instances combining all components:
 
 **Agent Runtime**:
+
 - **Initialization**: Character loading and plugin registration
 - **Message Processing**: Intelligent conversation handling
 - **Memory Management**: Persistent state and knowledge
@@ -294,4 +310,6 @@ elizaos logs --follow
 - **Performance Profiler**: Bottleneck identification
 - **Error Tracking**: Comprehensive error monitoring
 
-This comprehensive approach to agent development ensures you can create sophisticated, reliable, and engaging AI agents that provide value to users while maintaining consistent performance and behavior.
+This comprehensive approach to agent development ensures you can create sophisticated, reliable, and
+engaging AI agents that provide value to users while maintaining consistent performance and
+behavior.

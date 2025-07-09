@@ -1,11 +1,13 @@
 ---
 title: API Migration Guide
-description: Guide for migrating from old agent-specific APIs to the new centralized messaging system
+description:
+  Guide for migrating from old agent-specific APIs to the new centralized messaging system
 ---
 
 # API Migration Guide
 
-This guide helps you migrate from the old agent-specific API endpoints to the new centralized messaging system in elizaOS.
+This guide helps you migrate from the old agent-specific API endpoints to the new centralized
+messaging system in elizaOS.
 
 ## Major Changes
 
@@ -28,36 +30,36 @@ Audio-related endpoints have been reorganized:
 ### Before (Incorrect)
 
 ```javascript
-const response = await fetch('/api/agents/{agentId}/message', {
-  method: 'POST',
+const response = await fetch("/api/agents/{agentId}/message", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    senderId: 'user123',
-    roomId: 'room456',
-    text: 'Hello agent!',
-    source: 'api'
-  })
+    senderId: "user123",
+    roomId: "room456",
+    text: "Hello agent!",
+    source: "api",
+  }),
 });
 ```
 
 ### After (Correct)
 
 ```javascript
-const response = await fetch('/api/messaging/submit', {
-  method: 'POST',
+const response = await fetch("/api/messaging/submit", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    channel_id: 'room456',
-    server_id: '00000000-0000-0000-0000-000000000000',
-    author_id: 'user123',
-    content: 'Hello agent!',
-    source_type: 'user_message',
-    raw_message: { text: 'Hello agent!' }
-  })
+    channel_id: "room456",
+    server_id: "00000000-0000-0000-0000-000000000000",
+    author_id: "user123",
+    content: "Hello agent!",
+    source_type: "user_message",
+    raw_message: { text: "Hello agent!" },
+  }),
 });
 ```
 
@@ -67,20 +69,21 @@ const response = await fetch('/api/messaging/submit', {
 
 The new API uses a different payload structure:
 
-| Old Field | New Field | Notes |
-|-----------|-----------|-------|
-| `senderId` | `author_id` | UUID of the message author |
-| `roomId` | `channel_id` | UUID of the channel/room |
-| `text` | `content` | Message content |
-| `source` | `source_type` | Message source identifier |
-| N/A | `server_id` | Required: Use central server ID |
-| N/A | `raw_message` | Original message structure |
+| Old Field  | New Field     | Notes                           |
+| ---------- | ------------- | ------------------------------- |
+| `senderId` | `author_id`   | UUID of the message author      |
+| `roomId`   | `channel_id`  | UUID of the channel/room        |
+| `text`     | `content`     | Message content                 |
+| `source`   | `source_type` | Message source identifier       |
+| N/A        | `server_id`   | Required: Use central server ID |
+| N/A        | `raw_message` | Original message structure      |
 
 ### Central Server ID
 
 The new system uses a central message bus. Always use this server ID:
+
 ```javascript
-server_id: '00000000-0000-0000-0000-000000000000'
+server_id: "00000000-0000-0000-0000-000000000000";
 ```
 
 ## WebSocket Migration
@@ -93,26 +96,27 @@ The real-time communication has also been updated:
 ### Socket.IO Connection Example
 
 ```javascript
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const socket = io('http://localhost:3000', {
+const socket = io("http://localhost:3000", {
   auth: {
-    token: 'your-auth-token'
-  }
+    token: "your-auth-token",
+  },
 });
 
 // Join a channel
-socket.emit('join_channel', { channelId: 'room456' });
+socket.emit("join_channel", { channelId: "room456" });
 
 // Listen for messages
-socket.on('new_message', (message) => {
-  console.log('New message:', message);
+socket.on("new_message", (message) => {
+  console.log("New message:", message);
 });
 ```
 
 ## Benefits of New Architecture
 
-1. **Multi-Agent Support**: Messages are routed through a central system, enabling better multi-agent coordination
+1. **Multi-Agent Support**: Messages are routed through a central system, enabling better
+   multi-agent coordination
 2. **Better Message Routing**: Centralized routing allows for more sophisticated message handling
 3. **Consistent State Management**: All agents share a consistent view of conversations
 4. **Improved Scalability**: The architecture supports horizontal scaling
@@ -136,28 +140,28 @@ Follow these steps to migrate your integration:
 ```javascript
 async function testMessageSubmission() {
   const testMessage = {
-    channel_id: 'your-channel-id',
-    server_id: '00000000-0000-0000-0000-000000000000',
-    author_id: 'test-user-id',
-    content: 'Test message from migration',
-    source_type: 'api_test',
-    raw_message: { text: 'Test message from migration' }
+    channel_id: "your-channel-id",
+    server_id: "00000000-0000-0000-0000-000000000000",
+    author_id: "test-user-id",
+    content: "Test message from migration",
+    source_type: "api_test",
+    raw_message: { text: "Test message from migration" },
   };
 
   try {
-    const response = await fetch('http://localhost:3000/api/messaging/submit', {
-      method: 'POST',
+    const response = await fetch("http://localhost:3000/api/messaging/submit", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': 'your-api-key' // if authentication is enabled
+        "Content-Type": "application/json",
+        "X-API-KEY": "your-api-key", // if authentication is enabled
       },
-      body: JSON.stringify(testMessage)
+      body: JSON.stringify(testMessage),
     });
 
     const result = await response.json();
-    console.log('Message sent successfully:', result);
+    console.log("Message sent successfully:", result);
   } catch (error) {
-    console.error('Failed to send message:', error);
+    console.error("Failed to send message:", error);
   }
 }
 ```
@@ -166,19 +170,19 @@ async function testMessageSubmission() {
 
 ```javascript
 function testSocketConnection() {
-  const socket = io('http://localhost:3000');
+  const socket = io("http://localhost:3000");
 
-  socket.on('connect', () => {
-    console.log('Connected to Socket.IO server');
-    socket.emit('join_channel', { channelId: 'your-channel-id' });
+  socket.on("connect", () => {
+    console.log("Connected to Socket.IO server");
+    socket.emit("join_channel", { channelId: "your-channel-id" });
   });
 
-  socket.on('new_message', (message) => {
-    console.log('Received message:', message);
+  socket.on("new_message", (message) => {
+    console.log("Received message:", message);
   });
 
-  socket.on('error', (error) => {
-    console.error('Socket error:', error);
+  socket.on("error", (error) => {
+    console.error("Socket error:", error);
   });
 }
 ```
@@ -191,11 +195,13 @@ function testSocketConnection() {
 
 ### Issue: Invalid Request Body
 
-**Solution**: Ensure you're using the new field names (`channel_id`, `author_id`, etc.) instead of the old ones.
+**Solution**: Ensure you're using the new field names (`channel_id`, `author_id`, etc.) instead of
+the old ones.
 
 ### Issue: Messages Not Reaching Agents
 
 **Solution**: Verify that:
+
 - You're using the correct `server_id`
 - The agent is subscribed to the channel
 - The channel exists and is properly configured
@@ -217,8 +223,12 @@ If you encounter issues during migration:
 
 After migrating your API integration:
 
-1. Review the [Message Bus Architecture](/docs/core-concepts/communication/message-bus) to understand the new system
-2. Explore [WebSocket documentation](/docs/core-concepts/communication/websockets) for real-time features
-3. Check the [REST API reference](/docs/core-concepts/communication/rest-api) for additional endpoints
+1. Review the [Message Bus Architecture](/docs/core-concepts/communication/message-bus) to
+   understand the new system
+2. Explore [WebSocket documentation](/docs/core-concepts/communication/websockets) for real-time
+   features
+3. Check the [REST API reference](/docs/core-concepts/communication/rest-api) for additional
+   endpoints
 
-The new architecture provides a more robust and scalable foundation for building conversational AI applications with elizaOS.
+The new architecture provides a more robust and scalable foundation for building conversational AI
+applications with elizaOS.

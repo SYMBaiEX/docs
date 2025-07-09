@@ -5,7 +5,9 @@ description: "Complete guide to ElizaOS REST API endpoints and usage"
 
 # REST API Reference
 
-The ElizaOS server provides a comprehensive REST API for interacting with agents, managing messages, and accessing system functionality. All API endpoints are mounted under `/api` with proper authentication and validation.
+The ElizaOS server provides a comprehensive REST API for interacting with agents, managing messages,
+and accessing system functionality. All API endpoints are mounted under `/api` with proper
+authentication and validation.
 
 ## Authentication
 
@@ -38,6 +40,7 @@ The API is organized into domain-specific routers:
 All API endpoints follow consistent patterns:
 
 ### Request Headers
+
 ```http
 Content-Type: application/json
 X-API-KEY: your-secret-token (if auth enabled)
@@ -45,6 +48,7 @@ Accept: application/json
 ```
 
 ### Success Response
+
 ```json
 {
   "success": true,
@@ -55,6 +59,7 @@ Accept: application/json
 ```
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -77,6 +82,7 @@ GET /api/agents
 Returns a list of all agents with minimal details, sorted by status and name.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -103,6 +109,7 @@ GET /api/agents/{agentId}
 Returns complete agent configuration including character details.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -130,6 +137,7 @@ Content-Type: application/json
 Create a new agent from character configuration. Supports three input methods:
 
 **Method 1: Character JSON**
+
 ```json
 {
   "characterJson": {
@@ -149,6 +157,7 @@ Create a new agent from character configuration. Supports three input methods:
 ```
 
 **Method 2: Character Path**
+
 ```json
 {
   "characterPath": "/path/to/character.json"
@@ -156,6 +165,7 @@ Create a new agent from character configuration. Supports three input methods:
 ```
 
 **Method 3: Agent Object**
+
 ```json
 {
   "agent": {
@@ -166,6 +176,7 @@ Create a new agent from character configuration. Supports three input methods:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -199,6 +210,7 @@ Content-Type: application/json
 Updates agent configuration. Automatically encrypts secrets and restarts active agents.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -219,6 +231,7 @@ DELETE /api/agents/{agentId}
 Permanently deletes an agent. Automatically stops the agent if running.
 
 **Response:**
+
 ```http
 HTTP/1.1 204 No Content
 ```
@@ -226,16 +239,19 @@ HTTP/1.1 204 No Content
 ### Agent Lifecycle
 
 #### Start Agent
+
 ```http
 POST /api/agents/{agentId}/start
 ```
 
 #### Stop Agent
+
 ```http
 POST /api/agents/{agentId}/stop
 ```
 
 #### Restart Agent
+
 ```http
 POST /api/agents/{agentId}/restart
 ```
@@ -243,11 +259,13 @@ POST /api/agents/{agentId}/restart
 ### Agent Logs
 
 #### Get Agent Logs
+
 ```http
 GET /api/agents/{agentId}/logs?level=info&limit=100
 ```
 
 **Query Parameters:**
+
 - `level` - Log level filter (debug, info, warn, error)
 - `limit` - Maximum number of log entries
 - `since` - Timestamp to get logs since
@@ -255,11 +273,13 @@ GET /api/agents/{agentId}/logs?level=info&limit=100
 ### Agent Worlds
 
 #### List Agent Worlds
+
 ```http
 GET /api/agents/{agentId}/worlds
 ```
 
 #### Get World Details
+
 ```http
 GET /api/agents/{agentId}/worlds/{worldId}
 ```
@@ -294,6 +314,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -336,6 +357,7 @@ Content-Type: application/json
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -363,11 +385,13 @@ Content-Type: application/json
 ### Channel Management
 
 #### List Channels
+
 ```http
 GET /api/messaging/central-servers/{serverId}/channels
 ```
 
 #### Create Channel
+
 ```http
 POST /api/messaging/central-channels
 Content-Type: application/json
@@ -385,16 +409,19 @@ Content-Type: application/json
 ```
 
 #### Get Channel Details
+
 ```http
 GET /api/messaging/central-channels/{channelId}/details
 ```
 
 #### Get Channel Messages
+
 ```http
 GET /api/messaging/central-channels/{channelId}/messages?limit=50&before=2024-01-01T00:00:00.000Z
 ```
 
 #### Update Channel
+
 ```http
 PATCH /api/messaging/central-channels/{channelId}
 Content-Type: application/json
@@ -408,11 +435,13 @@ Content-Type: application/json
 ```
 
 #### Delete Channel
+
 ```http
 DELETE /api/messaging/central-channels/{channelId}
 ```
 
 #### Clear Channel Messages
+
 ```http
 DELETE /api/messaging/central-channels/{channelId}/messages
 ```
@@ -420,11 +449,13 @@ DELETE /api/messaging/central-channels/{channelId}/messages
 ### Message Server Management
 
 #### List Servers
+
 ```http
 GET /api/messaging/central-servers
 ```
 
 #### Create Server
+
 ```http
 POST /api/messaging/central-servers
 Content-Type: application/json
@@ -439,11 +470,13 @@ Content-Type: application/json
 ```
 
 #### Get Server Details
+
 ```http
 GET /api/messaging/central-servers/{serverId}
 ```
 
 #### Update Server
+
 ```http
 PATCH /api/messaging/central-servers/{serverId}
 Content-Type: application/json
@@ -457,6 +490,7 @@ Content-Type: application/json
 ```
 
 #### Delete Server
+
 ```http
 DELETE /api/messaging/central-servers/{serverId}
 ```
@@ -464,16 +498,19 @@ DELETE /api/messaging/central-servers/{serverId}
 ### Agent-Server Association
 
 #### Add Agent to Server
+
 ```http
 POST /api/messaging/agents/{agentId}/servers/{serverId}
 ```
 
 #### Remove Agent from Server
+
 ```http
 DELETE /api/messaging/agents/{agentId}/servers/{serverId}
 ```
 
 #### Get Agent's Servers
+
 ```http
 GET /api/messaging/agents/{agentId}/servers
 ```
@@ -494,6 +531,7 @@ Content-Type: multipart/form-data
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -523,6 +561,7 @@ GET /api/memory/agents/{agentId}/memories?table=messages&limit=50&offset=0
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -577,6 +616,7 @@ Content-Type: multipart/form-data
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -607,6 +647,7 @@ GET /api/server/ping
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -624,6 +665,7 @@ GET /api/system/status
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -707,21 +749,21 @@ Accept: application/json
 ```javascript
 async function apiCall() {
   try {
-    const response = await fetch('/api/agents', {
+    const response = await fetch("/api/agents", {
       headers: {
-        'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
-      }
+        "X-API-KEY": process.env.ELIZA_SERVER_AUTH_TOKEN,
+      },
     });
-    
+
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error.message);
     }
-    
+
     return data.data;
   } catch (error) {
-    console.error('API Error:', error);
+    console.error("API Error:", error);
     throw error;
   }
 }
@@ -734,29 +776,28 @@ async function apiCall() {
 async function getAllMessages(channelId, limit = 50) {
   const messages = [];
   let before = null;
-  
+
   while (true) {
     const params = new URLSearchParams({
       limit: limit.toString(),
-      ...(before && { before })
+      ...(before && { before }),
     });
-    
-    const response = await fetch(
-      `/api/messaging/central-channels/${channelId}/messages?${params}`
-    );
-    
+
+    const response = await fetch(`/api/messaging/central-channels/${channelId}/messages?${params}`);
+
     const data = await response.json();
-    
+
     if (!data.success || !data.data.messages.length) {
       break;
     }
-    
+
     messages.push(...data.data.messages);
     before = data.data.messages[data.data.messages.length - 1].createdAt;
   }
-  
+
   return messages;
 }
 ```
 
-The elizaOS REST API provides a comprehensive interface for building applications that interact with agents and manage communication workflows.
+The elizaOS REST API provides a comprehensive interface for building applications that interact with
+agents and manage communication workflows.

@@ -5,7 +5,8 @@ description: Comprehensive API documentation for messaging and communication
 
 # Messaging API
 
-The Messaging API provides real-time messaging capabilities, server management, and channel operations. All messaging endpoints are prefixed with `/api/messaging`.
+The Messaging API provides real-time messaging capabilities, server management, and channel
+operations. All messaging endpoints are prefixed with `/api/messaging`.
 
 ## Overview
 
@@ -38,9 +39,11 @@ X-API-KEY: your-api-key
 POST /api/messaging/submit
 ```
 
-Submits a processed message from an agent or system component. Used for agent responses and system-generated messages.
+Submits a processed message from an agent or system component. Used for agent responses and
+system-generated messages.
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -61,6 +64,7 @@ Submits a processed message from an agent or system component. Used for agent re
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -76,6 +80,7 @@ Submits a processed message from an agent or system component. Used for agent re
 ```
 
 **Notes:**
+
 - This endpoint is for messages **already processed** by agents
 - Messages are stored in the database and broadcast via WebSocket
 - Does not trigger agent processing through the message bus
@@ -89,6 +94,7 @@ POST /api/messaging/complete
 Notifies that a message processing is complete.
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -97,6 +103,7 @@ Notifies that a message processing is complete.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -113,6 +120,7 @@ POST /api/messaging/ingest-external
 Ingests messages from external platforms (Discord, Slack, etc.).
 
 **Request Body:**
+
 ```json
 {
   "channel_id": "channel-uuid",
@@ -134,6 +142,7 @@ Ingests messages from external platforms (Discord, Slack, etc.).
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -155,6 +164,7 @@ GET /api/messaging/servers
 Lists all messaging servers.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -183,9 +193,11 @@ GET /api/messaging/servers/:serverId
 Gets detailed information about a specific server.
 
 **Parameters:**
+
 - `serverId` (UUID) - Server identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -212,6 +224,7 @@ POST /api/messaging/servers
 Creates a new messaging server.
 
 **Request Body:**
+
 ```json
 {
   "name": "Server Name",
@@ -224,6 +237,7 @@ Creates a new messaging server.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -246,9 +260,11 @@ PATCH /api/messaging/servers/:serverId
 Updates an existing server.
 
 **Parameters:**
+
 - `serverId` (UUID) - Server identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Server Name",
@@ -259,6 +275,7 @@ Updates an existing server.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -283,9 +300,11 @@ DELETE /api/messaging/servers/:serverId
 Deletes a server and all associated channels.
 
 **Parameters:**
+
 - `serverId` (UUID) - Server identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -301,9 +320,12 @@ GET /api/messaging/central-servers/:serverId/channels
 Lists all channels for a specific server.
 
 **Parameters:**
-- `serverId` (UUID) - Server identifier (use `00000000-0000-0000-0000-000000000000` for default server)
+
+- `serverId` (UUID) - Server identifier (use `00000000-0000-0000-0000-000000000000` for default
+  server)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -332,9 +354,11 @@ GET /api/messaging/central-channels/:channelId/details
 Gets detailed information about a specific channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -362,9 +386,11 @@ GET /api/messaging/central-channels/:channelId/participants
 Gets the participants of a specific channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -381,6 +407,7 @@ POST /api/messaging/channels
 Creates a new channel.
 
 **Request Body:**
+
 ```json
 {
   "serverId": "server-uuid",
@@ -395,6 +422,7 @@ Creates a new channel.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -420,6 +448,7 @@ POST /api/messaging/central-channels
 Creates a new group channel with participants.
 
 **Request Body:**
+
 ```json
 {
   "name": "Group Name",
@@ -433,6 +462,7 @@ Creates a new group channel with participants.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -455,11 +485,13 @@ GET /api/messaging/dm-channel?targetUserId=:targetUserId&currentUserId=:currentU
 Finds existing DM channel or creates one between two users.
 
 **Query Parameters:**
+
 - `targetUserId` (UUID) - Target user ID (required)
 - `currentUserId` (UUID) - Current user ID (required)
 - `dmServerId` (UUID) - Server ID (optional, defaults to default server)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -482,10 +514,12 @@ PATCH /api/messaging/servers/:serverId/channels/:channelId
 Updates an existing channel.
 
 **Parameters:**
+
 - `serverId` (UUID) - Server identifier
 - `channelId` (UUID) - Channel identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Channel Name",
@@ -496,6 +530,7 @@ Updates an existing channel.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -521,10 +556,12 @@ DELETE /api/messaging/servers/:serverId/channels/:channelId
 Deletes a channel and all associated messages.
 
 **Parameters:**
+
 - `serverId` (UUID) - Server identifier
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -540,9 +577,11 @@ POST /api/messaging/central-channels/:channelId/messages
 Sends a message to a channel. Creates the channel automatically if it doesn't exist.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request Body:**
+
 ```json
 {
   "author_id": "user-uuid",
@@ -564,6 +603,7 @@ Sends a message to a channel. Creates the channel automatically if it doesn't ex
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -579,6 +619,7 @@ Sends a message to a channel. Creates the channel automatically if it doesn't ex
 ```
 
 **Notes:**
+
 - Messages are automatically published to the internal message bus for agent processing
 - Channel is auto-created if it doesn't exist
 - Real-time broadcast via WebSocket to all channel participants
@@ -592,13 +633,16 @@ GET /api/messaging/central-channels/:channelId/messages
 Retrieves messages from a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Query Parameters:**
+
 - `limit` (number) - Number of messages (default: 50)
 - `before` (number) - Timestamp for pagination (messages before this time)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -624,6 +668,7 @@ Retrieves messages from a channel.
 ```
 
 **Notes:**
+
 - Messages are returned in reverse chronological order (newest first)
 - Includes thought and actions from rawMessage for agent responses
 - Timestamps are in milliseconds since epoch
@@ -637,9 +682,11 @@ DELETE /api/messaging/messages/:messageId
 Deletes a specific message.
 
 **Parameters:**
+
 - `messageId` (UUID) - Message identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
@@ -653,12 +700,15 @@ DELETE /api/messaging/central-channels/:channelId/messages
 Clears all messages from a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Query Parameters:**
+
 - `confirm` (string) - Must be "true" to execute
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -677,19 +727,23 @@ POST /api/messaging/channels/:channelId/upload-media
 Uploads a file to a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Media file (max 10MB)
 
 **Supported file types:**
+
 - Images: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
 - Audio: `audio/mpeg`, `audio/wav`, `audio/ogg`
 - Video: `video/mp4`, `video/webm`
 - Documents: `application/pdf`, `text/plain`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -704,6 +758,7 @@ Uploads a file to a channel.
 ```
 
 **Notes:**
+
 - Files are stored in `.eliza/data/uploads/channels/{channelId}/`
 - Filenames are automatically generated with timestamps for uniqueness
 - Rate limiting applies to prevent abuse
@@ -719,9 +774,11 @@ PATCH /api/messaging/central-channels/:channelId
 Updates channel information.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Channel Name",
@@ -733,6 +790,7 @@ Updates channel information.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -757,14 +815,17 @@ DELETE /api/messaging/central-channels/:channelId
 Deletes a channel and all associated messages.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
+
 ```http
 204 No Content
 ```
 
 **Notes:**
+
 - Emits `channel_cleared` event to internal message bus
 - Broadcasts `channelDeleted` event via WebSocket
 
@@ -779,9 +840,11 @@ POST /api/messaging/central-channels/:channelId/agents
 Adds an agent to a channel as a participant.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request Body:**
+
 ```json
 {
   "agentId": "agent-uuid"
@@ -789,6 +852,7 @@ Adds an agent to a channel as a participant.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -809,10 +873,12 @@ DELETE /api/messaging/central-channels/:channelId/agents/:agentId
 Removes an agent from a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -833,9 +899,11 @@ GET /api/messaging/central-channels/:channelId/agents
 Lists all agents in a channel.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -857,9 +925,11 @@ POST /api/messaging/central-channels/:channelId/generate-title
 Generates a descriptive title for a channel based on recent conversation.
 
 **Parameters:**
+
 - `channelId` (UUID) - Channel identifier
 
 **Request Body:**
+
 ```json
 {
   "agentId": "agent-uuid"
@@ -867,6 +937,7 @@ Generates a descriptive title for a channel based on recent conversation.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -878,6 +949,7 @@ Generates a descriptive title for a channel based on recent conversation.
 ```
 
 **Notes:**
+
 - Uses the specified agent's language model to generate title
 - Analyzes recent conversation history
 - Returns null if not enough messages to generate a title
@@ -887,18 +959,21 @@ Generates a descriptive title for a channel based on recent conversation.
 The Messaging API integrates with WebSocket events for real-time communication:
 
 ### Message Events
+
 - `messageBroadcast` - New message in channel
 - `messageUpdated` - Message edited
 - `messageDeleted` - Message deleted
 - `messageReaction` - Reaction added/removed
 
 ### Channel Events
+
 - `channelCreated` - New channel created
 - `channelUpdated` - Channel updated
 - `channelDeleted` - Channel deleted
 - `channelCleared` - Channel messages cleared
 
 ### User Events
+
 - `userJoined` - User joined channel
 - `userLeft` - User left channel
 - `userTyping` - User is typing
@@ -919,6 +994,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_ID` - Invalid UUID format
 - `NOT_FOUND` - Resource not found
 - `INVALID_REQUEST` - Invalid request parameters
@@ -930,6 +1006,7 @@ Common error codes:
 ## Rate Limiting
 
 Messaging endpoints are subject to rate limiting:
+
 - Standard operations: 100 requests per minute
 - Message sending: 60 requests per minute
 - File uploads: 10 requests per minute

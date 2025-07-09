@@ -5,22 +5,23 @@ description: Real-time communication using Socket.IO in ElizaOS
 
 ## Overview
 
-ElizaOS uses Socket.IO for real-time bidirectional communication between clients and the server. This enables instant messaging, live updates, and event streaming without the need for polling.
+ElizaOS uses Socket.IO for real-time bidirectional communication between clients and the server.
+This enables instant messaging, live updates, and event streaming without the need for polling.
 
 ## Connection Management
 
 ### Establishing Connection
 
 ```javascript
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const socket = io('http://localhost:3000', {
+const socket = io("http://localhost:3000", {
   autoConnect: true,
-  reconnection: true
+  reconnection: true,
 });
 
-socket.on('connect', () => {
-  console.log('Connected to server');
+socket.on("connect", () => {
+  console.log("Connected to server");
 });
 ```
 
@@ -28,28 +29,28 @@ socket.on('connect', () => {
 
 ```javascript
 // Connection established
-socket.on('connection_established', (data) => {
-  console.log('Connected with socket ID:', data.socketId);
+socket.on("connection_established", (data) => {
+  console.log("Connected with socket ID:", data.socketId);
 });
 
 // Connection lost
-socket.on('disconnect', (reason) => {
-  console.log('Disconnected:', reason);
+socket.on("disconnect", (reason) => {
+  console.log("Disconnected:", reason);
 });
 
 // Reconnection attempts
-socket.on('reconnect_attempt', (attemptNumber) => {
-  console.log('Reconnection attempt:', attemptNumber);
+socket.on("reconnect_attempt", (attemptNumber) => {
+  console.log("Reconnection attempt:", attemptNumber);
 });
 
 // Successfully reconnected
-socket.on('reconnect', (attemptNumber) => {
-  console.log('Reconnected after', attemptNumber, 'attempts');
+socket.on("reconnect", (attemptNumber) => {
+  console.log("Reconnected after", attemptNumber, "attempts");
 });
 
 // Connection error
-socket.on('connect_error', (error) => {
-  console.error('Connection error:', error);
+socket.on("connect_error", (error) => {
+  console.error("Connection error:", error);
 });
 ```
 
@@ -60,7 +61,7 @@ ElizaOS uses typed message events for different operations:
 ```typescript
 enum SOCKET_MESSAGE_TYPE {
   ROOM_JOINING = 0,
-  SEND_MESSAGE = 1
+  SEND_MESSAGE = 1,
 }
 ```
 
@@ -70,27 +71,27 @@ enum SOCKET_MESSAGE_TYPE {
 
 ```javascript
 // Join a channel to receive messages
-socket.emit('message', {
+socket.emit("message", {
   type: 0, // ROOM_JOINING
   payload: {
-    channelId: 'channel-uuid',
-    entityId: 'user-uuid',
-    serverId: 'server-uuid',
+    channelId: "channel-uuid",
+    entityId: "user-uuid",
+    serverId: "server-uuid",
     metadata: {
       isDm: false,
-      channelType: 'group'
-    }
-  }
+      channelType: "group",
+    },
+  },
 });
 
 // Confirmation events
-socket.on('channel_joined', (data) => {
-  console.log('Joined channel:', data.channelId);
+socket.on("channel_joined", (data) => {
+  console.log("Joined channel:", data.channelId);
 });
 
 // Legacy support
-socket.on('room_joined', (data) => {
-  console.log('Joined room:', data.roomId);
+socket.on("room_joined", (data) => {
+  console.log("Joined room:", data.roomId);
 });
 ```
 
@@ -98,13 +99,13 @@ socket.on('room_joined', (data) => {
 
 ```javascript
 // Channel cleared (all messages deleted)
-socket.on('channelCleared', (data) => {
-  console.log('Channel cleared:', data.channelId);
+socket.on("channelCleared", (data) => {
+  console.log("Channel cleared:", data.channelId);
 });
 
 // Channel deleted
-socket.on('channelDeleted', (data) => {
-  console.log('Channel deleted:', data.channelId);
+socket.on("channelDeleted", (data) => {
+  console.log("Channel deleted:", data.channelId);
 });
 ```
 
@@ -114,21 +115,21 @@ socket.on('channelDeleted', (data) => {
 
 ```javascript
 // Send a message to a channel
-socket.emit('message', {
+socket.emit("message", {
   type: 1, // SEND_MESSAGE
   payload: {
-    senderId: 'user-uuid',
-    senderName: 'User Name',
-    message: 'Hello, world!',
-    channelId: 'channel-uuid',
-    serverId: 'server-uuid',
-    messageId: 'client-generated-uuid',
-    source: 'web_client',
+    senderId: "user-uuid",
+    senderName: "User Name",
+    message: "Hello, world!",
+    channelId: "channel-uuid",
+    serverId: "server-uuid",
+    messageId: "client-generated-uuid",
+    source: "web_client",
     attachments: [],
     metadata: {
-      isDm: false
-    }
-  }
+      isDm: false,
+    },
+  },
 });
 ```
 
@@ -136,8 +137,8 @@ socket.emit('message', {
 
 ```javascript
 // Message broadcast from any participant
-socket.on('messageBroadcast', (data) => {
-  console.log('New message:', {
+socket.on("messageBroadcast", (data) => {
+  console.log("New message:", {
     id: data.id,
     senderId: data.senderId,
     senderName: data.senderName,
@@ -146,25 +147,25 @@ socket.on('messageBroadcast', (data) => {
     createdAt: data.createdAt,
     source: data.source,
     attachments: data.attachments,
-    thought: data.thought,      // Agent's internal thought
-    actions: data.actions,      // Actions taken by agent
-    prompt: data.prompt         // LLM prompt used
+    thought: data.thought, // Agent's internal thought
+    actions: data.actions, // Actions taken by agent
+    prompt: data.prompt, // LLM prompt used
   });
 });
 
 // Message acknowledgment
-socket.on('messageAck', (data) => {
-  console.log('Message acknowledged:', {
+socket.on("messageAck", (data) => {
+  console.log("Message acknowledged:", {
     clientMessageId: data.clientMessageId,
     messageId: data.messageId,
     status: data.status,
-    channelId: data.channelId
+    channelId: data.channelId,
   });
 });
 
 // Message error
-socket.on('messageError', (data) => {
-  console.error('Message error:', data.error);
+socket.on("messageError", (data) => {
+  console.error("Message error:", data.error);
 });
 ```
 
@@ -172,10 +173,10 @@ socket.on('messageError', (data) => {
 
 ```javascript
 // Message deleted event
-socket.on('messageDeleted', (data) => {
-  console.log('Message deleted:', {
+socket.on("messageDeleted", (data) => {
+  console.log("Message deleted:", {
     messageId: data.messageId,
-    channelId: data.channelId
+    channelId: data.channelId,
   });
 });
 ```
@@ -185,16 +186,16 @@ socket.on('messageDeleted', (data) => {
 Control messages allow the server to control client UI behavior:
 
 ```javascript
-socket.on('controlMessage', (data) => {
+socket.on("controlMessage", (data) => {
   switch (data.action) {
-    case 'disable_input':
+    case "disable_input":
       // Disable input while agent is processing
-      console.log('Disable input for channel:', data.channelId);
+      console.log("Disable input for channel:", data.channelId);
       break;
-    
-    case 'enable_input':
+
+    case "enable_input":
       // Re-enable input after processing
-      console.log('Enable input for channel:', data.channelId);
+      console.log("Enable input for channel:", data.channelId);
       break;
   }
 });
@@ -206,11 +207,11 @@ socket.on('controlMessage', (data) => {
 
 ```javascript
 // Subscribe to real-time log stream
-socket.emit('subscribe_logs');
+socket.emit("subscribe_logs");
 
 // Subscription confirmed
-socket.on('log_subscription_confirmed', (data) => {
-  console.log('Log subscription:', data.subscribed);
+socket.on("log_subscription_confirmed", (data) => {
+  console.log("Log subscription:", data.subscribed);
 });
 ```
 
@@ -218,16 +219,16 @@ socket.on('log_subscription_confirmed', (data) => {
 
 ```javascript
 // Receive log entries
-socket.on('log_stream', (data) => {
-  if (data.type === 'log_entry') {
+socket.on("log_stream", (data) => {
+  if (data.type === "log_entry") {
     const log = data.payload;
-    console.log('Log:', {
+    console.log("Log:", {
       level: log.level,
       time: log.time,
       msg: log.msg,
       agentId: log.agentId,
       agentName: log.agentName,
-      channelId: log.channelId
+      channelId: log.channelId,
     });
   }
 });
@@ -237,15 +238,15 @@ socket.on('log_stream', (data) => {
 
 ```javascript
 // Update log filters
-socket.emit('update_log_filters', {
-  agentName: 'specific-agent',  // or 'all'
-  level: 'info'                 // minimum log level
+socket.emit("update_log_filters", {
+  agentName: "specific-agent", // or 'all'
+  level: "info", // minimum log level
 });
 
 // Filter update confirmation
-socket.on('log_filters_updated', (data) => {
+socket.on("log_filters_updated", (data) => {
   if (data.success) {
-    console.log('Filters updated:', data.filters);
+    console.log("Filters updated:", data.filters);
   }
 });
 ```
@@ -254,7 +255,7 @@ socket.on('log_filters_updated', (data) => {
 
 ```javascript
 // Unsubscribe from log stream
-socket.emit('unsubscribe_logs');
+socket.emit("unsubscribe_logs");
 ```
 
 ## Authentication
@@ -262,8 +263,8 @@ socket.emit('unsubscribe_logs');
 If the server requires authentication:
 
 ```javascript
-socket.on('unauthorized', (reason) => {
-  console.error('Unauthorized:', reason);
+socket.on("unauthorized", (reason) => {
+  console.error("Unauthorized:", reason);
   // Handle authentication failure
 });
 ```
@@ -275,56 +276,56 @@ class ChatClient {
   constructor() {
     this.socket = null;
     this.activeChannel = null;
-    this.userId = 'user-uuid';
+    this.userId = "user-uuid";
   }
 
   connect() {
-    this.socket = io('http://localhost:3000');
-    
+    this.socket = io("http://localhost:3000");
+
     // Setup event handlers
-    this.socket.on('connect', () => this.onConnect());
-    this.socket.on('disconnect', () => this.onDisconnect());
-    this.socket.on('messageBroadcast', (data) => this.onMessage(data));
-    this.socket.on('messageError', (data) => this.onError(data));
-    this.socket.on('controlMessage', (data) => this.onControl(data));
+    this.socket.on("connect", () => this.onConnect());
+    this.socket.on("disconnect", () => this.onDisconnect());
+    this.socket.on("messageBroadcast", (data) => this.onMessage(data));
+    this.socket.on("messageError", (data) => this.onError(data));
+    this.socket.on("controlMessage", (data) => this.onControl(data));
   }
 
   joinChannel(channelId, serverId) {
     this.activeChannel = channelId;
-    
-    this.socket.emit('message', {
+
+    this.socket.emit("message", {
       type: 0, // ROOM_JOINING
       payload: {
         channelId: channelId,
         entityId: this.userId,
-        serverId: serverId
-      }
+        serverId: serverId,
+      },
     });
   }
 
   sendMessage(text) {
     if (!this.activeChannel) return;
-    
-    this.socket.emit('message', {
+
+    this.socket.emit("message", {
       type: 1, // SEND_MESSAGE
       payload: {
         senderId: this.userId,
-        senderName: 'User',
+        senderName: "User",
         message: text,
         channelId: this.activeChannel,
-        serverId: '00000000-0000-0000-0000-000000000000',
+        serverId: "00000000-0000-0000-0000-000000000000",
         messageId: this.generateUUID(),
-        source: 'web_client'
-      }
+        source: "web_client",
+      },
     });
   }
 
   onConnect() {
-    console.log('Connected to server');
+    console.log("Connected to server");
   }
 
   onDisconnect() {
-    console.log('Disconnected from server');
+    console.log("Disconnected from server");
   }
 
   onMessage(data) {
@@ -333,13 +334,13 @@ class ChatClient {
   }
 
   onError(data) {
-    console.error('Message error:', data.error);
+    console.error("Message error:", data.error);
   }
 
   onControl(data) {
-    if (data.action === 'disable_input') {
+    if (data.action === "disable_input") {
       this.disableInput();
-    } else if (data.action === 'enable_input') {
+    } else if (data.action === "enable_input") {
       this.enableInput();
     }
   }
@@ -355,31 +356,31 @@ class ChatClient {
 ```typescript
 export class SocketIORouter {
   setupListeners(io: SocketIOServer) {
-    io.on('connection', (socket: Socket) => {
-      console.log('New connection:', socket.id);
-      
+    io.on("connection", (socket: Socket) => {
+      console.log("New connection:", socket.id);
+
       // Handle channel joining
       socket.on(String(SOCKET_MESSAGE_TYPE.ROOM_JOINING), (payload) => {
         this.handleChannelJoining(socket, payload);
       });
-      
+
       // Handle message sending
       socket.on(String(SOCKET_MESSAGE_TYPE.SEND_MESSAGE), (payload) => {
         this.handleMessageSubmission(socket, payload);
       });
-      
+
       // Handle generic message event
-      socket.on('message', (data) => {
+      socket.on("message", (data) => {
         this.handleGenericMessage(socket, data);
       });
-      
+
       // Handle log subscriptions
-      socket.on('subscribe_logs', () => {
+      socket.on("subscribe_logs", () => {
         this.handleLogSubscription(socket);
       });
-      
+
       // Handle disconnection
-      socket.on('disconnect', () => {
+      socket.on("disconnect", () => {
         this.handleDisconnect(socket);
       });
     });
@@ -400,24 +401,27 @@ export class SocketIORouter {
 ### Client-Side
 
 1. **Implement Reconnection Logic**
+
    ```javascript
-   socket.on('disconnect', () => {
+   socket.on("disconnect", () => {
      // Attempt to rejoin channels on reconnect
    });
    ```
 
 2. **Handle Network Failures**
+
    ```javascript
-   socket.on('connect_error', (error) => {
+   socket.on("connect_error", (error) => {
      // Show offline indicator
      // Queue messages for retry
    });
    ```
 
 3. **Message Deduplication**
+
    ```javascript
    const processedMessages = new Set();
-   socket.on('messageBroadcast', (data) => {
+   socket.on("messageBroadcast", (data) => {
      if (!processedMessages.has(data.id)) {
        processedMessages.add(data.id);
        displayMessage(data);
@@ -437,22 +441,25 @@ export class SocketIORouter {
 ### Server-Side
 
 1. **Validate Input**
+
    ```typescript
    if (!validateUuid(channelId)) {
-     socket.emit('messageError', { 
-       error: 'Invalid channel ID' 
+     socket.emit('messageError', {
+       error: 'Invalid channel ID'
      });
      return;
    }
    ```
 
 2. **Rate Limiting**
+
    ```typescript
    const messageRateLimit = new Map();
    // Track and limit messages per socket
    ```
 
 3. **Error Handling**
+
    ```typescript
    try {
      await this.serverInstance.createMessage(data);
@@ -463,7 +470,7 @@ export class SocketIORouter {
 
 4. **Resource Cleanup**
    ```typescript
-   socket.on('disconnect', () => {
+   socket.on("disconnect", () => {
      // Remove from active connections
      // Clean up subscriptions
    });
@@ -498,6 +505,7 @@ DEBUG=socket.io:* node server.js
 ```
 
 Monitor events in browser DevTools:
+
 ```javascript
 socket.onAny((event, ...args) => {
   console.log(`Event: ${event}`, args);

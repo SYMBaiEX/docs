@@ -1,11 +1,16 @@
 ---
 title: "Providers"
-description: "Understanding providers in ElizaOS, including the Provider interface, data retrieval patterns, and real-world examples from plugin-bootstrap for contextual information"
+description:
+  "Understanding providers in ElizaOS, including the Provider interface, data retrieval patterns,
+  and real-world examples from plugin-bootstrap for contextual information"
 ---
 
 # Providers
 
-Providers are data sources that supply contextual information to agents in ElizaOS. They retrieve, format, and deliver external data and services to enhance agent responses and capabilities. This page covers the Provider interface, implementation patterns, and practical examples from the plugin-bootstrap package.
+Providers are data sources that supply contextual information to agents in ElizaOS. They retrieve,
+format, and deliver external data and services to enhance agent responses and capabilities. This
+page covers the Provider interface, implementation patterns, and practical examples from the
+plugin-bootstrap package.
 
 ## Provider Interface
 
@@ -15,19 +20,19 @@ The Provider interface defines the structure for all data providers:
 interface Provider {
   /** Provider name/identifier */
   name: string;
-  
+
   /** Description of the provider */
   description?: string;
-  
+
   /** Whether the provider is dynamic */
   dynamic?: boolean;
-  
+
   /** Position of the provider in the provider list, positive or negative */
   position?: number;
-  
+
   /** Whether the provider is private */
   private?: boolean;
-  
+
   /** Data retrieval function */
   get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
 }
@@ -36,6 +41,7 @@ interface Provider {
 ### Core Components
 
 #### ProviderResult
+
 The result structure returned by providers:
 
 ```typescript
@@ -44,12 +50,12 @@ interface ProviderResult {
   values?: {
     [key: string]: any;
   };
-  
+
   /** Additional data for processing */
   data?: {
     [key: string]: any;
   };
-  
+
   /** Formatted text for direct inclusion */
   text?: string;
 }
@@ -66,13 +72,14 @@ interface ProviderResult {
 
 ## Real-World Example: Character Provider
 
-Let's examine the character provider from plugin-bootstrap, which provides character information to agents:
+Let's examine the character provider from plugin-bootstrap, which provides character information to
+agents:
 
 ```typescript
 export const characterProvider: Provider = {
-  name: 'CHARACTER',
-  description: 'Character information',
-  
+  name: "CHARACTER",
+  description: "Character information",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const character = runtime.character;
 
@@ -84,13 +91,13 @@ export const characterProvider: Provider = {
       ? character.bio
           .sort(() => 0.5 - Math.random())
           .slice(0, 10)
-          .join(' ')
-      : character.bio || '';
+          .join(" ")
+      : character.bio || "";
 
     const bio = addHeader(`# About ${character.name}`, bioText);
 
     // System prompt
-    const system = character.system ?? '';
+    const system = character.system ?? "";
 
     // Select random topic if available
     const topicString =
@@ -98,7 +105,7 @@ export const characterProvider: Provider = {
         ? character.topics[Math.floor(Math.random() * character.topics.length)]
         : null;
 
-    const topic = topicString || '';
+    const topic = topicString || "";
 
     // Format topics list
     const topics =
@@ -116,20 +123,20 @@ export const characterProvider: Provider = {
               }
               return `${topic}, `;
             })
-            .join('')}`
-        : '';
+            .join("")}`
+        : "";
 
     // Select random adjective if available
     const adjectiveString =
       character.adjectives && character.adjectives.length > 0
         ? character.adjectives[Math.floor(Math.random() * character.adjectives.length)]
-        : '';
+        : "";
 
-    const adjective = adjectiveString || '';
+    const adjective = adjectiveString || "";
 
     // Format post examples
     const formattedCharacterPostExamples = !character.postExamples
-      ? ''
+      ? ""
       : character.postExamples
           .sort(() => 0.5 - Math.random())
           .map((post) => {
@@ -137,17 +144,17 @@ export const characterProvider: Provider = {
             return messageString;
           })
           .slice(0, 50)
-          .join('\n');
+          .join("\n");
 
     const characterPostExamples =
       formattedCharacterPostExamples &&
-      formattedCharacterPostExamples.replaceAll('\n', '').length > 0
+      formattedCharacterPostExamples.replaceAll("\n", "").length > 0
         ? addHeader(`# Example Posts for ${character.name}`, formattedCharacterPostExamples)
-        : '';
+        : "";
 
     // Format message examples
     const formattedCharacterMessageExamples = !character.messageExamples
-      ? ''
+      ? ""
       : character.messageExamples
           .sort(() => 0.5 - Math.random())
           .slice(0, 5)
@@ -160,8 +167,8 @@ export const characterProvider: Provider = {
               .map((message) => {
                 let messageString = `${message.name}: ${message.content.text}${
                   message.content.action || message.content.actions
-                    ? ` (actions: ${message.content.action || message.content.actions?.join(', ')})`
-                    : ''
+                    ? ` (actions: ${message.content.action || message.content.actions?.join(", ")})`
+                    : ""
                 }`;
                 exampleNames.forEach((name, index) => {
                   const placeholder = `{{name${index + 1}}}`;
@@ -169,18 +176,18 @@ export const characterProvider: Provider = {
                 });
                 return messageString;
               })
-              .join('\n');
+              .join("\n");
           })
-          .join('\n\n');
+          .join("\n\n");
 
     const characterMessageExamples =
       formattedCharacterMessageExamples &&
-      formattedCharacterMessageExamples.replaceAll('\n', '').length > 0
+      formattedCharacterMessageExamples.replaceAll("\n", "").length > 0
         ? addHeader(
             `# Example Conversations for ${character.name}`,
             formattedCharacterMessageExamples
           )
-        : '';
+        : "";
 
     const room = state.data.room ?? (await runtime.getRoom(message.roomId));
 
@@ -195,10 +202,10 @@ export const characterProvider: Provider = {
             (() => {
               const all = character?.style?.all || [];
               const post = character?.style?.post || [];
-              return [...all, ...post].join('\n');
+              return [...all, ...post].join("\n");
             })()
           )
-        : '';
+        : "";
 
     const messageDirections =
       (character?.style?.all?.length && character?.style?.all?.length > 0) ||
@@ -208,10 +215,10 @@ export const characterProvider: Provider = {
             (() => {
               const all = character?.style?.all || [];
               const chat = character?.style?.chat || [];
-              return [...all, ...chat].join('\n');
+              return [...all, ...chat].join("\n");
             })()
           )
-        : '';
+        : "";
 
     const directions = isPostFormat ? postDirections : messageDirections;
     const examples = isPostFormat ? characterPostExamples : characterMessageExamples;
@@ -244,13 +251,13 @@ export const characterProvider: Provider = {
 
     const topicSentence = topicString
       ? `${character.name} is currently interested in ${topicString}`
-      : '';
-    const adjectiveSentence = adjectiveString ? `${character.name} is ${adjectiveString}` : '';
-    
+      : "";
+    const adjectiveSentence = adjectiveString ? `${character.name} is ${adjectiveString}` : "";
+
     // Combine all text sections
     const text = [bio, adjectiveSentence, topicSentence, topics, directions, examples, system]
       .filter(Boolean)
-      .join('\n\n');
+      .join("\n\n");
 
     return {
       values,
@@ -267,39 +274,39 @@ export const characterProvider: Provider = {
 
 ```typescript
 export const timeProvider: Provider = {
-  name: 'TIME',
-  description: 'Current time and date information',
-  
+  name: "TIME",
+  description: "Current time and date information",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const now = new Date();
     const timeString = now.toLocaleString();
     const isoString = now.toISOString();
     const timestamp = now.getTime();
-    
+
     const values = {
       currentTime: timeString,
       isoTime: isoString,
       timestamp,
-      dayOfWeek: now.toLocaleDateString('en-US', { weekday: 'long' }),
-      month: now.toLocaleDateString('en-US', { month: 'long' }),
+      dayOfWeek: now.toLocaleDateString("en-US", { weekday: "long" }),
+      month: now.toLocaleDateString("en-US", { month: "long" }),
       year: now.getFullYear(),
       hour: now.getHours(),
-      minute: now.getMinutes()
+      minute: now.getMinutes(),
     };
-    
+
     const data = {
       now,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
-    
-    const text = addHeader('# Current Time', `It is currently ${timeString}`);
-    
+
+    const text = addHeader("# Current Time", `It is currently ${timeString}`);
+
     return {
       values,
       data,
-      text
+      text,
     };
-  }
+  },
 };
 ```
 
@@ -307,44 +314,44 @@ export const timeProvider: Provider = {
 
 ```typescript
 export const recentMessagesProvider: Provider = {
-  name: 'RECENT_MESSAGES',
-  description: 'Recent conversation messages',
-  
+  name: "RECENT_MESSAGES",
+  description: "Recent conversation messages",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const recentMessages = await runtime.getMemories({
-      tableName: 'messages',
+      tableName: "messages",
       roomId: message.roomId,
       count: 10,
-      unique: false
+      unique: false,
     });
-    
+
     const formattedMessages = recentMessages
       .reverse()
-      .map(msg => {
+      .map((msg) => {
         const timestamp = new Date(msg.createdAt).toLocaleTimeString();
         return `[${timestamp}] ${msg.entityId}: ${msg.content.text}`;
       })
-      .join('\n');
-    
+      .join("\n");
+
     const values = {
       recentMessages: formattedMessages,
-      messageCount: recentMessages.length
+      messageCount: recentMessages.length,
     };
-    
+
     const data = {
       messages: recentMessages,
       oldestMessage: recentMessages[0],
-      newestMessage: recentMessages[recentMessages.length - 1]
+      newestMessage: recentMessages[recentMessages.length - 1],
     };
-    
-    const text = addHeader('# Recent Messages', formattedMessages);
-    
+
+    const text = addHeader("# Recent Messages", formattedMessages);
+
     return {
       values,
       data,
-      text
+      text,
     };
-  }
+  },
 };
 ```
 
@@ -352,42 +359,38 @@ export const recentMessagesProvider: Provider = {
 
 ```typescript
 export const factsProvider: Provider = {
-  name: 'FACTS',
-  description: 'Known facts about entities and topics',
-  
+  name: "FACTS",
+  description: "Known facts about entities and topics",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const facts = await runtime.getMemories({
-      tableName: 'facts',
+      tableName: "facts",
       roomId: message.roomId,
       count: 20,
-      unique: true
+      unique: true,
     });
-    
-    const formattedFacts = facts
-      .map(fact => `• ${fact.content.text}`)
-      .join('\n');
-    
+
+    const formattedFacts = facts.map((fact) => `• ${fact.content.text}`).join("\n");
+
     const values = {
       facts: formattedFacts,
-      factCount: facts.length
+      factCount: facts.length,
     };
-    
+
     const data = {
       factList: facts,
-      topicFacts: facts.filter(f => f.content.text?.includes('topic')),
-      entityFacts: facts.filter(f => f.content.text?.includes('entity'))
+      topicFacts: facts.filter((f) => f.content.text?.includes("topic")),
+      entityFacts: facts.filter((f) => f.content.text?.includes("entity")),
     };
-    
-    const text = facts.length > 0 
-      ? addHeader('# Known Facts', formattedFacts)
-      : '';
-    
+
+    const text = facts.length > 0 ? addHeader("# Known Facts", formattedFacts) : "";
+
     return {
       values,
       data,
-      text
+      text,
     };
-  }
+  },
 };
 ```
 
@@ -395,42 +398,41 @@ export const factsProvider: Provider = {
 
 ```typescript
 export const relationshipsProvider: Provider = {
-  name: 'RELATIONSHIPS',
-  description: 'Entity relationships and connections',
-  
+  name: "RELATIONSHIPS",
+  description: "Entity relationships and connections",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const relationships = await runtime.getRelationships({
-      entityId: message.entityId
+      entityId: message.entityId,
     });
-    
+
     const formattedRelationships = relationships
-      .map(rel => {
-        const tags = rel.tags?.join(', ') || 'no tags';
+      .map((rel) => {
+        const tags = rel.tags?.join(", ") || "no tags";
         return `• ${rel.sourceEntityId} → ${rel.targetEntityId} (${tags})`;
       })
-      .join('\n');
-    
+      .join("\n");
+
     const values = {
       relationships: formattedRelationships,
-      relationshipCount: relationships.length
+      relationshipCount: relationships.length,
     };
-    
+
     const data = {
       relationshipList: relationships,
-      groupRelationships: relationships.filter(r => r.tags?.includes('group_interaction')),
-      dmRelationships: relationships.filter(r => r.tags?.includes('dm_interaction'))
+      groupRelationships: relationships.filter((r) => r.tags?.includes("group_interaction")),
+      dmRelationships: relationships.filter((r) => r.tags?.includes("dm_interaction")),
     };
-    
-    const text = relationships.length > 0
-      ? addHeader('# Entity Relationships', formattedRelationships)
-      : '';
-    
+
+    const text =
+      relationships.length > 0 ? addHeader("# Entity Relationships", formattedRelationships) : "";
+
     return {
       values,
       data,
-      text
+      text,
     };
-  }
+  },
 };
 ```
 
@@ -438,48 +440,46 @@ export const relationshipsProvider: Provider = {
 
 ```typescript
 export const capabilitiesProvider: Provider = {
-  name: 'CAPABILITIES',
-  description: 'Agent capabilities and available actions',
-  
+  name: "CAPABILITIES",
+  description: "Agent capabilities and available actions",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const actions = runtime.getActions();
     const evaluators = runtime.getEvaluators();
-    
-    const actionNames = actions.map(action => action.name);
-    const evaluatorNames = evaluators.map(evaluator => evaluator.name);
-    
-    const formattedActions = actionNames
-      .map(name => `• ${name}`)
-      .join('\n');
-    
-    const formattedEvaluators = evaluatorNames
-      .map(name => `• ${name}`)
-      .join('\n');
-    
+
+    const actionNames = actions.map((action) => action.name);
+    const evaluatorNames = evaluators.map((evaluator) => evaluator.name);
+
+    const formattedActions = actionNames.map((name) => `• ${name}`).join("\n");
+
+    const formattedEvaluators = evaluatorNames.map((name) => `• ${name}`).join("\n");
+
     const values = {
       actions: formattedActions,
       evaluators: formattedEvaluators,
       actionCount: actionNames.length,
-      evaluatorCount: evaluatorNames.length
+      evaluatorCount: evaluatorNames.length,
     };
-    
+
     const data = {
       actionList: actions,
       evaluatorList: evaluators,
-      allCapabilities: [...actionNames, ...evaluatorNames]
+      allCapabilities: [...actionNames, ...evaluatorNames],
     };
-    
+
     const capabilities = [
-      addHeader('# Available Actions', formattedActions),
-      addHeader('# Available Evaluators', formattedEvaluators)
-    ].filter(Boolean).join('\n\n');
-    
+      addHeader("# Available Actions", formattedActions),
+      addHeader("# Available Evaluators", formattedEvaluators),
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
     return {
       values,
       data,
-      text: capabilities
+      text: capabilities,
     };
-  }
+  },
 };
 ```
 
@@ -489,127 +489,131 @@ export const capabilitiesProvider: Provider = {
 
 ```typescript
 export const myProvider: Provider = {
-  name: 'MY_PROVIDER',
-  description: 'Description of what this provider does',
-  
+  name: "MY_PROVIDER",
+  description: "Description of what this provider does",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     // Data retrieval logic
     const data = await fetchData();
-    
+
     // Format data for template substitution
     const values = {
       myValue: data.value,
-      myCount: data.items.length
+      myCount: data.items.length,
     };
-    
+
     // Additional structured data
     const dataObject = {
       rawData: data,
-      processedData: processData(data)
+      processedData: processData(data),
     };
-    
+
     // Formatted text for direct inclusion
     const text = formatDataAsText(data);
-    
+
     return {
       values,
       data: dataObject,
-      text
+      text,
     };
-  }
+  },
 };
 ```
 
 ### Data Retrieval Patterns
 
 #### Database Provider
+
 ```typescript
 export const databaseProvider: Provider = {
-  name: 'DATABASE',
-  description: 'Database query results',
-  
+  name: "DATABASE",
+  description: "Database query results",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const query = state.values?.query || 'SELECT * FROM table';
+    const query = state.values?.query || "SELECT * FROM table";
     const results = await runtime.database.query(query);
-    
+
     const values = {
       resultCount: results.length,
-      query: query
+      query: query,
     };
-    
+
     const data = {
       results,
       metadata: {
         timestamp: Date.now(),
-        queryExecutionTime: results.executionTime
-      }
+        queryExecutionTime: results.executionTime,
+      },
     };
-    
-    const text = addHeader('# Database Results', 
-      results.map(row => JSON.stringify(row)).join('\n')
+
+    const text = addHeader(
+      "# Database Results",
+      results.map((row) => JSON.stringify(row)).join("\n")
     );
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
 #### API Provider
+
 ```typescript
 export const apiProvider: Provider = {
-  name: 'API',
-  description: 'External API data',
-  
+  name: "API",
+  description: "External API data",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const apiKey = runtime.getSetting('api_key');
-    const endpoint = state.values?.endpoint || 'https://api.example.com/data';
-    
+    const apiKey = runtime.getSetting("api_key");
+    const endpoint = state.values?.endpoint || "https://api.example.com/data";
+
     try {
       const response = await fetch(endpoint, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
       });
-      
+
       const data = await response.json();
-      
+
       const values = {
         status: response.status,
         dataCount: data.items?.length || 0,
-        lastUpdated: data.lastUpdated
+        lastUpdated: data.lastUpdated,
       };
-      
+
       const formattedData = {
         apiData: data,
         responseHeaders: Object.fromEntries(response.headers),
-        cached: false
+        cached: false,
       };
-      
-      const text = addHeader('# API Data', JSON.stringify(data, null, 2));
-      
+
+      const text = addHeader("# API Data", JSON.stringify(data, null, 2));
+
       return { values, data: formattedData, text };
     } catch (error) {
       return {
         values: { error: error.message },
         data: { error },
-        text: addHeader('# API Error', `Failed to fetch data: ${error.message}`)
+        text: addHeader("# API Error", `Failed to fetch data: ${error.message}`),
       };
     }
-  }
+  },
 };
 ```
 
 #### File System Provider
+
 ```typescript
 export const fileSystemProvider: Provider = {
-  name: 'FILE_SYSTEM',
-  description: 'File system information',
-  
+  name: "FILE_SYSTEM",
+  description: "File system information",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const path = state.values?.path || './';
+    const path = state.values?.path || "./";
     const files = await fs.readdir(path);
-    
+
     const fileStats = await Promise.all(
       files.map(async (file) => {
         const stats = await fs.stat(`${path}/${file}`);
@@ -617,118 +621,122 @@ export const fileSystemProvider: Provider = {
           name: file,
           size: stats.size,
           isDirectory: stats.isDirectory(),
-          modified: stats.mtime
+          modified: stats.mtime,
         };
       })
     );
-    
+
     const values = {
       path,
       fileCount: files.length,
-      totalSize: fileStats.reduce((sum, file) => sum + file.size, 0)
+      totalSize: fileStats.reduce((sum, file) => sum + file.size, 0),
     };
-    
+
     const data = {
       files: fileStats,
-      directories: fileStats.filter(f => f.isDirectory),
-      regularFiles: fileStats.filter(f => !f.isDirectory)
+      directories: fileStats.filter((f) => f.isDirectory),
+      regularFiles: fileStats.filter((f) => !f.isDirectory),
     };
-    
-    const text = addHeader('# File System', 
-      fileStats.map(f => `${f.name} (${f.size} bytes)`).join('\n')
+
+    const text = addHeader(
+      "# File System",
+      fileStats.map((f) => `${f.name} (${f.size} bytes)`).join("\n")
     );
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
 ### Dynamic Provider Patterns
 
 #### Context-Aware Provider
+
 ```typescript
 export const contextAwareProvider: Provider = {
-  name: 'CONTEXT_AWARE',
-  description: 'Context-sensitive information',
+  name: "CONTEXT_AWARE",
+  description: "Context-sensitive information",
   dynamic: true,
-  
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const context = analyzeContext(message, state);
-    
+
     let data;
     let text;
-    
+
     switch (context.type) {
-      case 'technical':
+      case "technical":
         data = await getTechnicalData(context);
-        text = addHeader('# Technical Context', formatTechnicalData(data));
+        text = addHeader("# Technical Context", formatTechnicalData(data));
         break;
-        
-      case 'social':
+
+      case "social":
         data = await getSocialData(context);
-        text = addHeader('# Social Context', formatSocialData(data));
+        text = addHeader("# Social Context", formatSocialData(data));
         break;
-        
+
       default:
         data = await getGeneralData(context);
-        text = addHeader('# General Context', formatGeneralData(data));
+        text = addHeader("# General Context", formatGeneralData(data));
     }
-    
+
     const values = {
       contextType: context.type,
       confidence: context.confidence,
-      relevance: context.relevance
+      relevance: context.relevance,
     };
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
 #### Caching Provider
+
 ```typescript
 export const cachingProvider: Provider = {
-  name: 'CACHING',
-  description: 'Cached data with automatic refresh',
-  
+  name: "CACHING",
+  description: "Cached data with automatic refresh",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const cacheKey = `provider-cache-${message.roomId}`;
     const cacheTimeout = 5 * 60 * 1000; // 5 minutes
-    
+
     let cachedData = await runtime.getCache(cacheKey);
-    
+
     if (!cachedData || Date.now() - cachedData.timestamp > cacheTimeout) {
       // Fetch fresh data
       const freshData = await fetchExpensiveData();
-      
+
       cachedData = {
         data: freshData,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       await runtime.setCache(cacheKey, cachedData);
     }
-    
+
     const values = {
       cached: Date.now() - cachedData.timestamp < cacheTimeout,
       cacheAge: Date.now() - cachedData.timestamp,
-      dataCount: cachedData.data.items?.length || 0
+      dataCount: cachedData.data.items?.length || 0,
     };
-    
+
     const data = {
       ...cachedData.data,
       cacheMetadata: {
         timestamp: cachedData.timestamp,
-        fresh: Date.now() - cachedData.timestamp < cacheTimeout
-      }
+        fresh: Date.now() - cachedData.timestamp < cacheTimeout,
+      },
     };
-    
-    const text = addHeader('# Cached Data', 
+
+    const text = addHeader(
+      "# Cached Data",
       `Data cached at ${new Date(cachedData.timestamp).toLocaleString()}`
     );
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
@@ -738,44 +746,44 @@ export const cachingProvider: Provider = {
 
 ```typescript
 export const compositeProvider: Provider = {
-  name: 'COMPOSITE',
-  description: 'Combines multiple data sources',
-  
+  name: "COMPOSITE",
+  description: "Combines multiple data sources",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const [userInfo, preferences, activity] = await Promise.all([
       getUserInfo(message.entityId),
       getUserPreferences(message.entityId),
-      getRecentActivity(message.entityId)
+      getRecentActivity(message.entityId),
     ]);
-    
+
     const values = {
       userName: userInfo.name,
       userRole: userInfo.role,
       preferredLanguage: preferences.language,
       activityLevel: activity.level,
-      lastActive: activity.lastSeen
+      lastActive: activity.lastSeen,
     };
-    
+
     const data = {
       userInfo,
       preferences,
       activity,
       composite: {
         completeness: calculateCompleteness(userInfo, preferences, activity),
-        riskLevel: assessRiskLevel(userInfo, activity)
-      }
+        riskLevel: assessRiskLevel(userInfo, activity),
+      },
     };
-    
+
     const sections = [
-      addHeader('# User Information', formatUserInfo(userInfo)),
-      addHeader('# Preferences', formatPreferences(preferences)),
-      addHeader('# Activity', formatActivity(activity))
+      addHeader("# User Information", formatUserInfo(userInfo)),
+      addHeader("# Preferences", formatPreferences(preferences)),
+      addHeader("# Activity", formatActivity(activity)),
     ];
-    
-    const text = sections.filter(Boolean).join('\n\n');
-    
+
+    const text = sections.filter(Boolean).join("\n\n");
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
@@ -783,51 +791,52 @@ export const compositeProvider: Provider = {
 
 ```typescript
 export const streamingProvider: Provider = {
-  name: 'STREAMING',
-  description: 'Real-time streaming data',
+  name: "STREAMING",
+  description: "Real-time streaming data",
   dynamic: true,
-  
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const stream = await getDataStream(message.roomId);
     const buffer = [];
-    
+
     // Collect streaming data for a short period
     const collectData = new Promise((resolve) => {
       const timeout = setTimeout(() => {
         stream.close();
         resolve(buffer);
       }, 1000); // Collect for 1 second
-      
-      stream.on('data', (chunk) => {
+
+      stream.on("data", (chunk) => {
         buffer.push(chunk);
       });
-      
-      stream.on('end', () => {
+
+      stream.on("end", () => {
         clearTimeout(timeout);
         resolve(buffer);
       });
     });
-    
+
     const streamData = await collectData;
-    
+
     const values = {
       dataPoints: streamData.length,
-      streamStatus: 'active',
-      lastUpdate: Date.now()
+      streamStatus: "active",
+      lastUpdate: Date.now(),
     };
-    
+
     const data = {
       streamData,
       statistics: calculateStreamStats(streamData),
-      trends: analyzeTrends(streamData)
+      trends: analyzeTrends(streamData),
     };
-    
-    const text = addHeader('# Streaming Data', 
+
+    const text = addHeader(
+      "# Streaming Data",
       `Received ${streamData.length} data points in the last second`
     );
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
@@ -835,40 +844,40 @@ export const streamingProvider: Provider = {
 
 ```typescript
 export const conditionalProvider: Provider = {
-  name: 'CONDITIONAL',
-  description: 'Provides different data based on conditions',
-  
+  name: "CONDITIONAL",
+  description: "Provides different data based on conditions",
+
   get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
     const userLevel = await getUserLevel(message.entityId);
     const timeOfDay = new Date().getHours();
     const isWeekend = [0, 6].includes(new Date().getDay());
-    
+
     let data;
     let text;
-    
-    if (userLevel === 'admin') {
+
+    if (userLevel === "admin") {
       data = await getAdminData();
-      text = addHeader('# Admin Data', formatAdminData(data));
+      text = addHeader("# Admin Data", formatAdminData(data));
     } else if (timeOfDay >= 22 || timeOfDay <= 6) {
       data = await getNightModeData();
-      text = addHeader('# Night Mode', formatNightData(data));
+      text = addHeader("# Night Mode", formatNightData(data));
     } else if (isWeekend) {
       data = await getWeekendData();
-      text = addHeader('# Weekend Info', formatWeekendData(data));
+      text = addHeader("# Weekend Info", formatWeekendData(data));
     } else {
       data = await getStandardData();
-      text = addHeader('# Standard Info', formatStandardData(data));
+      text = addHeader("# Standard Info", formatStandardData(data));
     }
-    
+
     const values = {
       userLevel,
       timeOfDay,
       isWeekend,
-      dataType: determineDataType(userLevel, timeOfDay, isWeekend)
+      dataType: determineDataType(userLevel, timeOfDay, isWeekend),
     };
-    
+
     return { values, data, text };
-  }
+  },
 };
 ```
 
@@ -888,27 +897,27 @@ export const conditionalProvider: Provider = {
 get: async (runtime, message, state) => {
   const cacheKey = `provider-${message.roomId}`;
   const cached = await runtime.getCache(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < 60000) {
     return cached.data;
   }
-  
+
   const data = await fetchData();
   await runtime.setCache(cacheKey, { data, timestamp: Date.now() });
-  
+
   return data;
-}
+};
 
 // Better: Parallel data fetching
 get: async (runtime, message, state) => {
   const [userData, preferences, activity] = await Promise.all([
     getUserData(message.entityId),
     getUserPreferences(message.entityId),
-    getRecentActivity(message.entityId)
+    getRecentActivity(message.entityId),
   ]);
-  
+
   return formatCombinedData(userData, preferences, activity);
-}
+};
 ```
 
 ### Error Handling
@@ -920,16 +929,16 @@ get: async (runtime, message, state) => {
     const data = await fetchExternalData();
     return formatData(data);
   } catch (error) {
-    logger.error('Provider failed:', error);
-    
+    logger.error("Provider failed:", error);
+
     // Return fallback data
     return {
-      values: { error: 'Data unavailable' },
+      values: { error: "Data unavailable" },
       data: { error },
-      text: addHeader('# Error', 'Unable to retrieve data at this time')
+      text: addHeader("# Error", "Unable to retrieve data at this time"),
     };
   }
-}
+};
 ```
 
 ### Data Formatting
@@ -939,18 +948,18 @@ get: async (runtime, message, state) => {
 const formatData = (data) => {
   const values = {
     count: data.items?.length || 0,
-    status: data.status || 'unknown',
-    lastUpdated: data.timestamp || Date.now()
+    status: data.status || "unknown",
+    lastUpdated: data.timestamp || Date.now(),
   };
-  
+
   const formattedText = data.items
-    ? data.items.map(item => `• ${item.name}: ${item.value}`).join('\n')
-    : 'No data available';
-  
+    ? data.items.map((item) => `• ${item.name}: ${item.value}`).join("\n")
+    : "No data available";
+
   return {
     values,
     data: { raw: data, processed: processData(data) },
-    text: addHeader('# Data', formattedText)
+    text: addHeader("# Data", formattedText),
   };
 };
 ```
@@ -962,15 +971,15 @@ const formatData = (data) => {
 ```typescript
 // Private provider - must be called explicitly
 export const privateProvider: Provider = {
-  name: 'PRIVATE_DATA',
-  description: 'Sensitive information',
+  name: "PRIVATE_DATA",
+  description: "Sensitive information",
   private: true,
-  
+
   get: async (runtime, message, state) => {
     // Only accessible through explicit calls
     const sensitiveData = await getSensitiveData();
     return formatSensitiveData(sensitiveData);
-  }
+  },
 };
 ```
 
@@ -979,24 +988,24 @@ export const privateProvider: Provider = {
 ```typescript
 // High priority provider (runs first)
 export const urgentProvider: Provider = {
-  name: 'URGENT',
-  description: 'Urgent information',
+  name: "URGENT",
+  description: "Urgent information",
   position: -100,
-  
+
   get: async (runtime, message, state) => {
     return getUrgentData();
-  }
+  },
 };
 
 // Low priority provider (runs last)
 export const supplementaryProvider: Provider = {
-  name: 'SUPPLEMENTARY',
-  description: 'Additional information',
+  name: "SUPPLEMENTARY",
+  description: "Additional information",
   position: 100,
-  
+
   get: async (runtime, message, state) => {
     return getSupplementaryData();
-  }
+  },
 };
 ```
 
@@ -1005,26 +1014,26 @@ export const supplementaryProvider: Provider = {
 ### Unit Testing
 
 ```typescript
-describe('characterProvider', () => {
-  it('should return character information', async () => {
+describe("characterProvider", () => {
+  it("should return character information", async () => {
     const runtime = mockRuntime();
     const message = mockMessage();
     const state = mockState();
-    
+
     const result = await characterProvider.get(runtime, message, state);
-    
-    expect(result.values.agentName).toBe('TestAgent');
-    expect(result.text).toContain('About TestAgent');
+
+    expect(result.values.agentName).toBe("TestAgent");
+    expect(result.text).toContain("About TestAgent");
   });
-  
-  it('should handle array bio correctly', async () => {
+
+  it("should handle array bio correctly", async () => {
     const runtime = mockRuntime();
-    runtime.character.bio = ['Bio 1', 'Bio 2', 'Bio 3'];
-    
+    runtime.character.bio = ["Bio 1", "Bio 2", "Bio 3"];
+
     const result = await characterProvider.get(runtime, mockMessage(), mockState());
-    
-    expect(result.values.bio).toContain('Bio');
-    expect(result.data.bio).toContain('Bio');
+
+    expect(result.values.bio).toContain("Bio");
+    expect(result.data.bio).toContain("Bio");
   });
 });
 ```
@@ -1032,17 +1041,17 @@ describe('characterProvider', () => {
 ### Integration Testing
 
 ```typescript
-describe('Provider Integration', () => {
-  it('should work with runtime', async () => {
+describe("Provider Integration", () => {
+  it("should work with runtime", async () => {
     const runtime = new AgentRuntime({
       character: mockCharacter(),
       // ... other config
     });
-    
+
     runtime.registerProvider(myProvider);
-    
-    const state = await runtime.composeState(mockMessage(), ['MY_PROVIDER']);
-    
+
+    const state = await runtime.composeState(mockMessage(), ["MY_PROVIDER"]);
+
     expect(state.values.myProviderData).toBeDefined();
   });
 });
@@ -1057,18 +1066,16 @@ describe('Provider Integration', () => {
 get: async (runtime, message, state) => {
   const data = expensiveOperation(); // Blocks execution
   return formatData(data);
-}
+};
 
 // Good: Asynchronous operations with timeout
 get: async (runtime, message, state) => {
   const data = await Promise.race([
     expensiveOperation(),
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000)),
   ]);
   return formatData(data);
-}
+};
 ```
 
 ### Data Consistency Issues
@@ -1081,24 +1088,24 @@ get: async (runtime, message, state) => {
   } else {
     return { data: { items: [] } }; // Inconsistent structure
   }
-}
+};
 
 // Good: Consistent structure
 get: async (runtime, message, state) => {
   const baseResult = {
     values: {},
     data: {},
-    text: ''
+    text: "",
   };
-  
+
   if (someCondition) {
     baseResult.values.count = 5;
   } else {
     baseResult.data.items = [];
   }
-  
+
   return baseResult;
-}
+};
 ```
 
 ## Related Components
@@ -1110,4 +1117,8 @@ get: async (runtime, message, state) => {
 
 ## Summary
 
-Providers are the data backbone of ElizaOS agents, supplying contextual information that enables intelligent responses and behaviors. The character provider demonstrates sophisticated data formatting and context awareness, while other providers show patterns for different data sources. Well-designed providers are efficient, reliable, and provide consistent data structures that enhance agent capabilities without compromising performance.
+Providers are the data backbone of ElizaOS agents, supplying contextual information that enables
+intelligent responses and behaviors. The character provider demonstrates sophisticated data
+formatting and context awareness, while other providers show patterns for different data sources.
+Well-designed providers are efficient, reliable, and provide consistent data structures that enhance
+agent capabilities without compromising performance.

@@ -1,11 +1,15 @@
 ---
 title: Database Architecture
-description: Understanding ElizaOS database architecture, adapters, and the Entity-Component System with actual implementation details
+description:
+  Understanding ElizaOS database architecture, adapters, and the Entity-Component System with actual
+  implementation details
 ---
 
 # Database Architecture
 
-ElizaOS uses a flexible database architecture built around the Entity-Component System (ECS) pattern. This design allows for extensible data storage with support for multiple database backends through a unified adapter interface.
+ElizaOS uses a flexible database architecture built around the Entity-Component System (ECS)
+pattern. This design allows for extensible data storage with support for multiple database backends
+through a unified adapter interface.
 
 ## Core Architecture
 
@@ -16,24 +20,29 @@ Eliza abstracts database operations through the `DatabaseAdapter` interface:
 ```typescript
 abstract class DatabaseAdapter<DB = unknown> implements IDatabaseAdapter {
   db: DB;
-  
+
   abstract initialize(config?: any): Promise<void>;
   abstract init(): Promise<void>;
   abstract runMigrations(migrationsPaths?: string[]): Promise<void>;
   abstract isReady(): Promise<boolean>;
   abstract close(): Promise<void>;
   abstract getConnection(): Promise<unknown>;
-  
+
   // Entity operations
   abstract getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null>;
   abstract createEntities(entities: Entity[]): Promise<boolean>;
   abstract updateEntity(entity: Entity): Promise<void>;
-  
+
   // Component operations
-  abstract getComponent(entityId: UUID, type: string, worldId?: UUID, sourceEntityId?: UUID): Promise<Component | null>;
+  abstract getComponent(
+    entityId: UUID,
+    type: string,
+    worldId?: UUID,
+    sourceEntityId?: UUID
+  ): Promise<Component | null>;
   abstract createComponent(component: Component): Promise<boolean>;
   abstract updateComponent(component: Component): Promise<void>;
-  
+
   // Memory operations
   abstract getMemories(params: {
     entityId?: UUID;
@@ -58,7 +67,7 @@ abstract class DatabaseAdapter<DB = unknown> implements IDatabaseAdapter {
     worldId?: UUID;
     entityId?: UUID;
   }): Promise<Memory[]>;
-  
+
   // ... additional operations
 }
 ```
@@ -74,9 +83,9 @@ Entities are the core identifiable objects in the system:
 ```typescript
 interface Entity {
   id?: UUID;
-  names: string[];          // Alternative names/aliases
-  metadata?: Metadata;      // Flexible JSON metadata
-  agentId: UUID;           // Associated agent
+  names: string[]; // Alternative names/aliases
+  metadata?: Metadata; // Flexible JSON metadata
+  agentId: UUID; // Associated agent
   components?: Component[]; // Optional attached components
 }
 ```
@@ -88,14 +97,14 @@ Components store data associated with entities:
 ```typescript
 interface Component {
   id: UUID;
-  entityId: UUID;          // Parent entity
-  agentId: UUID;          // Associated agent
-  roomId: UUID;           // Context room
-  worldId: UUID;          // World context
-  sourceEntityId: UUID;   // Source of the component
-  type: string;           // Component type identifier
-  createdAt: number;      // Timestamp
-  data: Metadata;         // Component data (JSON)
+  entityId: UUID; // Parent entity
+  agentId: UUID; // Associated agent
+  roomId: UUID; // Context room
+  worldId: UUID; // World context
+  sourceEntityId: UUID; // Source of the component
+  type: string; // Component type identifier
+  createdAt: number; // Timestamp
+  data: Metadata; // Component data (JSON)
 }
 ```
 
@@ -109,8 +118,8 @@ interface Relationship {
   sourceEntityId: UUID;
   targetEntityId: UUID;
   agentId: UUID;
-  tags: string[];         // Relationship tags
-  metadata: Metadata;     // Additional data
+  tags: string[]; // Relationship tags
+  metadata: Metadata; // Additional data
   createdAt?: string;
 }
 ```
@@ -122,6 +131,7 @@ interface Relationship {
 The database consists of several core tables:
 
 #### Entities Table
+
 ```sql
 CREATE TABLE entities (
   id UUID PRIMARY KEY,
@@ -133,6 +143,7 @@ CREATE TABLE entities (
 ```
 
 #### Components Table
+
 ```sql
 CREATE TABLE components (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,6 +159,7 @@ CREATE TABLE components (
 ```
 
 #### Memories Table
+
 ```sql
 CREATE TABLE memories (
   id UUID PRIMARY KEY,
@@ -164,6 +176,7 @@ CREATE TABLE memories (
 ```
 
 #### Embeddings Table
+
 ```sql
 CREATE TABLE embeddings (
   id UUID PRIMARY KEY,
@@ -190,12 +203,12 @@ CREATE TABLE embeddings (
 The primary adapter uses PostgreSQL with pgvector extension:
 
 ```typescript
-import { DrizzlePostgreSQLAdapter } from '@elizaos/plugin-sql';
+import { DrizzlePostgreSQLAdapter } from "@elizaos/plugin-sql";
 
 const adapter = new DrizzlePostgreSQLAdapter({
   connectionString: process.env.DATABASE_URL,
   // Optional configuration
-  max: 20,              // Connection pool size
+  max: 20, // Connection pool size
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
@@ -208,10 +221,10 @@ await adapter.initialize();
 For local development and testing:
 
 ```typescript
-import { DrizzleSQLiteAdapter } from '@elizaos/plugin-sql';
+import { DrizzleSQLiteAdapter } from "@elizaos/plugin-sql";
 
 const adapter = new DrizzleSQLiteAdapter({
-  database: './data/eliza.db',
+  database: "./data/eliza.db",
   // SQLite specific options
 });
 ```
@@ -225,21 +238,18 @@ class CustomDatabaseAdapter extends DatabaseAdapter<CustomDB> {
   async initialize(config: CustomConfig) {
     this.db = await connectToCustomDB(config);
   }
-  
+
   async init(): Promise<void> {
     // Initialize database connection
     await this.initialize();
   }
-  
+
   async getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null> {
     // Custom implementation
-    const results = await this.db.query(
-      'SELECT * FROM entities WHERE id = ANY($1)',
-      [entityIds]
-    );
+    const results = await this.db.query("SELECT * FROM entities WHERE id = ANY($1)", [entityIds]);
     return results.map(this.mapToEntity);
   }
-  
+
   // Implement other required methods...
 }
 ```
@@ -249,8 +259,8 @@ class CustomDatabaseAdapter extends DatabaseAdapter<CustomDB> {
 ### Entity Operations
 
 ```typescript
-import { v4 as generateUUID } from 'uuid';
-import type { Entity, Component, UUID } from '@elizaos/core';
+import type { Component, Entity, UUID } from "@elizaos/core";
+import { v4 as generateUUID } from "uuid";
 
 // Create an entity
 const entity: Entity = {
@@ -259,8 +269,8 @@ const entity: Entity = {
   agentId: runtime.agentId,
   metadata: {
     type: "user",
-    verified: true
-  }
+    verified: true,
+  },
 };
 
 await runtime.createEntity(entity);
@@ -289,18 +299,14 @@ const preferences: Component = {
   data: {
     theme: "dark",
     language: "en",
-    notifications: true
-  }
+    notifications: true,
+  },
 };
 
 await runtime.createComponent(preferences);
 
 // Retrieve component
-const userPrefs = await runtime.getComponent(
-  userId,
-  "preferences",
-  worldId
-);
+const userPrefs = await runtime.getComponent(userId, "preferences", worldId);
 
 // Update component
 userPrefs.data.theme = "light";
@@ -317,14 +323,14 @@ await runtime.createRelationship({
   tags: ["friend", "colleague"],
   metadata: {
     since: "2024-01-01",
-    strength: 0.8
-  }
+    strength: 0.8,
+  },
 });
 
 // Query relationships
 const relationships = await runtime.getRelationships({
   entityId: userId,
-  tags: ["friend"]
+  tags: ["friend"],
 });
 ```
 
@@ -334,12 +340,12 @@ Eliza supports multiple embedding dimensions:
 
 ```typescript
 const VECTOR_DIMS = {
-  SMALL: 384,    // All-MiniLM-L6-v2
-  MEDIUM: 512,   // Sentence-transformers
-  LARGE: 768,    // BERT-based models
-  XL: 1024,      // Large models
-  XXL: 1536,     // Ada-002
-  XXXL: 3072     // Large context models
+  SMALL: 384, // All-MiniLM-L6-v2
+  MEDIUM: 512, // Sentence-transformers
+  LARGE: 768, // BERT-based models
+  XL: 1024, // Large models
+  XXL: 1536, // Ada-002
+  XXXL: 3072, // Large context models
 } as const;
 
 // Ensure embedding dimension
@@ -352,10 +358,10 @@ await adapter.ensureEmbeddingDimension(VECTOR_DIMS.SMALL);
 // Search with cosine similarity
 const results = await runtime.searchMemories({
   embedding: queryEmbedding,
-  tableName: 'messages',
-  match_threshold: 0.7,  // Cosine similarity threshold
+  tableName: "messages",
+  match_threshold: 0.7, // Cosine similarity threshold
   count: 10,
-  roomId: roomId
+  roomId: roomId,
 });
 ```
 
@@ -374,19 +380,19 @@ class CacheWithTTL {
   async setWithTTL(key: string, value: any, ttlSeconds: number) {
     await runtime.setCache(key, {
       value,
-      expiresAt: Date.now() + (ttlSeconds * 1000)
+      expiresAt: Date.now() + ttlSeconds * 1000,
     });
   }
-  
+
   async getWithTTL(key: string) {
     const cached = await runtime.getCache(key);
     if (!cached) return null;
-    
+
     if (Date.now() > cached.expiresAt) {
       await runtime.deleteCache(key);
       return null;
     }
-    
+
     return cached.value;
   }
 }
@@ -398,25 +404,22 @@ Database migrations ensure schema consistency:
 
 ```typescript
 // Run migrations
-await adapter.runMigrations([
-  'packages/core/migrations',
-  'packages/plugin-custom/migrations'
-]);
+await adapter.runMigrations(["packages/core/migrations", "packages/plugin-custom/migrations"]);
 
 // Migration example
 export const migration_001 = {
   up: async (db) => {
-    await db.schema.createTable('custom_data', (table) => {
-      table.uuid('id').primary();
-      table.uuid('entity_id').references('entities.id');
-      table.jsonb('data');
-      table.timestamp('created_at').defaultTo(db.fn.now());
+    await db.schema.createTable("custom_data", (table) => {
+      table.uuid("id").primary();
+      table.uuid("entity_id").references("entities.id");
+      table.jsonb("data");
+      table.timestamp("created_at").defaultTo(db.fn.now());
     });
   },
-  
+
   down: async (db) => {
-    await db.schema.dropTable('custom_data');
-  }
+    await db.schema.dropTable("custom_data");
+  },
 };
 ```
 
@@ -428,20 +431,20 @@ export const migration_001 = {
 class DatabaseManager {
   private adapter: IDatabaseAdapter;
   private connectionCheckInterval: NodeJS.Timer;
-  
+
   async initialize() {
     this.adapter = new DrizzlePostgreSQLAdapter(config);
     await this.adapter.initialize();
-    
+
     // Monitor connection health
     this.connectionCheckInterval = setInterval(async () => {
-      if (!await this.adapter.isReady()) {
-        console.error('Database connection lost, attempting reconnect...');
+      if (!(await this.adapter.isReady())) {
+        console.error("Database connection lost, attempting reconnect...");
         await this.reconnect();
       }
     }, 30000);
   }
-  
+
   async shutdown() {
     clearInterval(this.connectionCheckInterval);
     await this.adapter.close();
@@ -453,17 +456,14 @@ class DatabaseManager {
 
 ```typescript
 // Implement transaction support in adapter
-async function createEntityWithComponents(
-  entity: Entity,
-  components: Component[]
-) {
+async function createEntityWithComponents(entity: Entity, components: Component[]) {
   const connection = await adapter.getConnection();
   const trx = await connection.transaction();
-  
+
   try {
-    await trx.insert('entities').values(entity);
+    await trx.insert("entities").values(entity);
     for (const component of components) {
-      await trx.insert('components').values(component);
+      await trx.insert("components").values(component);
     }
     await trx.commit();
   } catch (error) {
@@ -493,25 +493,25 @@ const allMemories = await runtime.getMemoriesByIds(memoryIds);
 class DataValidator {
   validateEntity(entity: Entity): boolean {
     if (!entity.names || entity.names.length === 0) {
-      throw new Error('Entity must have at least one name');
+      throw new Error("Entity must have at least one name");
     }
-    
+
     if (!isValidUUID(entity.agentId)) {
-      throw new Error('Invalid agent ID');
+      throw new Error("Invalid agent ID");
     }
-    
+
     return true;
   }
-  
+
   validateComponent(component: Component): boolean {
-    if (!component.type || component.type.trim() === '') {
-      throw new Error('Component type is required');
+    if (!component.type || component.type.trim() === "") {
+      throw new Error("Component type is required");
     }
-    
-    if (typeof component.data !== 'object') {
-      throw new Error('Component data must be an object');
+
+    if (typeof component.data !== "object") {
+      throw new Error("Component data must be an object");
     }
-    
+
     return true;
   }
 }
@@ -524,18 +524,18 @@ Here's an example of building a custom entity system:
 ```typescript
 class GameEntitySystem {
   constructor(private runtime: IAgentRuntime) {}
-  
+
   async createPlayer(name: string, roomId: UUID): Promise<Entity> {
     // Create player entity
     const player: Entity = {
       id: generateUUID(),
       names: [name],
       agentId: this.runtime.agentId,
-      metadata: { type: "player" }
+      metadata: { type: "player" },
     };
-    
+
     await this.runtime.createEntity(player);
-    
+
     // Add initial components
     await this.runtime.createComponent({
       id: generateUUID(),
@@ -549,10 +549,10 @@ class GameEntitySystem {
       data: {
         health: 100,
         level: 1,
-        experience: 0
-      }
+        experience: 0,
+      },
     });
-    
+
     await this.runtime.createComponent({
       id: generateUUID(),
       entityId: player.id,
@@ -564,25 +564,22 @@ class GameEntitySystem {
       createdAt: Date.now(),
       data: {
         items: [],
-        capacity: 20
-      }
+        capacity: 20,
+      },
     });
-    
+
     return player;
   }
-  
+
   async getPlayerStats(playerId: UUID): Promise<any> {
     const stats = await this.runtime.getComponent(playerId, "stats");
     return stats?.data || null;
   }
-  
-  async updatePlayerStats(
-    playerId: UUID,
-    updates: Partial<any>
-  ): Promise<void> {
+
+  async updatePlayerStats(playerId: UUID, updates: Partial<any>): Promise<void> {
     const stats = await this.runtime.getComponent(playerId, "stats");
-    if (!stats) throw new Error('Player stats not found');
-    
+    if (!stats) throw new Error("Player stats not found");
+
     stats.data = { ...stats.data, ...updates };
     await this.runtime.updateComponent(stats);
   }

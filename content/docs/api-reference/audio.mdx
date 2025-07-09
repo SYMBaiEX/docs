@@ -5,7 +5,8 @@ description: Speech processing and voice synthesis capabilities
 
 # Audio API
 
-The Audio API provides comprehensive speech processing and voice synthesis capabilities for agents. All audio endpoints are prefixed with `/api/audio`.
+The Audio API provides comprehensive speech processing and voice synthesis capabilities for agents.
+All audio endpoints are prefixed with `/api/audio`.
 
 ## Overview
 
@@ -41,13 +42,16 @@ POST /api/audio/:agentId/audio-messages
 Processes audio messages for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Audio file (max 10MB)
 
 **Supported audio formats:**
+
 - MP3: `audio/mpeg`
 - WAV: `audio/wav`
 - OGG: `audio/ogg`
@@ -55,6 +59,7 @@ Processes audio messages for an agent.
 - FLAC: `audio/flac`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -66,6 +71,7 @@ Processes audio messages for an agent.
 ```
 
 **Notes:**
+
 - Audio is automatically transcribed using the agent's transcription model
 - File is cleaned up after processing
 - Rate limiting applies to prevent abuse
@@ -79,13 +85,16 @@ POST /api/audio/:agentId/transcriptions
 Transcribes audio files to text.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field: `file` - Audio file (max 10MB)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -96,6 +105,7 @@ Transcribes audio files to text.
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/audio/{agentId}/transcriptions \
   -F "file=@recording.wav" \
@@ -113,9 +123,11 @@ POST /api/audio/:agentId/synthesize
 Converts text to speech using the agent's voice model.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "text": "Hello, this text will be converted to speech",
@@ -127,6 +139,7 @@ Converts text to speech using the agent's voice model.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -148,9 +161,11 @@ GET /api/audio/:agentId/voices
 Lists available voices for speech synthesis.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -186,9 +201,11 @@ POST /api/audio/:agentId/conversation
 Initiates a real-time audio conversation with an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "sessionId": "conversation-session-uuid",
@@ -202,6 +219,7 @@ Initiates a real-time audio conversation with an agent.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -228,12 +246,15 @@ GET /api/audio/:agentId/conversation/status
 Gets the status of an ongoing audio conversation.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
+
 - `sessionId` (UUID) - Conversation session identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -256,10 +277,12 @@ DELETE /api/audio/:agentId/conversation/:sessionId
 Ends an audio conversation session.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `sessionId` (UUID) - Conversation session identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -284,13 +307,16 @@ POST /api/audio/:agentId/stream
 Streams audio data for real-time processing.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request:**
+
 - Content-Type: `application/octet-stream`
 - Body: Raw audio data
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -312,10 +338,12 @@ GET /api/audio/:agentId/buffers/:bufferId
 Gets the status of an audio buffer.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 - `bufferId` (UUID) - Buffer identifier
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -341,9 +369,11 @@ PATCH /api/audio/:agentId/settings
 Updates audio processing settings for an agent.
 
 **Parameters:**
+
 - `agentId` (UUID) - Agent identifier
 
 **Request Body:**
+
 ```json
 {
   "transcription": {
@@ -366,6 +396,7 @@ Updates audio processing settings for an agent.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -410,6 +441,7 @@ All endpoints return consistent error responses:
 ```
 
 Common error codes:
+
 - `INVALID_ID` - Invalid agent ID format
 - `NOT_FOUND` - Agent not found
 - `INVALID_REQUEST` - Invalid request parameters
@@ -421,6 +453,7 @@ Common error codes:
 ## Rate Limiting
 
 Audio endpoints are subject to rate limiting:
+
 - Audio uploads: 10 requests per minute
 - Transcription: 20 requests per minute
 - Synthesis: 30 requests per minute
@@ -482,47 +515,48 @@ curl -X POST http://localhost:3000/api/audio/{agentId}/conversation \
 ```javascript
 // Client-side audio processing
 const audioData = new FormData();
-audioData.append('file', audioFile);
+audioData.append("file", audioFile);
 
-fetch('/api/audio/agent-uuid/audio-messages', {
-  method: 'POST',
+fetch("/api/audio/agent-uuid/audio-messages", {
+  method: "POST",
   body: audioData,
   headers: {
-    'X-API-KEY': 'your-api-key'
-  }
+    "X-API-KEY": "your-api-key",
+  },
 })
-.then(response => response.json())
-.then(data => {
-  if (data.success) {
-    console.log('Transcription:', data.data.transcription);
-  }
-});
+  .then((response) => response.json())
+  .then((data) => {
+    if (data.success) {
+      console.log("Transcription:", data.data.transcription);
+    }
+  });
 ```
 
 ### Real-time Audio Streaming
 
 ```javascript
 // WebSocket-based audio streaming
-const socket = io('http://localhost:3000');
+const socket = io("http://localhost:3000");
 
-socket.emit('join_audio_session', {
-  agentId: 'agent-uuid',
-  sessionId: 'session-uuid'
+socket.emit("join_audio_session", {
+  agentId: "agent-uuid",
+  sessionId: "session-uuid",
 });
 
 // Stream audio data
 const audioStream = new MediaRecorder(microphoneStream);
 audioStream.ondataavailable = (event) => {
-  socket.emit('audio_chunk', {
+  socket.emit("audio_chunk", {
     data: event.data,
-    sessionId: 'session-uuid'
+    sessionId: "session-uuid",
   });
 };
 
 // Receive transcription
-socket.on('transcription', (data) => {
-  console.log('Real-time transcription:', data.text);
+socket.on("transcription", (data) => {
+  console.log("Real-time transcription:", data.text);
 });
 ```
 
-*Note: Some endpoints are implementation placeholders and may not be fully functional in the current version.*
+_Note: Some endpoints are implementation placeholders and may not be fully functional in the current
+version._

@@ -5,11 +5,14 @@ description: Build native desktop applications for Eliza agents using Tauri
 
 # Tauri Desktop Application
 
-The Eliza Desktop application provides a native desktop experience for running and interacting with Eliza agents. Built with [Tauri](https://tauri.app/), it combines a React frontend with a lightweight Rust backend for optimal performance and security.
+The Eliza Desktop application provides a native desktop experience for running and interacting with
+Eliza agents. Built with [Tauri](https://tauri.app/), it combines a React frontend with a
+lightweight Rust backend for optimal performance and security.
 
 ## Overview
 
-The Tauri desktop app (`@elizaos/app`) enables users to run Eliza agents in a secure, native desktop environment with features like:
+The Tauri desktop app (`@elizaos/app`) enables users to run Eliza agents in a secure, native desktop
+environment with features like:
 
 - **Cross-platform support** - Works on Windows, macOS, and Linux
 - **Native performance** - Rust-based backend for optimal speed
@@ -91,11 +94,11 @@ packages/app/
 ```json
 {
   "scripts": {
-    "start": "tauri dev",           // Start Tauri in dev mode
-    "dev": "vite",                  // Frontend dev server only
-    "build": "tsc && vite build",   // Build frontend
-    "tauri:dev": "tauri dev",       // Full Tauri development
-    "tauri:build": "tauri build"    // Build distributable
+    "start": "tauri dev", // Start Tauri in dev mode
+    "dev": "vite", // Frontend dev server only
+    "build": "tsc && vite build", // Build frontend
+    "tauri:dev": "tauri dev", // Full Tauri development
+    "tauri:build": "tauri build" // Build distributable
   }
 }
 ```
@@ -116,13 +119,15 @@ The main configuration file `src-tauri/tauri.conf.json` controls:
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{
-      "title": "Eliza Desktop",
-      "width": 1200,
-      "height": 800,
-      "minWidth": 800,
-      "minHeight": 600
-    }],
+    "windows": [
+      {
+        "title": "Eliza Desktop",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
     "security": {
       "csp": {
         // Content Security Policy configuration
@@ -137,6 +142,7 @@ The main configuration file `src-tauri/tauri.conf.json` controls:
 ### Window Management
 
 The app creates a default window with:
+
 - Initial size: 1200x800 pixels
 - Minimum size: 800x600 pixels
 - Resizable and movable
@@ -151,7 +157,7 @@ import { ApiClient } from "@elizaos/api-client";
 
 // Initialize client
 const client = new ApiClient({
-  baseUrl: "http://localhost:3000"
+  baseUrl: "http://localhost:3000",
 });
 
 // Interact with agents
@@ -168,6 +174,7 @@ Tauri implements multiple security layers:
 4. **Secure Context** - All code runs in a secure context
 
 The CSP configuration allows connections to:
+
 - Local development server (`http://localhost:3000`)
 - WebSocket connections for real-time updates
 - Eliza API endpoints (`https://api.eliza.how`)
@@ -177,10 +184,10 @@ The CSP configuration allows connections to:
 The app includes the Tauri Shell plugin for opening external links:
 
 ```typescript
-import { open } from '@tauri-apps/plugin-shell';
+import { open } from "@tauri-apps/plugin-shell";
 
 // Open link in default browser
-await open('https://elizaos.github.io/eliza/');
+await open("https://elizaos.github.io/eliza/");
 ```
 
 ## Building & Distribution
@@ -212,14 +219,15 @@ For building on different platforms:
 # Windows (from Windows)
 bun run tauri:build
 
-# macOS (from macOS) 
+# macOS (from macOS)
 bun run tauri:build
 
 # Linux (from Linux)
 bun run tauri:build
 ```
 
-Note: Cross-compilation requires additional setup and is generally not recommended. Use CI/CD for multi-platform builds.
+Note: Cross-compilation requires additional setup and is generally not recommended. Use CI/CD for
+multi-platform builds.
 
 ## Customization
 
@@ -234,6 +242,7 @@ Update branding elements:
 ### Icon Requirements
 
 Provide icons in multiple sizes:
+
 - `32x32.png` - Small icon
 - `128x128.png` - Medium icon
 - `128x128@2x.png` - Retina display
@@ -261,9 +270,9 @@ fn main() {
 Use in frontend:
 
 ```typescript
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
-const result = await invoke('custom_command', { name: 'Eliza' });
+const result = await invoke("custom_command", { name: "Eliza" });
 ```
 
 ## Troubleshooting

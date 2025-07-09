@@ -5,21 +5,26 @@ description: Understanding data and state management in ElizaOS
 
 # Overview
 
-ElizaOS provides a comprehensive data and state management system built on flexible architecture patterns. This system handles agent memory, knowledge storage, and real-time state composition for intelligent conversations and persistent learning.
+ElizaOS provides a comprehensive data and state management system built on flexible architecture
+patterns. This system handles agent memory, knowledge storage, and real-time state composition for
+intelligent conversations and persistent learning.
 
 ## Core Components
 
 ### [State Management](./state-management)
 
-Dynamic state composition from multiple providers, enabling agents to maintain context across conversations and interactions:
+Dynamic state composition from multiple providers, enabling agents to maintain context across
+conversations and interactions:
 
 **State Composition**:
+
 - **Provider-Based**: State built from multiple data providers
 - **Dynamic**: Real-time state updates based on conversation context
 - **Contextual**: State varies based on user, room, and conversation history
 - **Extensible**: Custom providers can contribute to state
 
 **State Interface**:
+
 ```typescript
 interface State {
   agentId: string;
@@ -36,6 +41,7 @@ interface State {
 ```
 
 **State Providers**:
+
 - **Time Provider**: Current time and scheduling information
 - **Facts Provider**: Verified information and knowledge base
 - **Goals Provider**: Active goals and objectives
@@ -47,17 +53,19 @@ interface State {
 Persistent memory storage with vector embeddings for semantic search and retrieval:
 
 **Memory Types**:
+
 ```typescript
 enum MemoryType {
-  MESSAGES = 'messages',
-  FACTS = 'facts',
-  DOCUMENTS = 'documents',
-  KNOWLEDGE = 'knowledge',
-  RELATIONSHIPS = 'relationships'
+  MESSAGES = "messages",
+  FACTS = "facts",
+  DOCUMENTS = "documents",
+  KNOWLEDGE = "knowledge",
+  RELATIONSHIPS = "relationships",
 }
 ```
 
 **Memory Features**:
+
 - **Vector Embeddings**: Semantic search capabilities using vector similarity
 - **Batch Processing**: Efficient batch operations for large datasets
 - **Similarity Search**: Find relevant memories based on content similarity
@@ -65,6 +73,7 @@ enum MemoryType {
 - **Memory Validation**: Ensure memory quality and consistency
 
 **Memory Interface**:
+
 ```typescript
 interface Memory {
   id: UUID;
@@ -81,9 +90,11 @@ interface Memory {
 
 ### [Knowledge Management](./knowledge-management)
 
-Structured knowledge storage and retrieval system for facts, documents, and domain-specific information:
+Structured knowledge storage and retrieval system for facts, documents, and domain-specific
+information:
 
 **Knowledge Types**:
+
 - **Facts**: Verified information and statements
 - **Documents**: Structured document storage and retrieval
 - **Relationships**: Entity relationships and connections
@@ -91,6 +102,7 @@ Structured knowledge storage and retrieval system for facts, documents, and doma
 - **Learned Information**: Knowledge acquired through interactions
 
 **Knowledge Features**:
+
 - **Semantic Search**: Find relevant knowledge using vector embeddings
 - **Knowledge Validation**: Verify information accuracy and consistency
 - **Knowledge Updates**: Dynamic knowledge base updates
@@ -98,6 +110,7 @@ Structured knowledge storage and retrieval system for facts, documents, and doma
 - **Knowledge Scoring**: Relevance and confidence scoring
 
 **Knowledge Interface**:
+
 ```typescript
 interface Knowledge {
   id: UUID;
@@ -115,12 +128,14 @@ interface Knowledge {
 Flexible database adapter pattern supporting multiple backends with consistent APIs:
 
 **Database Adapters**:
+
 - **PostgreSQL**: Full-featured SQL database with JSON support
 - **SQLite**: Lightweight database for development and testing
 - **Supabase**: PostgreSQL with real-time features
 - **Custom Adapters**: Pluggable architecture for custom backends
 
 **Database Interface**:
+
 ```typescript
 interface IDatabaseAdapter {
   // Memory operations
@@ -151,6 +166,7 @@ interface IDatabaseAdapter {
 ### Entity-Component System
 
 **Entity Definition**:
+
 ```typescript
 interface Entity {
   id: UUID;
@@ -163,12 +179,14 @@ interface Entity {
 ```
 
 **Component System**:
+
 - **Flexible Data Modeling**: Entities can have various components
 - **Extensible**: New component types can be added
 - **Queryable**: Components can be queried and filtered
 - **Versioned**: Track component changes over time
 
 **Relationship Management**:
+
 - **Typed Relationships**: Strongly typed relationship definitions
 - **Bidirectional**: Relationships are maintained in both directions
 - **Weighted**: Relationships have strength and confidence scores
@@ -177,12 +195,14 @@ interface Entity {
 ### Vector Embeddings
 
 **Embedding Generation**:
+
 - **Multiple Providers**: OpenAI, Cohere, Hugging Face, local models
 - **Batch Processing**: Efficient batch embedding generation
 - **Caching**: Local caching for frequently used embeddings
 - **Dimension Consistency**: Consistent embedding dimensions
 
 **Similarity Search**:
+
 - **Cosine Similarity**: Standard similarity metric
 - **Euclidean Distance**: Alternative distance metric
 - **Threshold Filtering**: Filter results by similarity threshold
@@ -191,12 +211,14 @@ interface Entity {
 ### Memory Architecture
 
 **Memory Persistence**:
+
 - **Durable Storage**: Persistent memory across agent restarts
 - **Incremental Updates**: Efficient memory updates
 - **Batch Operations**: Bulk memory operations
 - **Backup and Recovery**: Memory backup and restoration
 
 **Memory Retrieval**:
+
 - **Semantic Search**: Content-based memory retrieval
 - **Temporal Filtering**: Time-based memory filtering
 - **Context Filtering**: Filter by conversation context
@@ -207,12 +229,14 @@ interface Entity {
 ### Real-Time Updates
 
 **Live State Updates**:
+
 - **WebSocket Integration**: Real-time state synchronization
 - **Event-Driven**: State updates trigger events
 - **Optimistic Updates**: Immediate UI updates with rollback
 - **Conflict Resolution**: Handle concurrent state changes
 
 **Memory Streaming**:
+
 - **Incremental Loading**: Load memories incrementally
 - **Live Updates**: Real-time memory updates
 - **Subscription Model**: Subscribe to memory changes
@@ -221,12 +245,14 @@ interface Entity {
 ### Performance Optimization
 
 **Caching Strategies**:
+
 - **Memory Caching**: In-memory caching for frequently accessed data
 - **Query Caching**: Cache query results for repeated requests
 - **Embedding Caching**: Cache embeddings for reuse
 - **State Caching**: Cache composed state for performance
 
 **Database Optimization**:
+
 - **Connection Pooling**: Reuse database connections
 - **Query Optimization**: Optimize database queries
 - **Indexing**: Strategic indexing for performance
@@ -235,12 +261,14 @@ interface Entity {
 ### Data Security
 
 **Privacy Protection**:
+
 - **Data Encryption**: Encrypt sensitive data at rest
 - **Access Control**: Role-based access to data
 - **Data Anonymization**: Anonymize sensitive information
 - **Audit Logging**: Log all data access and changes
 
 **Data Integrity**:
+
 - **Validation**: Validate data before storage
 - **Consistency Checks**: Ensure data consistency
 - **Backup Verification**: Verify backup integrity
@@ -251,6 +279,7 @@ interface Entity {
 ### State Management Patterns
 
 **Provider Pattern**:
+
 ```typescript
 class CustomStateProvider implements Provider {
   async get(runtime: IAgentRuntime, message: Memory): Promise<string> {
@@ -261,22 +290,19 @@ class CustomStateProvider implements Provider {
 ```
 
 **State Composition**:
+
 ```typescript
 const state = await composeState(runtime, {
-  providers: [
-    timeProvider,
-    factsProvider,
-    goalsProvider,
-    customProvider
-  ],
+  providers: [timeProvider, factsProvider, goalsProvider, customProvider],
   userId,
-  roomId
+  roomId,
 });
 ```
 
 ### Memory Management Patterns
 
 **Memory Creation**:
+
 ```typescript
 const memory: Memory = {
   id: uuidv4(),
@@ -285,42 +311,45 @@ const memory: Memory = {
   roomId,
   content: { text: "User message" },
   type: MemoryType.MESSAGES,
-  createdAt: new Date()
+  createdAt: new Date(),
 };
 
 await runtime.messageManager.createMemory(memory);
 ```
 
 **Memory Retrieval**:
+
 ```typescript
 const memories = await runtime.messageManager.getMemories({
   roomId,
   count: 10,
-  type: MemoryType.MESSAGES
+  type: MemoryType.MESSAGES,
 });
 ```
 
 ### Knowledge Management Patterns
 
 **Knowledge Storage**:
+
 ```typescript
 const knowledge: Knowledge = {
   id: uuidv4(),
   content: "Important fact about the domain",
   source: "documentation",
   confidence: 0.95,
-  type: KnowledgeType.FACTS
+  type: KnowledgeType.FACTS,
 };
 
 await runtime.knowledgeManager.createKnowledge(knowledge);
 ```
 
 **Knowledge Search**:
+
 ```typescript
 const relevantKnowledge = await runtime.knowledgeManager.searchKnowledge({
   query: "user question",
   threshold: 0.8,
-  limit: 5
+  limit: 5,
 });
 ```
 
@@ -372,4 +401,5 @@ Explore the following sections to understand how to work with data and state in 
 - **[Knowledge Management](./knowledge-management)** - Facts and domain knowledge
 - **[Database Architecture](./database)** - Storage adapters and schemas
 
-This comprehensive data and state management system provides the foundation for building intelligent agents with persistent memory, contextual understanding, and continuous learning capabilities.
+This comprehensive data and state management system provides the foundation for building intelligent
+agents with persistent memory, contextual understanding, and continuous learning capabilities.

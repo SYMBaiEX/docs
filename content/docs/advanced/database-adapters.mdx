@@ -1,6 +1,8 @@
 ---
 title: Database Adapters
-description: PostgreSQL and PGlite database adapters with vector search, memory management, and advanced features
+description:
+  PostgreSQL and PGlite database adapters with vector search, memory management, and advanced
+  features
 ---
 
 # Database Adapters
@@ -94,22 +96,22 @@ The adapter supports multiple embedding dimensions:
 ```typescript
 // From @elizaos/core
 const VECTOR_DIMS = {
-  SMALL: 384,   // Lightweight models
-  MEDIUM: 512,  // Balanced performance
-  LARGE: 768,   // Standard BERT-like models
-  XL: 1024,     // Large models
-  XXL: 1536,    // OpenAI ada-002
-  XXXL: 3072    // Large context models
+  SMALL: 384, // Lightweight models
+  MEDIUM: 512, // Balanced performance
+  LARGE: 768, // Standard BERT-like models
+  XL: 1024, // Large models
+  XXL: 1536, // OpenAI ada-002
+  XXXL: 3072, // Large context models
 };
 
 // Dimension mapping in plugin-sql
 const DIMENSION_MAP = {
-  [384]: 'dim384',
-  [512]: 'dim512', 
-  [768]: 'dim768',
-  [1024]: 'dim1024',
-  [1536]: 'dim1536',
-  [3072]: 'dim3072'
+  [384]: "dim384",
+  [512]: "dim512",
+  [768]: "dim768",
+  [1024]: "dim1024",
+  [1536]: "dim1536",
+  [3072]: "dim3072",
 };
 ```
 
@@ -120,12 +122,12 @@ const DIMENSION_MAP = {
 ### Basic Integration
 
 ```typescript
-import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
-import { AgentRuntime } from '@elizaos/core';
+import { AgentRuntime } from "@elizaos/core";
+import { plugin as sqlPlugin } from "@elizaos/plugin-sql";
 
 // Plugin automatically initializes based on environment
 const runtime = new AgentRuntime({
-  plugins: [sqlPlugin]
+  plugins: [sqlPlugin],
 });
 
 // The plugin will:
@@ -139,23 +141,30 @@ const runtime = new AgentRuntime({
 ### Direct Adapter Usage
 
 ```typescript
-import { createDatabaseAdapter, PgDatabaseAdapter, PgliteDatabaseAdapter } from '@elizaos/plugin-sql';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  PgDatabaseAdapter,
+  PgliteDatabaseAdapter,
+  createDatabaseAdapter,
+} from "@elizaos/plugin-sql";
+import { v4 as uuidv4 } from "uuid";
 
 // Create adapter using factory function
-const adapter = createDatabaseAdapter({
-  postgresUrl: 'postgresql://user:password@localhost:5432/eliza'
-}, agentId);
+const adapter = createDatabaseAdapter(
+  {
+    postgresUrl: "postgresql://user:password@localhost:5432/eliza",
+  },
+  agentId
+);
 
 // Initialize adapter
 await adapter.init();
 
 // Use adapter methods
 const memories = await adapter.getMemories({
-  tableName: 'memories',
+  tableName: "memories",
   agentId,
   roomId,
-  count: 10
+  count: 10,
 });
 ```
 
@@ -164,6 +173,7 @@ const memories = await adapter.getMemories({
 ### Core Tables
 
 #### Agent Table
+
 ```typescript
 {
   id: uuid,                    // Unique agent identifier
@@ -171,7 +181,7 @@ const memories = await adapter.getMemories({
   createdAt: timestamp,        // Creation timestamp
   updatedAt: timestamp,        // Last update timestamp
   name: text,                  // Agent name
-  username: text,              // Unique username  
+  username: text,              // Unique username
   system: text,                // System prompt
   bio: jsonb,                  // Agent biography
   messageExamples: jsonb,      // Example messages
@@ -186,6 +196,7 @@ const memories = await adapter.getMemories({
 ```
 
 #### Memory Table
+
 ```typescript
 {
   id: uuid,           // Memory identifier
@@ -202,6 +213,7 @@ const memories = await adapter.getMemories({
 ```
 
 #### Room Table
+
 ```typescript
 {
   id: uuid,           // Room identifier
@@ -226,6 +238,7 @@ const memories = await adapter.getMemories({
 - **Log** - System event logging
 
 #### Embedding Table
+
 ```typescript
 {
   id: uuid,            // Embedding identifier
@@ -249,13 +262,13 @@ Semantic search across memories:
 ```typescript
 // Search memories by semantic similarity
 const relevantMemories = await adapter.searchMemories({
-  tableName: 'memories',
+  tableName: "memories",
   agentId: agent.id,
   roomId: currentRoom,
   embedding: queryVector,
-  match_threshold: 0.75,  // Similarity threshold
-  match_count: 20,        // Maximum results
-  unique: true            // Only unique memories
+  match_threshold: 0.75, // Similarity threshold
+  match_count: 20, // Maximum results
+  unique: true, // Only unique memories
 });
 
 // The search uses pgvector's cosine similarity
@@ -265,7 +278,7 @@ const relevantMemories = await adapter.searchMemories({
 ### Memory Management
 
 ```typescript
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 // Create a memory with embedding
 const memory = {
@@ -276,16 +289,16 @@ const memory = {
   content: { text: "Important information" },
   type: "knowledge",
   unique: true,
-  metadata: { type: "knowledge" }
+  metadata: { type: "knowledge" },
 };
-const memoryId = await adapter.createMemory(memory, 'memories');
+const memoryId = await adapter.createMemory(memory, "memories");
 
 // Retrieve memories by room
 const roomMemories = await adapter.getMemories({
-  tableName: 'memories',
+  tableName: "memories",
   agentId,
   roomId,
-  count: 50
+  count: 50,
 });
 
 // Remove memories
@@ -347,7 +360,7 @@ Migrations are handled by the DatabaseMigrationService:
 
 ```typescript
 // Import the migration service
-import { DatabaseMigrationService } from '@elizaos/plugin-sql';
+import { DatabaseMigrationService } from "@elizaos/plugin-sql";
 
 // Create migration service
 const migrationService = new DatabaseMigrationService(adapter);
@@ -381,12 +394,12 @@ npx drizzle-kit migrate
 ```typescript
 // drizzle.config.ts
 export default defineConfig({
-  dialect: 'postgresql',
-  schema: './src/schema/index.ts',
-  out: './drizzle/migrations',
+  dialect: "postgresql",
+  schema: "./src/schema/index.ts",
+  out: "./drizzle/migrations",
   dbCredentials: {
-    url: process.env.POSTGRES_URL || 'file:../../.eliza/.elizadb'
-  }
+    url: process.env.POSTGRES_URL || "file:../../.eliza/.elizadb",
+  },
 });
 ```
 
@@ -397,21 +410,18 @@ export default defineConfig({
 Extend the database with custom tables:
 
 ```typescript
-import { pgTable, text, uuid } from 'drizzle-orm/pg-core';
-import { schema } from '@elizaos/plugin-sql';
+import { schema } from "@elizaos/plugin-sql";
+import { pgTable, text, uuid } from "drizzle-orm/pg-core";
 
-export const customTable = pgTable('custom_data', {
-  id: uuid('id').primaryKey().notNull(),
-  agentId: uuid('agent_id').notNull(),
-  data: text('data'),
-  metadata: text('metadata')
+export const customTable = pgTable("custom_data", {
+  id: uuid("id").primaryKey().notNull(),
+  agentId: uuid("agent_id").notNull(),
+  data: text("data"),
+  metadata: text("metadata"),
 });
 
 // Use with adapter
-const results = await adapter.db
-  .select()
-  .from(customTable)
-  .where(eq(customTable.agentId, agentId));
+const results = await adapter.db.select().from(customTable).where(eq(customTable.agentId, agentId));
 ```
 
 ### Schema Factory Pattern
@@ -419,16 +429,16 @@ const results = await adapter.db
 The plugin uses a schema factory pattern for dynamic schema creation:
 
 ```typescript
-import { createSchemaFactory } from '@elizaos/plugin-sql';
+import { createSchemaFactory } from "@elizaos/plugin-sql";
 
 // Create schema factory with custom tables
 const schemaFactory = createSchemaFactory({
   customTables: {
-    myTable: pgTable('my_table', {
-      id: uuid('id').primaryKey(),
-      data: text('data')
-    })
-  }
+    myTable: pgTable("my_table", {
+      id: uuid("id").primaryKey(),
+      data: text("data"),
+    }),
+  },
 });
 
 // Use factory to create schemas
@@ -442,7 +452,7 @@ Efficient bulk operations:
 ```typescript
 // Batch insert memories
 await adapter.db.transaction(async (tx) => {
-  const memories = dataArray.map(data => ({
+  const memories = dataArray.map((data) => ({
     id: uuid(),
     agentId,
     entityId: data.entityId,
@@ -450,9 +460,9 @@ await adapter.db.transaction(async (tx) => {
     content: data.content,
     type: data.type,
     unique: true,
-    metadata: data.metadata || {}
+    metadata: data.metadata || {},
   }));
-  
+
   await tx.insert(memoryTable).values(memories);
 });
 ```
@@ -486,9 +496,12 @@ When PostgreSQL is not available, the adapter automatically uses PGlite:
 // - Same API as PostgreSQL adapter
 
 // Configuration
-const pgliteAdapter = createDatabaseAdapter({
-  dataDir: './data/pglite'  // Storage directory
-}, agentId);
+const pgliteAdapter = createDatabaseAdapter(
+  {
+    dataDir: "./data/pglite", // Storage directory
+  },
+  agentId
+);
 ```
 
 ### PGlite Limitations
@@ -506,15 +519,15 @@ const pgliteAdapter = createDatabaseAdapter({
 // Basic error handling for database operations
 try {
   await adapter.getMemories({
-    tableName: 'memories',
+    tableName: "memories",
     agentId,
     roomId,
-    count: 50
+    count: 50,
   });
 } catch (error) {
-  logger.error('Database operation failed:', error);
+  logger.error("Database operation failed:", error);
   // Handle specific error types
-  if (error.code === 'ECONNREFUSED') {
+  if (error.code === "ECONNREFUSED") {
     // Connection refused
   }
 }
@@ -540,15 +553,18 @@ protected async withDatabase<T>(operation: () => Promise<T>): Promise<T> {
 ```typescript
 // Good: Use the plugin system
 const runtime = new AgentRuntime({
-  plugins: [sqlPlugin]
+  plugins: [sqlPlugin],
 });
 // Adapter is automatically created and registered
 
 // Good: Manual adapter creation
-const adapter = createDatabaseAdapter({
-  postgresUrl: process.env.POSTGRES_URL,
-  dataDir: './.eliza/.elizadb'
-}, agentId);
+const adapter = createDatabaseAdapter(
+  {
+    postgresUrl: process.env.POSTGRES_URL,
+    dataDir: "./.eliza/.elizadb",
+  },
+  agentId
+);
 
 // Bad: Creating multiple adapters for same database
 const adapter1 = createDatabaseAdapter(config, agentId);
@@ -563,7 +579,7 @@ const STANDARD_DIMENSION = 1536; // OpenAI ada-002
 
 // Validate before creating
 if (embedding.length !== STANDARD_DIMENSION) {
-  throw new Error('Invalid embedding dimension');
+  throw new Error("Invalid embedding dimension");
 }
 ```
 
@@ -608,22 +624,22 @@ await adapter.db.transaction(async (tx) => {
 ```typescript
 // Check adapter readiness
 const isReady = await adapter.isReady();
-console.log('Database ready:', isReady);
+console.log("Database ready:", isReady);
 
 // Test connection (PostgreSQL)
 if (adapter instanceof PgDatabaseAdapter) {
   const connection = await adapter.getConnection();
-  console.log('Pool status:', {
+  console.log("Pool status:", {
     totalCount: connection.totalCount,
     idleCount: connection.idleCount,
-    waitingCount: connection.waitingCount
+    waitingCount: connection.waitingCount,
   });
 }
 
 // Check PGlite status
 if (adapter instanceof PgliteDatabaseAdapter) {
   const connection = await adapter.getConnection();
-  console.log('PGlite ready:', !connection.closed);
+  console.log("PGlite ready:", !connection.closed);
 }
 ```
 
@@ -632,12 +648,15 @@ if (adapter instanceof PgliteDatabaseAdapter) {
 ```typescript
 // Query logging is handled by the underlying Drizzle ORM
 // Enable with environment variable or drizzle configuration
-const adapter = createDatabaseAdapter({
-  postgresUrl: url
-}, agentId);
+const adapter = createDatabaseAdapter(
+  {
+    postgresUrl: url,
+  },
+  agentId
+);
 
 // Monitor query performance in application logs
-logger.info('Query executed:', { duration: 'Xms', query: 'SELECT...' });
+logger.info("Query executed:", { duration: "Xms", query: "SELECT..." });
 ```
 
 ## Troubleshooting
@@ -645,17 +664,20 @@ logger.info('Query executed:', { duration: 'Xms', query: 'SELECT...' });
 ### Common Issues
 
 1. **Vector Extension Missing**
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
 
 2. **Dimension Mismatch**
+
    ```
    Error: Embedding dimension mismatch
    Solution: Use consistent dimensions (check VECTOR_DIMS)
    ```
 
 3. **Connection Issues**
+
    ```
    Error: Connection refused / timeout
    Solution: Check connection string and network access
