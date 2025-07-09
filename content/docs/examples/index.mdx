@@ -1,0 +1,207 @@
+---
+title: "Examples & Tutorials"
+description: "Practical examples and hands-on tutorials for ElizaOS v1.2.0"
+---
+Welcome to the ElizaOS v1.2.0 examples collection. These practical examples and tutorials will help you build real-world applications with ElizaOS.
+
+<Callout type="info">
+All examples are tested with ElizaOS v1.2.0 and use the latest API patterns and best practices.
+</Callout>
+
+## Quick Examples
+
+<Cards>
+  <Card href="/docs/examples/simple-chatbot" title="Simple Chatbot">
+    Build your first AI chatbot in under 5 minutes
+  </Card>
+  <Card href="/docs/examples/plugin-development" title="Plugin Development">
+    Create custom plugins to extend ElizaOS functionality
+  </Card>
+  <Card href="/docs/examples/multi-agent-system" title="Multi-Agent System">
+    Set up multiple agents working together
+  </Card>
+  <Card href="/docs/examples/database-integration" title="Database Integration">
+    Connect ElizaOS to various databases
+  </Card>
+</Cards>
+
+## Tutorials
+
+### Getting Started
+- [Building Your First Agent](/docs/examples/tutorials/first-agent) - Complete walkthrough for beginners
+- [Character Customization](/docs/examples/character-customization) - Create unique agent personalities
+- [Basic API Integration](/docs/examples/api-integration) - Connect to external services
+
+### Advanced Topics
+- [Custom Model Provider](/docs/examples/custom-model-provider) - Integrate custom AI models
+- [Production Deployment](/docs/examples/tutorials/production-deployment) - Deploy agents at scale
+- [Testing & Debugging](/docs/examples/tutorials/testing-debugging) - Test strategies and debugging tools
+
+## Example Categories
+
+### 🤖 Agent Development
+Examples showcasing different agent configurations and behaviors:
+- Basic conversational agents
+- Task-oriented agents
+- Multi-modal agents (text, voice, vision)
+- Specialized domain agents
+
+### 🔌 Plugin Examples
+Ready-to-use plugin examples:
+- Data processing plugins
+- Integration plugins
+- Custom action plugins
+- Provider plugins
+
+### 🏗️ Architecture Patterns
+Real-world architecture examples:
+- Microservices with ElizaOS
+- Event-driven architectures
+- Scalable multi-agent deployments
+- High-availability configurations
+
+### 🔗 Integration Examples
+Connect ElizaOS with popular services:
+- Discord, Telegram, Slack bots
+- REST API integrations
+- GraphQL integrations
+- Database connections (PostgreSQL, MongoDB, SQLite)
+- Message queue integrations (RabbitMQ, Kafka)
+
+## Code Organization
+
+Each example follows this structure:
+
+```
+example-name/
+├── README.md           # Overview and instructions
+├── package.json        # Dependencies
+├── src/
+│   ├── index.ts       # Main entry point
+│   ├── agent.ts       # Agent configuration
+│   └── ...            # Additional files
+├── tests/             # Test files
+└── .env.example       # Environment variables template
+```
+
+## Prerequisites
+
+Before running the examples, ensure you have:
+
+<Tabs>
+<Tab value="npm">
+```bash
+# Node.js 18+ installed
+node --version
+
+# Install ElizaOS CLI globally
+npm install -g @elizaos/cli
+
+# Clone the examples repository
+git clone https://github.com/elizaos/eliza-examples
+cd eliza-examples
+```
+</Tab>
+<Tab value="yarn">
+```bash
+# Node.js 18+ installed
+node --version
+
+# Install ElizaOS CLI globally
+yarn global add @elizaos/cli
+
+# Clone the examples repository
+git clone https://github.com/elizaos/eliza-examples
+cd eliza-examples
+```
+</Tab>
+<Tab value="pnpm">
+```bash
+# Node.js 18+ installed
+node --version
+
+# Install ElizaOS CLI globally
+pnpm add -g @elizaos/cli
+
+# Clone the examples repository
+git clone https://github.com/elizaos/eliza-examples
+cd eliza-examples
+```
+</Tab>
+</Tabs>
+
+## Running Examples
+
+Each example can be run independently:
+
+```bash
+# Navigate to example directory
+cd examples/simple-chatbot
+
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Run the example
+npm start
+```
+
+## Performance Tips
+
+<Callout type="info">
+**Optimization Best Practices**
+- Use connection pooling for database integrations
+- Implement caching for frequently accessed data
+- Enable response streaming for real-time interactions
+- Configure appropriate model parameters for your use case
+- Monitor memory usage and implement cleanup routines
+</Callout>
+
+## Troubleshooting
+
+Common issues and solutions:
+
+### Installation Issues
+- Ensure Node.js 18+ is installed
+- Clear npm cache: `npm cache clean --force`
+- Delete node_modules and reinstall
+
+### Runtime Errors
+- Check environment variables are properly set
+- Verify API keys and credentials
+- Review logs in `logs/` directory
+
+### Performance Issues
+- Adjust model parameters (temperature, max_tokens)
+- Implement rate limiting for API calls
+- Use database indexing for large datasets
+
+## Contributing Examples
+
+We welcome community contributions! To submit your example:
+
+1. Fork the examples repository
+2. Create a new directory for your example
+3. Include comprehensive documentation
+4. Add tests for your example
+5. Submit a pull request
+
+## Next Steps
+
+Ready to dive in? Start with these beginner-friendly examples:
+
+<Cards>
+  <Card href="/docs/examples/simple-chatbot">
+    Build a Simple Chatbot
+  </Card>
+  <Card href="/docs/examples/tutorials/first-agent">
+    Create Your First Agent
+  </Card>
+  <Card href="/docs/examples/api-integration">
+    Integrate External APIs
+  </Card>
+</Cards>
+
+For questions and support, join our [Discord community](https://discord.gg/elizaos) or check the [FAQ](/docs/learning-tracks/simple/faq).

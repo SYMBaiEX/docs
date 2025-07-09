@@ -1,0 +1,327 @@
+---
+title: Troubleshooting Guide
+description: Comprehensive troubleshooting guide for ElizaOS v1.2.0 - Find solutions to common issues and errors
+---
+
+This comprehensive guide helps you diagnose and resolve common issues in ElizaOS v1.2.0. Use the quick navigation below to find solutions for your specific problem.
+
+<Callout type="info">
+**Before You Begin**
+- Ensure you're using ElizaOS v1.2.0 or later
+- Check system requirements are met
+- Have your error logs ready
+- Back up your configuration before making changes
+</Callout>
+
+## Quick Diagnostics
+
+<Steps>
+<Step>
+## Check ElizaOS Version
+```bash
+eliza --version
+```
+Ensure you're running v1.2.0 or later.
+</Step>
+
+<Step>
+## Verify Installation
+```bash
+eliza doctor
+```
+This command checks your ElizaOS installation for common issues.
+</Step>
+
+<Step>
+## Review Logs
+```bash
+# Check runtime logs
+tail -f ~/.eliza/logs/runtime.log
+
+# Check error logs
+tail -f ~/.eliza/logs/error.log
+```
+</Step>
+
+<Step>
+## Test Configuration
+```bash
+eliza validate --config ./eliza.config.js
+```
+Validates your configuration file for syntax and schema errors.
+</Step>
+</Steps>
+
+## Common Issues by Category
+
+<Cards>
+  <Card 
+    title="Installation Issues" 
+    description="Problems during setup and installation"
+    href="/docs/troubleshooting/installation"
+  />
+  <Card 
+    title="CLI Command Problems" 
+    description="Issues with CLI commands and execution"
+    href="/docs/troubleshooting/cli"
+  />
+  <Card 
+    title="Plugin Development" 
+    description="Troubleshooting plugin creation and integration"
+    href="/docs/troubleshooting/plugins"
+  />
+  <Card 
+    title="Character Creation" 
+    description="Resolving character configuration problems"
+    href="/docs/troubleshooting/characters"
+  />
+  <Card 
+    title="Database Adapters" 
+    description="Database connection and adapter issues"
+    href="/docs/troubleshooting/database"
+  />
+  <Card 
+    title="Runtime Errors" 
+    description="Common runtime errors and their solutions"
+    href="/docs/troubleshooting/runtime"
+  />
+  <Card 
+    title="Performance Problems" 
+    description="Diagnosing and fixing performance issues"
+    href="/docs/troubleshooting/performance"
+  />
+  <Card 
+    title="Production Deployment" 
+    description="Deployment and production environment issues"
+    href="/docs/troubleshooting/deployment"
+  />
+</Cards>
+
+## Most Common Errors
+
+### 1. Module Not Found Error
+
+<Tabs>
+<Tab value="Error">
+```bash
+Error: Cannot find module '@elizaos/core'
+    at Function.Module._resolveFilename
+```
+</Tab>
+<Tab value="Solution">
+```bash
+# Clear npm cache and reinstall
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install
+
+# Or with pnpm
+pnpm store prune
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+</Tab>
+</Tabs>
+
+### 2. Database Connection Failed
+
+<Tabs>
+<Tab value="Error">
+```bash
+Error: Failed to connect to database
+  code: 'ECONNREFUSED'
+  errno: -111
+```
+</Tab>
+<Tab value="Solution">
+```bash
+# Check database service status
+sudo systemctl status postgresql
+
+# Verify connection string
+echo $DATABASE_URL
+
+# Test connection
+eliza db:test
+```
+</Tab>
+</Tabs>
+
+### 3. Character Validation Error
+
+<Tabs>
+<Tab value="Error">
+```bash
+ValidationError: Character schema validation failed
+  - missing required field: 'name'
+  - invalid type for 'modelProvider'
+```
+</Tab>
+<Tab value="Solution">
+```javascript
+// Ensure character.json has all required fields
+{
+  "name": "MyAgent",
+  "modelProvider": "openai", // Must be valid provider
+  "settings": {
+    "voice": {
+      "model": "en-US-Neural2-F"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+## Debug Mode
+
+Enable debug mode for detailed logging:
+
+<Tabs>
+<Tab value="Environment Variable">
+```bash
+export ELIZA_DEBUG=true
+export ELIZA_LOG_LEVEL=debug
+eliza start
+```
+</Tab>
+<Tab value="CLI Flag">
+```bash
+eliza start --debug --log-level=debug
+```
+</Tab>
+<Tab value="Config File">
+```javascript
+// eliza.config.js
+export default {
+  debug: true,
+  logging: {
+    level: 'debug',
+    prettyPrint: true
+  }
+};
+```
+</Tab>
+</Tabs>
+
+## Performance Profiling
+
+<Callout type="info">
+Use the built-in profiler to identify performance bottlenecks:
+
+```bash
+eliza profile --duration=60 --output=profile.json
+```
+
+</Callout>
+
+## Getting Help
+
+### Self-Service Resources
+
+1. **Search Documentation**
+   - Use the search bar above to find specific topics
+   - Check the [FAQ](/docs/faq) section
+
+2. **Community Support**
+   - [Discord Server](https://discord.gg/eliza) - Get real-time help
+   - [GitHub Discussions](https://github.com/elizaos/eliza/discussions) - Ask questions
+   - [Stack Overflow](https://stackoverflow.com/questions/tagged/elizaos) - Search existing solutions
+
+3. **Issue Reporting**
+   - [GitHub Issues](https://github.com/elizaos/eliza/issues) - Report bugs
+   - Include error logs, system info, and reproduction steps
+
+### Diagnostic Information Template
+
+When reporting issues, include:
+
+```markdown
+## Environment
+- ElizaOS Version: 
+- Node.js Version: 
+- Operating System: 
+- Database: 
+
+## Error Description
+[Describe what happened]
+
+## Steps to Reproduce
+1. 
+2. 
+3. 
+
+## Error Logs
+```
+[Paste error logs here]
+```
+
+## Expected Behavior
+[What should happen]
+
+## Actual Behavior
+[What actually happened]
+```
+
+## Emergency Recovery
+
+If ElizaOS becomes unresponsive:
+
+<Steps>
+<Step>
+## Stop All Processes
+```bash
+# Kill all ElizaOS processes
+pkill -f eliza
+
+# Or on Windows
+taskkill /F /IM eliza.exe
+```
+</Step>
+
+<Step>
+## Clear Cache and Temp Files
+```bash
+# Clear ElizaOS cache
+rm -rf ~/.eliza/cache/*
+rm -rf ~/.eliza/tmp/*
+
+# Clear npm cache
+npm cache clean --force
+```
+</Step>
+
+<Step>
+## Reset to Default Configuration
+```bash
+# Backup current config
+cp eliza.config.js eliza.config.backup.js
+
+# Reset to default
+eliza init --force
+```
+</Step>
+
+<Step>
+## Reinstall Dependencies
+```bash
+# Remove and reinstall
+rm -rf node_modules package-lock.json
+npm install --force
+```
+</Step>
+</Steps>
+
+<Callout type="warning">
+**Data Safety**
+Always backup your data before performing recovery operations:
+```bash
+eliza backup --output=./backup-$(date +%Y%m%d).tar.gz
+```
+</Callout>
+
+## Next Steps
+
+- Browse category-specific guides for detailed solutions
+- Join our [Discord community](https://discord.gg/eliza) for live support
+- Check [GitHub releases](https://github.com/elizaos/eliza/releases) for known issues in your version

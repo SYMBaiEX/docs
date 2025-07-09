@@ -1,12 +1,11 @@
 ---
 title: "CLI Reference"
-description:
-  "Complete command reference for ElizaOS CLI v1.2.0 with all available commands, options, and usage
-  examples"
+description: "Complete command reference for ElizaOS CLI v1.2.0 with all available commands, options, and usage examples"
 ---
 
-Complete reference for the ElizaOS CLI (`elizaos`) v1.2.0 with all available commands, options, and
-usage examples.
+# CLI Reference
+
+Complete reference for the ElizaOS CLI (`elizaos`) v1.2.0 with all available commands, options, and usage examples.
 
 ## Installation
 
@@ -50,19 +49,16 @@ elizaos create [name] [options]
 ```
 
 **Options:**
-
 - `--yes, -y` - Skip prompts and use defaults
 - `--type <type>` - Type of project to create (project, plugin, agent, tee)
 
 **Available Types:**
-
 - `project` - Full ElizaOS application with runtime and agents
 - `plugin` - Custom ElizaOS plugin for extending functionality
 - `agent` - Character definition file for agents
 - `tee` - Trusted Execution Environment project for secure computing
 
 **Examples:**
-
 ```bash
 # Interactive creation (recommended)
 elizaos create
@@ -89,13 +85,11 @@ elizaos start [options]
 ```
 
 **Options:**
-
 - `-c, --configure` - Reconfigure services and AI models
 - `-p, --port <port>` - Port to listen on (validated)
 - `--character <paths...>` - Character file(s) to use (supports multiple)
 
 **Examples:**
-
 ```bash
 # Start with default configuration
 elizaos start
@@ -119,14 +113,12 @@ elizaos dev [options]
 ```
 
 **Options:**
-
 - `-c, --configure` - Reconfigure services and AI models (skips saved config)
 - `--character [paths...]` - Character file(s) to use (paths or URLs)
 - `-b, --build` - Build the project before starting
 - `-p, --port <port>` - Port to listen on (default: 3000)
 
 **Examples:**
-
 ```bash
 # Start development server
 elizaos dev
@@ -151,13 +143,11 @@ elizaos agent list [options]
 **Aliases:** `ls`
 
 **Options:**
-
 - `-j, --json` - Output as JSON
 - `-r, --remote-url <url>` - URL of the remote agent runtime
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # List all agents
 elizaos agent list
@@ -180,15 +170,13 @@ elizaos agent get [options]
 **Aliases:** `g`
 
 **Options:**
-
 - `-n, --name <name>` - Agent ID, name, or index number from list (required)
 - `-j, --json` - Display agent configuration as JSON in console
-- `-o, --output [file]` - Save agent config to JSON file (defaults to `{name}.json`)
+- `-o, --output [file]` - Save agent config to JSON file (defaults to \{name\}.json)
 - `-r, --remote-url <url>` - URL of the remote agent runtime
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Get agent details
 elizaos agent get --name "Agent Name"
@@ -211,7 +199,6 @@ elizaos agent start [options]
 **Aliases:** `s`
 
 **Options:**
-
 - `-n, --name <name>` - Name of an existing agent to start
 - `--path <path>` - Path to local character JSON file
 - `--remote-character <url>` - URL to remote character JSON file
@@ -219,7 +206,6 @@ elizaos agent start [options]
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Start existing agent by name
 elizaos agent start --name "Agent Name"
@@ -242,14 +228,12 @@ elizaos agent stop [options]
 **Aliases:** `st`
 
 **Options:**
-
 - `-n, --name <name>` - Agent ID, name, or index number from list
 - `--all` - Stop all running agents
 - `-r, --remote-url <url>` - URL of the remote agent runtime
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Stop specific agent
 elizaos agent stop --name "Agent Name"
@@ -269,13 +253,11 @@ elizaos agent remove [options]
 **Aliases:** `rm`
 
 **Options:**
-
 - `-n, --name <name>` - Agent ID, name, or index number from list (required)
 - `-r, --remote-url <url>` - URL of the remote agent runtime
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Remove agent
 elizaos agent remove --name "Agent Name"
@@ -290,7 +272,6 @@ elizaos agent set [options]
 ```
 
 **Options:**
-
 - `-n, --name <name>` - Agent ID, name, or index number from list (required)
 - `-c, --config <json>` - Agent configuration as JSON string
 - `-f, --file <path>` - Path to agent configuration JSON file
@@ -298,7 +279,6 @@ elizaos agent set [options]
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Update agent with JSON config
 elizaos agent set --name "Agent Name" --config '{"property": "value"}'
@@ -318,13 +298,11 @@ elizaos agent clear-memories [options]
 **Aliases:** `clear`
 
 **Options:**
-
 - `-n, --name <name>` - Agent ID, name, or index number from list (required)
 - `-r, --remote-url <url>` - URL of the remote agent runtime
 - `-p, --port <port>` - Port to listen on
 
 **Examples:**
-
 ```bash
 # Clear agent memories
 elizaos agent clear-memories --name "Agent Name"
@@ -343,12 +321,10 @@ elizaos plugins list [options]
 **Aliases:** `l`, `ls`
 
 **Options:**
-
 - `--all` - List all plugins from the registry with detailed version info
 - `--v0` - List only v0.x compatible plugins
 
 **Examples:**
-
 ```bash
 # List v1.x plugins (default)
 elizaos plugins list
@@ -371,14 +347,12 @@ elizaos plugins add <plugin> [options]
 **Aliases:** `install`
 
 **Options:**
-
 - `-s, --skip-env-prompt` - Skip prompting for environment variables
 - `--skip-verification` - Skip plugin import verification after installation
 - `-b, --branch <branchName>` - Branch to install from when using monorepo source (default: main)
 - `-T, --tag <tagname>` - Specify a tag to install (e.g., beta)
 
 **Examples:**
-
 ```bash
 # Install a plugin
 elizaos plugins add weather
@@ -405,7 +379,6 @@ elizaos plugins installed-plugins
 ```
 
 **Examples:**
-
 ```bash
 # Show installed plugins
 elizaos plugins installed-plugins
@@ -422,7 +395,6 @@ elizaos plugins remove <plugin>
 **Aliases:** `delete`, `del`, `rm`
 
 **Examples:**
-
 ```bash
 # Remove a plugin
 elizaos plugins remove weather
@@ -440,7 +412,6 @@ elizaos plugins upgrade <path> [options]
 ```
 
 **Options:**
-
 - `--api-key <key>` - Anthropic API key (or use ANTHROPIC_API_KEY env var)
 - `--skip-tests` - Skip test validation loop
 - `--skip-validation` - Skip production readiness validation
@@ -450,7 +421,6 @@ elizaos plugins upgrade <path> [options]
 - `--skip-confirmation` - Skip user confirmation
 
 **Examples:**
-
 ```bash
 # Upgrade a plugin
 elizaos plugins upgrade https://github.com/user/plugin-name
@@ -474,7 +444,6 @@ elizaos plugins generate [options]
 ```
 
 **Options:**
-
 - `--api-key <key>` - Anthropic API key (or use ANTHROPIC_API_KEY env var)
 - `--skip-tests` - Skip test validation loop
 - `--skip-validation` - Skip production readiness validation
@@ -482,7 +451,6 @@ elizaos plugins generate [options]
 - `--spec-file <path>` - Path to JSON file containing plugin specification
 
 **Examples:**
-
 ```bash
 # Generate plugin interactively
 elizaos plugins generate
@@ -505,7 +473,6 @@ elizaos test [path] [options]
 ```
 
 **Options:**
-
 - `-t, --type <type>` - Type of test to run (component, e2e, all) - default: all
 - `--port <port>` - Port to run e2e tests on (validated)
 - `--name <name>` - Filter tests by name
@@ -513,7 +480,6 @@ elizaos test [path] [options]
 - `--skip-type-check` - Skip TypeScript validation before running tests
 
 **Examples:**
-
 ```bash
 # Run all tests
 elizaos test
@@ -545,12 +511,10 @@ elizaos env list [options]
 ```
 
 **Options:**
-
 - `--system` - List only system information
 - `--local` - List only local environment variables
 
 **Examples:**
-
 ```bash
 # List all environment variables
 elizaos env list
@@ -571,11 +535,9 @@ elizaos env edit-local [options]
 ```
 
 **Options:**
-
 - `-y, --yes` - Automatically confirm prompts
 
 **Examples:**
-
 ```bash
 # Edit environment variables interactively
 elizaos env edit-local
@@ -593,11 +555,9 @@ elizaos env reset [options]
 ```
 
 **Options:**
-
 - `-y, --yes` - Automatically reset using default selections
 
 **Examples:**
-
 ```bash
 # Reset environment interactively
 elizaos env reset
@@ -615,11 +575,9 @@ elizaos env interactive [options]
 ```
 
 **Options:**
-
 - `-y, --yes` - Automatically confirm prompts
 
 **Examples:**
-
 ```bash
 # Start interactive environment manager
 elizaos env interactive
@@ -636,14 +594,12 @@ elizaos publish [options]
 ```
 
 **Options:**
-
 - `--npm` - Publish to npm only (skip GitHub and registry)
 - `-t, --test` - Test publish process without making changes
 - `-d, --dry-run` - Generate registry files locally without publishing
 - `--skip-registry` - Skip publishing to the registry
 
 **Examples:**
-
 ```bash
 # Publish to all platforms
 elizaos publish
@@ -672,12 +628,10 @@ elizaos monorepo [options]
 ```
 
 **Options:**
-
 - `-b, --branch <branch>` - Branch to install (default: develop)
 - `-d, --dir <directory>` - Destination directory (default: ./eliza)
 
 **Examples:**
-
 ```bash
 # Clone monorepo (develop branch)
 elizaos monorepo
@@ -698,14 +652,12 @@ elizaos update [options]
 ```
 
 **Options:**
-
 - `-c, --check` - Check for available updates without applying them
 - `--skip-build` - Skip building after updating
 - `--cli` - Update only the CLI
 - `--packages` - Update only packages
 
 **Examples:**
-
 ```bash
 # Update everything
 elizaos update
@@ -731,7 +683,6 @@ elizaos tee phala [subcommand] [options]
 ```
 
 **Examples:**
-
 ```bash
 # Access Phala TEE commands
 elizaos tee phala --help
@@ -897,28 +848,25 @@ The CLI uses structured error handling with specific exit codes:
 ### Common Issues
 
 1. **Command not found**
-
    ```bash
    # Reinstall CLI globally
    npm install -g @elizaos/cli
-
+   
    # Or use npx
    npx @elizaos/cli --help
    ```
 
 2. **Permission errors**
-
    ```bash
    # Use npx instead of global install
    npx @elizaos/cli create my-project
    ```
 
 3. **Plugin installation failures**
-
    ```bash
    # Check plugin availability
    elizaos plugins list --all
-
+   
    # Try with verbose output
    elizaos plugins add plugin-name --verbose
    ```
