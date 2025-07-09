@@ -1,0 +1,608 @@
+---
+title: "REST API Postman Examples"
+description: "Step-by-step Postman examples for messaging agents through the ElizaOS REST API"
+keywords: postman, rest api, messaging, agents, examples
+---
+
+Learn how to communicate with ElizaOS agents using the REST API through detailed Postman examples. This guide provides practical, step-by-step instructions for setting up and using the messaging endpoints.
+
+## Getting Started with Postman
+
+### Setting Up Your Environment
+
+<Steps>
+
+<Step>
+## Install Postman
+
+Download and install [Postman](https://www.postman.com/downloads/) or use the web version.
+
+</Step>
+
+<Step>
+## Create Environment Variables
+
+Create a new Postman environment with these variables:
+
+| Variable | Initial Value | Description |
+|----------|---------------|-------------|
+| `base_url` | `http://localhost:3000` | Your ElizaOS server URL |
+| `api_key` | `your-secret-token` | API key if authentication is enabled |
+| `agent_id` | | Will be set after creating an agent |
+| `server_id` | `00000000-0000-0000-0000-000000000000` | Default server ID |
+| `channel_id` | | Will be set after creating a channel |
+
+</Step>
+
+<Step>
+## Set Up Headers
+
+Create a pre-request script to automatically set headers:
+
+```javascript
+pm.request.headers.add({
+    key: 'Content-Type',
+    value: 'application/json'
+});
+
+if (pm.environment.get('api_key')) {
+    pm.request.headers.add({
+        key: 'X-API-KEY',
+        value: pm.environment.get('api_key')
+    });
+}
+```
+
+</Step>
+
+</Steps>
+
+## Basic Agent Communication
+
+### 1. Create an Agent
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/agents
+    Content-Type: application/json
+    X-API-KEY: {{api_key}}
+
+    {
+      "characterJson": {
+        "name": "Assistant",
+        "bio": ["I'm a helpful AI assistant"],
+        "lore": ["I was created to help users with various tasks"],
+        "settings": {
+          "secrets": {
+            "openai_api_key": "sk-your-key-here"
+          },
+          "voice": {
+            "model": "en_US-hfc_female-medium"
+          }
+        },
+        "plugins": [
+          "@elizaos/plugin-sql",
+          "@elizaos/plugin-openai",
+          "@elizaos/plugin-bootstrap"
+        ]
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="tests">
+    **Tests Script**
+    ```javascript
+    pm.test("Agent created successfully", function () {
+        pm.response.to.have.status(201);
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.success).to.eql(true);
+        pm.expect(jsonData.data.id).to.exist;
+        
+        // Save agent ID for future requests
+        pm.environment.set("agent_id", jsonData.data.id);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### 2. Start the Agent
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/agents/{{agent_id}}/start
+    X-API-KEY: {{api_key}}
+    ```
+  </Tab>
+  <Tab value="tests">
+    **Tests Script**
+    ```javascript
+    pm.test("Agent started successfully", function () {
+        pm.response.to.have.status(200);
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.success).to.eql(true);
+        pm.expect(jsonData.data.status).to.eql("active");
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### 3. Create a Channel
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/messaging/central-channels
+    Content-Type: application/json
+    X-API-KEY: {{api_key}}
+
+    {
+      "messageServerId": "{{server_id}}",
+      "name": "Test Channel",
+      "type": "GROUP",
+      "sourceType": "api_created",
+      "participantIds": ["{{agent_id}}"]
+    }
+    ```
+  </Tab>
+  <Tab value="tests">
+    **Tests Script**
+    ```javascript
+    pm.test("Channel created successfully", function () {
+        pm.response.to.have.status(201);
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.success).to.eql(true);
+        pm.expect(jsonData.data.id).to.exist;
+        
+        // Save channel ID for messaging
+        pm.environment.set("channel_id", jsonData.data.id);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Messaging Patterns
+
+### Send a Message to Agent
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/messaging/ingest-external
+    Content-Type: application/json
+    X-API-KEY: {{api_key}}
+
+    {
+      "channel_id": "{{channel_id}}",
+      "server_id": "{{server_id}}",
+      "author_id": "user-123",
+      "author_display_name": "John Doe",
+      "content": "Hello! Can you help me understand how to use the API?",
+      "source_type": "api",
+      "source_id": "msg-{{$timestamp}}",
+      "raw_message": {
+        "text": "Hello! Can you help me understand how to use the API?",
+        "timestamp": "{{$timestamp}}"
+      },
+      "metadata": {
+        "platform": "postman",
+        "test": true
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="tests">
+    **Tests Script**
+    ```javascript
+    pm.test("Message ingested successfully", function () {
+        pm.response.to.have.status(202);
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.success).to.eql(true);
+        pm.expect(jsonData.data.messageId).to.exist;
+        
+        // Save message ID for tracking
+        pm.environment.set("last_message_id", jsonData.data.messageId);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Get Channel Messages (Including Agent Response)
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    GET {{base_url}}/api/messaging/central-channels/{{channel_id}}/messages?limit=10
+    X-API-KEY: {{api_key}}
+    ```
+  </Tab>
+  <Tab value="tests">
+    **Tests Script**
+    ```javascript
+    pm.test("Messages retrieved successfully", function () {
+        pm.response.to.have.status(200);
+        var jsonData = pm.response.json();
+        pm.expect(jsonData.success).to.eql(true);
+        pm.expect(jsonData.data.messages).to.be.an('array');
+        
+        // Find agent response
+        var agentResponse = jsonData.data.messages.find(msg => 
+            msg.authorId === pm.environment.get("agent_id")
+        );
+        
+        if (agentResponse) {
+            console.log("Agent response:", agentResponse.content);
+            pm.environment.set("agent_response", agentResponse.content);
+        }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Messaging Examples
+
+### Send Message with Attachments
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/messaging/ingest-external
+    Content-Type: application/json
+    X-API-KEY: {{api_key}}
+
+    {
+      "channel_id": "{{channel_id}}",
+      "server_id": "{{server_id}}",
+      "author_id": "user-123",
+      "author_display_name": "John Doe",
+      "content": "Can you analyze this image for me?",
+      "source_type": "api",
+      "source_id": "msg-{{$timestamp}}",
+      "raw_message": {
+        "text": "Can you analyze this image for me?",
+        "attachments": [{
+          "url": "https://example.com/image.jpg",
+          "contentType": "image/jpeg",
+          "name": "sample.jpg"
+        }]
+      },
+      "metadata": {
+        "platform": "postman",
+        "attachments": [{
+          "url": "https://example.com/image.jpg",
+          "contentType": "image/jpeg",
+          "name": "sample.jpg"
+        }]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Follow-up Conversation
+
+<Tabs>
+  <Tab value="request">
+    **Request**
+    ```http
+    POST {{base_url}}/api/messaging/ingest-external
+    Content-Type: application/json
+    X-API-KEY: {{api_key}}
+
+    {
+      "channel_id": "{{channel_id}}",
+      "server_id": "{{server_id}}",
+      "author_id": "user-123",
+      "author_display_name": "John Doe",
+      "content": "Thanks! Can you provide more details about that?",
+      "source_type": "api",
+      "source_id": "msg-{{$timestamp}}",
+      "in_reply_to_message_id": "{{last_message_id}}",
+      "raw_message": {
+        "text": "Thanks! Can you provide more details about that?",
+        "timestamp": "{{$timestamp}}"
+      },
+      "metadata": {
+        "platform": "postman",
+        "isFollowUp": true
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Multi-Agent Conversation
+
+<Steps>
+
+<Step>
+## Create Second Agent
+
+```http
+POST {{base_url}}/api/agents
+Content-Type: application/json
+X-API-KEY: {{api_key}}
+
+{
+  "characterJson": {
+    "name": "Expert",
+    "bio": ["I'm a specialized expert assistant"],
+    "settings": {
+      "secrets": {
+        "openai_api_key": "sk-your-key-here"
+      }
+    },
+    "plugins": [
+      "@elizaos/plugin-sql",
+      "@elizaos/plugin-openai",
+      "@elizaos/plugin-bootstrap"
+    ]
+  }
+}
+```
+
+Save the response ID as `agent2_id`.
+
+</Step>
+
+<Step>
+## Add Second Agent to Channel
+
+```http
+POST {{base_url}}/api/messaging/central-channels/{{channel_id}}/participants
+Content-Type: application/json
+X-API-KEY: {{api_key}}
+
+{
+  "participantIds": ["{{agent2_id}}"]
+}
+```
+
+</Step>
+
+<Step>
+## Start Second Agent
+
+```http
+POST {{base_url}}/api/agents/{{agent2_id}}/start
+X-API-KEY: {{api_key}}
+```
+
+</Step>
+
+<Step>
+## Send Message for Both Agents
+
+```http
+POST {{base_url}}/api/messaging/ingest-external
+Content-Type: application/json
+X-API-KEY: {{api_key}}
+
+{
+  "channel_id": "{{channel_id}}",
+  "server_id": "{{server_id}}",
+  "author_id": "user-123",
+  "author_display_name": "John Doe",
+  "content": "@Assistant and @Expert, what are your thoughts on AI development?",
+  "source_type": "api",
+  "source_id": "msg-{{$timestamp}}",
+  "raw_message": {
+    "text": "@Assistant and @Expert, what are your thoughts on AI development?",
+    "mentions": ["{{agent_id}}", "{{agent2_id}}"]
+  }
+}
+```
+
+</Step>
+
+</Steps>
+
+## Testing Agent Responses
+
+### Verify Response Content
+
+```javascript
+// Add to Tests tab
+pm.test("Agent responded appropriately", function () {
+    // Wait a moment for agent to process
+    setTimeout(() => {
+        pm.sendRequest({
+            url: pm.environment.get('base_url') + '/api/messaging/central-channels/' + 
+                 pm.environment.get('channel_id') + '/messages?limit=5',
+            method: 'GET',
+            header: {
+                'X-API-KEY': pm.environment.get('api_key')
+            }
+        }, function (err, response) {
+            if (err) {
+                console.error(err);
+                return;
+            }
+            
+            var messages = response.json().data.messages;
+            var agentMessage = messages.find(m => 
+                m.authorId === pm.environment.get('agent_id') &&
+                m.createdAt > Date.now() - 5000
+            );
+            
+            pm.expect(agentMessage).to.exist;
+            pm.expect(agentMessage.content).to.include.oneOf([
+                'help', 'assist', 'API', 'understand'
+            ]);
+        });
+    }, 2000);
+});
+```
+
+## WebSocket Integration
+
+For real-time responses, combine REST API with WebSocket connections:
+
+```javascript
+// Pre-request Script for WebSocket setup
+const WebSocket = require('ws');
+const ws = new WebSocket(pm.environment.get('base_url').replace('http', 'ws'));
+
+ws.on('open', function open() {
+    // Join channel room
+    ws.send(JSON.stringify({
+        event: 'join',
+        data: {
+            channelId: pm.environment.get('channel_id')
+        }
+    }));
+});
+
+ws.on('message', function message(data) {
+    const msg = JSON.parse(data);
+    if (msg.event === 'messageBroadcast') {
+        console.log('Real-time message:', msg.data);
+        // Store in environment for assertions
+        pm.environment.set('realtime_response', JSON.stringify(msg.data));
+    }
+});
+
+// Clean up
+pm.test.cleanup = () => ws.close();
+```
+
+## Postman Collection Structure
+
+Organize your Postman collection like this:
+
+<Files>
+  <Folder name="ElizaOS API" defaultOpen>
+    <Folder name="Setup">
+      <File name="1. Create Agent" />
+      <File name="2. Start Agent" />
+      <File name="3. Create Channel" />
+    </Folder>
+    <Folder name="Messaging">
+      <File name="Send Message" />
+      <File name="Get Messages" />
+      <File name="Send with Attachment" />
+      <File name="Follow-up Message" />
+    </Folder>
+    <Folder name="Multi-Agent">
+      <File name="Create Second Agent" />
+      <File name="Add to Channel" />
+      <File name="Multi-Agent Message" />
+    </Folder>
+    <Folder name="Utilities">
+      <File name="Health Check" />
+      <File name="List Agents" />
+      <File name="Stop Agent" />
+    </Folder>
+  </Folder>
+</Files>
+
+## Common Patterns
+
+### Sequential Conversation Flow
+
+```javascript
+// Runner script for sequential messages
+const messages = [
+    "Hello, I need help with a project",
+    "It's about building a chatbot",
+    "What technologies would you recommend?",
+    "Can you show me a simple example?"
+];
+
+async function sendSequentialMessages() {
+    for (const message of messages) {
+        await new Promise(resolve => {
+            pm.sendRequest({
+                url: pm.environment.get('base_url') + '/api/messaging/ingest-external',
+                method: 'POST',
+                header: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': pm.environment.get('api_key')
+                },
+                body: {
+                    mode: 'raw',
+                    raw: JSON.stringify({
+                        channel_id: pm.environment.get('channel_id'),
+                        server_id: pm.environment.get('server_id'),
+                        author_id: 'user-123',
+                        content: message,
+                        source_type: 'api',
+                        source_id: `msg-${Date.now()}`
+                    })
+                }
+            }, (err, response) => {
+                console.log(`Sent: ${message}`);
+                // Wait 3 seconds between messages
+                setTimeout(resolve, 3000);
+            });
+        });
+    }
+}
+
+// Execute
+sendSequentialMessages();
+```
+
+## Error Handling Examples
+
+### Handle Rate Limiting
+
+```javascript
+// Pre-request script
+if (pm.response && pm.response.code === 429) {
+    const retryAfter = pm.response.headers.get('X-RateLimit-Reset');
+    const waitTime = retryAfter ? 
+        (parseInt(retryAfter) * 1000 - Date.now()) : 
+        5000;
+    
+    console.log(`Rate limited. Waiting ${waitTime}ms`);
+    setTimeout(() => {
+        pm.execution.skipRequest = false;
+    }, waitTime);
+}
+```
+
+### Validate Agent Availability
+
+```javascript
+// Pre-request script to check agent status
+pm.sendRequest({
+    url: `${pm.environment.get('base_url')}/api/agents/${pm.environment.get('agent_id')}`,
+    method: 'GET',
+    header: {
+        'X-API-KEY': pm.environment.get('api_key')
+    }
+}, (err, response) => {
+    if (err || response.json().data.status !== 'active') {
+        console.error('Agent not active');
+        pm.execution.skipRequest = true;
+    }
+});
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="WebSocket Events"
+    description="Learn about real-time message streaming"
+    href="/core-concepts/communication/websocket-events"
+  />
+  <Card
+    title="Message Handlers"
+    description="Understand how agents process messages"
+    href="/core-concepts/communication/message-handlers"
+  />
+  <Card
+    title="Custom Actions"
+    description="Create custom agent actions"
+    href="/core-concepts/agent-development/actions"
+  />
+</Cards>

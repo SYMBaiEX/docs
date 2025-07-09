@@ -5,6 +5,9 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+// Import icons from lucide-react
+import { FileIcon, CpuIcon, NetworkIcon } from "lucide-react";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 
@@ -24,6 +27,12 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tab,
     Tabs,
     Banner,
+    Accordion,
+    Accordions,
+    // Add icons to make them available in MDX
+    FileIcon,
+    CpuIcon,
+    NetworkIcon,
     ...components,
   };
 }

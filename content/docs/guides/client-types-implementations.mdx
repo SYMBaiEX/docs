@@ -1,0 +1,870 @@
+---
+title: "Client Types & Implementations"
+description: "Complete guide to all client types supported by ElizaOS including REST, Discord, Twitter, Telegram, and more"
+keywords: clients, REST API, Discord, Twitter, Telegram, WebSocket, integrations
+---
+
+ElizaOS supports multiple client types for connecting agents to different platforms and interfaces. This guide covers all available client implementations and how to use them.
+
+## Client Architecture Overview
+
+<Callout type="info">
+**Unified Processing**: All client types feed messages into the same processing pipeline. The `processMessage` function handles messages identically regardless of their origin - Discord, Twitter, REST API, or any other client.
+</Callout>
+
+### Message Flow Architecture
+
+```mermaid
+graph LR
+    A[Discord Client] --> E[Message Bus]
+    B[Twitter Client] --> E
+    C[REST API Client] --> E
+    D[Telegram Client] --> E
+    F[WebSocket Client] --> E
+    E --> G[Agent Runtime]
+    G --> H[processMessage]
+    H --> I[Response]
+    I --> E
+    E --> A
+    E --> B
+    E --> C
+    E --> D
+    E --> F
+```
+
+## Client Types
+
+### 1. REST API Client
+
+The REST API client provides HTTP endpoints for message communication.
+
+**Features:**
+- Stateless HTTP requests
+- Authentication support
+- File uploads
+- Batch operations
+- WebSocket integration for real-time updates
+
+**Implementation Example:**
+
+```typescript title="rest-client-implementation.ts"
+import { IAgentRuntime, Memory, UUID } from '@elizaos/core';
+import express from 'express';
+
+export class RESTClient {
+  private app: express.Application;
+  private runtime: IAgentRuntime;
+
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+    this.app = express();
+    this.setupRoutes();
+  }
+
+  private setupRoutes() {
+    // Message ingestion endpoint
+    this.app.post('/api/messages', async (req, res) => {
+      const { content, userId, channelId, attachments } = req.body;
+      
+      const message: Memory = {
+        id: generateUUID(),
+        content: { 
+          text: content,
+          attachments,
+          source: 'rest_api'
+        },
+        entityId: userId,
+        roomId: channelId,
+        createdAt: Date.now()
+      };
+
+      // Process through standard pipeline
+      await this.runtime.processMessage(message);
+      
+      res.json({ success: true, messageId: message.id });
+    });
+  }
+
+  start(port: number) {
+    this.app.listen(port, () => {
+      console.log(`REST API client listening on port ${port}`);
+    });
+  }
+}
+```
+
+**Usage:**
+```bash
+# Send message via REST API
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "channel-123",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-456",
+    "content": "Hello from REST API!",
+    "source_type": "api"
+  }'
+```
+
+### 2. Discord Client
+
+The Discord client integrates with Discord's bot API for server and DM interactions.
+
+**Features:**
+- Server and DM support
+- Voice channel integration
+- Rich embeds and attachments
+- Slash commands
+- Reaction handling
+- Thread support
+
+**Plugin Configuration:**
+```json
+{
+  "name": "MyDiscordBot",
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-discord",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "secrets": {
+      "DISCORD_BOT_TOKEN": "your-bot-token",
+      "DISCORD_APPLICATION_ID": "your-app-id"
+    }
+  }
+}
+```
+
+**Implementation Details:**
+```typescript title="discord-client-core.ts"
+export class DiscordClient {
+  private client: Client;
+  private runtime: IAgentRuntime;
+
+  async handleMessage(message: DiscordMessage) {
+    // Convert Discord message to standard format
+    const memory: Memory = {
+      id: message.id as UUID,
+      content: {
+        text: message.content,
+        attachments: message.attachments.map(a => ({
+          url: a.url,
+          contentType: a.contentType,
+          name: a.name
+        })),
+        source: 'discord'
+      },
+      entityId: message.author.id as UUID,
+      roomId: message.channel.id as UUID,
+      createdAt: message.createdTimestamp
+    };
+
+    // Process through standard pipeline
+    const responses = await this.runtime.processMessage(memory);
+    
+    // Send responses back to Discord
+    for (const response of responses) {
+      await message.channel.send(response.content.text);
+    }
+  }
+}
+```
+
+**Advanced Features:**
+```typescript
+// Voice channel support
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  if (newState.channel) {
+    // Handle voice interactions
+    const connection = await newState.channel.join();
+    // Process audio streams
+  }
+});
+
+// Slash commands
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return;
+  
+  const message = {
+    content: { 
+      text: `/${interaction.commandName} ${interaction.options.data.map(o => o.value).join(' ')}`,
+      source: 'discord_slash'
+    }
+  };
+  
+  await runtime.processMessage(message);
+});
+```
+
+### 3. Twitter Client
+
+The Twitter client enables agents to interact on Twitter/X platform.
+
+**Features:**
+- Tweet posting and replies
+- Direct message handling
+- Media uploads
+- Thread creation
+- Mention monitoring
+- Search integration
+
+**Plugin Configuration:**
+```json
+{
+  "name": "MyTwitterBot",
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-twitter",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "secrets": {
+      "TWITTER_API_KEY": "your-api-key",
+      "TWITTER_API_SECRET": "your-api-secret",
+      "TWITTER_ACCESS_TOKEN": "your-access-token",
+      "TWITTER_ACCESS_SECRET": "your-access-secret"
+    }
+  }
+}
+```
+
+**Implementation Pattern:**
+```typescript title="twitter-client-core.ts"
+export class TwitterClient {
+  private client: TwitterApi;
+  private runtime: IAgentRuntime;
+
+  async handleMention(tweet: Tweet) {
+    const memory: Memory = {
+      id: tweet.id as UUID,
+      content: {
+        text: tweet.text,
+        source: 'twitter_mention',
+        media: tweet.media?.map(m => ({
+          url: m.url,
+          type: m.type
+        }))
+      },
+      entityId: tweet.author.id as UUID,
+      roomId: `twitter_${tweet.conversation_id}` as UUID,
+      createdAt: new Date(tweet.created_at).getTime()
+    };
+
+    const response = await this.runtime.processMessage(memory);
+    
+    // Reply to tweet
+    if (response.content.text) {
+      await this.client.v2.reply(
+        response.content.text,
+        tweet.id
+      );
+    }
+  }
+
+  async handleDM(message: DirectMessage) {
+    const memory: Memory = {
+      id: message.id as UUID,
+      content: {
+        text: message.text,
+        source: 'twitter_dm'
+      },
+      entityId: message.sender_id as UUID,
+      roomId: `dm_${message.conversation_id}` as UUID,
+      createdAt: new Date(message.created_at).getTime()
+    };
+
+    await this.runtime.processMessage(memory);
+  }
+}
+```
+
+### 4. Telegram Client
+
+The Telegram client provides bot integration for Telegram messaging.
+
+**Features:**
+- Private and group chat support
+- Inline keyboards and buttons
+- Media handling
+- Voice/video messages
+- Location sharing
+- Inline queries
+
+**Plugin Configuration:**
+```json
+{
+  "name": "MyTelegramBot",
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-telegram",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "secrets": {
+      "TELEGRAM_BOT_TOKEN": "your-bot-token"
+    }
+  }
+}
+```
+
+**Implementation Example:**
+```typescript title="telegram-client-core.ts"
+export class TelegramClient {
+  private bot: TelegramBot;
+  private runtime: IAgentRuntime;
+
+  constructor(runtime: IAgentRuntime, token: string) {
+    this.runtime = runtime;
+    this.bot = new TelegramBot(token, { polling: true });
+    this.setupHandlers();
+  }
+
+  private setupHandlers() {
+    // Text messages
+    this.bot.on('message', async (msg) => {
+      const memory: Memory = {
+        id: msg.message_id.toString() as UUID,
+        content: {
+          text: msg.text || '',
+          source: 'telegram',
+          attachments: this.processAttachments(msg)
+        },
+        entityId: msg.from.id.toString() as UUID,
+        roomId: msg.chat.id.toString() as UUID,
+        createdAt: msg.date * 1000
+      };
+
+      const response = await this.runtime.processMessage(memory);
+      
+      // Send response
+      if (response.content.text) {
+        await this.bot.sendMessage(msg.chat.id, response.content.text, {
+          reply_to_message_id: msg.message_id,
+          parse_mode: 'Markdown'
+        });
+      }
+    });
+
+    // Inline queries
+    this.bot.on('inline_query', async (query) => {
+      const results = await this.processInlineQuery(query);
+      await this.bot.answerInlineQuery(query.id, results);
+    });
+  }
+
+  private processAttachments(msg: TelegramMessage): Attachment[] {
+    const attachments: Attachment[] = [];
+    
+    if (msg.photo) {
+      attachments.push({
+        type: 'image',
+        url: msg.photo[msg.photo.length - 1].file_id,
+        contentType: 'image/jpeg'
+      });
+    }
+    
+    if (msg.voice) {
+      attachments.push({
+        type: 'audio',
+        url: msg.voice.file_id,
+        contentType: 'audio/ogg'
+      });
+    }
+    
+    return attachments;
+  }
+}
+```
+
+### 5. WebSocket Client
+
+Real-time bidirectional communication for web applications.
+
+**Features:**
+- Real-time messaging
+- Event streaming
+- Presence updates
+- Room management
+- Reconnection handling
+
+**Implementation:**
+```typescript title="websocket-client.ts"
+export class WebSocketClient {
+  private io: Server;
+  private runtime: IAgentRuntime;
+
+  constructor(server: http.Server, runtime: IAgentRuntime) {
+    this.runtime = runtime;
+    this.io = new Server(server, {
+      cors: { origin: '*' }
+    });
+    this.setupHandlers();
+  }
+
+  private setupHandlers() {
+    this.io.on('connection', (socket) => {
+      console.log('Client connected:', socket.id);
+
+      // Join room
+      socket.on('join', (data) => {
+        socket.join(data.channelId);
+        socket.emit('joined', { channelId: data.channelId });
+      });
+
+      // Handle messages
+      socket.on('message', async (data) => {
+        const memory: Memory = {
+          id: generateUUID(),
+          content: {
+            text: data.text,
+            source: 'websocket',
+            attachments: data.attachments
+          },
+          entityId: data.userId as UUID,
+          roomId: data.channelId as UUID,
+          createdAt: Date.now()
+        };
+
+        const response = await this.runtime.processMessage(memory);
+        
+        // Emit to room
+        this.io.to(data.channelId).emit('message', {
+          id: response.id,
+          text: response.content.text,
+          userId: this.runtime.agentId,
+          timestamp: Date.now()
+        });
+      });
+
+      // Handle disconnection
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+    });
+  }
+}
+```
+
+**Client-side JavaScript:**
+```javascript
+const socket = io('http://localhost:3000');
+
+// Join channel
+socket.emit('join', { channelId: 'channel-123' });
+
+// Send message
+socket.emit('message', {
+  text: 'Hello from WebSocket!',
+  userId: 'user-456',
+  channelId: 'channel-123'
+});
+
+// Listen for responses
+socket.on('message', (data) => {
+  console.log('Received:', data);
+});
+```
+
+### 6. Slack Client
+
+Integration with Slack workspaces.
+
+**Features:**
+- Channel and DM support
+- Slash commands
+- Interactive components
+- App mentions
+- File sharing
+
+**Configuration:**
+```json
+{
+  "plugins": [
+    "@elizaos/plugin-slack"
+  ],
+  "settings": {
+    "secrets": {
+      "SLACK_BOT_TOKEN": "xoxb-your-token",
+      "SLACK_SIGNING_SECRET": "your-signing-secret"
+    }
+  }
+}
+```
+
+### 7. Matrix Client
+
+Decentralized communication via Matrix protocol.
+
+**Features:**
+- End-to-end encryption
+- Room management
+- Federation support
+- Rich media
+
+**Configuration:**
+```json
+{
+  "plugins": [
+    "@elizaos/plugin-matrix"
+  ],
+  "settings": {
+    "secrets": {
+      "MATRIX_HOMESERVER": "https://matrix.org",
+      "MATRIX_ACCESS_TOKEN": "your-access-token"
+    }
+  }
+}
+```
+
+## Client Implementation Guide
+
+### Creating a Custom Client
+
+To create a custom client for a new platform:
+
+<Steps>
+
+<Step>
+## Define the Client Interface
+
+```typescript
+import { IAgentRuntime, Memory, UUID, Content } from '@elizaos/core';
+
+export interface IClient {
+  runtime: IAgentRuntime;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  sendMessage(roomId: UUID, content: Content): Promise<void>;
+}
+```
+
+</Step>
+
+<Step>
+## Implement Message Conversion
+
+```typescript
+export class CustomClient implements IClient {
+  runtime: IAgentRuntime;
+  
+  private convertToMemory(platformMessage: any): Memory {
+    return {
+      id: this.generateMessageId(platformMessage),
+      content: {
+        text: platformMessage.text,
+        source: 'custom_platform',
+        attachments: this.convertAttachments(platformMessage),
+        metadata: {
+          originalId: platformMessage.id,
+          platform: 'custom'
+        }
+      },
+      entityId: this.getUserId(platformMessage),
+      roomId: this.getRoomId(platformMessage),
+      createdAt: this.getTimestamp(platformMessage)
+    };
+  }
+  
+  private convertAttachments(message: any): Attachment[] {
+    // Convert platform-specific attachments to standard format
+    return message.attachments?.map(att => ({
+      url: att.url,
+      contentType: att.mimeType,
+      name: att.filename,
+      size: att.size
+    })) || [];
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Handle Platform Events
+
+```typescript
+export class CustomClient implements IClient {
+  async start() {
+    // Initialize platform SDK
+    this.platformSDK = new PlatformSDK(this.config);
+    
+    // Set up event handlers
+    this.platformSDK.on('message', async (msg) => {
+      const memory = this.convertToMemory(msg);
+      
+      // Process through standard pipeline
+      const response = await this.runtime.processMessage(memory);
+      
+      // Send response back
+      await this.sendMessage(memory.roomId, response.content);
+    });
+    
+    // Connect to platform
+    await this.platformSDK.connect();
+  }
+  
+  async sendMessage(roomId: UUID, content: Content) {
+    // Convert and send to platform
+    const platformMessage = this.convertFromContent(content);
+    await this.platformSDK.send(roomId, platformMessage);
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Create Plugin Wrapper
+
+```typescript
+import { Plugin } from '@elizaos/core';
+
+export const customPlugin: Plugin = {
+  name: 'custom-platform',
+  description: 'Custom platform integration',
+  
+  async initialize(runtime: IAgentRuntime) {
+    const client = new CustomClient(runtime, {
+      apiKey: runtime.getSetting('CUSTOM_API_KEY'),
+      // Other settings
+    });
+    
+    await client.start();
+    
+    // Register client with runtime
+    runtime.registerClient('custom', client);
+  },
+  
+  services: [{
+    name: 'custom-client-service',
+    getInstance: () => client
+  }]
+};
+```
+
+</Step>
+
+</Steps>
+
+### Client Best Practices
+
+#### 1. Error Handling
+
+```typescript
+class ResilientClient {
+  async processMessage(message: PlatformMessage) {
+    try {
+      const memory = this.convertToMemory(message);
+      const response = await this.runtime.processMessage(memory);
+      await this.sendResponse(response);
+    } catch (error) {
+      this.logger.error('Message processing failed:', error);
+      
+      // Send error response to user
+      await this.sendErrorResponse(message.channelId, 
+        "I encountered an error processing your message. Please try again."
+      );
+      
+      // Report to monitoring
+      this.reportError(error, { message, context: 'message_processing' });
+    }
+  }
+}
+```
+
+#### 2. Rate Limiting
+
+```typescript
+class RateLimitedClient {
+  private rateLimiter = new RateLimiter({
+    windowMs: 60000, // 1 minute
+    max: 30 // 30 messages per minute
+  });
+  
+  async handleMessage(message: any) {
+    const userId = this.getUserId(message);
+    
+    if (!this.rateLimiter.tryConsume(userId)) {
+      await this.sendRateLimitResponse(message.channelId);
+      return;
+    }
+    
+    // Process message normally
+    await this.processMessage(message);
+  }
+}
+```
+
+#### 3. Connection Management
+
+```typescript
+class ManagedClient {
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  
+  async connect() {
+    try {
+      await this.platformSDK.connect();
+      this.reconnectAttempts = 0;
+    } catch (error) {
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        const delay = Math.pow(2, this.reconnectAttempts) * 1000;
+        
+        this.logger.warn(`Connection failed, retrying in ${delay}ms...`);
+        setTimeout(() => this.connect(), delay);
+      } else {
+        this.logger.error('Max reconnection attempts reached');
+        throw error;
+      }
+    }
+  }
+}
+```
+
+## Client Selection Guide
+
+Choose the right client based on your use case:
+
+| Use Case | Recommended Client | Key Benefits |
+|----------|-------------------|--------------|
+| Web Applications | REST API + WebSocket | Real-time updates, standard HTTP |
+| Community Management | Discord | Rich features, voice support |
+| Public Engagement | Twitter | Wide reach, viral potential |
+| Customer Support | Telegram/Slack | Direct messaging, file sharing |
+| Enterprise | REST API | Full control, custom integration |
+| Decentralized | Matrix | Privacy, federation |
+
+## Performance Considerations
+
+### Message Batching
+
+```typescript
+class BatchingClient {
+  private messageQueue: Message[] = [];
+  private batchTimer: NodeJS.Timeout;
+  
+  async queueMessage(message: Message) {
+    this.messageQueue.push(message);
+    
+    if (this.messageQueue.length >= 10) {
+      await this.processBatch();
+    } else if (!this.batchTimer) {
+      this.batchTimer = setTimeout(() => this.processBatch(), 1000);
+    }
+  }
+  
+  async processBatch() {
+    const messages = [...this.messageQueue];
+    this.messageQueue = [];
+    
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
+    }
+    
+    // Process all messages in parallel
+    await Promise.all(
+      messages.map(msg => this.runtime.processMessage(msg))
+    );
+  }
+}
+```
+
+### Resource Management
+
+```typescript
+class ResourceManagedClient {
+  private activeConnections = new Map<string, Connection>();
+  private connectionLimit = 100;
+  
+  async addConnection(userId: string, connection: Connection) {
+    if (this.activeConnections.size >= this.connectionLimit) {
+      // Remove oldest connection
+      const oldest = [...this.activeConnections.entries()]
+        .sort(([, a], [, b]) => a.createdAt - b.createdAt)[0];
+      
+      this.removeConnection(oldest[0]);
+    }
+    
+    this.activeConnections.set(userId, connection);
+  }
+  
+  cleanup() {
+    // Clean up idle connections
+    const now = Date.now();
+    for (const [userId, conn] of this.activeConnections) {
+      if (now - conn.lastActivity > 300000) { // 5 minutes
+        this.removeConnection(userId);
+      }
+    }
+  }
+}
+```
+
+## Testing Clients
+
+### Mock Client for Testing
+
+```typescript
+export class MockClient implements IClient {
+  runtime: IAgentRuntime;
+  sentMessages: Array<{roomId: UUID, content: Content}> = [];
+  
+  async sendMessage(roomId: UUID, content: Content) {
+    this.sentMessages.push({ roomId, content });
+  }
+  
+  async simulateIncomingMessage(text: string, userId = 'test-user') {
+    const memory: Memory = {
+      id: generateUUID(),
+      content: { text, source: 'mock' },
+      entityId: userId as UUID,
+      roomId: 'test-room' as UUID,
+      createdAt: Date.now()
+    };
+    
+    await this.runtime.processMessage(memory);
+  }
+}
+
+// Usage in tests
+describe('Agent Responses', () => {
+  it('should respond to greetings', async () => {
+    const runtime = createTestRuntime();
+    const client = new MockClient(runtime);
+    
+    await client.simulateIncomingMessage('Hello!');
+    
+    expect(client.sentMessages).toHaveLength(1);
+    expect(client.sentMessages[0].content.text).toContain('Hello');
+  });
+});
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="REST API Guide"
+    description="Deep dive into REST API implementation"
+    href="/guides/rest-api-complete-guide"
+  />
+  <Card
+    title="Message Processing"
+    description="Understand the message pipeline"
+    href="/core-concepts/communication/message-handlers"
+  />
+  <Card
+    title="Plugin Development"
+    description="Create custom client plugins"
+    href="/plugins/creating-plugins"
+  />
+  <Card
+    title="WebSocket Events"
+    description="Real-time communication patterns"
+    href="/core-concepts/communication/websocket-events"
+  />
+</Cards>

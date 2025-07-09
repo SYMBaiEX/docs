@@ -1,4 +1,14 @@
 {
   "title": "Guides",
-  "pages": ["monorepo-workflow", "plugin-development-linking", "standalone-vs-monorepo"]
+  "pages": [
+    "---Development Guides---",
+    "monorepo-workflow",
+    "plugin-development-linking", 
+    "standalone-vs-monorepo",
+    "---API & Communication---",
+    "api-communication-summary",
+    "rest-api-complete-guide",
+    "client-types-implementations",
+    "prompt-templates-customization"
+  ]
 }

@@ -1,0 +1,472 @@
+---
+title: Installation Troubleshooting
+description: Solutions for installation issues in ElizaOS v1.2.0
+---
+
+## Installation Troubleshooting
+
+This guide helps resolve common installation issues for ElizaOS v1.2.0 across different platforms and package managers.
+
+## System Requirements Check
+
+<Callout type="info">
+**Minimum Requirements**
+- Node.js 18.0.0 or higher
+- npm 9.0.0 or pnpm 8.0.0
+- 4GB RAM minimum (8GB recommended)
+- 2GB free disk space
+</Callout>
+
+### Verify Prerequisites
+
+<Tabs>
+<Tab value="Node.js">
+```bash
+# Check Node.js version
+node --version
+
+# Should output v18.0.0 or higher
+# If not installed or outdated:
+# - macOS: brew install node
+# - Ubuntu: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs
+# - Windows: Download from https://nodejs.org
+```
+</Tab>
+<Tab value="Package Manager">
+```bash
+# Check npm version
+npm --version
+
+# Or pnpm
+pnpm --version
+
+# Install pnpm if preferred
+npm install -g pnpm
+```
+</Tab>
+<Tab value="System Info">
+```bash
+# Check available memory
+free -h  # Linux
+vm_stat  # macOS
+wmic OS get TotalVisibleMemorySize /Value  # Windows
+
+# Check disk space
+df -h  # Linux/macOS
+wmic logicaldisk get size,freespace,caption  # Windows
+```
+</Tab>
+</Tabs>
+
+## Common Installation Errors
+
+### 1. Permission Denied Errors
+
+<Tabs>
+<Tab value="Error">
+```bash
+npm ERR! code EACCES
+npm ERR! syscall access
+npm ERR! path /usr/local/lib/node_modules
+npm ERR! errno -13
+```
+</Tab>
+<Tab value="Solution (npm)">
+```bash
+# Option 1: Change npm's default directory
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# Option 2: Use npx (recommended)
+npx @elizaos/cli@latest init
+
+# Option 3: Fix npm permissions (Linux/macOS)
+sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
+```
+</Tab>
+<Tab value="Solution (pnpm)">
+```bash
+# pnpm typically doesn't have permission issues
+# But if it does:
+pnpm config set global-bin-dir ~/.pnpm-global
+echo 'export PATH=~/.pnpm-global:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+</Tab>
+</Tabs>
+
+### 2. Network and Proxy Issues
+
+<Tabs>
+<Tab value="Error">
+```bash
+npm ERR! code ETIMEDOUT
+npm ERR! errno ETIMEDOUT
+npm ERR! network request to https://registry.npmjs.org failed
+```
+</Tab>
+<Tab value="Solution">
+```bash
+# Check npm registry
+npm config get registry
+
+# Reset to default registry
+npm config set registry https://registry.npmjs.org/
+
+# If behind corporate proxy
+npm config set proxy http://proxy.company.com:8080
+npm config set https-proxy http://proxy.company.com:8080
+
+# For pnpm
+pnpm config set proxy http://proxy.company.com:8080
+pnpm config set https-proxy http://proxy.company.com:8080
+
+# Clear cache and retry
+npm cache clean --force
+npm install @elizaos/cli -g
+```
+</Tab>
+</Tabs>
+
+### 3. Node-gyp Build Errors
+
+<Tabs>
+<Tab value="Error">
+```bash
+gyp ERR! build error
+gyp ERR! stack Error: `make` failed with exit code: 2
+gyp ERR! not ok
+```
+</Tab>
+<Tab value="Windows Solution">
+```bash
+# Install Windows Build Tools
+npm install --global windows-build-tools
+
+# Or manually install:
+# 1. Visual Studio 2019 or later with "Desktop development with C++" workload
+# 2. Python 3.x
+
+# Set Python path
+npm config set python "C:\Python39\python.exe"
+```
+</Tab>
+<Tab value="macOS Solution">
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+# If already installed but still failing
+sudo xcode-select --reset
+
+# Install build essentials via Homebrew
+brew install python@3
+```
+</Tab>
+<Tab value="Linux Solution">
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y build-essential python3
+
+# CentOS/RHEL/Fedora
+sudo yum groupinstall "Development Tools"
+sudo yum install python3
+
+# Arch Linux
+sudo pacman -S base-devel python
+```
+</Tab>
+</Tabs>
+
+### 4. Dependency Resolution Failures
+
+<Tabs>
+<Tab value="Error">
+```bash
+npm ERR! code ERESOLVE
+npm ERR! ERESOLVE unable to resolve dependency tree
+npm ERR! Could not resolve dependency:
+```
+</Tab>
+<Tab value="Solution">
+```bash
+# Option 1: Force resolution (use with caution)
+npm install --force
+
+# Option 2: Use legacy peer deps
+npm install --legacy-peer-deps
+
+# Option 3: Clear everything and start fresh
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+
+# Option 4: Use pnpm (better dependency resolution)
+pnpm import  # Convert from npm
+pnpm install
+```
+</Tab>
+</Tabs>
+
+## Platform-Specific Issues
+
+### Windows
+
+<Steps>
+<Step>
+### Long Path Support
+```powershell
+# Enable long path support (Run as Administrator)
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+  -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+
+# Or via Group Policy Editor
+# Computer Configuration > Administrative Templates > System > Filesystem
+# Enable "Enable Win32 long paths"
+```
+</Step>
+
+<Step>
+### Execution Policy
+```powershell
+# Check current policy
+Get-ExecutionPolicy
+
+# Set to allow scripts
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+</Step>
+
+<Step>
+### Path Length Issues
+```bash
+# Use shorter paths
+cd C:\
+mkdir eliza
+cd eliza
+npm install @elizaos/cli
+```
+</Step>
+</Steps>
+
+### macOS
+
+<Steps>
+<Step>
+### Command Line Tools
+```bash
+# Install if missing
+xcode-select --install
+
+# Accept license
+sudo xcodebuild -license accept
+```
+</Step>
+
+<Step>
+### Homebrew Python Conflicts
+```bash
+# Unlink system Python
+brew unlink python@3.9
+
+# Use specific Python version
+npm config set python /usr/bin/python3
+```
+</Step>
+
+<Step>
+### M1/M2 Architecture Issues
+```bash
+# Install Rosetta 2 for compatibility
+softwareupdate --install-rosetta
+
+# Or use native ARM versions
+arch -arm64 npm install @elizaos/cli
+```
+</Step>
+</Steps>
+
+### Linux
+
+<Steps>
+<Step>
+### Missing Libraries
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y \
+  libssl-dev \
+  libcrypto++-dev \
+  libc6-dev
+
+# CentOS/RHEL
+sudo yum install -y \
+  openssl-devel \
+  cryptopp-devel \
+  glibc-devel
+```
+</Step>
+
+<Step>
+### SELinux Issues (CentOS/RHEL)
+```bash
+# Check SELinux status
+sestatus
+
+# Temporarily disable (not recommended for production)
+sudo setenforce 0
+
+# Or add proper context
+sudo semanage fcontext -a -t bin_t "/home/user/.npm-global/bin/eliza"
+sudo restorecon -v "/home/user/.npm-global/bin/eliza"
+```
+</Step>
+</Steps>
+
+## Docker Installation Issues
+
+### Docker Build Failures
+
+```dockerfile
+# Optimized Dockerfile for ElizaOS
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ git
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with increased timeout
+RUN npm config set fetch-retry-maxtimeout 600000 && \
+    npm install --production
+
+# Copy source
+COPY . .
+
+# Build
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+
+### Docker Compose Issues
+
+```yaml
+# docker-compose.yml with proper configuration
+version: '3.8'
+
+services:
+  eliza:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+## Verification Steps
+
+After installation, verify everything works:
+
+<Steps>
+<Step>
+### Check Installation
+```bash
+# Verify CLI is accessible
+which eliza  # Linux/macOS
+where eliza  # Windows
+
+# Check version
+eliza --version
+```
+</Step>
+
+<Step>
+### Run Diagnostics
+```bash
+# Run built-in diagnostics
+eliza doctor
+
+# Expected output:
+# ✓ Node.js version: 18.17.0
+# ✓ npm version: 9.8.1
+# ✓ ElizaOS CLI: 1.2.0
+# ✓ Required dependencies: OK
+# ✓ Optional dependencies: OK
+```
+</Step>
+
+<Step>
+### Test Basic Functionality
+```bash
+# Initialize a test project
+mkdir eliza-test && cd eliza-test
+eliza init
+
+# Start in development mode
+eliza start --dev
+```
+</Step>
+</Steps>
+
+<Callout type="success">
+**Installation Complete!**
+If all verification steps pass, ElizaOS is successfully installed. Proceed to the [Quick Start Guide](/docs/getting-started/quickstart).
+</Callout>
+
+## Still Having Issues?
+
+1. **Check Logs**
+   ```bash
+   # npm install logs
+   cat ~/.npm/_logs/[latest-log-file]
+   
+   # ElizaOS logs
+   cat ~/.eliza/logs/install.log
+   ```
+
+2. **Clean Install**
+   ```bash
+   # Complete cleanup and reinstall
+   npm uninstall -g @elizaos/cli
+   rm -rf ~/.eliza
+   npm cache clean --force
+   npm install -g @elizaos/cli@latest
+   ```
+
+3. **Get Help**
+   - Search [existing issues](https://github.com/elizaos/eliza/issues)
+   - Join [Discord community](https://discord.gg/eliza)
+   - Create a [new issue](https://github.com/elizaos/eliza/issues/new) with diagnostic info

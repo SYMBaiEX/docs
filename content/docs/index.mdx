@@ -1,63 +1,88 @@
 ---
-title: Welcome to ElizaOS
-description:
-  A powerful, extensible framework for building AI agents with persistent memory, multi-modal
-  capabilities, and extensive platform integrations
+title: Welcome to ElizaOS v1.2.0
+description: A powerful, extensible framework for building AI agents with persistent memory, multi-modal capabilities, and extensive platform integrations
 ---
 
-**ElizaOS** is a cutting-edge framework for building autonomous AI agents that can think, remember,
-and interact naturally across multiple platforms. Whether you're creating chatbots, autonomous
-agents, business process handlers, or interactive NPCs, ElizaOS provides the tools and
-infrastructure to bring your AI vision to life.
+# Welcome to ElizaOS v1.2.0
+
+**ElizaOS v1.2.0** is a cutting-edge framework for building autonomous AI agents that can think, remember, and interact naturally across multiple platforms. With over 130+ plugins, enhanced service-based architecture, and improved CLI with interactive commands, ElizaOS provides the most comprehensive toolkit for AI agent development.
 
 ## What Makes ElizaOS Special?
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-<Card title="Persistent Memory" href="/docs/core-concepts/data-state/memory-system">
-  Advanced memory system with vector embeddings for semantic search, long-term relationship
-  tracking, and contextual awareness that persists across conversations.
+<Card title="🧠 Persistent Memory" href="/docs/core-concepts/data-state/memory-system">
+  Advanced memory system with vector embeddings for semantic search, long-term relationship tracking, and contextual awareness that persists across conversations.
 </Card>
 
-<Card title="Plugin Architecture" href="/docs/core-concepts/architecture/plugin-system">
-  Extensible plugin system supporting custom actions, evaluators, and providers. Build once, deploy
-  everywhere with standardized interfaces.
+<Card title="🔌 130+ Plugins" href="/docs/core-concepts/architecture/plugin-system">
+  Enhanced plugin system with 130+ ready-to-use plugins for platforms, AI models, services, and specialized functionality. Build once, deploy everywhere with standardized interfaces.
 </Card>
 
-<Card title="Multi-Platform Support" href="/docs/core-concepts/communication">
-  Native connectors for Discord, Telegram, Farcaster, and more. Real-time communication with
-  WebSockets and REST APIs.
+<Card title="🏗️ Service Architecture" href="/docs/core-concepts/architecture/services">
+  New service-based architecture enabling modular, scalable deployments with domain-based API routing and enhanced runtime management.
 </Card>
 
-<Card title="Multi-Agent Systems" href="/docs/core-concepts/agent-development/agents">
-  Deploy multiple specialized agents that can collaborate, share knowledge, and coordinate complex
-  tasks seamlessly.
+<Card title="⚡ Interactive CLI" href="/docs/getting-started/quickstart">
+  Improved CLI with interactive commands, real-time debugging, project scaffolding, and integrated development workflows.
 </Card>
 
 </div>
 
+## What's New in v1.2.0
+
+<Callout type="success" title="Major Release">
+ElizaOS v1.2.0 brings significant enhancements to performance, scalability, and developer experience.
+</Callout>
+
+### 🚀 **Enhanced Plugin System**
+- **130+ Ready-to-Use Plugins** - Comprehensive collection covering platforms, AI models, services, and utilities
+- **Plugin Discovery** - New plugin registry and discovery mechanisms
+- **Hot-Reload Support** - Dynamic plugin loading without agent restart
+- **Dependency Management** - Automatic plugin dependency resolution
+
+### 🏗️ **Service-Based Architecture**
+- **Modular Services** - Decomposed core functionality into independent services
+- **Domain Routing** - API requests routed based on domain expertise
+- **Service Mesh** - Built-in service discovery and communication
+- **Scalable Deployments** - Horizontal scaling of individual services
+
+### ⚡ **Improved CLI Experience**
+- **Interactive Commands** - Guided workflows for common tasks
+- **Real-Time Debugging** - Live agent monitoring and debugging
+- **Project Templates** - Quick-start templates for various use cases
+- **Environment Management** - Built-in .env file validation and setup
+
+### 🎯 **Advanced Runtime Management**
+- **Process Isolation** - Each agent runs in isolated process space
+- **Resource Controls** - CPU and memory limits per agent
+- **Health Monitoring** - Built-in health checks and auto-recovery
+- **Graceful Shutdowns** - Clean process termination and state persistence
+
+### 💾 **Enhanced Database Integration**
+- **Multi-Database Support** - PostgreSQL, SQLite, and in-memory options
+- **Connection Pooling** - Efficient database connection management
+- **Migration System** - Automated database schema migrations
+- **Query Optimization** - Improved query performance and caching
+
 ## Core Capabilities
 
-### **Full-Featured Platform Integrations**
-
+### 🚀 **Full-Featured Platform Integrations**
 - **Discord, Telegram, Farcaster** - Native connectors with advanced features
 - **Web Interface** - Modern React-based dashboard for agent management
 - **API-First Design** - Complete REST and WebSocket APIs for custom integrations
 
-### **Universal Model Support**
-
+### 🔄 **Universal Model Support**
 - **OpenAI, Anthropic, Google, Ollama** - Unified interface for all major providers
 - **Local Models** - Run models privately with Ollama or custom endpoints
 - **Automatic Failover** - Seamless switching between providers for reliability
 
-### **Intelligent Document Processing**
-
+### 📚 **Intelligent Document Processing**
 - **Multi-Format Support** - PDF, text, web content, and more
 - **Vector Search** - Semantic similarity search across your knowledge base
 - **Real-Time Updates** - Dynamic knowledge ingestion and retrieval
 
-### **Character-Driven Development**
-
+### 🎨 **Character-Driven Development**
 - **JSON-Based Characters** - Define personality, knowledge, and behavior patterns
 - **Style Customization** - Unique voice and communication style for each agent
 - **Dynamic Responses** - Context-aware responses that feel natural and engaging
@@ -66,81 +91,69 @@ infrastructure to bring your AI vision to life.
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
 
-<Card title="Conversational Agents">
-  Create engaging chatbots with persistent memory, personality, and the ability to learn from
-  interactions over time.
+<Card title="💬 Conversational Agents">
+  Create engaging chatbots with persistent memory, personality, and the ability to learn from interactions over time.
 </Card>
 
-<Card title="Autonomous Agents">
-  Build agents that can take actions, make decisions, and operate independently with minimal human
-  oversight.
+<Card title="🤖 Autonomous Agents">
+  Build agents that can take actions, make decisions, and operate independently with minimal human oversight.
 </Card>
 
-<Card title="Business Automation">
-  Develop process handlers for customer service, data analysis, content generation, and workflow
-  automation.
+<Card title="📊 Business Automation">
+  Develop process handlers for customer service, data analysis, content generation, and workflow automation.
 </Card>
 
-<Card title="Interactive NPCs">
-  Design game characters with rich personalities, dynamic dialogue, and persistent relationships
-  with players.
+<Card title="🎮 Interactive NPCs">
+  Design game characters with rich personalities, dynamic dialogue, and persistent relationships with players.
 </Card>
 
-<Card title="Trading Systems">
-  Build intelligent trading agents with market analysis, risk management, and automated
-  decision-making capabilities.
+<Card title="📈 Trading Systems">
+  Build intelligent trading agents with market analysis, risk management, and automated decision-making capabilities.
 </Card>
 
-<Card title="Custom Solutions">
-  Leverage the extensible architecture to create specialized agents for your unique use cases and
-  requirements.
+<Card title="🔧 Custom Solutions">
+  Leverage the extensible architecture to create specialized agents for your unique use cases and requirements.
 </Card>
 
 </div>
 
 ## The ElizaOS Ecosystem
 
-### **Core Framework** (`@elizaos/core`)
-
+### 🏗️ **Core Framework** (`@elizaos/core`)
 The foundation providing runtime management, memory systems, and plugin interfaces.
 
-### **CLI Tools** (`@elizaos/cli`)
-
+### 🖥️ **CLI Tools** (`@elizaos/cli`)
 Powerful command-line tools for project creation, agent management, and development workflows.
 
-### **Web Client** (`@elizaos/client`)
-
+### 🌐 **Web Client** (`@elizaos/client`)
 Modern React-based interface for agent management, real-time chat, and system monitoring.
 
-### **Plugin System**
-
+### 🔌 **Plugin System**
 Extensive collection of plugins for platforms, models, and specialized functionality:
-
 - **Platform Plugins** - Discord, Telegram, Farcaster, Twitter, and more
 - **Model Plugins** - OpenAI, Anthropic, Google, Ollama, and local providers
 - **Service Plugins** - Database adapters, file processing, and external APIs
 
-### **Cross-Platform Apps**
-
+### 📱 **Cross-Platform Apps**
 Native desktop and mobile applications built with Tauri for seamless agent interaction.
 
 ## Getting Started
 
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-<Card title="Quick Start" href="/docs/getting-started/quickstart">
+<Card title="🚀 Quick Start" href="/docs/getting-started/quickstart">
   Get your first agent running in minutes with our step-by-step guide and CLI tools.
 </Card>
 
-<Card title="Learning Tracks" href="/docs/learning-tracks">
+<Card title="💡 Learning Tracks" href="/docs/learning-tracks">
   Structured learning paths from beginner to advanced, with hands-on projects and examples.
 </Card>
 
-<Card title="Core Concepts" href="/docs/core-concepts">
+<Card title="🏗️ Core Concepts" href="/docs/core-concepts">
   Deep dive into the architecture, components, and patterns that power ElizaOS.
 </Card>
 
-<Card title="Plugin Development" href="/docs/plugins">
+<Card title="🔧 Plugin Development" href="/docs/plugins">
   Learn to build custom plugins and extend ElizaOS with your own functionality.
 </Card>
 
@@ -159,24 +172,17 @@ ElizaOS is backed by a vibrant community of developers, researchers, and AI enth
 
 ## Ready to Build?
 
-Whether you're building your first AI agent or scaling to production with advanced multi-agent
-systems, ElizaOS provides the tools, flexibility, and community support you need to succeed.
+Whether you're building your first AI agent or scaling to production with advanced multi-agent systems, ElizaOS provides the tools, flexibility, and community support you need to succeed.
 
-<div className="mt-6 flex flex-wrap gap-4">
-  <a
-    href="/docs/getting-started/quickstart"
-    className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
-  >
+<div className="flex flex-wrap gap-4 mt-6">
+  <a href="/docs/getting-started/quickstart" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
     Start Building →
   </a>
-  <a
-    href="/docs/learning-tracks"
-    className="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-50"
-  >
+  <a href="/docs/learning-tracks" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
     Explore Learning Tracks
   </a>
 </div>
 
 ---
 
-_ElizaOS - Where artificial intelligence meets infinite possibilities._
+*ElizaOS - Where artificial intelligence meets infinite possibilities.*

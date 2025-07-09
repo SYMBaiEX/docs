@@ -1,0 +1,256 @@
+---
+title: REST API Complete Guide
+description: Comprehensive guide to ElizaOS REST API with Postman examples
+keywords: rest api, postman, api documentation, elizaos
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+Learn how to interact with ElizaOS agents through the REST API with practical examples and a complete Postman collection.
+
+<Callout type="info">
+This guide covers the platform-agnostic REST API that works identically across all ElizaOS deployments.
+</Callout>
+
+## Quick Start
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Authentication
+```http
+Authorization: Bearer your-auth-token
+```
+
+## Core Endpoints
+
+### 1. Agent Management
+
+#### Create Agent
+```http
+POST /api/agents
+Content-Type: application/json
+
+{
+  "name": "Assistant",
+  "description": "Helpful AI assistant",
+  "modelProvider": "openai",
+  "settings": {
+    "model": "gpt-4",
+    "temperature": 0.7
+  }
+}
+```
+
+#### List Agents
+```http
+GET /api/agents
+```
+
+#### Get Agent
+```http
+GET /api/agents/:agentId
+```
+
+### 2. Messaging
+
+#### Send Message
+```http
+POST /api/agents/:agentId/messages
+Content-Type: application/json
+
+{
+  "text": "Hello, how can you help me?",
+  "userId": "user-123",
+  "roomId": "room-456"
+}
+```
+
+<Callout type="warning">
+The message processing pipeline is identical for all client types - REST API, Discord, Twitter, etc. The `processMessage` function handles all messages uniformly.
+</Callout>
+
+### 3. Memory Operations
+
+#### Get Memories
+```http
+GET /api/agents/:agentId/memories?count=10&roomId=room-456
+```
+
+#### Create Memory
+```http
+POST /api/agents/:agentId/memories
+Content-Type: application/json
+
+{
+  "content": {
+    "text": "User prefers TypeScript",
+    "type": "preference"
+  },
+  "userId": "user-123"
+}
+```
+
+## Postman Collection
+
+Download our complete Postman collection with examples for all endpoints:
+
+```json
+{
+  "info": {
+    "name": "ElizaOS REST API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Agents",
+      "item": [
+        {
+          "name": "Create Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Assistant\",\n  \"modelProvider\": \"openai\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agents"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello!\",\n  \"userId\": \"{{userId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agents/{{agentId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agents", "{{agentId}}", "messages"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "agentId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
+```
+
+## Example Workflows
+
+### Creating and Messaging an Agent
+
+<Tabs>
+  <Tab value="curl">
+```bash
+# 1. Create agent
+curl -X POST http://localhost:3000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Assistant",
+    "modelProvider": "openai"
+  }'
+
+# Response: { "id": "agent-123", "name": "Assistant", ... }
+
+# 2. Send message
+curl -X POST http://localhost:3000/api/agents/agent-123/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "What can you help me with?",
+    "userId": "user-456"
+  }'
+```
+  </Tab>
+  <Tab value="javascript">
+```javascript
+// 1. Create agent
+const agent = await fetch('http://localhost:3000/api/agents', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Assistant',
+    modelProvider: 'openai'
+  })
+}).then(r => r.json());
+
+// 2. Send message
+const response = await fetch(`http://localhost:3000/api/agents/${agent.id}/messages`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    text: 'What can you help me with?',
+    userId: 'user-456'
+  })
+}).then(r => r.json());
+```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: userId",
+    "details": {
+      "field": "userId",
+      "type": "required"
+    }
+  }
+}
+```
+
+## Best Practices
+
+1. **Use Environment Variables**: Store base URLs and API keys in Postman environments
+2. **Handle Rate Limits**: Implement exponential backoff for retries
+3. **Validate Responses**: Check status codes and response structure
+4. **Keep State**: Use Postman variables to chain requests
+
+## See Also
+
+- [Message Handlers Documentation](/docs/core-concepts/communication/message-handlers)
+- [Client Types Guide](/docs/guides/client-types-implementations)
+- [API Reference](/docs/api-reference/endpoints)

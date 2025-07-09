@@ -16,6 +16,8 @@ export const { docs, meta } = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
+    // Path to import your `mdx-components.tsx` file
+    providerImportSource: '@/mdx-components',
     remarkPlugins: [
       [
         remarkInstall,
@@ -32,7 +34,8 @@ export default defineConfig({
       themes: {
         light: "github-light",
         dark: "github-dark",
-      },
+      }
+      ,
       transformers: [...(rehypeCodeDefaultOptions.transformers ?? [])],
     },
   },
