@@ -16,7 +16,7 @@ elizaOS provides two approaches for creating plugins using the CLI:
 Creates a complete project with sample agent and plugin:
 
 ```bash
-elizaos create my-project -t project
+elizaos create my-project --type project
 ```
 
 This option:
@@ -30,7 +30,7 @@ This option:
 Creates only a plugin in publishable format:
 
 ```bash
-elizaos create my-plugin -t plugin
+elizaos create my-plugin --type plugin
 ```
 
 This option:
@@ -94,10 +94,10 @@ Both options create a standard plugin structure:
 
 ```bash
 # Create the plugin
-elizaos create weather-plugin -t plugin
+elizaos create weather-plugin --type plugin
 
 # Navigate to the plugin directory
-cd weather-plugin
+cd plugin-weather-plugin
 
 # Test the plugin
 elizaos dev
@@ -107,7 +107,7 @@ elizaos dev
 
 ```bash
 # Create the project
-elizaos create my-assistant -t project
+elizaos create my-assistant --type project
 
 # Navigate to the project directory
 cd my-assistant

@@ -81,7 +81,10 @@ pnpm add @elizaos/plugin-sql
 # PostgreSQL connection (optional)
 POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
 
-# PGlite data directory (optional, defaults to ./pglite)
+# PGlite data directory (optional, defaults to ./.eliza/.elizadb)
+PGLITE_PATH=./data/pglite
+# Alternative environment variables (also supported)
+DATABASE_PATH=./data/pglite
 PGLITE_DATA_DIR=./data/pglite
 ```
 
@@ -90,6 +93,7 @@ PGLITE_DATA_DIR=./data/pglite
 The adapter supports multiple embedding dimensions:
 
 ```typescript
+// From @elizaos/core
 const VECTOR_DIMS = {
   SMALL: 384,   // Lightweight models
   MEDIUM: 512,  // Balanced performance
@@ -97,6 +101,16 @@ const VECTOR_DIMS = {
   XL: 1024,     // Large models
   XXL: 1536,    // OpenAI ada-002
   XXXL: 3072    // Large context models
+};
+
+// Dimension mapping in plugin-sql
+const DIMENSION_MAP = {
+  [384]: 'dim384',
+  [512]: 'dim512', 
+  [768]: 'dim768',
+  [1024]: 'dim1024',
+  [1536]: 'dim1536',
+  [3072]: 'dim3072'
 };
 ```
 
@@ -107,40 +121,40 @@ const VECTOR_DIMS = {
 ### Basic Integration
 
 ```typescript
-import sqlPlugin from '@elizaos/plugin-sql';
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
 import { AgentRuntime } from '@elizaos/core';
 
 // Plugin automatically initializes based on environment
 const runtime = new AgentRuntime({
-  plugins: [sqlPlugin],
-  databaseAdapter: sqlPlugin.adapter
+  plugins: [sqlPlugin]
 });
 
-// The adapter will:
+// The plugin will:
 // 1. Try PostgreSQL if POSTGRES_URL is set
 // 2. Fall back to PGlite if not
-// 3. Run migrations automatically
+// 3. Register the adapter with the runtime
 ```
 
 ### Direct Adapter Usage
 
 ```typescript
-import { PostgresAdapter } from '@elizaos/plugin-sql';
+import { createDatabaseAdapter } from '@elizaos/plugin-sql';
+import { PgDatabaseAdapter } from '@elizaos/plugin-sql';
 
-// Create adapter instance
-const adapter = new PostgresAdapter(postgresUrl);
+// Create adapter using factory function
+const adapter = createDatabaseAdapter({
+  postgresUrl: 'postgresql://user:password@localhost:5432/eliza'
+}, agentId);
 
-// Initialize with runtime
-await adapter.init(runtime);
+// Initialize adapter
+await adapter.init();
 
 // Use adapter methods
-const memories = await adapter.searchMemories({
+const memories = await adapter.getMemories({
   tableName: 'memories',
   agentId,
   roomId,
-  embedding: queryEmbedding,
-  match_threshold: 0.8,
-  match_count: 10
+  count: 10
 });
 ```
 
@@ -151,13 +165,22 @@ const memories = await adapter.searchMemories({
 #### Agent Table
 ```typescript
 {
-  id: uuid,           // Unique agent identifier
-  name: text,         // Agent name
-  username: text,     // Unique username
-  details: text,      // Character description
-  model: text,        // AI model name
-  temperature: real,  // Model temperature
-  embedding_model: text
+  id: uuid,                    // Unique agent identifier
+  enabled: boolean,            // Agent enabled status
+  createdAt: timestamp,        // Creation timestamp
+  updatedAt: timestamp,        // Last update timestamp
+  name: text,                  // Agent name
+  username: text,              // Unique username  
+  system: text,                // System prompt
+  bio: jsonb,                  // Agent biography
+  messageExamples: jsonb,      // Example messages
+  postExamples: jsonb,         // Example posts
+  topics: jsonb,               // Agent topics
+  adjectives: jsonb,           // Agent adjectives
+  knowledge: jsonb,            // Knowledge base
+  plugins: jsonb,              // Plugin configuration
+  settings: jsonb,             // Agent settings
+  style: jsonb                 // Agent style configuration
 }
 ```
 
@@ -166,13 +189,14 @@ const memories = await adapter.searchMemories({
 {
   id: uuid,           // Memory identifier
   type: text,         // Memory type
-  createdAt: bigint,  // Unix timestamp
-  content: text,      // Memory content
-  embedding: vector,  // Vector embedding
+  createdAt: timestamp, // Creation timestamp
+  content: jsonb,     // Memory content (JSON)
+  entityId: uuid,     // Associated entity
   agentId: uuid,      // Associated agent
   roomId: uuid,       // Conversation room
-  userId: uuid,       // User who created
-  isUnique: boolean   // Uniqueness flag
+  worldId: uuid,      // World identifier
+  unique: boolean,    // Uniqueness flag
+  metadata: jsonb     // Additional metadata
 }
 ```
 
@@ -181,10 +205,11 @@ const memories = await adapter.searchMemories({
 {
   id: uuid,           // Room identifier
   name: text,         // Room name
-  topic: text,        // Conversation topic
-  type: text,         // Room type
-  createdAt: bigint,  // Creation time
-  agentId: uuid       // Managing agent
+  source: text,       // Room source
+  type: text,         // Room type (ChannelType)
+  createdAt: timestamp, // Creation time
+  agentId: uuid,      // Managing agent
+  metadata: jsonb     // Room metadata
 }
 ```
 
@@ -196,7 +221,7 @@ const memories = await adapter.searchMemories({
 - **Component** - Agent components/plugins
 - **Tasks** - Goal and task tracking
 - **Cache** - Performance optimization
-- **Embedding** - Vector storage
+- **Embedding** - Vector storage with multiple dimensions
 - **Log** - System event logging
 
 ## Features

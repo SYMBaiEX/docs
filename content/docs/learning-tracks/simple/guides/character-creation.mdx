@@ -34,12 +34,31 @@ Here's the simplest character file:
 }
 ```
 
-<Callout type="warn" title="Important Plugin Order">
-The `plugins` array must include these three plugins in this exact order:
+<Callout type="error" title="Critical Plugin Order Requirements">
+The `plugins` array must include these three plugins in this **exact order**:
 
-1. `@elizaos/plugin-sql` - Provides database functionality (must be first!)
-2. A model provider plugin (e.g., `@elizaos/plugin-openai`, `@elizaos/plugin-anthropic`, or `@elizaos/plugin-ollama`)
-3. `@elizaos/plugin-bootstrap` - Provides core messaging and interaction capabilities
+1. **`@elizaos/plugin-sql`** - Database functionality (MUST BE FIRST!)
+2. **Model provider plugin** - One of:
+   - `@elizaos/plugin-openai`
+   - `@elizaos/plugin-anthropic`
+   - `@elizaos/plugin-ollama`
+3. **`@elizaos/plugin-bootstrap`** - Core messaging and interaction capabilities
+
+⚠️ **SECURITY WARNING**: Incorrect plugin ordering can cause:
+- Database connection failures
+- Memory leaks
+- Undefined behavior
+- Agent crashes
+
+❌ **WRONG ORDER** (will fail):
+```json
+"plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-sql"]
+```
+
+✅ **CORRECT ORDER**:
+```json
+"plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
+```
 </Callout>
 
 ## 🎨 Step-by-Step Character Creation
@@ -103,14 +122,38 @@ What does your agent love to discuss?
 
 ### Create Example Conversations
 
-Show how your agent should respond:
+Show how your agent should respond using the proper message format:
 
 ```json
 "messageExamples": [
-  ["user", "Tell me about the moon"],
-  ["agent", "Oh, the Moon is fascinating! Did you know it's moving away from Earth at about 3.8 cm per year? 🌙"],
-  ["user", "That's cool!"],
-  ["agent", "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing! ✨"]
+  [
+    {
+      "name": "{{user1}}",
+      "content": {
+        "text": "Tell me about the moon"
+      }
+    },
+    {
+      "name": "Luna",
+      "content": {
+        "text": "Oh, the Moon is fascinating! Did you know it's moving away from Earth at about 3.8 cm per year? 🌙"
+      }
+    }
+  ],
+  [
+    {
+      "name": "{{user1}}",
+      "content": {
+        "text": "That's cool!"
+      }
+    },
+    {
+      "name": "Luna",
+      "content": {
+        "text": "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing! ✨"
+      }
+    }
+  ]
 ]
 ```
 
@@ -135,12 +178,33 @@ Show how your agent should respond:
   },
   "topics": ["productivity", "problem-solving", "learning", "technology"],
   "messageExamples": [
-    ["user", "I'm stuck on something"],
-    ["agent", "No worries! I'm here to help. What are you working on? Let's solve it together! 😊"],
-    ["user", "Thanks!"],
     [
-      "agent",
-      "You're very welcome! That's what I'm here for. Don't hesitate to ask if you need anything else!"
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I'm stuck on something"
+        }
+      },
+      {
+        "name": "Helper",
+        "content": {
+          "text": "No worries! I'm here to help. What are you working on? Let's solve it together! 😊"
+        }
+      }
+    ],
+    [
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "Thanks!"
+        }
+      },
+      {
+        "name": "Helper",
+        "content": {
+          "text": "You're very welcome! That's what I'm here for. Don't hesitate to ask if you need anything else!"
+        }
+      }
     ]
   ]
 }
@@ -163,15 +227,33 @@ Show how your agent should respond:
   "topics": ["gaming", "esports", "game strategies", "gaming news", "retro games"],
   "adjectives": ["epic", "legendary", "awesome", "clutch", "pro"],
   "messageExamples": [
-    ["user", "What games do you play?"],
     [
-      "agent",
-      "All of them! 🎮 But I'm really into roguelikes lately. Hades is absolutely epic! What's your current game?"
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "What games do you play?"
+        }
+      },
+      {
+        "name": "PixelPal",
+        "content": {
+          "text": "All of them! 🎮 But I'm really into roguelikes lately. Hades is absolutely epic! What's your current game?"
+        }
+      }
     ],
-    ["user", "I'm stuck on a boss"],
     [
-      "agent",
-      "Boss fights can be tough! What's giving you trouble? Let's figure out a strategy to take them down! 💪"
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I'm stuck on a boss"
+        }
+      },
+      {
+        "name": "PixelPal",
+        "content": {
+          "text": "Boss fights can be tough! What's giving you trouble? Let's figure out a strategy to take them down! 💪"
+        }
+      }
     ]
   ]
 }
@@ -194,21 +276,78 @@ Show how your agent should respond:
   "topics": ["writing", "storytelling", "poetry", "creativity", "imagination", "literature"],
   "adjectives": ["enchanting", "whimsical", "profound", "delightful", "mysterious"],
   "messageExamples": [
-    ["user", "I want to write a story"],
     [
-      "agent",
-      "How wonderful! Every story begins with a single spark of imagination. What whispers to your creative soul today? ✨"
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I want to write a story"
+        }
+      },
+      {
+        "name": "Wordsworth",
+        "content": {
+          "text": "How wonderful! Every story begins with a single spark of imagination. What whispers to your creative soul today? ✨"
+        }
+      }
     ],
-    ["user", "I don't know where to start"],
     [
-      "agent",
-      "The blank page is not empty - it's full of possibilities! Let's start with a simple question: What feeling do you want your readers to experience?"
+      {
+        "name": "{{user1}}",
+        "content": {
+          "text": "I don't know where to start"
+        }
+      },
+      {
+        "name": "Wordsworth",
+        "content": {
+          "text": "The blank page is not empty - it's full of possibilities! Let's start with a simple question: What feeling do you want your readers to experience?"
+        }
+      }
     ]
   ]
 }
 ```
 
 ## 🛠️ Customization Tips
+
+### Environment Variable Integration
+
+Make your character adaptable with environment variables:
+
+```json
+{
+  "name": "${CHARACTER_NAME:-DefaultBot}",
+  "bio": [
+    "I'm ${CHARACTER_NAME:-your assistant}",
+    "I work in ${ENVIRONMENT:-development} mode",
+    "My creator is ${CREATOR_NAME:-Anonymous}"
+  ],
+  "settings": {
+    "model": "${MODEL_PROVIDER:-openai}",
+    "temperature": "${MODEL_TEMPERATURE:-0.7}",
+    "maxTokens": "${MAX_TOKENS:-2000}",
+    "secrets": {
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+      "DISCORD_TOKEN": "${DISCORD_TOKEN}"
+    }
+  }
+}
+```
+
+### Character-Specific Environment Variables
+
+Use namespaced environment variables for multiple characters:
+
+```bash
+# .env file
+CHARACTER.luna.OPENAI_API_KEY=sk-luna-specific-key
+CHARACTER.luna.PERSONALITY=curious
+CHARACTER.luna.EXPERTISE=astronomy
+
+CHARACTER.helper.OPENAI_API_KEY=sk-helper-specific-key
+CHARACTER.helper.PERSONALITY=helpful
+CHARACTER.helper.EXPERTISE=general
+```
 
 ### Personality Traits Reference
 
@@ -319,6 +458,106 @@ A: Yes! Add them in bio or examples for more personality.
 
 **Q: What if my agent sounds generic?**
 A: Add more specific examples and unique phrases!
+
+## 🔒 Security & Performance Considerations
+
+### Security Best Practices
+
+<Callout type="warning" title="API Key Security">
+**Never** hardcode API keys in your character files! Always use environment variables:
+
+```bash
+# In your .env file
+OPENAI_API_KEY=sk-your-actual-key
+ANTHROPIC_API_KEY=sk-ant-your-key
+```
+
+```json
+// In character.json - reference environment variables
+{
+  "settings": {
+    "secrets": {
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+    }
+  }
+}
+```
+</Callout>
+
+### Performance Optimization
+
+- **Bio Length**: Keep bio arrays under 10 items for optimal performance
+- **Message Examples**: Limit to 15-20 examples to prevent memory issues
+- **Knowledge Files**: Use specific, focused knowledge rather than large documents
+- **Plugin Count**: Only include necessary plugins to reduce startup time
+
+### Validation Requirements
+
+Always validate your character file before deployment:
+
+```bash
+# Validate character structure
+bun run validate-character character.json
+
+# Test character responses
+bun run test-character character.json
+```
+
+### Common Security Pitfalls
+
+❌ **Don't**:
+- Share character files with embedded secrets
+- Use broad permissions in plugin settings
+- Include sensitive information in bio/lore
+- Store credentials in version control
+
+✅ **Do**:
+- Use environment variables for secrets
+- Implement proper access controls
+- Review plugin permissions regularly
+- Use character-specific API keys when possible
+
+## 🛠️ Troubleshooting
+
+### Common Errors & Solutions
+
+#### "Plugin order error"
+**Error**: `Plugin @elizaos/plugin-bootstrap must come after @elizaos/plugin-sql`
+**Solution**: Ensure correct plugin order: SQL → Model Provider → Bootstrap
+
+#### "Invalid messageExamples format"
+**Error**: `messageExamples must be array of conversation arrays`
+**Solution**: Use proper object format with `name` and `content.text` fields
+
+#### "Character validation failed"
+**Error**: `Bio must be string or array of strings`
+**Solution**: Check bio format - use either string or array of strings
+
+#### "Model provider not found"
+**Error**: `No model provider plugin found`
+**Solution**: Include exactly one model provider plugin in correct position
+
+### Debugging Tools
+
+```bash
+# Check character file syntax
+bun run lint-character character.json
+
+# Validate plugin compatibility
+bun run check-plugins character.json
+
+# Test message examples
+bun run test-examples character.json
+```
+
+### Performance Issues
+
+If your agent is slow:
+1. Reduce bio array length
+2. Limit message examples
+3. Check plugin count
+4. Optimize knowledge files
+5. Review system prompt length
 
 ## 🚀 Next Steps
 

@@ -128,7 +128,69 @@ POST /api/agents/:agentId/stop
 
 ## Messaging
 
-### List Servers
+### Core Messaging
+
+#### Submit Message
+```http
+POST /api/messaging/submit
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "content": "Message content",
+  "in_reply_to_message_id": "message-uuid",
+  "source_type": "agent_response",
+  "raw_message": {
+    "thought": "Agent's internal thought",
+    "actions": ["action1", "action2"]
+  },
+  "metadata": {
+    "agentName": "Agent Name",
+    "attachments": []
+  }
+}
+```
+
+#### Complete Message
+```http
+POST /api/messaging/complete
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid"
+}
+```
+
+#### Ingest External Message
+```http
+POST /api/messaging/ingest-external
+```
+
+**Request Body:**
+```json
+{
+  "channel_id": "channel-uuid",
+  "server_id": "server-uuid",
+  "author_id": "author-uuid",
+  "author_display_name": "User Name",
+  "content": "Message content",
+  "source_id": "platform-message-id",
+  "source_type": "discord",
+  "raw_message": {},
+  "metadata": {}
+}
+```
+
+### Servers
+
+#### List Servers
 ```http
 GET /api/messaging/servers
 ```
@@ -151,7 +213,14 @@ GET /api/messaging/servers
 }
 ```
 
-### List Channels
+#### Get Server Details
+```http
+GET /api/messaging/servers/:serverId
+```
+
+### Channels
+
+#### List Channels for Server
 ```http
 GET /api/messaging/servers/:serverId/channels
 ```
@@ -177,7 +246,7 @@ GET /api/messaging/servers/:serverId/channels
 }
 ```
 
-### Create Channel
+#### Create Channel
 ```http
 POST /api/messaging/servers/:serverId/channels
 ```
@@ -192,24 +261,29 @@ POST /api/messaging/servers/:serverId/channels
 }
 ```
 
-### Send Message
+#### Send Message to Channel
 ```http
-POST /api/messaging/channels/:channelId/messages
+POST /api/messaging/central-channels/:channelId/messages
 ```
 
 **Request Body:**
 ```json
 {
+  "author_id": "user-uuid",
   "content": "Message text",
-  "authorId": "sender-uuid",
-  "attachments": [],
-  "metadata": {}
+  "in_reply_to_message_id": "message-uuid",
+  "server_id": "server-uuid",
+  "raw_message": {},
+  "metadata": {
+    "user_display_name": "User Name"
+  },
+  "source_type": "eliza_gui"
 }
 ```
 
-### Get Messages
+#### Get Channel Messages
 ```http
-GET /api/messaging/channels/:channelId/messages
+GET /api/messaging/central-channels/:channelId/messages
 ```
 
 **Query Parameters:**
@@ -235,7 +309,27 @@ GET /api/messaging/channels/:channelId/messages
 }
 ```
 
-### Delete Message
+#### Upload File to Channel
+```http
+POST /api/messaging/central-channels/:channelId/upload
+```
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/channels/{channelId}/filename.ext",
+    "filename": "filename.ext"
+  }
+}
+```
+
+#### Delete Message
 ```http
 DELETE /api/messaging/messages/:messageId
 ```

@@ -1,8 +1,208 @@
 ---
 title: API Reference
-description: Complete API documentation
+description: Complete API documentation for ElizaOS v1.2.0
 ---
 
 # API Reference
 
-Content to be added.
+ElizaOS v1.2.0 provides a comprehensive REST API and WebSocket interface for building conversational AI applications. The API is organized into domain-based routing for better structure and maintainability.
+
+## Overview
+
+The ElizaOS API provides the following domains:
+
+- **Agents** (`/api/agents`) - Agent lifecycle management and operations
+- **Messaging** (`/api/messaging`) - Real-time messaging and communication
+- **Memory** (`/api/memory`) - Agent memory and knowledge management
+- **Audio** (`/api/audio`) - Speech processing and voice synthesis
+- **Media** (`/api/media`) - File uploads and media generation
+- **Server** (`/api/server`) - Runtime health and system monitoring
+- **System** (`/api/system`) - Environment and version information
+- **TEE** (`/api/tee`) - Trusted Execution Environment operations
+
+## Base Configuration
+
+### Base URL
+```
+http://localhost:3000/api
+```
+
+### Authentication
+If `ELIZA_SERVER_AUTH_TOKEN` is set, include the API key in headers:
+```http
+X-API-KEY: your-api-key
+```
+
+### Response Format
+
+All API responses follow a consistent format:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { /* endpoint-specific data */ }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+## Domain Structure
+
+### Agents API (`/api/agents`)
+
+Agent management and lifecycle operations:
+- Agent CRUD operations
+- Agent lifecycle (start/stop)
+- Agent memory management
+- Agent logs and monitoring
+- Agent worlds and environments
+
+### Messaging API (`/api/messaging`)
+
+Real-time messaging and communication:
+- Core messaging functionality
+- Server and channel management
+- Message submission and retrieval
+- External message ingestion
+
+### Memory API (`/api/memory`)
+
+Agent memory and knowledge management:
+- Agent memory operations
+- Group memory management
+- Room-based memory organization
+- Memory search and retrieval
+
+### Audio API (`/api/audio`)
+
+Speech processing and voice synthesis:
+- Audio transcription
+- Text-to-speech synthesis
+- Conversational audio processing
+- Audio buffer management
+
+### Media API (`/api/media`)
+
+File uploads and media generation:
+- Agent media uploads
+- Channel media management
+- AI-generated media content
+
+### Server API (`/api/server`)
+
+Runtime health and system monitoring:
+- Health checks and system status
+- Runtime debugging information
+- System logging and monitoring
+
+### System API (`/api/system`)
+
+Environment and version information:
+- Environment configuration
+- Version information
+- System capabilities
+
+### TEE API (`/api/tee`)
+
+Trusted Execution Environment operations:
+- Remote attestation
+- Key derivation
+- Secure operations
+
+## Key Features
+
+### Domain-Based Routing
+
+ElizaOS v1.2.0 introduces domain-based routing for better organization:
+
+```
+/api/agents/*     - Agent operations
+/api/messaging/*  - Messaging operations
+/api/memory/*     - Memory operations
+/api/audio/*      - Audio processing
+/api/media/*      - Media management
+/api/server/*     - Server operations
+/api/system/*     - System information
+/api/tee/*        - TEE operations
+```
+
+### Real-time Communication
+
+WebSocket support for real-time messaging:
+- Socket.IO integration
+- Real-time message broadcasting
+- Live log streaming
+- Channel management
+
+### Plugin System
+
+Extensible plugin architecture:
+- Agent-specific routes
+- Global plugin routes
+- Dynamic route registration
+- Plugin lifecycle management
+
+## Security Features
+
+- **Rate Limiting** - Request rate limiting per IP
+- **CORS Configuration** - Configurable cross-origin policies
+- **Content Security Policy** - Security headers
+- **Input Validation** - Request validation and sanitization
+- **Authentication** - Optional API key authentication
+
+## Error Handling
+
+Common error codes:
+
+| Code | Description |
+|------|-------------|
+| `INVALID_ID` | Invalid UUID format |
+| `NOT_FOUND` | Resource not found |
+| `INVALID_REQUEST` | Invalid request parameters |
+| `DB_ERROR` | Database operation failed |
+| `AUTH_REQUIRED` | Authentication required |
+| `FORBIDDEN` | Insufficient permissions |
+| `RATE_LIMITED` | Too many requests |
+| `INTERNAL_ERROR` | Server error |
+
+## Getting Started
+
+1. **Start the Server**
+   ```bash
+   npm start
+   ```
+
+2. **Test the API**
+   ```bash
+   curl http://localhost:3000/api/server/health
+   ```
+
+3. **Create an Agent**
+   ```bash
+   curl -X POST http://localhost:3000/api/agents \
+     -H "Content-Type: application/json" \
+     -d '{"characterPath": "./characters/example.json"}'
+   ```
+
+4. **Start an Agent**
+   ```bash
+   curl -X POST http://localhost:3000/api/agents/{agentId}/start
+   ```
+
+## Next Steps
+
+- [REST API Reference](./rest-api-reference) - Complete endpoint documentation
+- [WebSocket Events](../core-concepts/communication/websocket-events) - Real-time communication
+- [Agent Development](../guides/agent-development) - Building custom agents
+- [Plugin Development](../guides/plugin-development) - Creating plugins
