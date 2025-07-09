@@ -68,6 +68,8 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
 }
 
 /* Base styles */
@@ -193,4 +195,19 @@ button {
   .floating-item {
     @apply motion-safe:animate-none;
   }
+}
+
+/* Override Fumadocs component border radius */
+.nd-codeblock pre {
+  border-radius: 0 !important;
+}
+
+/* Override search button rounded corners */
+.nd-search-toggle {
+  border-radius: 0 !important;
+}
+
+/* Override any remaining rounded corners */
+[class*="rounded-"] {
+  border-radius: 0 !important;
 }
