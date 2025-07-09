@@ -38,14 +38,14 @@ Before starting the migration, ensure you have:
 The most significant change is the move from agent-specific endpoints to domain-based routing.
 
 #### Old API Structure (v1.1.x and earlier)
-```
+```text
 /api/agents/{agentId}/message
 /api/agents/{agentId}/audio/transcribe
 /api/agents/{agentId}/audio/generate
 ```
 
 #### New API Structure (v1.2.0)
-```
+```text
 /api/messaging/submit
 /api/audio/{agentId}/transcribe
 /api/audio/{agentId}/generate
@@ -64,7 +64,7 @@ plugins: [
   "@elizaos/plugin-bootstrap",  // MUST BE LAST
   // ... other plugins in between
 ]
-```
+```json
 
 #### Plugin Interface Updates
 The Plugin interface has been enhanced with new properties:
@@ -93,7 +93,7 @@ export interface Plugin {
   // NEW: Priority for loading order
   priority?: number;
 }
-```
+```json
 
 ### 3. Character Schema Updates
 
@@ -128,7 +128,7 @@ messageExamples: [
     }
   ]
 ]
-```
+```json
 
 #### Required Plugin Configuration
 ```typescript
@@ -138,7 +138,7 @@ plugins: [
   "@elizaos/plugin-openai",     // Model provider (required)
   "@elizaos/plugin-bootstrap",  // REQUIRED LAST
 ]
-```
+```json
 
 ### 4. Runtime System Changes
 
@@ -159,7 +159,7 @@ export const runtime = {
     imageGeneration: false
   }
 }
-```
+```typescript
 
 ### 5. Database Adapter Requirements
 
@@ -173,7 +173,7 @@ const runtime = new AgentRuntime({
   databaseAdapter: new SqliteDatabaseAdapter(), // Required
   // ... other configuration
 });
-```
+```json
 
 ## Step-by-Step Migration Instructions
 
@@ -190,7 +190,7 @@ First, update your package.json dependencies:
     "@elizaos/database-sqlite": "^1.2.0"
   }
 }
-```
+```json
 
 Install updated dependencies:
 
@@ -198,7 +198,7 @@ Install updated dependencies:
 npm install
 # or
 yarn install
-```
+```bash
 
 ### Step 2: Update API Endpoints
 
@@ -364,7 +364,7 @@ export const myPlugin: Plugin = {
 
 Update your `.env` file with v1.2.0 requirements:
 
-```env
+```bash
 # Database configuration (now required)
 DATABASE_URL=sqlite:./db.sqlite
 

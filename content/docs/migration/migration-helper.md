@@ -1,3 +1,8 @@
+---
+title: "Migration Helper Scripts"
+description: "Helper scripts to assist with the ElizaOS v1.2.0 migration process"
+---
+
 # Migration Helper Scripts
 
 This page provides helper scripts to assist with the ElizaOS v1.2.0 migration process.

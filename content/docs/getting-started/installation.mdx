@@ -7,14 +7,9 @@ description: Installing ElizaOS and setting up your environment
 
 This guide covers the complete installation process for ElizaOS, including system requirements, dependencies, and different installation methods.
 
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Steps, Step } from 'fumadocs-ui/components/steps';
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Cards, Card } from 'fumadocs-ui/components/card';
 
-<Callout type="info">
-ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
-</Callout>
+
+**Note:** ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
 
 ## System Requirements
 
@@ -61,14 +56,12 @@ ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for opt
 
 ## Installing Dependencies
 
-<Steps>
-<Step>
+
 
 ### Install Node.js
 
-<Tabs items={['macOS', 'Linux', 'Windows']}>
-  <Tab value="macOS">
-    
+#### macOS
+
 **Using Homebrew (Recommended):**
 ```bash
 # Install Node.js 23.3.0
@@ -99,9 +92,8 @@ node --version  # Should show v23.3.0
 - Intel Mac users: No special configuration needed
 - If you encounter permission issues, avoid using `sudo` with npm
 
-  </Tab>
-  <Tab value="Linux">
-    
+#### Linux
+
 **Using Node Version Manager (nvm) - Recommended:**
 ```bash
 # Install nvm
@@ -129,16 +121,17 @@ sudo yum install -y nodejs
 
 # Arch Linux
 sudo pacman -S nodejs npm
+
+# Verify installation
+node --version  # Should show v23.3.0
 ```
 
 **Linux-specific notes:**
-- Recommended distributions: Ubuntu 20.04+, CentOS 8+, Debian 11+
 - Ensure you have build tools: `sudo apt-get install build-essential`
 - For older distributions, use nvm instead of package managers
 
-  </Tab>
-  <Tab value="Windows">
-    
+#### Windows
+
 **Install WSL 2 first (Required):**
 ```powershell
 # Run in PowerShell as Administrator
@@ -147,18 +140,19 @@ wsl --install -d Ubuntu
 
 **Configure WSL 2:**
 ```powershell
-# Restart your computer, then run:
+# Set WSL 2 as default version
 wsl --set-default-version 2
-wsl --set-default Ubuntu
+
+# Update and upgrade Ubuntu
+wsl -d Ubuntu -- sudo apt update && sudo apt upgrade
 ```
 
-**Install Node.js within WSL 2:**
+**Install Node.js in WSL 2:**
 ```bash
-# Open WSL 2 terminal and install nvm
+# Open WSL 2 Ubuntu terminal
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
 
-# Install Node.js 23.3.0
 nvm install 23.3.0
 nvm use 23.3.0
 nvm alias default 23.3.0
@@ -172,12 +166,6 @@ node --version  # Should show v23.3.0
 - Install WSL 2 with Ubuntu distribution for best compatibility
 - Use WSL 2 terminal for all ElizaOS development
 - Avoid mixing Windows and WSL file systems for better performance
-
-  </Tab>
-</Tabs>
-
-</Step>
-<Step>
 
 ### Install Bun (Recommended)
 
@@ -201,9 +189,6 @@ bun --version  # Should show v1.2.15 or newer
 - **Windows**: Must be installed within WSL 2, not native Windows
 - **Alternative**: You can use `npm` instead of `bun`, but `bun` is recommended for better performance
 
-</Step>
-<Step>
-
 ### Verify Installation
 
 Check that all dependencies are correctly installed:
@@ -216,20 +201,13 @@ node --version  # Should be v23.3.0 (exact version required)
 bun --version   # Should be v1.2.15 (recommended)
 ```
 
-</Step>
-</Steps>
-
-<Callout type="warn">
-Ensure you have the exact Node.js version v23.3.0 installed. Other versions may cause compatibility issues with ElizaOS.
-</Callout>
+**Warning:** Ensure you have the exact Node.js version v23.3.0 installed. Other versions may cause compatibility issues with ElizaOS.
 
 ## Installation Methods
 
 ### Method 1: CLI Installation (Recommended)
 
-<Callout type="info">
-This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most configuration automatically and provides enhanced project management features.
-</Callout>
+**Info:** This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most configuration automatically and provides enhanced project management features.
 
 The CLI provides the fastest way to get started:
 
@@ -258,9 +236,7 @@ elizaos create my-agent --type project
 
 ### Method 2: Manual Installation
 
-<Callout type="warn">
-This method requires more manual configuration and is recommended for experienced developers who need full control over the installation process.
-</Callout>
+**Warning:** This method requires more manual configuration and is recommended for experienced developers who need full control over the installation process.
 
 For developers who want full control:
 
@@ -313,9 +289,7 @@ bun run clean
 
 ### Method 3: Docker Installation
 
-<Callout type="info">
-Docker installation provides a complete setup with PostgreSQL database and is ideal for production deployments.
-</Callout>
+**Info:** Docker installation provides a complete setup with PostgreSQL database and is ideal for production deployments.
 
 For containerized deployment with PostgreSQL:
 
@@ -401,9 +375,7 @@ docker-compose exec elizaos bash
 
 ## Configuration
 
-<Callout type="important">
-Proper environment configuration is crucial for ElizaOS to function correctly. At minimum, you need to configure a model provider API key.
-</Callout>
+**Important:** Proper environment configuration is crucial for ElizaOS to function correctly. At minimum, you need to configure a model provider API key.
 
 ### Environment Setup
 
@@ -937,20 +909,10 @@ If you encounter issues not covered above:
 
 Once installation is complete:
 
-<Cards>
-  <Card title="Quick Start" href="/docs/getting-started/quickstart">
-    Create your first agent in 5 minutes
-  </Card>
-  <Card title="Configuration" href="/docs/getting-started/configuration">
-    Set up your development environment
-  </Card>
-  <Card title="Core Concepts" href="/docs/core-concepts">
-    Learn about ElizaOS architecture
-  </Card>
-  <Card title="Plugins" href="/docs/plugins">
-    Extend your agent with plugins
-  </Card>
-</Cards>
+- [Quick Start](/docs/getting-started/quickstart) - Create your first agent in 5 minutes
+- [Configuration](/docs/getting-started/configuration) - Set up your development environment
+- [Core Concepts](/docs/core-concepts) - Learn about ElizaOS architecture
+- [Plugins](/docs/plugins) - Extend your agent with plugins
 
 ---
 
