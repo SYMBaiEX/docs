@@ -5,6 +5,8 @@ alwaysApply: true
 ---
 # Documentation Standards and Structure
 
+> Attribution: These rules are adapted from https://github.com/recallnet/docs/tree/main/.cursor
+
 ## Project
 
 - This is a Next.js website for documentation.
