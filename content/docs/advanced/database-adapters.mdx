@@ -130,9 +130,11 @@ const runtime = new AgentRuntime({
 });
 
 // The plugin will:
-// 1. Try PostgreSQL if POSTGRES_URL is set
-// 2. Fall back to PGlite if not
-// 3. Register the adapter with the runtime
+// 1. Check if adapter already exists
+// 2. Read POSTGRES_URL from runtime settings
+// 3. Read PGLITE_PATH/DATABASE_PATH from runtime settings
+// 4. Create adapter using createDatabaseAdapter
+// 5. Register adapter with runtime.registerDatabaseAdapter
 ```
 
 ### Direct Adapter Usage
@@ -224,6 +226,21 @@ const memories = await adapter.getMemories({
 - **Embedding** - Vector storage with multiple dimensions
 - **Log** - System event logging
 
+#### Embedding Table
+```typescript
+{
+  id: uuid,            // Embedding identifier
+  memoryId: uuid,      // Associated memory
+  createdAt: timestamp, // Creation time
+  dim384: vector,      // 384-dimensional embedding
+  dim512: vector,      // 512-dimensional embedding
+  dim768: vector,      // 768-dimensional embedding
+  dim1024: vector,     // 1024-dimensional embedding
+  dim1536: vector,     // 1536-dimensional embedding
+  dim3072: vector      // 3072-dimensional embedding
+}
+```
+
 ## Features
 
 ### Vector Search
@@ -250,47 +267,74 @@ const relevantMemories = await adapter.searchMemories({
 
 ```typescript
 // Create a memory with embedding
-await adapter.createMemory({
+const memory = {
+  id: uuidv4(),
   agentId,
   roomId,
-  userId,
-  content: "Important information",
-  embedding: await generateEmbedding(content),
+  entityId: userId,
+  content: { text: "Important information" },
   type: "knowledge",
-  isUnique: true
-});
+  unique: true,
+  metadata: { type: "knowledge" }
+};
+const memoryId = await adapter.createMemory(memory, 'memories');
 
 // Retrieve memories by room
-const roomMemories = await adapter.getMemoriesByRoomId({
+const roomMemories = await adapter.getMemories({
+  tableName: 'memories',
   agentId,
   roomId,
   count: 50
 });
 
-// Remove duplicate memories
-await adapter.removeMemory(memoryId);
+// Remove memories
+await adapter.deleteMemory(memoryId);
 ```
 
 ### Connection Management
 
-The adapter uses a singleton pattern for connection pooling:
+The adapter uses a singleton pattern for connection management:
 
 ```typescript
-// Connection pool configuration
-{
-  max: 20,                    // Maximum connections
-  idleTimeoutMillis: 30000,   // Idle timeout
-  connectionTimeoutMillis: 5000 // Connection timeout
+// PostgreSQL connection manager
+class PostgresConnectionManager {
+  private pool: Pool;
+  private db: NodePgDatabase;
+
+  constructor(connectionString: string) {
+    this.pool = new Pool({ connectionString });
+    this.db = drizzle(this.pool);
+  }
+
+  getDatabase(): NodePgDatabase {
+    return this.db;
+  }
+
+  async getClient(): Promise<PoolClient> {
+    return this.pool.connect();
+  }
+
+  async testConnection(): Promise<boolean> {
+    // Test database connectivity
+  }
 }
 
-// Circuit breaker settings
-{
-  failureThreshold: 5,        // Failures before opening
-  resetTimeout: 60000,        // Reset after 1 minute
-  halfOpenMaxAttempts: 3,     // Attempts in half-open
-  maxRetries: 3,              // Retry attempts
-  baseDelay: 1000,            // Initial retry delay
-  maxDelay: 10000             // Maximum retry delay
+// PGlite connection manager
+class PGliteClientManager {
+  private connection: PGlite;
+  private shuttingDown = false;
+
+  constructor(config: { dataDir: string }) {
+    this.connection = new PGlite(config.dataDir);
+  }
+
+  getConnection(): PGlite {
+    return this.connection;
+  }
+
+  isShuttingDown(): boolean {
+    return this.shuttingDown;
+  }
 }
 ```
 
@@ -410,9 +454,9 @@ When PostgreSQL is not available, the adapter automatically uses PGlite:
 // - Same API as PostgreSQL adapter
 
 // Configuration
-const pgliteAdapter = new PGliteAdapter({
+const pgliteAdapter = createDatabaseAdapter({
   dataDir: './data/pglite'  // Storage directory
-});
+}, agentId);
 ```
 
 ### PGlite Limitations

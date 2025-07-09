@@ -531,7 +531,34 @@ POST /api/media/agents/:agentId/generate
 
 ## Server Management
 
-### Server Status
+### Health Monitoring
+
+#### Ping
+```http
+GET /api/server/ping
+```
+
+**Response:**
+```json
+{
+  "pong": true,
+  "timestamp": 1234567890
+}
+```
+
+#### Hello World
+```http
+GET /api/server/hello
+```
+
+**Response:**
+```json
+{
+  "message": "Hello World!"
+}
+```
+
+#### System Status
 ```http
 GET /api/server/status
 ```
@@ -539,22 +566,13 @@ GET /api/server/status
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "uptime": 3600,
-    "agents": {
-      "active": 2,
-      "total": 5
-    },
-    "memory": {
-      "used": 256000000,
-      "total": 512000000
-    }
-  }
+  "status": "ok",
+  "agentCount": 3,
+  "timestamp": "2024-01-01T00:00:00Z"
 }
 ```
 
-### Health Check
+#### Health Check
 ```http
 GET /api/server/health
 ```
@@ -562,26 +580,30 @@ GET /api/server/health
 **Response:**
 ```json
 {
-  "status": "healthy",
+  "status": "OK",
+  "version": "1.2.0",
   "timestamp": "2024-01-01T00:00:00Z",
-  "services": {
-    "database": "connected",
-    "messageQueue": "active"
+  "dependencies": {
+    "agents": "healthy"
   }
 }
 ```
 
-### Ping
+#### Server Stop
 ```http
-GET /api/server/ping
+POST /api/server/stop
 ```
 
 **Response:**
-```text
-pong
+```json
+{
+  "message": "Server stopping..."
+}
 ```
 
-### Debug Information
+### Debugging
+
+#### Debug Information
 ```http
 GET /api/server/debug
 ```
@@ -593,17 +615,49 @@ GET /api/server/debug
   "data": {
     "environment": "development",
     "nodeVersion": "20.0.0",
-    "elizaVersion": "0.1.0",
+    "elizaVersion": "1.2.0",
     "plugins": ["@elizaos/plugin-discord", "@elizaos/plugin-twitter"]
+  }
+}
+```
+
+### Logging
+
+#### Stream Logs
+```http
+GET /api/server/logs
+```
+
+**Query Parameters:**
+- `level` - Log level filter (debug, info, warn, error)
+- `agentId` - Filter by specific agent
+- `limit` - Number of log entries (default: 100)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "level": "info",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "message": "Log message",
+        "agentId": "agent-uuid",
+        "metadata": {}
+      }
+    ]
   }
 }
 ```
 
 ## System Configuration
 
-### Get Environment Info
+### Environment Management
+
+#### Get Local Environment Variables
 ```http
-GET /api/system/environment
+GET /api/system/env/local
 ```
 
 **Response:**
@@ -611,17 +665,40 @@ GET /api/system/environment
 {
   "success": true,
   "data": {
-    "nodeEnv": "development",
-    "serverUrl": "http://localhost:3000",
-    "features": {
-      "ui": true,
-      "auth": false
-    }
+    "NODE_ENV": "development",
+    "SERVER_URL": "http://localhost:3000",
+    "ELIZA_SERVER_PORT": "3000"
   }
 }
 ```
 
-### Get Version
+#### Update Local Environment Variables
+```http
+POST /api/system/env/local
+```
+
+**Request Body:**
+```json
+{
+  "content": {
+    "NODE_ENV": "production",
+    "SERVER_URL": "https://example.com",
+    "ELIZA_SERVER_PORT": "3000"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Local env updated"
+}
+```
+
+### Version Management
+
+#### Get Version Information
 ```http
 GET /api/system/version
 ```
@@ -629,9 +706,11 @@ GET /api/system/version
 **Response:**
 ```json
 {
-  "version": "0.1.0",
-  "commit": "abc123",
-  "buildDate": "2024-01-01T00:00:00Z"
+  "version": "1.2.0",
+  "source": "server",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "environment": "development",
+  "uptime": 3600
 }
 ```
 
