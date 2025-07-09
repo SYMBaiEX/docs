@@ -1,11 +1,11 @@
 ---
 title: Model Providers
-description: Working with different AI model providers in elizaOS
+description: Working with different AI model providers in elizaOS v1.2.0 with enhanced plugin-based architecture
 ---
 
 # Model Providers
 
-Model providers in elizaOS abstract the complexity of working with different AI services, allowing you to seamlessly switch between providers or use multiple providers simultaneously. Each provider implements a standardized interface while handling the specifics of their respective APIs.
+Model providers in elizaOS v1.2.0 abstract the complexity of working with different AI services, allowing you to seamlessly switch between providers or use multiple providers simultaneously. Each provider implements a standardized interface while handling the specifics of their respective APIs, with enhanced plugin-based architecture for better flexibility and control.
 
 ## Overview
 
@@ -15,6 +15,136 @@ The model provider system enables:
 - **Multi-provider support**: Use different providers for different model types
 - **Automatic fallbacks**: Graceful degradation when providers are unavailable
 - **Priority-based selection**: Control which provider is used for specific tasks
+- **Plugin-based architecture**: Enhanced modularity and extensibility (v1.2.0)
+- **Model capability detection**: Automatic detection of provider capabilities (v1.2.0)
+- **Enhanced routing**: Smart routing based on model requirements (v1.2.0)
+
+## v1.2.0 Plugin-Based Architecture
+
+In v1.2.0, model providers are implemented as plugins that register model handlers with the runtime. This provides better modularity and allows for more sophisticated model routing.
+
+### Model Handler Registration
+
+Plugins now register model handlers for specific model types:
+
+```typescript
+export const openaiPlugin: Plugin = {
+  name: 'openai',
+  description: 'OpenAI model integration',
+  version: '1.2.0',
+  
+  // Register model handlers
+  models: {
+    [ModelType.TEXT_LARGE]: async (runtime: IAgentRuntime, params) => {
+      const client = createOpenAIClient(runtime);
+      const response = await client.chat.completions.create({
+        model: 'gpt-4',
+        messages: [{ role: 'user', content: params.prompt }],
+        temperature: params.temperature || 0.7,
+        max_tokens: params.maxTokens || 1500
+      });
+      return response.choices[0].message.content;
+    },
+    
+    [ModelType.TEXT_EMBEDDING]: async (runtime: IAgentRuntime, params) => {
+      const client = createOpenAIClient(runtime);
+      const response = await client.embeddings.create({
+        model: 'text-embedding-3-large',
+        input: params.text
+      });
+      return response.data[0].embedding;
+    },
+    
+    [ModelType.IMAGE_GENERATION]: async (runtime: IAgentRuntime, params) => {
+      const client = createOpenAIClient(runtime);
+      const response = await client.images.generate({
+        model: 'dall-e-3',
+        prompt: params.prompt,
+        size: params.size || '1024x1024'
+      });
+      return response.data[0].url;
+    }
+  },
+  
+  // Plugin configuration
+  config: {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENAI_API_BASE: process.env.OPENAI_API_BASE
+  }
+};
+```
+
+### Enhanced Model Routing
+
+The runtime now supports sophisticated model routing based on capabilities:
+
+```typescript
+// Runtime automatically selects best handler
+const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+  prompt: "Explain quantum computing",
+  temperature: 0.7,
+  maxTokens: 1000,
+  // Additional context for smart routing
+  context: {
+    requestId: uuidv4(),
+    runId: runtime.runId,
+    requiresStreaming: false,
+    prioritizeLatency: true
+  }
+});
+```
+
+### Model Capabilities Detection
+
+Plugins can declare their capabilities for better routing:
+
+```typescript
+export const enhancedOpenAIPlugin: Plugin = {
+  name: 'openai',
+  models: {
+    [ModelType.TEXT_LARGE]: async (runtime, params) => {
+      // Handler implementation
+    }
+  },
+  
+  // Declare capabilities (new in v1.2.0)
+  capabilities: {
+    [ModelType.TEXT_LARGE]: {
+      supportsStreaming: true,
+      maxTokens: 4096,
+      supportedFormats: ['text', 'json'],
+      costPerToken: 0.00003,
+      averageLatency: 2000, // ms
+      reliabilityScore: 0.99
+    }
+  }
+};
+```
+
+### Priority-Based Selection
+
+Multiple plugins can register handlers for the same model type, with priority-based selection:
+
+```typescript
+// High priority OpenAI plugin
+runtime.registerModel(
+  ModelType.TEXT_LARGE,
+  openaiHandler,
+  'openai',
+  1000  // High priority
+);
+
+// Lower priority Anthropic plugin
+runtime.registerModel(
+  ModelType.TEXT_LARGE,
+  anthropicHandler,
+  'anthropic',
+  900   // Lower priority
+);
+
+// Runtime selects highest priority handler
+const response = await runtime.useModel(ModelType.TEXT_LARGE, params);
+```
 
 ## Supported Model Providers
 
@@ -403,50 +533,164 @@ Different providers may have unique configuration options:
 
 ### Dynamic Provider Selection
 
-Select providers programmatically:
+Select providers programmatically with enhanced context:
 
 ```typescript
 // In your action or provider
 const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Generate response",
-  temperature: 0.7
+  temperature: 0.7,
+  context: {
+    requestId: uuidv4(),
+    runId: runtime.runId,
+    actionContext: runtime.currentActionContext
+  }
 }, 'anthropic'); // Force specific provider
 ```
 
 ### Provider Availability Check
 
-Check if a provider is available:
+Check if a provider is available with enhanced capabilities:
 
 ```typescript
-const hasEmbeddings = runtime.getModel(ModelType.TEXT_EMBEDDING);
-if (hasEmbeddings) {
-  const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: "Sample text"
+const textLargeHandler = runtime.getModel(ModelType.TEXT_LARGE);
+if (textLargeHandler) {
+  const capabilities = runtime.getModelCapabilities(ModelType.TEXT_LARGE);
+  
+  console.log(`Provider: ${textLargeHandler.provider}`);
+  console.log(`Max tokens: ${capabilities.maxTokens}`);
+  console.log(`Supports streaming: ${capabilities.supportsStreaming}`);
+  
+  const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt: "Generate response",
+    maxTokens: Math.min(1000, capabilities.maxTokens)
   });
 }
 ```
 
-### Fallback Mechanisms
+### Enhanced Fallback Mechanisms
 
-Implement automatic fallbacks:
+Implement automatic fallbacks with capability-aware selection:
 
 ```typescript
-async function generateWithFallback(runtime, prompt) {
-  const providers = ['openai', 'anthropic', 'ollama'];
+async function generateWithFallback(runtime, prompt, requirements = {}) {
+  const modelType = ModelType.TEXT_LARGE;
+  const availableHandlers = runtime.getModelHandlers(modelType);
   
-  for (const provider of providers) {
+  // Sort by capability score
+  const sortedHandlers = availableHandlers.sort((a, b) => {
+    const scoreA = calculateCapabilityScore(a.capabilities, requirements);
+    const scoreB = calculateCapabilityScore(b.capabilities, requirements);
+    return scoreB - scoreA;
+  });
+  
+  for (const handler of sortedHandlers) {
     try {
-      return await runtime.useModel(ModelType.TEXT_LARGE, {
+      return await runtime.useModel(modelType, {
         prompt,
-        temperature: 0.7
-      }, provider);
+        temperature: 0.7,
+        context: {
+          requestId: uuidv4(),
+          runId: runtime.runId,
+          preferredProvider: handler.provider
+        }
+      }, handler.provider);
     } catch (error) {
-      console.warn(`Provider ${provider} failed:`, error.message);
+      console.warn(`Provider ${handler.provider} failed:`, error.message);
+      
+      // Log failure for monitoring
+      await runtime.emitEvent('model_provider_failed', {
+        provider: handler.provider,
+        modelType,
+        error: error.message,
+        runId: runtime.runId
+      });
+      
       continue;
     }
   }
   
   throw new Error('All providers failed');
+}
+
+function calculateCapabilityScore(capabilities, requirements) {
+  let score = 0;
+  
+  if (requirements.prioritizeLatency && capabilities.averageLatency < 3000) {
+    score += 10;
+  }
+  
+  if (requirements.prioritizeCost && capabilities.costPerToken < 0.0001) {
+    score += 5;
+  }
+  
+  if (requirements.requiresStreaming && capabilities.supportsStreaming) {
+    score += 15;
+  }
+  
+  // Reliability bonus
+  score += capabilities.reliabilityScore * 10;
+  
+  return score;
+}
+```
+
+### Model Performance Monitoring
+
+Track model performance across providers:
+
+```typescript
+class ModelPerformanceMonitor {
+  private metrics: Map<string, ModelMetrics> = new Map();
+  
+  async trackModelCall(
+    provider: string,
+    modelType: ModelType,
+    startTime: number,
+    endTime: number,
+    success: boolean,
+    tokenCount?: number
+  ) {
+    const key = `${provider}:${modelType}`;
+    const existing = this.metrics.get(key) || {
+      provider,
+      modelType,
+      totalCalls: 0,
+      successfulCalls: 0,
+      averageLatency: 0,
+      totalTokens: 0
+    };
+    
+    existing.totalCalls++;
+    if (success) {
+      existing.successfulCalls++;
+    }
+    
+    const latency = endTime - startTime;
+    existing.averageLatency = (existing.averageLatency + latency) / 2;
+    
+    if (tokenCount) {
+      existing.totalTokens += tokenCount;
+    }
+    
+    this.metrics.set(key, existing);
+  }
+  
+  getMetrics(): ModelMetrics[] {
+    return Array.from(this.metrics.values());
+  }
+  
+  getBestProvider(modelType: ModelType): string | null {
+    const providers = Array.from(this.metrics.values())
+      .filter(m => m.modelType === modelType)
+      .sort((a, b) => {
+        const scoreA = (a.successfulCalls / a.totalCalls) * 100 - a.averageLatency;
+        const scoreB = (b.successfulCalls / b.totalCalls) * 100 - b.averageLatency;
+        return scoreB - scoreA;
+      });
+    
+    return providers[0]?.provider || null;
+  }
 }
 ```
 
@@ -609,4 +853,28 @@ runtime.logger.debug('Provider selection:', {
 });
 ```
 
-The model provider system in elizaOS offers flexibility and reliability for AI model integration. By understanding the different providers and their capabilities, you can build robust agents that leverage the best models for each task while maintaining fallback options for reliability.
+The model provider system in elizaOS v1.2.0 offers enhanced flexibility and reliability for AI model integration. By understanding the different providers and their capabilities, you can build robust agents that leverage the best models for each task while maintaining fallback options for reliability.
+
+## v1.2.0 Key Improvements
+
+### Plugin-Based Architecture
+- **Modular Design**: Providers are now plugins that can be independently developed and maintained
+- **Dynamic Registration**: Model handlers are registered at runtime with priority-based selection
+- **Enhanced Capabilities**: Providers can declare their capabilities for smart routing
+
+### Advanced Model Routing
+- **Capability-Aware Selection**: Runtime automatically selects the best provider based on requirements
+- **Context Tracking**: All model calls include rich context for debugging and monitoring
+- **Performance Monitoring**: Built-in performance tracking and optimization
+
+### Enhanced Debugging
+- **Run ID Tracking**: All model calls are tracked with unique run IDs
+- **Action Context**: Model calls include action context for better debugging
+- **Event Emission**: Model provider failures and successes are emitted as events
+
+### Better Fallback Mechanisms
+- **Smart Fallbacks**: Fallbacks are based on capability scores rather than fixed order
+- **Automatic Retry**: Built-in retry logic with exponential backoff
+- **Health Monitoring**: Continuous monitoring of provider health and performance
+
+These improvements make the model provider system more robust, observable, and efficient while maintaining the ease of use that makes elizaOS agents powerful and flexible.

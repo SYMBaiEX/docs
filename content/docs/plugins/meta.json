@@ -3,6 +3,9 @@
   "pages": [
     "index",
     "creating-plugins",
-    "plugin-registry"
+    "plugin-development",
+    "plugin-registry",
+    "plugin-templates",
+    "plugin-testing"
   ]
 }

@@ -324,6 +324,108 @@ const state = await runtime.composeState(message, [
 ]);
 ```
 
+## v1.2.0 Agent Enhancements
+
+### Service Integration
+
+Agents now have deep integration with the service system:
+
+```typescript
+// Access services from within agent actions
+const discordService = runtime.getService<DiscordService>('discord');
+const databaseService = runtime.getService<DatabaseService>('database');
+
+// Get all available services
+const allServices = runtime.getAllServices();
+console.log(`Agent has ${allServices.size} services available`);
+
+// Service health monitoring
+const serviceStatuses = Array.from(allServices.entries()).map(([name, service]) => ({
+  name,
+  status: service.isHealthy ? 'healthy' : 'unhealthy',
+  type: service.constructor.name
+}));
+```
+
+### Enhanced Action Context
+
+Actions now have access to rich context information:
+
+```typescript
+// In an action handler
+async handler(runtime: IAgentRuntime, message: Memory, state?: State) {
+  const context = runtime.currentActionContext;
+  
+  if (context) {
+    console.log(`Action: ${context.actionName}`);
+    console.log(`Action ID: ${context.actionId}`);
+    console.log(`Run ID: ${context.runId}`);
+    console.log(`Started at: ${context.startTime}`);
+    console.log(`Parent action: ${context.metadata?.parentActionId}`);
+  }
+  
+  // Context is automatically logged for debugging
+  return true;
+}
+```
+
+### Domain Event System
+
+Agents can now emit and listen to domain-specific events:
+
+```typescript
+// Listen to domain events
+runtime.registerEvent('database:connection_error', async (context) => {
+  console.log(`Database error in run ${context.runId}: ${context.error}`);
+  // Handle database connection issues
+});
+
+runtime.registerEvent('ai:model_response', async (context) => {
+  console.log(`AI model ${context.modelType} responded in ${context.executionTime}ms`);
+  // Log model performance
+});
+
+// Emit domain events
+await runtime.emitDomainEvent('agent', 'action_completed', {
+  actionName: 'SEND_MESSAGE',
+  success: true,
+  duration: 150
+});
+```
+
+### Enhanced Memory Operations
+
+Memory operations now support enhanced search capabilities:
+
+```typescript
+// Search memories with enhanced filters
+const relevantMemories = await runtime.searchMemories({
+  tableName: 'messages',
+  embedding: messageEmbedding,
+  query: 'user preferences',
+  match_threshold: 0.8,
+  count: 10,
+  roomId: message.roomId,
+  entityId: message.entityId,
+  worldId: worldId  // New filter
+});
+
+// Context-aware memory creation
+await runtime.createMemory({
+  content: { text: response },
+  roomId: message.roomId,
+  entityId: message.entityId,
+  metadata: {
+    runId: runtime.runId,
+    actionContext: runtime.currentActionContext,
+    serviceContext: {
+      availableServices: Array.from(runtime.getAllServices().keys()),
+      activeConnections: await getActiveConnections()
+    }
+  }
+}, 'messages');
+```
+
 ## Practical Example
 
 Here's a complete example of creating an agent with a character definition:
@@ -446,13 +548,26 @@ await runtime.updateAgent(agent.id, {
 
 ### Agent Health Monitoring
 ```typescript
-// Check agent status
-const checkAgentHealth = async (agent) => {
+// Enhanced agent health monitoring (v1.2.0)
+const checkAgentHealth = async (agent, runtime) => {
+  const services = runtime.getAllServices();
+  const serviceHealth = Array.from(services.entries()).map(([name, service]) => ({
+    name,
+    healthy: service.isHealthy,
+    type: service.constructor.name
+  }));
+  
   return {
     enabled: agent.enabled,
     status: agent.status,
+    runId: agent.runId,
     lastUpdate: new Date(agent.updatedAt),
-    isHealthy: agent.status === AgentStatus.ACTIVE && agent.enabled
+    isHealthy: agent.status === AgentStatus.ACTIVE && agent.enabled,
+    serviceCount: services.size,
+    serviceHealth,
+    capabilities: agent.metadata?.capabilities || [],
+    version: agent.metadata?.version || '1.0.0',
+    lastHealthCheck: agent.metadata?.lastHealthCheck || Date.now()
   };
 };
 ```
@@ -467,4 +582,16 @@ const checkAgentHealth = async (agent) => {
 
 ## Summary
 
-Agents in ElizaOS combine static Character definitions with runtime operational state. They provide the foundation for autonomous AI entities that can interact naturally with users while maintaining consistent personalities and behaviors. The separation between Character and Agent allows for flexible deployment and management of AI agents in various contexts.
+Agents in ElizaOS v1.2.0 combine static Character definitions with enhanced runtime operational state. They provide the foundation for autonomous AI entities that can interact naturally with users while maintaining consistent personalities and behaviors. The separation between Character and Agent allows for flexible deployment and management of AI agents in various contexts.
+
+### Key v1.2.0 Improvements
+
+- **Enhanced Status Management**: Expanded status enum with STARTING, STOPPING, ERROR, and MAINTENANCE states
+- **Run ID Tracking**: Unique session identifiers for better debugging and monitoring
+- **Service Integration**: Deep integration with the service system for enhanced capabilities
+- **Action Context Tracking**: Rich context information for better debugging and monitoring
+- **Domain Event System**: Structured event emission and handling for better inter-component communication
+- **Enhanced Memory Operations**: Improved search capabilities with additional filtering options
+- **Metadata Support**: Additional operational metadata for better agent management
+
+These enhancements provide better observability, debugging capabilities, and operational control while maintaining the core agent architecture that makes ElizaOS agents powerful and flexible.

@@ -1,0 +1,749 @@
+---
+title: Media API
+description: File uploads and media handling capabilities
+---
+
+# Media API
+
+The Media API provides comprehensive file upload and media handling capabilities for agents and channels. All media endpoints are prefixed with `/api/media`.
+
+## Overview
+
+The Media API includes:
+
+- **Agent Media** - Upload media files for specific agents
+- **Channel Media** - Upload media files to channels
+- **File Management** - Retrieve and manage uploaded files
+- **Media Processing** - Automatic format optimization and validation
+
+## Base URL
+
+```
+http://localhost:3000/api/media
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Agent Media
+
+### Upload Media for Agent
+
+```http
+POST /api/media/agents/:agentId/upload
+```
+
+Uploads a media file for a specific agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file (max 10MB)
+
+**Supported file types:**
+- **Images**: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/bmp`
+- **Audio**: `audio/mpeg`, `audio/wav`, `audio/ogg`, `audio/m4a`, `audio/flac`
+- **Video**: `video/mp4`, `video/webm`, `video/avi`, `video/mov`
+- **Documents**: `application/pdf`, `text/plain`, `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/agents/{agentId}/12345-67890.jpg",
+    "filename": "12345-67890.jpg",
+    "originalName": "profile-image.jpg",
+    "mimeType": "image/jpeg",
+    "size": 245760,
+    "uploadedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Agent Media Files
+
+```http
+GET /api/media/agents/:agentId/files
+```
+
+Lists all media files uploaded for a specific agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of files to return (default: 50)
+- `offset` (number) - Pagination offset (default: 0)
+- `type` (string) - Filter by file type (image, audio, video, document)
+- `sortBy` (string) - Sort field (name, size, uploadedAt)
+- `sortOrder` (string) - Sort order (asc, desc)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "id": "file-uuid",
+        "filename": "12345-67890.jpg",
+        "originalName": "profile-image.jpg",
+        "url": "/media/uploads/agents/{agentId}/12345-67890.jpg",
+        "mimeType": "image/jpeg",
+        "size": 245760,
+        "uploadedAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 25,
+      "limit": 50,
+      "offset": 0,
+      "hasMore": false
+    }
+  }
+}
+```
+
+### Delete Agent Media
+
+```http
+DELETE /api/media/agents/:agentId/files/:fileId
+```
+
+Deletes a specific media file for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `fileId` (UUID) - File identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Channel Media
+
+### Upload Media to Channel
+
+```http
+POST /api/media/channels/:channelId/upload
+```
+
+Uploads a media file to a specific channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Media file (max 10MB)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/channels/{channelId}/12345-67890.png",
+    "filename": "12345-67890.png",
+    "originalName": "screenshot.png",
+    "mimeType": "image/png",
+    "size": 1024000,
+    "uploadedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/media/channels/{channelId}/upload \
+  -F "file=@image.jpg" \
+  -H "X-API-KEY: your-api-key"
+```
+
+### Get Channel Media Files
+
+```http
+GET /api/media/channels/:channelId/files
+```
+
+Lists all media files uploaded to a specific channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Query Parameters:**
+- `limit` (number) - Number of files to return (default: 50)
+- `type` (string) - Filter by file type (image, audio, video, document)
+- `uploadedBy` (UUID) - Filter by uploader ID
+- `since` (string) - ISO timestamp for files uploaded since
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "id": "file-uuid",
+        "filename": "12345-67890.png",
+        "originalName": "screenshot.png",
+        "url": "/media/uploads/channels/{channelId}/12345-67890.png",
+        "mimeType": "image/png",
+        "size": 1024000,
+        "uploadedBy": "user-uuid",
+        "uploadedAt": "2024-01-01T00:00:00Z"
+      }
+    ],
+    "channelInfo": {
+      "id": "channel-uuid",
+      "name": "Channel Name",
+      "totalFiles": 12,
+      "totalSize": 15360000
+    }
+  }
+}
+```
+
+### Delete Channel Media
+
+```http
+DELETE /api/media/channels/:channelId/files/:fileId
+```
+
+Deletes a specific media file from a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+- `fileId` (UUID) - File identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## File Management
+
+### Get File Details
+
+```http
+GET /api/media/files/:fileId
+```
+
+Gets detailed information about a specific file.
+
+**Parameters:**
+- `fileId` (UUID) - File identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "file-uuid",
+    "filename": "12345-67890.jpg",
+    "originalName": "profile-image.jpg",
+    "url": "/media/uploads/agents/{agentId}/12345-67890.jpg",
+    "mimeType": "image/jpeg",
+    "size": 245760,
+    "uploadedAt": "2024-01-01T00:00:00Z",
+    "metadata": {
+      "width": 1920,
+      "height": 1080,
+      "duration": null,
+      "format": "JPEG",
+      "quality": 85
+    },
+    "owner": {
+      "type": "agent",
+      "id": "agent-uuid"
+    }
+  }
+}
+```
+
+### Download File
+
+```http
+GET /api/media/files/:fileId/download
+```
+
+Downloads a specific file.
+
+**Parameters:**
+- `fileId` (UUID) - File identifier
+
+**Response:**
+- Content-Type: Original file MIME type
+- Content-Disposition: `attachment; filename="original-filename.ext"`
+- Body: File content
+
+### Get File Thumbnail
+
+```http
+GET /api/media/files/:fileId/thumbnail
+```
+
+Gets a thumbnail for image and video files.
+
+**Parameters:**
+- `fileId` (UUID) - File identifier
+
+**Query Parameters:**
+- `size` (number) - Thumbnail size in pixels (default: 150, max: 500)
+- `format` (string) - Thumbnail format (jpeg, png, webp)
+
+**Response:**
+- Content-Type: `image/jpeg`, `image/png`, or `image/webp`
+- Body: Thumbnail image data
+
+### Delete File
+
+```http
+DELETE /api/media/files/:fileId
+```
+
+Deletes a specific file permanently.
+
+**Parameters:**
+- `fileId` (UUID) - File identifier
+
+**Response:**
+```http
+204 No Content
+```
+
+## Media Processing
+
+### Image Optimization
+
+```http
+POST /api/media/process/optimize
+```
+
+Optimizes an image file for web delivery.
+
+**Request Body:**
+```json
+{
+  "fileId": "file-uuid",
+  "options": {
+    "quality": 85,
+    "format": "jpeg",
+    "maxWidth": 1920,
+    "maxHeight": 1080,
+    "progressive": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "originalFile": {
+      "id": "file-uuid",
+      "size": 2048000,
+      "url": "/media/uploads/original/file.jpg"
+    },
+    "optimizedFile": {
+      "id": "optimized-file-uuid",
+      "size": 512000,
+      "url": "/media/uploads/optimized/file.jpg",
+      "compressionRatio": 0.25
+    }
+  }
+}
+```
+
+### Video Processing
+
+```http
+POST /api/media/process/video
+```
+
+Processes a video file for web delivery.
+
+**Request Body:**
+```json
+{
+  "fileId": "file-uuid",
+  "options": {
+    "format": "mp4",
+    "quality": "high",
+    "maxWidth": 1280,
+    "maxHeight": 720,
+    "compress": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "processing-job-uuid",
+    "status": "queued",
+    "estimatedCompletion": "2024-01-01T00:05:00Z"
+  }
+}
+```
+
+### Get Processing Status
+
+```http
+GET /api/media/process/status/:jobId
+```
+
+Gets the status of a media processing job.
+
+**Parameters:**
+- `jobId` (UUID) - Processing job identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobId": "processing-job-uuid",
+    "status": "processing" | "completed" | "failed",
+    "progress": 75,
+    "result": {
+      "processedFile": {
+        "id": "processed-file-uuid",
+        "url": "/media/uploads/processed/file.mp4",
+        "size": 8192000
+      }
+    },
+    "error": null
+  }
+}
+```
+
+## Media Analytics
+
+### Get Media Statistics
+
+```http
+GET /api/media/stats
+```
+
+Gets overall media usage statistics.
+
+**Query Parameters:**
+- `period` (string) - Time period (day, week, month, year)
+- `agentId` (UUID) - Filter by specific agent
+- `channelId` (UUID) - Filter by specific channel
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "totalFiles": 1250,
+    "totalSize": 2048000000,
+    "byType": {
+      "images": {
+        "count": 800,
+        "size": 1024000000
+      },
+      "videos": {
+        "count": 150,
+        "size": 768000000
+      },
+      "audio": {
+        "count": 200,
+        "size": 204800000
+      },
+      "documents": {
+        "count": 100,
+        "size": 51200000
+      }
+    },
+    "recentUploads": {
+      "today": 45,
+      "thisWeek": 230,
+      "thisMonth": 890
+    }
+  }
+}
+```
+
+### Get Agent Media Usage
+
+```http
+GET /api/media/agents/:agentId/stats
+```
+
+Gets media usage statistics for a specific agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "agent-uuid",
+    "totalFiles": 45,
+    "totalSize": 102400000,
+    "quotaUsed": 0.1,
+    "quotaLimit": 1073741824,
+    "byType": {
+      "images": 30,
+      "audio": 10,
+      "documents": 5
+    },
+    "recentActivity": {
+      "uploadsToday": 3,
+      "uploadsThisWeek": 12
+    }
+  }
+}
+```
+
+## Storage Configuration
+
+### Get Storage Settings
+
+```http
+GET /api/media/settings
+```
+
+Gets current media storage configuration.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "maxFileSize": 10485760,
+    "allowedTypes": [
+      "image/jpeg",
+      "image/png",
+      "audio/mpeg",
+      "video/mp4"
+    ],
+    "storage": {
+      "type": "local",
+      "path": ".eliza/data/uploads",
+      "quotaPerAgent": 1073741824,
+      "quotaPerChannel": 5368709120
+    },
+    "processing": {
+      "imageOptimization": true,
+      "videoCompression": true,
+      "thumbnailGeneration": true
+    }
+  }
+}
+```
+
+### Update Storage Settings
+
+```http
+PATCH /api/media/settings
+```
+
+Updates media storage configuration.
+
+**Request Body:**
+```json
+{
+  "maxFileSize": 20971520,
+  "allowedTypes": [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "audio/mpeg",
+    "audio/wav",
+    "video/mp4"
+  ],
+  "quotaPerAgent": 2147483648,
+  "quotaPerChannel": 10737418240
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "updated": true,
+    "settings": {
+      "maxFileSize": 20971520,
+      "allowedTypes": [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "audio/mpeg",
+        "audio/wav",
+        "video/mp4"
+      ],
+      "quotaPerAgent": 2147483648,
+      "quotaPerChannel": 10737418240
+    }
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_ID` - Invalid UUID format
+- `NOT_FOUND` - File or resource not found
+- `INVALID_REQUEST` - Invalid request parameters
+- `FILE_TOO_LARGE` - File exceeds size limit
+- `INVALID_FILE_TYPE` - Unsupported file type
+- `QUOTA_EXCEEDED` - Storage quota exceeded
+- `PROCESSING_ERROR` - Media processing failed
+- `STORAGE_ERROR` - Storage operation failed
+
+## Rate Limiting
+
+Media endpoints are subject to rate limiting:
+- File uploads: 10 requests per minute per agent/channel
+- File downloads: 100 requests per minute
+- Processing operations: 5 requests per minute
+- Analytics: 60 requests per minute
+
+## Security Features
+
+1. **File Validation**: All uploads are validated for type and size
+2. **Path Security**: Secure file storage prevents path traversal
+3. **Virus Scanning**: Files are scanned for malware (if enabled)
+4. **Access Control**: Files are accessible only to authorized users
+5. **Quota Management**: Storage quotas prevent abuse
+
+## Best Practices
+
+1. **File Types**: Only upload supported file types
+2. **File Size**: Keep files under the size limit for optimal performance
+3. **Naming**: Use descriptive original filenames
+4. **Cleanup**: Remove unused files regularly
+5. **Optimization**: Use image optimization for web delivery
+6. **Monitoring**: Monitor storage usage and quotas
+
+## Examples
+
+### Complete Media Upload Flow
+
+```bash
+# 1. Upload image to agent
+curl -X POST http://localhost:3000/api/media/agents/{agentId}/upload \
+  -F "file=@profile.jpg" \
+  -H "X-API-KEY: your-api-key"
+
+# 2. Upload document to channel
+curl -X POST http://localhost:3000/api/media/channels/{channelId}/upload \
+  -F "file=@document.pdf" \
+  -H "X-API-KEY: your-api-key"
+
+# 3. Get file details
+curl http://localhost:3000/api/media/files/{fileId} \
+  -H "X-API-KEY: your-api-key"
+
+# 4. Download file
+curl http://localhost:3000/api/media/files/{fileId}/download \
+  -H "X-API-KEY: your-api-key" \
+  -o downloaded-file.jpg
+```
+
+### JavaScript Upload Example
+
+```javascript
+// Upload file with progress tracking
+const uploadFile = async (file, agentId) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await fetch(`/api/media/agents/${agentId}/upload`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-API-KEY': 'your-api-key'
+    }
+  });
+  
+  const result = await response.json();
+  
+  if (result.success) {
+    console.log('File uploaded:', result.data.url);
+    return result.data;
+  } else {
+    throw new Error(result.error.message);
+  }
+};
+
+// Usage
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    try {
+      const uploadResult = await uploadFile(file, 'agent-uuid');
+      console.log('Upload successful:', uploadResult);
+    } catch (error) {
+      console.error('Upload failed:', error.message);
+    }
+  }
+});
+```
+
+### Media Processing Example
+
+```javascript
+// Process uploaded image
+const processImage = async (fileId) => {
+  const response = await fetch('/api/media/process/optimize', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': 'your-api-key'
+    },
+    body: JSON.stringify({
+      fileId: fileId,
+      options: {
+        quality: 85,
+        format: 'jpeg',
+        maxWidth: 1920,
+        maxHeight: 1080,
+        progressive: true
+      }
+    })
+  });
+  
+  const result = await response.json();
+  
+  if (result.success) {
+    const optimizedFile = result.data.optimizedFile;
+    console.log('Image optimized:', optimizedFile.url);
+    console.log('Size reduced by:', (1 - result.data.optimizedFile.compressionRatio) * 100 + '%');
+  }
+};
+```
+
+*Note: The Media API is designed to be extensible. Additional processing capabilities and storage backends can be added through plugins.*

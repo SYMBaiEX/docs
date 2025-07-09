@@ -1,11 +1,11 @@
 ---
 title: "Event System"
-description: "Comprehensive guide to the event-driven architecture and event handling in ElizaOS"
+description: "Comprehensive guide to the event-driven architecture and event handling in ElizaOS v1.2.0"
 ---
 
 # Event System
 
-ElizaOS implements a comprehensive event-driven architecture that enables loose coupling between components. The event system facilitates communication between agents, plugins, and services through a standardized event interface with typed payloads and handler registration.
+ElizaOS v1.2.0 implements a comprehensive event-driven architecture that enables loose coupling between components. The event system facilitates communication between agents, plugins, and services through a standardized event interface with typed payloads, handler registration, and enhanced domain-based routing.
 
 ## Event Types
 
@@ -58,7 +58,15 @@ export enum EventType {
   EVALUATOR_COMPLETED = 'EVALUATOR_COMPLETED',
 
   // Model events
-  MODEL_USED = 'MODEL_USED'
+  MODEL_USED = 'MODEL_USED',
+  
+  // Enhanced events in v1.2.0
+  MODEL_PROVIDER_FAILED = 'MODEL_PROVIDER_FAILED',
+  SERVICE_HEALTH_CHECK_FAILED = 'SERVICE_HEALTH_CHECK_FAILED',
+  PLUGIN_LOADED = 'PLUGIN_LOADED',
+  PLUGIN_FAILED = 'PLUGIN_FAILED',
+  RUNTIME_STARTING = 'RUNTIME_STARTING',
+  RUNTIME_STOPPING = 'RUNTIME_STOPPING'
 }
 ```
 
@@ -126,6 +134,110 @@ export interface RunEventPayload extends EventPayload {
   duration?: number;
   error?: string;
 }
+```
+
+## v1.2.0 Domain-Based Events
+
+### Domain Event System
+
+ElizaOS v1.2.0 introduces domain-based event routing for better organization and filtering:
+
+```typescript
+// Domain-based event structure
+interface DomainEvent {
+  domain: string;
+  event: string;
+  payload: any;
+  timestamp: number;
+  runId: UUID;
+  source: string;
+}
+
+// Emit domain events
+await runtime.emitDomainEvent('database', 'connection_error', {
+  error: 'Connection timeout',
+  retryCount: 3,
+  timestamp: Date.now()
+});
+
+await runtime.emitDomainEvent('ai', 'model_response', {
+  modelType: 'TEXT_LARGE',
+  provider: 'openai',
+  tokens: 150,
+  latency: 2500
+});
+
+await runtime.emitDomainEvent('plugin', 'migration_completed', {
+  pluginName: 'discord',
+  version: '1.2.0',
+  tablesAffected: ['discord_messages', 'discord_users']
+});
+```
+
+### Domain Event Handlers
+
+Register handlers for specific domain events:
+
+```typescript
+// Listen to database domain events
+runtime.registerEvent('database:connection_error', async (context) => {
+  console.log(`Database error in run ${context.runId}: ${context.error}`);
+  
+  // Implement retry logic
+  await retryDatabaseConnection();
+});
+
+runtime.registerEvent('database:query_slow', async (context) => {
+  console.log(`Slow query detected: ${context.query} (${context.duration}ms)`);
+  
+  // Log for optimization
+  await logSlowQuery(context);
+});
+
+// Listen to AI domain events
+runtime.registerEvent('ai:model_response', async (context) => {
+  console.log(`Model ${context.modelType} responded in ${context.latency}ms`);
+  
+  // Track performance metrics
+  await trackModelPerformance(context);
+});
+
+runtime.registerEvent('ai:model_error', async (context) => {
+  console.log(`Model ${context.modelType} failed: ${context.error}`);
+  
+  // Implement fallback logic
+  await handleModelFailure(context);
+});
+```
+
+### Enhanced Event Context
+
+All events in v1.2.0 include enhanced context information:
+
+```typescript
+interface EnhancedEventContext {
+  eventId: UUID;
+  runId: UUID;
+  timestamp: string;
+  source: string;
+  actionContext?: ActionContext;
+  serviceContext?: ServiceContext;
+  metadata?: Record<string, any>;
+}
+
+// Example enhanced event emission
+await runtime.emitEvent('message_processed', {
+  messageId: message.id,
+  agentId: runtime.agentId,
+  runId: runtime.runId,
+  actionCount: actions.length,
+  processingTime: endTime - startTime,
+  metadata: {
+    modelCalls: modelCallCount,
+    memoryLookups: memoryLookupCount,
+    serviceInteractions: serviceInteractionCount
+  }
+});
 ```
 
 ## Event Emitting
@@ -614,4 +726,29 @@ class EventManager {
 }
 ```
 
-The event system provides a robust foundation for building reactive, loosely-coupled applications in elizaOS, enabling complex agent behaviors through simple event handling patterns.
+The event system provides a robust foundation for building reactive, loosely-coupled applications in elizaOS v1.2.0, enabling complex agent behaviors through simple event handling patterns.
+
+## v1.2.0 Event System Enhancements
+
+### Domain-Based Routing
+- **Organized Events**: Events are organized by domain (database, ai, plugin, etc.)
+- **Filtered Listening**: Listen to specific domain events for better organization
+- **Namespace Isolation**: Prevent event name conflicts between different domains
+
+### Enhanced Context Tracking
+- **Run ID Tracking**: All events include run ID for better debugging
+- **Action Context**: Events include action context when available
+- **Service Context**: Events include service context for better monitoring
+- **Rich Metadata**: Enhanced metadata for better observability
+
+### Improved Error Handling
+- **Graceful Degradation**: Event handler failures don't cascade
+- **Error Events**: Dedicated error events for better error tracking
+- **Retry Logic**: Built-in retry mechanisms for transient failures
+
+### Performance Monitoring
+- **Event Metrics**: Built-in metrics tracking for all events
+- **Performance Tracking**: Latency and throughput monitoring
+- **Health Monitoring**: Service health events for better observability
+
+These improvements make the event system more scalable, observable, and maintainable while preserving the simplicity and flexibility that makes ElizaOS agents powerful.

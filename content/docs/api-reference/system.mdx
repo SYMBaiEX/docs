@@ -1,0 +1,776 @@
+---
+title: System API
+description: Environment and version information endpoints
+---
+
+# System API
+
+The System API provides environment configuration and version information for the ElizaOS server. All system endpoints are prefixed with `/api/system`.
+
+## Overview
+
+The System API includes:
+
+- **Version Information** - Server version, build details, and release info
+- **Environment Configuration** - Runtime environment and system settings
+- **System Capabilities** - Available features and service status
+
+## Base URL
+
+```
+http://localhost:3000/api/system
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Version Information
+
+### Get Version
+
+```http
+GET /api/system/version
+```
+
+Returns comprehensive version information about the ElizaOS server.
+
+**Response:**
+```json
+{
+  "version": "1.2.0",
+  "source": "server",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "environment": "development",
+  "uptime": 3600.5
+}
+```
+
+**Response Fields:**
+- `version` - Semantic version of the server
+- `source` - Always "server" for this endpoint
+- `timestamp` - ISO timestamp of the response
+- `environment` - Current NODE_ENV (development, production, test)
+- `uptime` - Server uptime in seconds
+
+**Example:**
+```bash
+curl http://localhost:3000/api/system/version
+```
+
+### Get Build Information
+
+```http
+GET /api/system/version/build
+```
+
+Returns detailed build information (if available).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "version": "1.2.0",
+    "buildNumber": "2024.01.001",
+    "buildDate": "2024-01-01T00:00:00Z",
+    "gitCommit": "abc123def456",
+    "gitBranch": "main",
+    "compiler": "TypeScript 5.0.0",
+    "nodeVersion": "18.17.0"
+  }
+}
+```
+
+### Get Changelog
+
+```http
+GET /api/system/version/changelog
+```
+
+Returns recent changes and release notes.
+
+**Query Parameters:**
+- `limit` (number) - Number of releases to return (default: 10)
+- `since` (string) - Version to start from (e.g., "1.1.0")
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "releases": [
+      {
+        "version": "1.2.0",
+        "date": "2024-01-01T00:00:00Z",
+        "type": "major",
+        "changes": [
+          "Added domain-based routing",
+          "Improved WebSocket handling",
+          "Enhanced memory management"
+        ],
+        "breaking": [
+          "API endpoints restructured"
+        ]
+      },
+      {
+        "version": "1.1.0",
+        "date": "2023-12-15T00:00:00Z",
+        "type": "minor",
+        "changes": [
+          "Added audio processing",
+          "Improved error handling"
+        ],
+        "breaking": []
+      }
+    ]
+  }
+}
+```
+
+## Environment Configuration
+
+### Get Environment
+
+```http
+GET /api/system/env
+```
+
+Returns environment configuration and system settings.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "environment": "development",
+    "nodeVersion": "18.17.0",
+    "platform": "linux",
+    "arch": "x64",
+    "hostname": "localhost",
+    "port": 3000,
+    "timezone": "UTC",
+    "locale": "en-US",
+    "features": {
+      "authentication": false,
+      "cors": true,
+      "rateLimit": true,
+      "websockets": true,
+      "fileUploads": true,
+      "audioProcessing": true
+    },
+    "limits": {
+      "maxFileSize": 10485760,
+      "maxRequestSize": 1048576,
+      "rateLimitWindow": 60000,
+      "rateLimitMax": 100
+    }
+  }
+}
+```
+
+### Get Environment Variables
+
+```http
+GET /api/system/env/variables
+```
+
+Returns non-sensitive environment variables.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "NODE_ENV": "development",
+    "PORT": "3000",
+    "HOST": "localhost",
+    "CORS_ORIGIN": "*",
+    "RATE_LIMIT_WINDOW": "60000",
+    "RATE_LIMIT_MAX": "100",
+    "MAX_FILE_SIZE": "10485760",
+    "ELIZA_VERSION": "1.2.0"
+  }
+}
+```
+
+**Notes:**
+- Sensitive variables (secrets, keys, passwords) are filtered out
+- Only configuration-related variables are returned
+- Values are returned as strings
+
+### Update Environment
+
+```http
+PATCH /api/system/env
+```
+
+Updates runtime environment configuration.
+
+**Request Body:**
+```json
+{
+  "rateLimitMax": 200,
+  "rateLimitWindow": 30000,
+  "maxFileSize": 20971520,
+  "corsOrigin": "https://example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "updated": [
+      "rateLimitMax",
+      "rateLimitWindow",
+      "maxFileSize",
+      "corsOrigin"
+    ],
+    "applied": true,
+    "restartRequired": false
+  }
+}
+```
+
+**Notes:**
+- Only runtime-configurable settings can be updated
+- Some changes may require server restart
+- Changes are applied immediately when possible
+
+## System Capabilities
+
+### Get Capabilities
+
+```http
+GET /api/system/capabilities
+```
+
+Returns available system capabilities and features.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "core": {
+      "agents": {
+        "available": true,
+        "maxConcurrent": 100,
+        "features": ["lifecycle", "memory", "messaging"]
+      },
+      "messaging": {
+        "available": true,
+        "protocols": ["http", "websocket"],
+        "features": ["channels", "rooms", "external"]
+      },
+      "memory": {
+        "available": true,
+        "types": ["agent", "room", "group"],
+        "features": ["search", "analytics", "export"]
+      }
+    },
+    "media": {
+      "uploads": {
+        "available": true,
+        "maxSize": 10485760,
+        "supportedTypes": ["image", "audio", "video", "document"]
+      },
+      "processing": {
+        "available": true,
+        "features": ["optimization", "thumbnails", "conversion"]
+      }
+    },
+    "audio": {
+      "transcription": {
+        "available": true,
+        "models": ["whisper-1"],
+        "languages": ["en", "es", "fr", "de"]
+      },
+      "synthesis": {
+        "available": true,
+        "voices": ["default", "neural"],
+        "formats": ["mp3", "wav"]
+      }
+    },
+    "integrations": {
+      "databases": ["sqlite", "postgresql"],
+      "external": ["discord", "slack", "telegram"],
+      "protocols": ["rest", "websocket", "sse"]
+    }
+  }
+}
+```
+
+### Get Feature Status
+
+```http
+GET /api/system/capabilities/features
+```
+
+Returns the status of individual features.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "features": {
+      "authentication": {
+        "enabled": false,
+        "configured": false,
+        "required": false
+      },
+      "cors": {
+        "enabled": true,
+        "configured": true,
+        "origin": "*"
+      },
+      "rateLimit": {
+        "enabled": true,
+        "configured": true,
+        "window": 60000,
+        "max": 100
+      },
+      "websockets": {
+        "enabled": true,
+        "configured": true,
+        "connections": 15
+      },
+      "database": {
+        "enabled": true,
+        "configured": true,
+        "connected": true,
+        "type": "sqlite"
+      }
+    }
+  }
+}
+```
+
+### Get Service Status
+
+```http
+GET /api/system/capabilities/services
+```
+
+Returns the status of external services and dependencies.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "services": {
+      "database": {
+        "name": "SQLite",
+        "status": "healthy",
+        "version": "3.40.0",
+        "lastCheck": "2024-01-01T00:00:00Z"
+      },
+      "messageQueue": {
+        "name": "Internal Bus",
+        "status": "healthy",
+        "version": "1.0.0",
+        "lastCheck": "2024-01-01T00:00:00Z"
+      },
+      "fileStorage": {
+        "name": "Local Storage",
+        "status": "healthy",
+        "available": 1099511627776,
+        "used": 549755813888,
+        "lastCheck": "2024-01-01T00:00:00Z"
+      }
+    }
+  }
+}
+```
+
+## System Metrics
+
+### Get System Metrics
+
+```http
+GET /api/system/metrics
+```
+
+Returns system-level performance metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "system": {
+      "cpu": {
+        "usage": 45.2,
+        "loadAverage": [1.2, 1.5, 1.8],
+        "cores": 8
+      },
+      "memory": {
+        "total": 16777216000,
+        "used": 8388608000,
+        "free": 8388608000,
+        "usage": 50.0
+      },
+      "disk": {
+        "total": 1099511627776,
+        "used": 549755813888,
+        "free": 549755813888,
+        "usage": 50.0
+      }
+    },
+    "process": {
+      "uptime": 3600,
+      "memoryUsage": {
+        "rss": 123456789,
+        "heapTotal": 87654321,
+        "heapUsed": 45678901
+      },
+      "cpuUsage": {
+        "user": 123456,
+        "system": 78901
+      }
+    }
+  }
+}
+```
+
+### Get Performance History
+
+```http
+GET /api/system/metrics/history
+```
+
+Returns historical performance data.
+
+**Query Parameters:**
+- `period` (string) - Time period (hour, day, week, month)
+- `metric` (string) - Specific metric (cpu, memory, disk, network)
+- `resolution` (string) - Data resolution (minute, hour, day)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "period": "day",
+    "metric": "memory",
+    "resolution": "hour",
+    "dataPoints": [
+      {
+        "timestamp": "2024-01-01T00:00:00Z",
+        "value": 45.2,
+        "unit": "percent"
+      },
+      {
+        "timestamp": "2024-01-01T01:00:00Z",
+        "value": 47.8,
+        "unit": "percent"
+      }
+    ]
+  }
+}
+```
+
+## Configuration Management
+
+### Get Configuration
+
+```http
+GET /api/system/config
+```
+
+Returns current system configuration.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "server": {
+      "port": 3000,
+      "host": "localhost",
+      "environment": "development"
+    },
+    "security": {
+      "authentication": false,
+      "cors": {
+        "enabled": true,
+        "origin": "*"
+      },
+      "rateLimit": {
+        "enabled": true,
+        "window": 60000,
+        "max": 100
+      }
+    },
+    "features": {
+      "websockets": true,
+      "fileUploads": true,
+      "audioProcessing": true
+    },
+    "limits": {
+      "maxFileSize": 10485760,
+      "maxRequestSize": 1048576,
+      "maxAgents": 100
+    }
+  }
+}
+```
+
+### Update Configuration
+
+```http
+PATCH /api/system/config
+```
+
+Updates system configuration.
+
+**Request Body:**
+```json
+{
+  "security": {
+    "rateLimit": {
+      "max": 200,
+      "window": 30000
+    }
+  },
+  "limits": {
+    "maxFileSize": 20971520,
+    "maxAgents": 50
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "updated": true,
+    "changes": [
+      "security.rateLimit.max",
+      "security.rateLimit.window",
+      "limits.maxFileSize",
+      "limits.maxAgents"
+    ],
+    "restartRequired": false
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_REQUEST` - Invalid request parameters
+- `UNAUTHORIZED` - Authentication required
+- `FORBIDDEN` - Insufficient permissions
+- `NOT_FOUND` - Resource not found
+- `CONFIG_ERROR` - Configuration error
+- `INTERNAL_ERROR` - Server error
+
+## Rate Limiting
+
+System endpoints are subject to rate limiting:
+- Version endpoints: 300 requests per minute
+- Environment endpoints: 60 requests per minute
+- Configuration endpoints: 30 requests per minute
+- Metrics endpoints: 120 requests per minute
+
+## Security Considerations
+
+1. **Information Disclosure**: Sensitive information is filtered from responses
+2. **Configuration Access**: Config endpoints require authentication
+3. **Environment Variables**: Only non-sensitive variables are exposed
+4. **Feature Detection**: Capability information helps with client adaptation
+5. **Version Information**: Useful for compatibility checks
+
+## Best Practices
+
+1. **Version Checking**: Use version endpoint for compatibility validation
+2. **Feature Detection**: Check capabilities before using features
+3. **Environment Awareness**: Adapt behavior based on environment
+4. **Monitoring**: Use metrics endpoints for system monitoring
+5. **Configuration**: Update config programmatically when needed
+
+## Examples
+
+### Version and Environment Check
+
+```bash
+# Get version information
+curl http://localhost:3000/api/system/version
+
+# Get environment details
+curl http://localhost:3000/api/system/env \
+  -H "X-API-KEY: your-api-key"
+
+# Check capabilities
+curl http://localhost:3000/api/system/capabilities
+```
+
+### Configuration Management
+
+```bash
+# Get current configuration
+curl http://localhost:3000/api/system/config \
+  -H "X-API-KEY: your-api-key"
+
+# Update rate limiting
+curl -X PATCH http://localhost:3000/api/system/config \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  -d '{
+    "security": {
+      "rateLimit": {
+        "max": 200,
+        "window": 30000
+      }
+    }
+  }'
+```
+
+### System Monitoring
+
+```bash
+# Get system metrics
+curl http://localhost:3000/api/system/metrics \
+  -H "X-API-KEY: your-api-key"
+
+# Get service status
+curl http://localhost:3000/api/system/capabilities/services \
+  -H "X-API-KEY: your-api-key"
+
+# Get performance history
+curl "http://localhost:3000/api/system/metrics/history?period=day&metric=memory" \
+  -H "X-API-KEY: your-api-key"
+```
+
+### JavaScript Integration
+
+```javascript
+// Check server compatibility
+const checkCompatibility = async () => {
+  try {
+    const response = await fetch('/api/system/version');
+    const data = await response.json();
+    
+    const serverVersion = data.version;
+    const requiredVersion = '1.2.0';
+    
+    if (compareVersions(serverVersion, requiredVersion) >= 0) {
+      console.log('Server version compatible:', serverVersion);
+      return true;
+    } else {
+      console.warn('Server version incompatible:', serverVersion);
+      return false;
+    }
+  } catch (error) {
+    console.error('Failed to check version:', error);
+    return false;
+  }
+};
+
+// Feature detection
+const checkFeatures = async () => {
+  try {
+    const response = await fetch('/api/system/capabilities');
+    const data = await response.json();
+    
+    const features = data.data;
+    
+    if (features.audio?.transcription?.available) {
+      console.log('Audio transcription available');
+    }
+    
+    if (features.media?.uploads?.available) {
+      console.log('File uploads available');
+      console.log('Max file size:', features.media.uploads.maxSize);
+    }
+    
+    return features;
+  } catch (error) {
+    console.error('Failed to check features:', error);
+    return null;
+  }
+};
+
+// System monitoring
+const monitorSystem = async () => {
+  try {
+    const response = await fetch('/api/system/metrics', {
+      headers: {
+        'X-API-KEY': 'your-api-key'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const metrics = data.data;
+      console.log('CPU usage:', metrics.system.cpu.usage + '%');
+      console.log('Memory usage:', metrics.system.memory.usage + '%');
+      console.log('Server uptime:', metrics.process.uptime + 's');
+    }
+  } catch (error) {
+    console.error('Failed to get metrics:', error);
+  }
+};
+```
+
+### Environment-Specific Behavior
+
+```javascript
+// Adapt behavior based on environment
+const adaptToEnvironment = async () => {
+  try {
+    const response = await fetch('/api/system/env');
+    const data = await response.json();
+    
+    const env = data.data;
+    
+    if (env.environment === 'development') {
+      console.log('Development mode: enabling debug features');
+      // Enable debugging, verbose logging, etc.
+    } else if (env.environment === 'production') {
+      console.log('Production mode: optimizing for performance');
+      // Disable debugging, optimize for performance
+    }
+    
+    // Configure based on available features
+    if (env.features.authentication) {
+      console.log('Authentication enabled');
+      // Set up authentication flow
+    }
+    
+    if (env.features.websockets) {
+      console.log('WebSockets available');
+      // Use WebSocket for real-time features
+    }
+  } catch (error) {
+    console.error('Failed to get environment:', error);
+  }
+};
+```
+
+*Note: System API endpoints provide essential information for client applications to adapt their behavior based on server capabilities and configuration.*

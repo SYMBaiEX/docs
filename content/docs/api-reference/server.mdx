@@ -1,0 +1,748 @@
+---
+title: Server API
+description: Runtime health and system monitoring capabilities
+---
+
+# Server API
+
+The Server API provides runtime health monitoring, system control, and debugging capabilities for the ElizaOS server. All server endpoints are prefixed with `/api/server`.
+
+## Overview
+
+The Server API includes:
+
+- **Health Checks** - System status and availability monitoring
+- **System Control** - Server lifecycle management
+- **Debug Information** - Runtime debugging and metrics
+- **Log Management** - Centralized logging and monitoring
+
+## Base URL
+
+```
+http://localhost:3000/api/server
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Health Monitoring
+
+### Ping
+
+```http
+GET /api/server/ping
+```
+
+Simple health check endpoint for monitoring tools.
+
+**Response:**
+```json
+{
+  "pong": true,
+  "timestamp": 1704067200000
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/api/server/ping
+```
+
+### Hello World
+
+```http
+GET /api/server/hello
+```
+
+Basic connectivity test endpoint.
+
+**Response:**
+```json
+{
+  "message": "Hello World!"
+}
+```
+
+### System Status
+
+```http
+GET /api/server/status
+```
+
+Gets basic system status information.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "agentCount": 3,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+**Notes:**
+- `agentCount` shows number of active agent runtimes
+- `timestamp` is in ISO format
+- Status is always "ok" if server is responsive
+
+### Comprehensive Health Check
+
+```http
+GET /api/server/health
+```
+
+Detailed health check with dependency status.
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "version": "1.2.0",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "dependencies": {
+    "agents": "healthy"
+  }
+}
+```
+
+**Status Codes:**
+- `200 OK` - All dependencies healthy
+- `503 Service Unavailable` - No agents available or critical issues
+
+**Example:**
+```bash
+curl http://localhost:3000/api/server/health
+```
+
+## System Control
+
+### Stop Server
+
+```http
+POST /api/server/stop
+```
+
+Gracefully shuts down the server.
+
+**Response:**
+```json
+{
+  "message": "Server stopping..."
+}
+```
+
+**Notes:**
+- Triggers graceful shutdown sequence
+- Existing connections are allowed to complete
+- Agents are stopped before server shutdown
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/server/stop \
+  -H "X-API-KEY: your-api-key"
+```
+
+## Debug Information
+
+### Debug State
+
+```http
+GET /api/server/debug/state
+```
+
+Gets current server debug state and runtime information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "serverState": "running",
+    "activeAgents": 3,
+    "memoryUsage": {
+      "rss": 123456789,
+      "heapTotal": 87654321,
+      "heapUsed": 45678901,
+      "external": 1234567,
+      "arrayBuffers": 987654
+    },
+    "uptime": 3600,
+    "nodeVersion": "18.17.0",
+    "platform": "linux"
+  }
+}
+```
+
+### Debug Metrics
+
+```http
+GET /api/server/debug/metrics
+```
+
+Gets detailed performance metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "performance": {
+      "cpuUsage": {
+        "user": 123456,
+        "system": 78901
+      },
+      "memoryUsage": {
+        "rss": 123456789,
+        "heapTotal": 87654321,
+        "heapUsed": 45678901
+      },
+      "loadAverage": [1.2, 1.5, 1.8],
+      "uptime": 3600
+    },
+    "requests": {
+      "total": 15234,
+      "perSecond": 4.2,
+      "errorRate": 0.01
+    },
+    "agents": {
+      "active": 3,
+      "idle": 1,
+      "processing": 2
+    }
+  }
+}
+```
+
+### Environment Information
+
+```http
+GET /api/server/debug/env
+```
+
+Gets environment and configuration information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "nodeEnv": "development",
+    "nodeVersion": "18.17.0",
+    "platform": "linux",
+    "arch": "x64",
+    "serverPort": 3000,
+    "databaseConnected": true,
+    "features": {
+      "auth": false,
+      "cors": true,
+      "rateLimit": true,
+      "websockets": true
+    }
+  }
+}
+```
+
+## Log Management
+
+### Get Server Logs
+
+```http
+GET /api/server/logs
+```
+
+Retrieves recent server logs.
+
+**Query Parameters:**
+- `limit` (number) - Number of log entries (default: 100, max: 1000)
+- `level` (string) - Minimum log level (debug, info, warn, error)
+- `since` (string) - ISO timestamp for logs since this time
+- `agentId` (UUID) - Filter by specific agent
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "level": "info",
+        "time": 1704067200000,
+        "msg": "Server started successfully",
+        "pid": 12345,
+        "hostname": "localhost"
+      },
+      {
+        "level": "debug",
+        "time": 1704067260000,
+        "msg": "Agent runtime initialized",
+        "agentId": "agent-uuid",
+        "agentName": "Agent Name"
+      }
+    ],
+    "pagination": {
+      "total": 2500,
+      "limit": 100,
+      "hasMore": true
+    }
+  }
+}
+```
+
+### Stream Server Logs
+
+```http
+GET /api/server/logs/stream
+```
+
+Streams real-time server logs via Server-Sent Events.
+
+**Response:**
+```
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+
+data: {"level":"info","time":1704067200000,"msg":"New agent connected","agentId":"agent-uuid"}
+
+data: {"level":"debug","time":1704067260000,"msg":"Processing message","channelId":"channel-uuid"}
+
+data: {"level":"error","time":1704067320000,"msg":"Database connection lost","error":"Connection timeout"}
+```
+
+**Example:**
+```javascript
+const eventSource = new EventSource('/api/server/logs/stream');
+eventSource.onmessage = function(event) {
+  const logEntry = JSON.parse(event.data);
+  console.log(`[${logEntry.level}] ${logEntry.msg}`);
+};
+```
+
+## Performance Monitoring
+
+### Get Performance Metrics
+
+```http
+GET /api/server/metrics
+```
+
+Gets comprehensive performance metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "server": {
+      "uptime": 3600,
+      "memoryUsage": {
+        "rss": 123456789,
+        "heapTotal": 87654321,
+        "heapUsed": 45678901
+      },
+      "cpuUsage": {
+        "user": 123456,
+        "system": 78901
+      }
+    },
+    "agents": {
+      "total": 5,
+      "active": 3,
+      "idle": 2,
+      "averageResponseTime": 250
+    },
+    "requests": {
+      "total": 15234,
+      "successful": 15084,
+      "failed": 150,
+      "averageResponseTime": 125
+    },
+    "database": {
+      "connected": true,
+      "queries": 4521,
+      "averageQueryTime": 15
+    }
+  }
+}
+```
+
+### Get Resource Usage
+
+```http
+GET /api/server/resources
+```
+
+Gets current resource usage statistics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cpu": {
+      "usage": 45.2,
+      "loadAverage": [1.2, 1.5, 1.8],
+      "cores": 8
+    },
+    "memory": {
+      "total": 16777216000,
+      "used": 8388608000,
+      "free": 8388608000,
+      "usage": 50.0
+    },
+    "disk": {
+      "total": 1099511627776,
+      "used": 549755813888,
+      "free": 549755813888,
+      "usage": 50.0
+    },
+    "network": {
+      "bytesIn": 1048576000,
+      "bytesOut": 524288000,
+      "connectionsActive": 25
+    }
+  }
+}
+```
+
+## WebSocket Monitoring
+
+### Get WebSocket Status
+
+```http
+GET /api/server/websockets
+```
+
+Gets WebSocket connection statistics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": true,
+    "connections": {
+      "total": 15,
+      "active": 12,
+      "idle": 3
+    },
+    "rooms": {
+      "total": 8,
+      "participants": 15
+    },
+    "events": {
+      "sent": 2456,
+      "received": 1789,
+      "errors": 5
+    }
+  }
+}
+```
+
+### Get WebSocket Connections
+
+```http
+GET /api/server/websockets/connections
+```
+
+Lists active WebSocket connections.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "connections": [
+      {
+        "id": "socket-id-1",
+        "connected": true,
+        "connectedAt": "2024-01-01T00:00:00Z",
+        "lastActivity": "2024-01-01T00:05:00Z",
+        "rooms": ["channel-uuid-1", "channel-uuid-2"],
+        "events": {
+          "sent": 45,
+          "received": 32
+        }
+      }
+    ]
+  }
+}
+```
+
+## System Information
+
+### Get System Info
+
+```http
+GET /api/server/info
+```
+
+Gets comprehensive system information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "server": {
+      "version": "1.2.0",
+      "environment": "development",
+      "port": 3000,
+      "uptime": 3600,
+      "startedAt": "2024-01-01T00:00:00Z"
+    },
+    "system": {
+      "platform": "linux",
+      "arch": "x64",
+      "nodeVersion": "18.17.0",
+      "hostname": "localhost",
+      "cpus": 8,
+      "totalMemory": 16777216000
+    },
+    "features": {
+      "authentication": false,
+      "cors": true,
+      "rateLimit": true,
+      "websockets": true,
+      "database": true
+    }
+  }
+}
+```
+
+### Get Configuration
+
+```http
+GET /api/server/config
+```
+
+Gets server configuration (non-sensitive values only).
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "server": {
+      "port": 3000,
+      "host": "localhost",
+      "cors": {
+        "enabled": true,
+        "origin": "*"
+      },
+      "rateLimit": {
+        "enabled": true,
+        "windowMs": 60000,
+        "max": 100
+      }
+    },
+    "features": {
+      "auth": false,
+      "websockets": true,
+      "fileUploads": true,
+      "audioProcessing": true
+    }
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_REQUEST` - Invalid request parameters
+- `UNAUTHORIZED` - Authentication required
+- `FORBIDDEN` - Insufficient permissions
+- `NOT_FOUND` - Endpoint not found
+- `INTERNAL_ERROR` - Server error
+- `SERVICE_UNAVAILABLE` - Service temporarily unavailable
+
+## Rate Limiting
+
+Server endpoints have different rate limits:
+- Health checks: 300 requests per minute
+- Debug endpoints: 60 requests per minute
+- Log endpoints: 30 requests per minute
+- Control endpoints: 10 requests per minute
+
+## Security Considerations
+
+1. **Authentication**: Debug and control endpoints require API keys in production
+2. **Information Disclosure**: Sensitive information is filtered from responses
+3. **Access Control**: Admin-level endpoints require elevated permissions
+4. **Rate Limiting**: Prevents abuse and DoS attacks
+5. **Input Validation**: All inputs are validated and sanitized
+
+## Best Practices
+
+1. **Health Monitoring**: Use `/ping` for simple health checks
+2. **Alerting**: Monitor `/health` endpoint for dependency issues
+3. **Logging**: Use log streaming for real-time monitoring
+4. **Metrics**: Regularly collect performance metrics
+5. **Graceful Shutdown**: Use `/stop` endpoint for controlled shutdowns
+
+## Examples
+
+### Health Check Monitoring
+
+```bash
+# Simple health check
+curl http://localhost:3000/api/server/ping
+
+# Detailed health check
+curl http://localhost:3000/api/server/health
+
+# Check system status
+curl http://localhost:3000/api/server/status
+```
+
+### Performance Monitoring
+
+```bash
+# Get performance metrics
+curl http://localhost:3000/api/server/metrics \
+  -H "X-API-KEY: your-api-key"
+
+# Get resource usage
+curl http://localhost:3000/api/server/resources \
+  -H "X-API-KEY: your-api-key"
+
+# Get debug information
+curl http://localhost:3000/api/server/debug/state \
+  -H "X-API-KEY: your-api-key"
+```
+
+### Log Management
+
+```bash
+# Get recent logs
+curl "http://localhost:3000/api/server/logs?limit=50&level=info" \
+  -H "X-API-KEY: your-api-key"
+
+# Stream logs in real-time
+curl -N http://localhost:3000/api/server/logs/stream \
+  -H "X-API-KEY: your-api-key"
+
+# Get logs for specific agent
+curl "http://localhost:3000/api/server/logs?agentId=agent-uuid" \
+  -H "X-API-KEY: your-api-key"
+```
+
+### JavaScript Monitoring Example
+
+```javascript
+// Health check with retry logic
+const checkHealth = async () => {
+  try {
+    const response = await fetch('/api/server/health');
+    const data = await response.json();
+    
+    if (data.status === 'OK') {
+      console.log('Server is healthy');
+      return true;
+    } else {
+      console.warn('Server health check failed:', data);
+      return false;
+    }
+  } catch (error) {
+    console.error('Health check error:', error);
+    return false;
+  }
+};
+
+// Monitor performance metrics
+const monitorPerformance = async () => {
+  try {
+    const response = await fetch('/api/server/metrics', {
+      headers: {
+        'X-API-KEY': 'your-api-key'
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const metrics = data.data;
+      console.log('Memory usage:', metrics.server.memoryUsage);
+      console.log('Active agents:', metrics.agents.active);
+      console.log('Request rate:', metrics.requests.perSecond);
+    }
+  } catch (error) {
+    console.error('Failed to get metrics:', error);
+  }
+};
+
+// Real-time log streaming
+const streamLogs = () => {
+  const eventSource = new EventSource('/api/server/logs/stream');
+  
+  eventSource.onmessage = (event) => {
+    const logEntry = JSON.parse(event.data);
+    console.log(`[${logEntry.level.toUpperCase()}] ${logEntry.msg}`);
+  };
+  
+  eventSource.onerror = (error) => {
+    console.error('Log stream error:', error);
+  };
+  
+  return eventSource;
+};
+```
+
+### Health Check Script
+
+```bash
+#!/bin/bash
+# health-check.sh - Simple health monitoring script
+
+SERVER_URL="http://localhost:3000"
+API_KEY="your-api-key"
+
+echo "Checking server health..."
+
+# Ping test
+PING_RESPONSE=$(curl -s "$SERVER_URL/api/server/ping")
+if [[ $PING_RESPONSE == *"pong"* ]]; then
+  echo "✓ Ping successful"
+else
+  echo "✗ Ping failed"
+  exit 1
+fi
+
+# Health check
+HEALTH_RESPONSE=$(curl -s "$SERVER_URL/api/server/health")
+if [[ $HEALTH_RESPONSE == *"OK"* ]]; then
+  echo "✓ Health check passed"
+else
+  echo "✗ Health check failed"
+  echo "$HEALTH_RESPONSE"
+  exit 1
+fi
+
+# Agent count
+STATUS_RESPONSE=$(curl -s "$SERVER_URL/api/server/status")
+AGENT_COUNT=$(echo "$STATUS_RESPONSE" | grep -o '"agentCount":[0-9]*' | grep -o '[0-9]*')
+echo "✓ Active agents: $AGENT_COUNT"
+
+echo "Server is healthy!"
+```
+
+*Note: Debug and control endpoints require proper authentication in production environments.*
