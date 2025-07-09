@@ -62,63 +62,71 @@ All API responses follow a consistent format:
 ### Agents API (`/api/agents`)
 
 Agent management and lifecycle operations:
-- Agent CRUD operations
-- Agent lifecycle (start/stop)
-- Agent memory management
-- Agent logs and monitoring
-- Agent worlds and environments
+- **CRUD Operations**: `GET /`, `GET /:id`, `POST /`, `PATCH /:id`, `DELETE /:id`
+- **Lifecycle Management**: `POST /:id/start`, `POST /:id/stop`
+- **Memory Operations**: `GET /:id/memories`, `POST /:id/memories`, `DELETE /:id/memories`
+- **Room Management**: `GET /:id/rooms`, `GET /:id/rooms/:roomId`
+- **Logs and Monitoring**: `GET /:id/logs`, `GET /:id/logs/stream`
+- **Worlds and Panels**: `GET /:id/worlds`, `GET /:id/panels`
 
 ### Messaging API (`/api/messaging`)
 
 Real-time messaging and communication:
-- Core messaging functionality
-- Server and channel management
-- Message submission and retrieval
-- External message ingestion
+- **Core Messaging**: `POST /submit`, `POST /complete`, `POST /ingest-external`
+- **Server Management**: `GET /servers`, `POST /servers`, `GET /servers/:id`
+- **Channel Operations**: `GET /central-channels/:id/messages`, `POST /central-channels/:id/messages`
+- **Channel Management**: `POST /channels`, `GET /dm-channel`, `POST /central-channels`
+- **File Uploads**: `POST /channels/:id/upload-media`
+- **External Integration**: Support for Discord, Slack, and other platforms
 
 ### Memory API (`/api/memory`)
 
 Agent memory and knowledge management:
-- Agent memory operations
-- Group memory management
-- Room-based memory organization
-- Memory search and retrieval
+- **Agent Memory**: `GET /agents/:id/memories`, `POST /agents/:id/memories`
+- **Memory Search**: `GET /agents/:id/memories/search` (semantic similarity)
+- **Room Memory**: `GET /agents/:id/rooms/:roomId/memories`
+- **Group Memory**: `GET /groups`, `POST /groups`, `GET /groups/:id/memories`
+- **Memory Analytics**: `GET /agents/:id/stats`, `GET /agents/:id/insights`
+- **Import/Export**: `GET /agents/:id/export`, `POST /agents/:id/import`
 
 ### Audio API (`/api/audio`)
 
 Speech processing and voice synthesis:
-- Audio transcription
-- Text-to-speech synthesis
-- Conversational audio processing
-- Audio buffer management
+- **Audio Processing**: `POST /:agentId/audio-messages`, `POST /:agentId/transcriptions`
+- **Text-to-Speech**: `POST /:agentId/synthesize`, `GET /:agentId/voices`
+- **Conversational Audio**: `POST /:agentId/conversation`, `GET /:agentId/conversation/status`
+- **Audio Buffer Management**: Real-time audio streaming support
 
 ### Media API (`/api/media`)
 
-File uploads and media generation:
-- Agent media uploads
-- Channel media management
-- AI-generated media content
+File uploads and media handling:
+- **Agent Media**: `POST /agents/:id/upload` (images, documents, audio)
+- **Channel Media**: `POST /channels/:id/upload` (shared media)
+- **File Management**: `GET /files/:id`, `DELETE /files/:id`
+- **Media Processing**: Automatic format conversion and optimization
 
 ### Server API (`/api/server`)
 
 Runtime health and system monitoring:
-- Health checks and system status
-- Runtime debugging information
-- System logging and monitoring
+- **Health Checks**: `GET /ping`, `GET /health`, `GET /status`
+- **System Control**: `POST /stop`, `GET /hello`
+- **Runtime Debug**: `GET /debug/state`, `GET /debug/metrics`
+- **Log Management**: `GET /logs`, `GET /logs/stream`
 
 ### System API (`/api/system`)
 
 Environment and version information:
-- Environment configuration
-- Version information
-- System capabilities
+- **Version Info**: `GET /version` (returns server version, environment, uptime)
+- **Environment**: `GET /env` (configuration and environment variables)
+- **System Capabilities**: Runtime feature detection and availability
 
 ### TEE API (`/api/tee`)
 
 Trusted Execution Environment operations:
-- Remote attestation
-- Key derivation
-- Secure operations
+- **Remote Attestation**: Secure identity verification
+- **Key Derivation**: Cryptographic key management
+- **Secure Operations**: Privacy-preserving computations
+- *Note: Implementation in progress*
 
 ## Key Features
 
@@ -127,14 +135,14 @@ Trusted Execution Environment operations:
 ElizaOS v1.2.0 introduces domain-based routing for better organization:
 
 ```
-/api/agents/*     - Agent operations
-/api/messaging/*  - Messaging operations
-/api/memory/*     - Memory operations
-/api/audio/*      - Audio processing
-/api/media/*      - Media management
-/api/server/*     - Server operations
-/api/system/*     - System information
-/api/tee/*        - TEE operations
+/api/agents/*     - Agent lifecycle, memory, and management
+/api/messaging/*  - Real-time messaging and communication
+/api/memory/*     - Agent memory and knowledge management
+/api/audio/*      - Speech processing and voice synthesis
+/api/media/*      - File uploads and media handling
+/api/server/*     - Runtime health and system monitoring
+/api/system/*     - Environment and version information
+/api/tee/*        - Trusted Execution Environment (future)
 ```
 
 ### Real-time Communication
@@ -202,7 +210,11 @@ Common error codes:
 
 ## Next Steps
 
-- [REST API Reference](./rest-api-reference) - Complete endpoint documentation
+- [Agents API](./agents) - Agent lifecycle and management
+- [Messaging API](./messaging) - Real-time messaging and communication
+- [Memory API](./memory) - Agent memory and knowledge management
+- [Audio API](./audio) - Speech processing and voice synthesis
+- [Media API](./media) - File uploads and media handling
+- [Server API](./server) - Runtime health and system monitoring
+- [System API](./system) - Environment and version information
 - [WebSocket Events](../core-concepts/communication/websocket-events) - Real-time communication
-- [Agent Development](../guides/agent-development) - Building custom agents
-- [Plugin Development](../guides/plugin-development) - Creating plugins

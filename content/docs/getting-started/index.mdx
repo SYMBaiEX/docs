@@ -85,9 +85,28 @@ Before you begin, ensure you have:
   </Tab>
 </Tabs>
 
+## Project Types in v1.2.0
+
+ElizaOS v1.2.0 introduces different project types for various use cases:
+
+<Cards>
+  <Card title="Project" href="/docs/getting-started/quickstart" icon="🚀">
+    Full ElizaOS application with all features - perfect for complete agent solutions
+  </Card>
+  <Card title="Plugin" href="/docs/plugins/creating-plugins" icon="🔌">
+    Extend ElizaOS with custom functionality - for developers building extensions
+  </Card>
+  <Card title="Agent" href="/docs/core-concepts/agent-development/character-definition" icon="🤖">
+    Standalone agent character definition - for simple agent configurations
+  </Card>
+  <Card title="TEE" href="/docs/advanced/tee-deployment" icon="🔒">
+    Trusted Execution Environment deployment - for secure, decentralized agents
+  </Card>
+</Cards>
+
 ## Installation Methods
 
-ElizaOS offers multiple installation approaches:
+ElizaOS v1.2.0 offers multiple installation approaches:
 
 ### Using the CLI (Recommended)
 
@@ -97,8 +116,11 @@ The ElizaOS CLI is the fastest and most reliable way to get started:
 # Install the CLI globally
 bun install -g @elizaos/cli
 
-# Create your first project
-elizaos create my-agent
+# Create your first project (interactive mode)
+elizaos create
+
+# Or specify project type directly
+elizaos create my-agent --type project
 ```
 
 ### Manual Installation
@@ -138,8 +160,14 @@ Once you've completed the basic setup:
   <Card title="Customize Behavior" href="/docs/core-concepts/agent-development/character-definition" icon="🎭">
     Learn how to define your agent's personality and capabilities
   </Card>
-  <Card title="Add Actions" href="/docs/core-concepts/agent-development/actions" icon="⚡">
-    Extend your agent with custom actions and behaviors
+  <Card title="Add Plugins" href="/docs/plugins" icon="🔌">
+    Extend your agent with powerful plugins from the community
+  </Card>
+  <Card title="Development Workflow" href="/docs/getting-started/configuration" icon="⚙️">
+    Learn about development commands and best practices
+  </Card>
+  <Card title="Testing & Deployment" href="/docs/advanced/deployment" icon="🚀">
+    Test your agent and deploy to production
   </Card>
 </Cards>
 
@@ -151,10 +179,12 @@ Once you've completed the basic setup:
 
 ### Quick Fixes
 
-- **Node.js version issues**: Ensure you're using Node.js v23.3.0+
-- **Permission errors**: Try using `sudo` or check your Node.js installation
+- **Node.js version issues**: Ensure you're using Node.js v23.3.0 (exact version required)
+- **CLI installation issues**: Try `bun update -g @elizaos/cli` or reinstall with `bun install -g @elizaos/cli`
+- **Permission errors**: Fix with `sudo chown -R $(whoami) ~/.bun` or use `sudo` for global installs
 - **API key errors**: Verify your API keys are correctly set in the `.env` file
-- **Port conflicts**: ElizaOS uses port 3000 by default - ensure it's available
+- **Port conflicts**: ElizaOS uses port 3000 by default - ensure it's available or use `--port` option
+- **Database connection errors**: Check your database URL in `.env` or switch to `pglite` for development
 
 ## Community & Support
 

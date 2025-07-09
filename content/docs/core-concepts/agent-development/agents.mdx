@@ -1,11 +1,11 @@
 ---
 title: "Agents"
-description: "Understanding the Agent and Character interfaces, runtime integration, and agent lifecycle management in ElizaOS"
+description: "Understanding the Agent and Character interfaces, runtime integration, and agent lifecycle management in ElizaOS v1.2.0"
 ---
 
 # Agents
 
-Agents are the core operational units in ElizaOS, representing autonomous entities that can interact with users and systems. This page covers the fundamental concepts of agents, their structure, and how they relate to characters.
+Agents are the core operational units in ElizaOS v1.2.0, representing autonomous entities that can interact with users and systems. This page covers the fundamental concepts of agents, their structure, and how they relate to characters, with enhanced service integration and context tracking.
 
 ## Core Concepts
 
@@ -26,23 +26,34 @@ interface Character {
   // ... personality and configuration
 }
 
-// Agent - Runtime instance
+// Agent - Runtime instance (enhanced in v1.2.0)
 interface Agent extends Character {
   enabled?: boolean;
   status?: AgentStatus;
   createdAt: number;
   updatedAt: number;
+  runId?: UUID; // New in v1.2.0: Current runtime session ID
+  metadata?: {
+    version?: string;
+    capabilities?: string[];
+    serviceCount?: number;
+    lastHealthCheck?: number;
+  };
 }
 ```
 
 ### Agent Status
 
-Agents have operational states managed through the `AgentStatus` enum:
+Agents have operational states managed through the enhanced `AgentStatus` enum:
 
 ```typescript
 export enum AgentStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
+  STARTING = 'starting',    // New in v1.2.0: Agent is initializing
+  STOPPING = 'stopping',    // New in v1.2.0: Agent is shutting down
+  ERROR = 'error',          // New in v1.2.0: Agent encountered an error
+  MAINTENANCE = 'maintenance' // New in v1.2.0: Agent is under maintenance
 }
 ```
 
@@ -63,15 +74,28 @@ interface Agent extends Character {
   
   /** Timestamp when agent was last updated */
   updatedAt: number;
+  
+  /** Current runtime session ID (new in v1.2.0) */
+  runId?: UUID;
+  
+  /** Additional metadata (new in v1.2.0) */
+  metadata?: {
+    version?: string;
+    capabilities?: string[];
+    serviceCount?: number;
+    lastHealthCheck?: number;
+  };
 }
 ```
 
 ### Key Properties
 
 - **enabled**: Boolean flag controlling whether the agent can operate
-- **status**: Current operational state (ACTIVE or INACTIVE)
+- **status**: Current operational state (expanded in v1.2.0)
 - **createdAt**: Database creation timestamp
 - **updatedAt**: Last modification timestamp
+- **runId**: Unique identifier for current runtime session (new in v1.2.0)
+- **metadata**: Additional operational metadata and capabilities (new in v1.2.0)
 
 ## Character Definition
 
@@ -147,6 +171,7 @@ interface IAgentRuntime {
   // Character and agent management
   character: Character;
   agentId: UUID;
+  runId: UUID; // New in v1.2.0: Current runtime session ID
   
   // State management
   composeState(message: Memory, additionalKeys?: string[]): Promise<State>;
@@ -162,6 +187,18 @@ interface IAgentRuntime {
     unique?: boolean;
   }): Promise<Memory[]>;
   
+  // Enhanced memory operations (new in v1.2.0)
+  searchMemories(params: {
+    tableName: string;
+    embedding: number[];
+    query?: string;
+    match_threshold?: number;
+    count?: number;
+    roomId?: UUID;
+    entityId?: UUID;
+    worldId?: UUID;
+  }): Promise<Memory[]>;
+  
   // Message processing
   processActions(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
   processEvaluators(runtime: IAgentRuntime, message: Memory, state: State): Promise<any[]>;
@@ -173,6 +210,11 @@ interface IAgentRuntime {
   registerAction(action: Action): void;
   registerEvaluator(evaluator: Evaluator): void;
   registerProvider(provider: Provider): void;
+  
+  // Service management (enhanced in v1.2.0)
+  getService<T extends Service>(serviceName: ServiceTypeName): T | null;
+  getAllServices(): Map<ServiceTypeName, Service>;
+  registerService(service: typeof Service): Promise<void>;
   
   // Task management
   createTask(task: Task): Promise<Task>;
@@ -190,6 +232,14 @@ interface IAgentRuntime {
   getCache<T>(key: string): Promise<T | undefined>;
   setCache<T>(key: string, value: T): Promise<void>;
   
+  // Event system (enhanced in v1.2.0)
+  registerEvent(event: string, handler: (params: any) => Promise<void>): void;
+  emitEvent(event: string | string[], params: any): Promise<void>;
+  emitDomainEvent(domain: string, event: string, params: any): Promise<void>;
+  
+  // Action context tracking (new in v1.2.0)
+  currentActionContext?: ActionContext;
+  
   // Configuration
   getConversationLength(): number;
   getSetting(key: string): string | undefined;
@@ -198,31 +248,49 @@ interface IAgentRuntime {
 
 ### Message Processing Pipeline
 
-Agents process messages through a structured pipeline:
+Agents process messages through an enhanced structured pipeline:
 
 ```typescript
 async function processMessage(runtime: IAgentRuntime, message: Memory): Promise<any> {
-  // 1. Compose state from providers
+  // 1. Compose state from providers with enhanced context
   const state = await runtime.composeState(message, [
     'RECENT_MESSAGES',
     'CHARACTER', 
     'RELATIONSHIPS',
-    'TIME'
+    'TIME',
+    'SERVICES',    // New in v1.2.0: Service status
+    'CAPABILITIES' // New in v1.2.0: Current capabilities
   ]);
   
   // 2. Run evaluators to assess situation
   const evaluationResults = await runtime.processEvaluators(runtime, message, state);
   
-  // 3. Determine and execute actions
+  // 3. Determine and execute actions with context tracking
   const actionResults = await runtime.processActions(runtime, message, state);
   
-  // 4. Update memory with results
+  // 4. Update memory with enhanced metadata
   await runtime.createMemory({
     agentId: runtime.agentId,
+    runId: runtime.runId,  // New in v1.2.0
     content: { text: response.text, actions: actions },
     roomId: message.roomId,
-    entityId: message.entityId
+    entityId: message.entityId,
+    metadata: {
+      processedAt: new Date().toISOString(),
+      runId: runtime.runId,
+      actionContext: runtime.currentActionContext,
+      evaluationResults: evaluationResults
+    }
   }, 'messages');
+  
+  // 5. Emit processing events (new in v1.2.0)
+  await runtime.emitEvent('message_processed', {
+    messageId: message.id,
+    agentId: runtime.agentId,
+    runId: runtime.runId,
+    actionCount: actionResults.length,
+    processingTime: performance.now() - startTime
+  });
   
   return actionResults;
 }

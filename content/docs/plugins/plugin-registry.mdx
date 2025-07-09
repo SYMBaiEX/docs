@@ -825,22 +825,82 @@ Add plugins to your agent character:
 
 ```typescript
 // character.ts
-import { Plugin } from '@elizaos/core';
-import { sqlPlugin } from '@elizaos/plugin-sql';
-import { discordPlugin } from '@elizaos/plugin-discord';
-import { openaiPlugin } from '@elizaos/plugin-openai';
-import { weatherPlugin } from '@elizaos/plugin-weather';
+import { Character } from '@elizaos/core';
 
-export const character = {
+export const character: Character = {
   name: 'MyAgent',
   description: 'An AI agent with comprehensive capabilities',
   plugins: [
-    sqlPlugin,
-    discordPlugin,
-    openaiPlugin,
-    weatherPlugin
-  ]
+    // Core plugins (required)
+    '@elizaos/plugin-bootstrap',
+    '@elizaos/plugin-sql',
+    
+    // AI model plugins
+    '@elizaos/plugin-openai',
+    '@elizaos/plugin-anthropic',
+    
+    // Communication plugins
+    '@elizaos/plugin-discord',
+    '@elizaos/plugin-telegram',
+    '@elizaos/plugin-twitter',
+    
+    // Blockchain plugins
+    '@elizaos/plugin-solana',
+    '@elizaos/plugin-ethereum',
+    
+    // Utility plugins
+    '@elizaos/plugin-browser',
+    '@elizaos/plugin-github',
+    '@elizaos/plugin-giphy'
+  ],
+  
+  // Plugin-specific settings
+  settings: {
+    // OpenAI configuration
+    openai: {
+      model: 'gpt-4',
+      temperature: 0.7,
+      max_tokens: 2000
+    },
+    
+    // Discord configuration
+    discord: {
+      enableSlashCommands: true,
+      moderationEnabled: true
+    },
+    
+    // Solana configuration
+    solana: {
+      network: 'mainnet',
+      commitment: 'confirmed'
+    }
+  }
 };
+```
+
+#### JSON Configuration
+
+```json
+{
+  "name": "MyAgent",
+  "description": "An AI agent with comprehensive capabilities",
+  "plugins": [
+    "@elizaos/plugin-bootstrap",
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",
+    "@elizaos/plugin-discord",
+    "@elizaos/plugin-solana"
+  ],
+  "settings": {
+    "openai": {
+      "model": "gpt-4",
+      "temperature": 0.7
+    },
+    "discord": {
+      "enableSlashCommands": true
+    }
+  }
+}
 ```
 
 ## Plugin Development

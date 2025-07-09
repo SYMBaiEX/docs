@@ -9,9 +9,11 @@ This guide covers the complete installation process for ElizaOS, including syste
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Cards, Card } from 'fumadocs-ui/components/card';
 
 <Callout type="info">
-ElizaOS v1.2.0 requires Node.js v23.3.0 and Bun v1.2.15 for optimal compatibility and performance.
+ElizaOS v1.0.19 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
 </Callout>
 
 ## System Requirements
@@ -69,26 +71,50 @@ ElizaOS v1.2.0 requires Node.js v23.3.0 and Bun v1.2.15 for optimal compatibilit
     
 **Using Homebrew (Recommended):**
 ```bash
+# Install Node.js 23.3.0
 brew install node@23
+brew link node@23 --force
+
+# Verify installation
+node --version  # Should show v23.3.0
 ```
 
 **Using Node Version Manager (nvm):**
 ```bash
+# Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
+
+# Install and use Node.js 23.3.0
 nvm install 23.3.0
 nvm use 23.3.0
+nvm alias default 23.3.0
+
+# Verify installation
+node --version  # Should show v23.3.0
 ```
+
+**macOS-specific notes:**
+- Apple Silicon (M1/M2) users: All tools are fully compatible
+- Intel Mac users: No special configuration needed
+- If you encounter permission issues, avoid using `sudo` with npm
 
   </Tab>
   <Tab value="Linux">
     
-**Using Node Version Manager (nvm):**
+**Using Node Version Manager (nvm) - Recommended:**
 ```bash
+# Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
+
+# Install and use Node.js 23.3.0
 nvm install 23.3.0
 nvm use 23.3.0
+nvm alias default 23.3.0
+
+# Verify installation
+node --version  # Should show v23.3.0
 ```
 
 **Using Package Manager:**
@@ -97,26 +123,55 @@ nvm use 23.3.0
 curl -fsSL https://deb.nodesource.com/setup_23.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# CentOS/RHEL
+# CentOS/RHEL/Fedora
 curl -fsSL https://rpm.nodesource.com/setup_23.x | sudo bash -
 sudo yum install -y nodejs
+
+# Arch Linux
+sudo pacman -S nodejs npm
 ```
+
+**Linux-specific notes:**
+- Recommended distributions: Ubuntu 20.04+, CentOS 8+, Debian 11+
+- Ensure you have build tools: `sudo apt-get install build-essential`
+- For older distributions, use nvm instead of package managers
 
   </Tab>
   <Tab value="Windows">
     
-**Install WSL 2 first:**
+**Install WSL 2 first (Required):**
 ```powershell
+# Run in PowerShell as Administrator
 wsl --install -d Ubuntu
 ```
 
-**Then follow Linux instructions within WSL 2:**
+**Configure WSL 2:**
+```powershell
+# Restart your computer, then run:
+wsl --set-default-version 2
+wsl --set-default Ubuntu
+```
+
+**Install Node.js within WSL 2:**
 ```bash
+# Open WSL 2 terminal and install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
+
+# Install Node.js 23.3.0
 nvm install 23.3.0
 nvm use 23.3.0
+nvm alias default 23.3.0
+
+# Verify installation
+node --version  # Should show v23.3.0
 ```
+
+**Windows-specific notes:**
+- WSL 2 is required - native Windows installation is not supported
+- Install WSL 2 with Ubuntu distribution for best compatibility
+- Use WSL 2 terminal for all ElizaOS development
+- Avoid mixing Windows and WSL file systems for better performance
 
   </Tab>
 </Tabs>
@@ -128,15 +183,23 @@ nvm use 23.3.0
 
 Bun is the recommended package manager for ElizaOS due to its speed and compatibility:
 
+**All Platforms:**
 ```bash
+# Install Bun
 curl -fsSL https://bun.sh/install | bash
+
+# Restart your terminal or source your profile
+source ~/.bashrc  # or ~/.zshrc for zsh users
+
+# Verify installation
+bun --version  # Should show v1.2.15 or newer
 ```
 
-Verify the installation:
-
-```bash
-bun --version
-```
+**Platform-specific notes:**
+- **macOS**: Works on both Intel and Apple Silicon Macs
+- **Linux**: Compatible with most distributions
+- **Windows**: Must be installed within WSL 2, not native Windows
+- **Alternative**: You can use `npm` instead of `bun`, but `bun` is recommended for better performance
 
 </Step>
 <Step>
@@ -147,7 +210,7 @@ Check that all dependencies are correctly installed:
 
 ```bash
 # Check Node.js version
-node --version  # Should be v23.3.0 or higher
+node --version  # Should be v23.3.0 (exact version required)
 
 # Check Bun version
 bun --version   # Should be v1.2.15 (recommended)
@@ -165,7 +228,7 @@ Ensure you have the exact Node.js version v23.3.0 installed. Other versions may 
 ### Method 1: CLI Installation (Recommended)
 
 <Callout type="info">
-This is the fastest way to get started with ElizaOS. The CLI handles most configuration automatically.
+This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most configuration automatically and provides enhanced project management features.
 </Callout>
 
 The CLI provides the fastest way to get started:
@@ -177,9 +240,21 @@ bun install -g @elizaos/cli
 # Verify installation
 elizaos --version
 
-# Create your first project
-elizaos create my-agent
+# Create your first project (interactive mode)
+elizaos create
+
+# Or specify project type directly
+elizaos create my-agent --type project
 ```
+
+#### CLI Features in v1.0.19
+
+- **Interactive Project Creation**: Smart defaults and guided setup
+- **Environment Management**: CLI environment verification commands
+- **Development Mode**: Built-in development server with hot-reload
+- **Testing Framework**: Integrated testing for components and end-to-end scenarios
+- **Docker Integration**: Docker compose support for containerized deployment
+- **Health Monitoring**: System diagnostics and verification commands
 
 ### Method 2: Manual Installation
 
@@ -197,8 +272,9 @@ cd eliza
 # Install dependencies
 bun install
 
-# The postinstall script will automatically run to initialize submodules
+# The postinstall script automatically runs to initialize Git submodules
 # This is equivalent to running: bash ./scripts/init-submodules.sh
+# The script can be skipped by setting SKIP_POSTINSTALL=1
 
 # Build the project
 bun run build
@@ -257,8 +333,10 @@ docker-compose up -d
 ```
 
 **Docker Requirements:**
-- Docker Engine 20.10+
-- Docker Compose 2.0+
+- Docker Engine 20.10+ (24.0+ recommended)
+- Docker Compose 2.0+ (2.20+ recommended)
+- 4GB+ available RAM for containers
+- 10GB+ available disk space
 
 **Docker Compose Configuration:**
 
@@ -285,6 +363,19 @@ TEE_MODE=PRODUCTION
 TEE_VENDOR=phala
 ```
 
+**Docker Installation Verification:**
+
+```bash
+# Check Docker version
+docker --version  # Should be 20.10+ (24.0+ recommended)
+
+# Check Docker Compose version
+docker-compose --version  # Should be 2.0+ (2.20+ recommended)
+
+# Test Docker installation
+docker run hello-world
+```
+
 **Docker Commands:**
 
 ```bash
@@ -300,6 +391,12 @@ docker-compose down
 # Rebuild after changes
 docker-compose build --no-cache
 docker-compose up -d
+
+# Check container status
+docker-compose ps
+
+# Access container shell
+docker-compose exec elizaos bash
 ```
 
 ## Configuration
@@ -347,7 +444,8 @@ OLLAMA_API_ENDPOINT=http://localhost:11434
 # PostgreSQL (recommended for production)
 POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
 
-# PGLite (lightweight, good for development)
+# PGLite Database Directory (or use memory:// for in-memory)
+# Alternative to PostgreSQL, lightweight and good for development
 PGLITE_DATA_DIR=./data/pglite
 ```
 
@@ -359,9 +457,16 @@ SERVER_PORT=3000
 SERVER_HOST=0.0.0.0
 NODE_ENV=development
 
-# UI and API settings
+# Controls whether the web UI is available
+# Set to "true" to force enable, "false" to force disable, or leave unset for automatic behavior
+# Default: enabled in development, disabled in production
 ELIZA_UI_ENABLE=true
+
+# Server authentication token for API access
+# When set, all /api/* routes require X-API-KEY header with this value
 ELIZA_SERVER_AUTH_TOKEN=your_auth_token_here
+
+# Express Maximum Payload Size (default: 2mb)
 EXPRESS_MAX_PAYLOAD=2mb
 ```
 
@@ -430,11 +535,15 @@ COINGECKO_API_KEY=your_coingecko_key
 ### Development Control Variables
 
 ```bash
-# Non-interactive mode
+# Non-interactive CLI mode (true/false)
 ELIZA_NONINTERACTIVE=false
 
-# Bootstrap plugin control
+# Skip loading the bootstrap plugin (any value)
+# Do not change if you are not customizing bootstrap with another plugin
 IGNORE_BOOTSTRAP=false
+
+# Remote Character URLs (comma-separated)
+REMOTE_CHARACTER_URLS=
 
 # Local AI configuration
 USE_LOCAL_AI=false
@@ -473,12 +582,15 @@ USE_OLLAMA_TEXT_MODELS=false
 # Test the CLI
 elizaos --help
 
-# Test project creation
-elizaos create test-agent --yes --type project
+# Check CLI version
+elizaos --version
+
+# Test project creation (interactive)
+elizaos create test-agent --type project
 
 # Test agent startup
 cd test-agent
-elizaos start
+elizaos start --build
 ```
 
 ### Health Check
@@ -486,38 +598,39 @@ elizaos start
 Verify your installation with the built-in health check:
 
 ```bash
-# Check system status and dependencies
-elizaos env check
-
-# Test database connection
-elizaos env test-db
-
-# Verify API keys and model providers
-elizaos env test-keys
-
-# Test agent creation (dry run)
-elizaos create test-agent --dry-run
-
 # Check CLI version and build info
 elizaos --version
 elizaos --help
+
+# Test project creation (dry run)
+elizaos create test-agent --dry-run
+
+# Verify environment setup
+elizaos start --help
+
+# Check system status
+node --version  # Should be v23.3.0
+bun --version   # Should be v1.2.15
+
+# Check for updates
+elizaos update --check
 ```
 
 **Health Check Output:**
 
-A successful health check should show:
+A successful verification should show:
 - ✅ Node.js version (v23.3.0)
 - ✅ Bun version (v1.2.15)
-- ✅ Database connection (if configured)
-- ✅ API keys validation
-- ✅ Required dependencies
+- ✅ ElizaOS CLI installed and accessible
+- ✅ Project creation works
+- ✅ Help commands respond correctly
 
-**Common Health Check Issues:**
+**Common Verification Issues:**
 
-- **Database Connection Failed**: Check your `POSTGRES_URL` or `PGLITE_DATA_DIR` configuration
-- **API Key Invalid**: Verify your model provider API keys are correct and have sufficient credits
-- **Permission Errors**: Ensure proper file permissions for data directories
-- **Port Conflicts**: Check if port 3000 is available
+- **CLI Not Found**: Check that `elizaos` is in your PATH after global installation
+- **Version Mismatch**: Ensure you have the exact Node.js v23.3.0 version
+- **Permission Errors**: Ensure proper file permissions for CLI installation
+- **Project Creation Fails**: Check that you have write permissions in the current directory
 
 ## Troubleshooting
 
@@ -556,7 +669,7 @@ curl -fsSL https://bun.sh/install | bash
 bun upgrade
 
 # Verify installation
-bun --version  # Should show v1.2.15 or newer
+bun --version  # Should show v1.2.15 (recommended)
 
 # Clear Bun cache if needed
 bun pm cache clear
@@ -682,6 +795,13 @@ sudo chown -R $(whoami) /mnt/c/Users/$(whoami)/.bun
 
 # Use Linux paths instead of Windows paths
 cd /home/$(whoami)
+
+# Fix WSL2 networking issues
+# Add to /etc/wsl.conf:
+echo -e '[network]\ngenerateHosts = false' | sudo tee /etc/wsl.conf
+
+# Restart WSL after wsl.conf changes
+wsl --shutdown
 ```
 
 #### Memory and Performance Issues
@@ -732,14 +852,86 @@ docker-compose exec postgres pg_isready -U postgres
 docker-compose logs postgres
 ```
 
+#### Git and Submodule Issues
+
+**Symptoms:** Git submodule initialization failures, missing dependencies
+
+```bash
+# Manual submodule initialization
+git submodule update --init --recursive
+
+# Force update submodules
+git submodule foreach --recursive git fetch
+git submodule foreach --recursive git reset --hard
+
+# Clean submodule cache
+rm -rf .git/modules/
+git submodule deinit --all -f
+git submodule update --init --recursive
+
+# Skip submodule initialization (if needed)
+SKIP_POSTINSTALL=1 bun install
+```
+
+#### Environment Variable Issues
+
+**Symptoms:** Configuration not loading, API keys not working
+
+```bash
+# Check environment variables are loaded
+printenv | grep -E "(OPENAI|ANTHROPIC|ELIZA)"
+
+# Verify .env file format (no quotes, no spaces around =)
+cat .env | head -5
+
+# Test environment loading
+node -e "console.log(process.env.OPENAI_API_KEY)"
+
+# Common .env file issues:
+# ❌ OPENAI_API_KEY = "sk-..."  (spaces and quotes)
+# ❌ OPENAI_API_KEY=sk-... # comment  (inline comments)
+# ✅ OPENAI_API_KEY=sk-...  (clean format)
+```
+
+#### macOS Specific Issues
+
+**Symptoms:** Installation failures on macOS, especially Apple Silicon
+
+```bash
+# Install Rosetta 2 (if needed for compatibility)
+softwareupdate --install-rosetta
+
+# Use Homebrew for Node.js installation
+brew install node@23
+brew link node@23 --force
+
+# Fix macOS permissions
+sudo chown -R $(whoami) /usr/local/lib/node_modules
+sudo chown -R $(whoami) ~/.npm
+
+# Clear npm cache
+npm cache clean --force
+
+# Reset npm configuration
+npm config delete prefix
+npm config set prefix /usr/local
+```
+
 ### Getting Help
 
-If you encounter issues:
+If you encounter issues not covered above:
 
 1. Check the [troubleshooting guide](/docs/learning-tracks/simple/guides/troubleshooting-guide)
 2. Search [GitHub Issues](https://github.com/elizaOS/eliza/issues)
 3. Join the [Discord community](https://discord.gg/elizaos)
 4. Review the [FAQ](/docs/faq)
+
+**When reporting issues, please include:**
+- Your operating system and version
+- Node.js version (`node --version`)
+- Bun version (`bun --version`)
+- Error messages (full output)
+- Steps to reproduce the issue
 
 ## Next Steps
 
@@ -762,4 +954,28 @@ Once installation is complete:
 
 ---
 
-**Installation complete!** You're ready to start building AI agents with ElizaOS.
+**Installation complete!** You're ready to start building AI agents with ElizaOS v1.2.0. 
+
+### Quick Start Commands
+
+```bash
+# Create your first agent
+elizaos create my-agent
+
+# Navigate to the project
+cd my-agent
+
+# Start development server
+elizaos dev
+
+# Or start in production mode
+elizaos start --build
+```
+
+### Helpful Resources
+
+- **Next Steps**: [Follow the quickstart guide](/docs/getting-started/quickstart)
+- **CLI Reference**: Use `elizaos --help` for all available commands
+- **Environment Setup**: Configure with `elizaos env interactive`
+- **Plugin System**: Explore with `elizaos plugins list`
+- **Updates**: Keep current with `elizaos update --check`

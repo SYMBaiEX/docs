@@ -38,7 +38,7 @@ X-API-KEY: your-api-key
 POST /api/messaging/submit
 ```
 
-Submits a processed message from an agent or system component.
+Submits a processed message from an agent or system component. Used for agent responses and system-generated messages.
 
 **Request Body:**
 ```json
@@ -74,6 +74,11 @@ Submits a processed message from an agent or system component.
   }
 }
 ```
+
+**Notes:**
+- This endpoint is for messages **already processed** by agents
+- Messages are stored in the database and broadcast via WebSocket
+- Does not trigger agent processing through the message bus
 
 ### Complete Message
 
@@ -290,18 +295,13 @@ Deletes a server and all associated channels.
 ### List Channels for Server
 
 ```http
-GET /api/messaging/servers/:serverId/channels
+GET /api/messaging/central-servers/:serverId/channels
 ```
 
 Lists all channels for a specific server.
 
 **Parameters:**
-- `serverId` (UUID) - Server identifier
-
-**Query Parameters:**
-- `participantId` (UUID) - Filter channels by participant
-- `type` (string) - Filter by channel type (dm, group)
-- `limit` (number) - Number of channels to return (default: 50)
+- `serverId` (UUID) - Server identifier (use `00000000-0000-0000-0000-000000000000` for default server)
 
 **Response:**
 ```json
@@ -326,13 +326,12 @@ Lists all channels for a specific server.
 ### Get Channel Details
 
 ```http
-GET /api/messaging/servers/:serverId/channels/:channelId
+GET /api/messaging/central-channels/:channelId/details
 ```
 
 Gets detailed information about a specific channel.
 
 **Parameters:**
-- `serverId` (UUID) - Server identifier
 - `channelId` (UUID) - Channel identifier
 
 **Response:**
@@ -354,23 +353,40 @@ Gets detailed information about a specific channel.
 }
 ```
 
+### Get Channel Participants
+
+```http
+GET /api/messaging/central-channels/:channelId/participants
+```
+
+Gets the participants of a specific channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": ["user-uuid-1", "user-uuid-2", "agent-uuid-1"]
+}
+```
+
 ### Create Channel
 
 ```http
-POST /api/messaging/servers/:serverId/channels
+POST /api/messaging/channels
 ```
 
-Creates a new channel in a server.
-
-**Parameters:**
-- `serverId` (UUID) - Server identifier
+Creates a new channel.
 
 **Request Body:**
 ```json
 {
+  "serverId": "server-uuid",
   "name": "Channel Name",
   "type": "dm" | "group",
-  "participants": ["user-uuid-1", "user-uuid-2"],
+  "sourceType": "eliza_default",
   "metadata": {
     "description": "Channel description",
     "private": false
@@ -383,11 +399,75 @@ Creates a new channel in a server.
 {
   "success": true,
   "data": {
+    "channel": {
+      "id": "channel-uuid",
+      "name": "Channel Name",
+      "type": "group",
+      "messageServerId": "server-uuid",
+      "metadata": {},
+      "createdAt": "2024-01-01T00:00:00Z"
+    }
+  }
+}
+```
+
+### Create Group Channel
+
+```http
+POST /api/messaging/central-channels
+```
+
+Creates a new group channel with participants.
+
+**Request Body:**
+```json
+{
+  "name": "Group Name",
+  "participantCentralUserIds": ["user-uuid-1", "user-uuid-2"],
+  "type": "group",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "metadata": {
+    "description": "Group description"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
     "id": "channel-uuid",
-    "name": "Channel Name",
+    "name": "Group Name",
     "type": "group",
     "participants": ["user-uuid-1", "user-uuid-2"],
-    "metadata": {},
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Find or Create DM Channel
+
+```http
+GET /api/messaging/dm-channel?targetUserId=:targetUserId&currentUserId=:currentUserId&dmServerId=:serverId
+```
+
+Finds existing DM channel or creates one between two users.
+
+**Query Parameters:**
+- `targetUserId` (UUID) - Target user ID (required)
+- `currentUserId` (UUID) - Current user ID (required)
+- `dmServerId` (UUID) - Server ID (optional, defaults to default server)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-uuid",
+    "name": "DM Channel",
+    "type": "dm",
+    "participants": ["current-user-uuid", "target-user-uuid"],
     "createdAt": "2024-01-01T00:00:00Z"
   }
 }
@@ -457,7 +537,7 @@ Deletes a channel and all associated messages.
 POST /api/messaging/central-channels/:channelId/messages
 ```
 
-Sends a message to a channel.
+Sends a message to a channel. Creates the channel automatically if it doesn't exist.
 
 **Parameters:**
 - `channelId` (UUID) - Channel identifier
@@ -468,14 +548,16 @@ Sends a message to a channel.
   "author_id": "user-uuid",
   "content": "Message text",
   "in_reply_to_message_id": "message-uuid",
-  "server_id": "server-uuid",
+  "server_id": "00000000-0000-0000-0000-000000000000",
   "raw_message": {
     "type": "text",
     "data": "Message data"
   },
   "metadata": {
     "user_display_name": "User Name",
-    "client": "web"
+    "client": "web",
+    "isDm": false,
+    "channelType": "group"
   },
   "source_type": "eliza_gui"
 }
@@ -487,14 +569,19 @@ Sends a message to a channel.
   "success": true,
   "data": {
     "id": "message-uuid",
-    "channelId": "channel-uuid",
-    "authorId": "user-uuid",
+    "channel_id": "channel-uuid",
+    "author_id": "user-uuid",
     "content": "Message text",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "sourceType": "eliza_gui"
+    "created_at": 1704067200000,
+    "source_type": "eliza_gui"
   }
 }
 ```
+
+**Notes:**
+- Messages are automatically published to the internal message bus for agent processing
+- Channel is auto-created if it doesn't exist
+- Real-time broadcast via WebSocket to all channel participants
 
 ### Get Channel Messages
 
@@ -508,10 +595,8 @@ Retrieves messages from a channel.
 - `channelId` (UUID) - Channel identifier
 
 **Query Parameters:**
-- `limit` (number) - Number of messages (default: 50, max: 100)
-- `before` (string) - ISO timestamp for pagination
-- `after` (string) - ISO timestamp for pagination
-- `author_id` (UUID) - Filter by author
+- `limit` (number) - Number of messages (default: 50)
+- `before` (number) - Timestamp for pagination (messages before this time)
 
 **Response:**
 ```json
@@ -524,20 +609,24 @@ Retrieves messages from a channel.
         "content": "Message content",
         "authorId": "author-uuid",
         "channelId": "channel-uuid",
-        "createdAt": "2024-01-01T00:00:00Z",
+        "created_at": 1704067200000,
+        "updated_at": 1704067200000,
         "sourceType": "eliza_gui",
         "metadata": {
-          "user_display_name": "User Name"
+          "user_display_name": "User Name",
+          "thought": "Agent's internal thought",
+          "actions": ["action1", "action2"]
         }
       }
-    ],
-    "pagination": {
-      "hasMore": true,
-      "nextCursor": "2024-01-01T00:00:00Z"
-    }
+    ]
   }
 }
 ```
+
+**Notes:**
+- Messages are returned in reverse chronological order (newest first)
+- Includes thought and actions from rawMessage for agent responses
+- Timestamps are in milliseconds since epoch
 
 ### Delete Message
 
@@ -582,7 +671,7 @@ Clears all messages from a channel.
 ### Upload File to Channel
 
 ```http
-POST /api/messaging/central-channels/:channelId/upload
+POST /api/messaging/channels/:channelId/upload-media
 ```
 
 Uploads a file to a channel.
@@ -606,66 +695,40 @@ Uploads a file to a channel.
   "success": true,
   "data": {
     "url": "/media/uploads/channels/{channelId}/filename.ext",
-    "filename": "filename.ext",
-    "mimeType": "image/jpeg",
+    "type": "image/jpeg",
+    "filename": "12345-67890.jpg",
+    "originalName": "uploaded-image.jpg",
     "size": 12345
   }
 }
 ```
 
-### Get Channel Files
+**Notes:**
+- Files are stored in `.eliza/data/uploads/channels/{channelId}/`
+- Filenames are automatically generated with timestamps for uniqueness
+- Rate limiting applies to prevent abuse
+
+### Channel Management Operations
+
+#### Update Channel
 
 ```http
-GET /api/messaging/central-channels/:channelId/files
+PATCH /api/messaging/central-channels/:channelId
 ```
 
-Lists all files uploaded to a channel.
+Updates channel information.
 
 **Parameters:**
 - `channelId` (UUID) - Channel identifier
 
-**Query Parameters:**
-- `limit` (number) - Number of files (default: 50)
-- `type` (string) - Filter by file type (image, audio, video, document)
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "files": [
-      {
-        "id": "file-uuid",
-        "filename": "filename.ext",
-        "url": "/media/uploads/channels/{channelId}/filename.ext",
-        "mimeType": "image/jpeg",
-        "size": 12345,
-        "uploadedBy": "user-uuid",
-        "uploadedAt": "2024-01-01T00:00:00Z"
-      }
-    ]
-  }
-}
-```
-
-## Message Reactions
-
-### Add Reaction
-
-```http
-POST /api/messaging/messages/:messageId/reactions
-```
-
-Adds a reaction to a message.
-
-**Parameters:**
-- `messageId` (UUID) - Message identifier
-
 **Request Body:**
 ```json
 {
-  "emoji": "👍",
-  "user_id": "user-uuid"
+  "name": "Updated Channel Name",
+  "participantCentralUserIds": ["user-uuid-1", "user-uuid-2"],
+  "metadata": {
+    "description": "Updated description"
+  }
 }
 ```
 
@@ -674,83 +737,54 @@ Adds a reaction to a message.
 {
   "success": true,
   "data": {
-    "messageId": "message-uuid",
-    "emoji": "👍",
-    "userId": "user-uuid",
-    "createdAt": "2024-01-01T00:00:00Z"
+    "id": "channel-uuid",
+    "name": "Updated Channel Name",
+    "participants": ["user-uuid-1", "user-uuid-2"],
+    "metadata": {
+      "description": "Updated description"
+    },
+    "updatedAt": "2024-01-01T00:00:00Z"
   }
 }
 ```
 
-### Remove Reaction
+#### Delete Channel
 
 ```http
-DELETE /api/messaging/messages/:messageId/reactions
+DELETE /api/messaging/central-channels/:channelId
 ```
 
-Removes a reaction from a message.
+Deletes a channel and all associated messages.
 
 **Parameters:**
-- `messageId` (UUID) - Message identifier
-
-**Request Body:**
-```json
-{
-  "emoji": "👍",
-  "user_id": "user-uuid"
-}
-```
+- `channelId` (UUID) - Channel identifier
 
 **Response:**
 ```http
 204 No Content
 ```
 
-### Get Message Reactions
+**Notes:**
+- Emits `channel_cleared` event to internal message bus
+- Broadcasts `channelDeleted` event via WebSocket
+
+## Agent Management in Channels
+
+### Add Agent to Channel
 
 ```http
-GET /api/messaging/messages/:messageId/reactions
+POST /api/messaging/central-channels/:channelId/agents
 ```
 
-Gets all reactions for a message.
+Adds an agent to a channel as a participant.
 
 **Parameters:**
-- `messageId` (UUID) - Message identifier
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "reactions": [
-      {
-        "emoji": "👍",
-        "count": 3,
-        "users": ["user-uuid-1", "user-uuid-2", "user-uuid-3"]
-      }
-    ]
-  }
-}
-```
-
-## Message Threading
-
-### Create Thread
-
-```http
-POST /api/messaging/messages/:messageId/thread
-```
-
-Creates a thread from a message.
-
-**Parameters:**
-- `messageId` (UUID) - Parent message identifier
+- `channelId` (UUID) - Channel identifier
 
 **Request Body:**
 ```json
 {
-  "name": "Thread Name",
-  "author_id": "user-uuid"
+  "agentId": "agent-uuid"
 }
 ```
 
@@ -759,46 +793,94 @@ Creates a thread from a message.
 {
   "success": true,
   "data": {
-    "threadId": "thread-uuid",
-    "parentMessageId": "message-uuid",
-    "name": "Thread Name",
-    "createdAt": "2024-01-01T00:00:00Z"
+    "channelId": "channel-uuid",
+    "agentId": "agent-uuid",
+    "message": "Agent added to channel successfully"
   }
 }
 ```
 
-### Get Thread Messages
+### Remove Agent from Channel
 
 ```http
-GET /api/messaging/threads/:threadId/messages
+DELETE /api/messaging/central-channels/:channelId/agents/:agentId
 ```
 
-Gets messages in a thread.
+Removes an agent from a channel.
 
 **Parameters:**
-- `threadId` (UUID) - Thread identifier
-
-**Query Parameters:**
-- `limit` (number) - Number of messages (default: 50)
-- `before` (string) - ISO timestamp for pagination
+- `channelId` (UUID) - Channel identifier
+- `agentId` (UUID) - Agent identifier
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "messages": [
-      {
-        "id": "message-uuid",
-        "content": "Thread message",
-        "authorId": "author-uuid",
-        "threadId": "thread-uuid",
-        "createdAt": "2024-01-01T00:00:00Z"
-      }
-    ]
+    "channelId": "channel-uuid",
+    "agentId": "agent-uuid",
+    "message": "Agent removed from channel successfully"
   }
 }
 ```
+
+### List Channel Agents
+
+```http
+GET /api/messaging/central-channels/:channelId/agents
+```
+
+Lists all agents in a channel.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-uuid",
+    "participants": ["user-uuid-1", "agent-uuid-1", "agent-uuid-2"]
+  }
+}
+```
+
+## Channel Title Generation
+
+### Generate Channel Title
+
+```http
+POST /api/messaging/central-channels/:channelId/generate-title
+```
+
+Generates a descriptive title for a channel based on recent conversation.
+
+**Parameters:**
+- `channelId` (UUID) - Channel identifier
+
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "title": "React Component Help",
+    "channelId": "channel-uuid"
+  }
+}
+```
+
+**Notes:**
+- Uses the specified agent's language model to generate title
+- Analyzes recent conversation history
+- Returns null if not enough messages to generate a title
 
 ## Real-time Events
 

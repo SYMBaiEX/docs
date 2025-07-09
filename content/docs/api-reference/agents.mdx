@@ -254,44 +254,33 @@ Stops a running agent.
 
 ### Get Agent Status
 
+The agent status is included in the main agent details endpoint. To check if an agent is active, use the GET endpoint and check the `status` field.
+
+**Alternative - Check Active Agents:**
 ```http
-GET /api/agents/:agentId/status
+GET /api/agents
 ```
 
-Gets the current status of an agent.
-
-**Parameters:**
-- `agentId` (UUID) - Agent identifier
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "agent-uuid",
-    "status": "active" | "inactive",
-    "uptime": 3600,
-    "lastActivity": "2024-01-01T00:00:00Z"
-  }
-}
-```
+This returns all agents with their current status (active/inactive) based on whether they have a running runtime.
 
 ## Agent Memory Management
 
-### Search Agent Memory
+### Get Agent Memories
 
 ```http
-GET /api/agents/:agentId/memories/search
+GET /api/agents/:agentId/memories
 ```
 
-Searches through an agent's memory.
+Gets all memories for an agent.
 
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
-- `query` (string) - Search text (required)
-- `limit` (number) - Result limit (default: 10)
+- `tableName` (string) - Table to query (default: "messages")
+- `includeEmbedding` (boolean) - Include embedding vectors (default: false)
+- `channelId` (UUID) - Filter by channel (converted to unique roomId)
+- `roomId` (UUID) - Filter by room (backward compatibility)
 
 **Response:**
 ```json
@@ -303,9 +292,9 @@ Searches through an agent's memory.
         "id": "memory-uuid",
         "content": {
           "text": "Memory content",
-          "source": "conversation"
+          "type": "message"
         },
-        "similarity": 0.95,
+        "roomId": "room-uuid",
         "createdAt": "2024-01-01T00:00:00Z"
       }
     ]
@@ -313,25 +302,27 @@ Searches through an agent's memory.
 }
 ```
 
-### Create Memory
+### Update Agent Memory
 
 ```http
-POST /api/agents/:agentId/memories
+PATCH /api/agents/:agentId/memories/:memoryId
 ```
 
-Creates a new memory for an agent.
+Updates an existing memory.
 
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
 
 **Request Body:**
 ```json
 {
   "content": {
-    "text": "Memory content",
-    "type": "reflection" | "fact" | "dialogue"
+    "text": "Updated memory content"
   },
-  "roomId": "optional-room-uuid"
+  "metadata": {
+    "importance": "high"
+  }
 }
 ```
 
@@ -341,11 +332,7 @@ Creates a new memory for an agent.
   "success": true,
   "data": {
     "id": "memory-uuid",
-    "content": {
-      "text": "Memory content",
-      "type": "reflection"
-    },
-    "createdAt": "2024-01-01T00:00:00Z"
+    "message": "Memory updated successfully"
   }
 }
 ```
@@ -353,7 +340,7 @@ Creates a new memory for an agent.
 ### Get Memories by Room
 
 ```http
-GET /api/agents/:agentId/memories/rooms/:roomId
+GET /api/agents/:agentId/rooms/:roomId/memories
 ```
 
 Gets all memories for an agent in a specific room.
@@ -363,7 +350,10 @@ Gets all memories for an agent in a specific room.
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
-- `unique` (boolean) - Return only unique memories (default: true)
+- `limit` (number) - Number of memories to return (default: 20)
+- `before` (number) - Timestamp for pagination (default: current time)
+- `includeEmbedding` (boolean) - Include embedding vectors (default: false)
+- `tableName` (string) - Table to query (default: "messages")
 
 **Response:**
 ```json
@@ -397,8 +387,13 @@ Removes a specific memory from an agent.
 - `memoryId` (UUID) - Memory identifier
 
 **Response:**
-```http
-204 No Content
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Memory deleted successfully"
+  }
+}
 ```
 
 ### Remove All Memories
@@ -412,8 +407,28 @@ Removes all memories for an agent.
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
 
-**Query Parameters:**
-- `confirm` (string) - Must be "true" to execute
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deletedCount": 150,
+    "message": "All agent memories cleared successfully"
+  }
+}
+```
+
+### Remove All Room Memories
+
+```http
+DELETE /api/agents/:agentId/memories/all/:roomId
+```
+
+Removes all memories for an agent in a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
 
 **Response:**
 ```http
@@ -424,56 +439,24 @@ Removes all memories for an agent.
 
 ### Get Agent Logs
 
+Agent logs are available through the Server API and WebSocket streaming. Individual agent logs can be filtered through the centralized logging system.
+
+**Alternative - Server Logs:**
 ```http
-GET /api/agents/:agentId/logs
+GET /api/server/logs
 ```
 
-Gets recent logs for a specific agent.
-
-**Parameters:**
-- `agentId` (UUID) - Agent identifier
-
-**Query Parameters:**
-- `limit` (number) - Number of log entries (default: 100)
-- `level` (string) - Log level filter (debug, info, warn, error)
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "logs": [
-      {
-        "level": "info",
-        "timestamp": "2024-01-01T00:00:00Z",
-        "message": "Log message",
-        "agentId": "agent-uuid",
-        "metadata": {}
-      }
-    ]
+**WebSocket Log Streaming:**
+```javascript
+socket.emit('subscribe_logs');
+socket.on('log_stream', (data) => {
+  if (data.payload.agentId === 'target-agent-id') {
+    console.log('Agent log:', data.payload);
   }
-}
+});
 ```
 
-### Stream Agent Logs
-
-```http
-GET /api/agents/:agentId/logs/stream
-```
-
-Streams real-time logs for an agent via Server-Sent Events.
-
-**Parameters:**
-- `agentId` (UUID) - Agent identifier
-
-**Response:**
-```
-Content-Type: text/event-stream
-
-data: {"level":"info","timestamp":"2024-01-01T00:00:00Z","message":"Log message"}
-
-data: {"level":"debug","timestamp":"2024-01-01T00:00:01Z","message":"Debug message"}
-```
+For detailed log streaming implementation, see the [WebSocket Events documentation](../core-concepts/communication/websocket-events).
 
 ## Agent Worlds and Environments
 
@@ -545,64 +528,22 @@ Creates a new world for an agent.
 
 ### List Agent Rooms
 
+Room management is handled through the Memory API. For agent-specific room operations, use the Memory API endpoints.
+
+**Alternative - Memory API:**
 ```http
-GET /api/agents/:agentId/rooms
-```
-
-Lists all rooms for an agent.
-
-**Parameters:**
-- `agentId` (UUID) - Agent identifier
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "rooms": [
-      {
-        "id": "room-uuid",
-        "name": "Room Name",
-        "participants": ["user-uuid-1", "user-uuid-2"],
-        "lastActivity": "2024-01-01T00:00:00Z"
-      }
-    ]
-  }
-}
+GET /api/memory/agents/:agentId/rooms
 ```
 
 ### Get Room Details
 
 ```http
-GET /api/agents/:agentId/rooms/:roomId
+GET /api/memory/agents/:agentId/rooms/:roomId
 ```
 
-Gets detailed information about a specific room.
+Gets detailed information about a specific room through the Memory API.
 
-**Parameters:**
-- `agentId` (UUID) - Agent identifier
-- `roomId` (UUID) - Room identifier
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "room-uuid",
-    "name": "Room Name",
-    "participants": ["user-uuid-1", "user-uuid-2"],
-    "messages": [
-      {
-        "id": "message-uuid",
-        "content": "Message content",
-        "authorId": "author-uuid",
-        "createdAt": "2024-01-01T00:00:00Z"
-      }
-    ],
-    "lastActivity": "2024-01-01T00:00:00Z"
-  }
-}
-```
+For complete room management documentation, see the [Memory API documentation](./memory).
 
 ## Agent Panels and UI
 
@@ -612,7 +553,7 @@ Gets detailed information about a specific room.
 GET /api/agents/:agentId/panels
 ```
 
-Gets UI panels for an agent.
+Gets UI panels for an agent (implementation in progress).
 
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
@@ -622,17 +563,12 @@ Gets UI panels for an agent.
 {
   "success": true,
   "data": {
-    "panels": [
-      {
-        "id": "panel-uuid",
-        "name": "Panel Name",
-        "type": "chat" | "settings" | "logs",
-        "config": {}
-      }
-    ]
+    "panels": []
   }
 }
 ```
+
+*Note: Panel functionality is currently under development.*
 
 ## Error Handling
 

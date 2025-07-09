@@ -1,0 +1,528 @@
+---
+title: Audio API
+description: Speech processing and voice synthesis capabilities
+---
+
+# Audio API
+
+The Audio API provides comprehensive speech processing and voice synthesis capabilities for agents. All audio endpoints are prefixed with `/api/audio`.
+
+## Overview
+
+The Audio API includes:
+
+- **Audio Processing** - Upload and transcribe audio files
+- **Speech Synthesis** - Convert text to speech
+- **Conversational Audio** - Real-time voice conversations
+- **Audio Buffer Management** - Streaming audio support
+
+## Base URL
+
+```
+http://localhost:3000/api/audio
+```
+
+## Authentication
+
+Include API key in headers if authentication is enabled:
+
+```http
+X-API-KEY: your-api-key
+```
+
+## Audio Processing
+
+### Audio Messages
+
+```http
+POST /api/audio/:agentId/audio-messages
+```
+
+Processes audio messages for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Audio file (max 10MB)
+
+**Supported audio formats:**
+- MP3: `audio/mpeg`
+- WAV: `audio/wav`
+- OGG: `audio/ogg`
+- M4A: `audio/m4a`
+- FLAC: `audio/flac`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transcription": "Hello, how are you doing today?",
+    "message": "Audio transcribed, further processing TBD."
+  }
+}
+```
+
+**Notes:**
+- Audio is automatically transcribed using the agent's transcription model
+- File is cleaned up after processing
+- Rate limiting applies to prevent abuse
+
+### Audio Transcription
+
+```http
+POST /api/audio/:agentId/transcriptions
+```
+
+Transcribes audio files to text.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` - Audio file (max 10MB)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "text": "This is the transcribed text from the audio file."
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/audio/{agentId}/transcriptions \
+  -F "file=@recording.wav" \
+  -H "X-API-KEY: your-api-key"
+```
+
+## Speech Synthesis
+
+### Text-to-Speech
+
+```http
+POST /api/audio/:agentId/synthesize
+```
+
+Converts text to speech using the agent's voice model.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "text": "Hello, this text will be converted to speech",
+  "voice": "default",
+  "format": "mp3",
+  "speed": 1.0,
+  "pitch": 1.0
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "audioUrl": "/api/audio/output/speech-12345.mp3",
+    "format": "mp3",
+    "duration": 3.2,
+    "voice": "default"
+  }
+}
+```
+
+### Get Available Voices
+
+```http
+GET /api/audio/:agentId/voices
+```
+
+Lists available voices for speech synthesis.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "voices": [
+      {
+        "id": "default",
+        "name": "Default Voice",
+        "language": "en-US",
+        "gender": "neutral",
+        "description": "Standard synthetic voice"
+      },
+      {
+        "id": "neural-female",
+        "name": "Neural Female",
+        "language": "en-US",
+        "gender": "female",
+        "description": "High-quality neural voice"
+      }
+    ]
+  }
+}
+```
+
+## Conversational Audio
+
+### Start Audio Conversation
+
+```http
+POST /api/audio/:agentId/conversation
+```
+
+Initiates a real-time audio conversation with an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "sessionId": "conversation-session-uuid",
+  "settings": {
+    "autoTranscribe": true,
+    "autoRespond": true,
+    "voiceResponse": true,
+    "language": "en-US"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sessionId": "conversation-session-uuid",
+    "status": "active",
+    "settings": {
+      "autoTranscribe": true,
+      "autoRespond": true,
+      "voiceResponse": true,
+      "language": "en-US"
+    },
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Conversation Status
+
+```http
+GET /api/audio/:agentId/conversation/status
+```
+
+Gets the status of an ongoing audio conversation.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Query Parameters:**
+- `sessionId` (UUID) - Conversation session identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sessionId": "conversation-session-uuid",
+    "status": "active" | "inactive" | "paused",
+    "duration": 125.5,
+    "messagesExchanged": 12,
+    "lastActivity": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### End Audio Conversation
+
+```http
+DELETE /api/audio/:agentId/conversation/:sessionId
+```
+
+Ends an audio conversation session.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `sessionId` (UUID) - Conversation session identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "sessionId": "conversation-session-uuid",
+    "status": "ended",
+    "duration": 245.8,
+    "messagesExchanged": 23,
+    "endedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Audio Buffer Management
+
+### Stream Audio Data
+
+```http
+POST /api/audio/:agentId/stream
+```
+
+Streams audio data for real-time processing.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request:**
+- Content-Type: `application/octet-stream`
+- Body: Raw audio data
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "bufferId": "buffer-uuid",
+    "processed": true,
+    "transcription": "Real-time transcription",
+    "timestamp": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+### Get Audio Buffer Status
+
+```http
+GET /api/audio/:agentId/buffers/:bufferId
+```
+
+Gets the status of an audio buffer.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `bufferId` (UUID) - Buffer identifier
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "bufferId": "buffer-uuid",
+    "status": "processing" | "completed" | "error",
+    "size": 1024,
+    "duration": 5.2,
+    "format": "wav",
+    "createdAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Audio Configuration
+
+### Update Audio Settings
+
+```http
+PATCH /api/audio/:agentId/settings
+```
+
+Updates audio processing settings for an agent.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+```json
+{
+  "transcription": {
+    "model": "whisper-1",
+    "language": "en-US",
+    "quality": "high"
+  },
+  "synthesis": {
+    "voice": "neural-female",
+    "speed": 1.0,
+    "pitch": 1.0,
+    "format": "mp3"
+  },
+  "processing": {
+    "noiseReduction": true,
+    "autoGain": true,
+    "compressionLevel": 0.5
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "agent-uuid",
+    "settings": {
+      "transcription": {
+        "model": "whisper-1",
+        "language": "en-US",
+        "quality": "high"
+      },
+      "synthesis": {
+        "voice": "neural-female",
+        "speed": 1.0,
+        "pitch": 1.0,
+        "format": "mp3"
+      },
+      "processing": {
+        "noiseReduction": true,
+        "autoGain": true,
+        "compressionLevel": 0.5
+      }
+    },
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": "Additional error information"
+  }
+}
+```
+
+Common error codes:
+- `INVALID_ID` - Invalid agent ID format
+- `NOT_FOUND` - Agent not found
+- `INVALID_REQUEST` - Invalid request parameters
+- `INVALID_FILE_TYPE` - Unsupported audio format
+- `FILE_TOO_LARGE` - Audio file exceeds size limit
+- `PROCESSING_ERROR` - Audio processing failed
+- `MODEL_ERROR` - Speech model unavailable
+
+## Rate Limiting
+
+Audio endpoints are subject to rate limiting:
+- Audio uploads: 10 requests per minute
+- Transcription: 20 requests per minute
+- Synthesis: 30 requests per minute
+- Streaming: 100 requests per minute
+
+## Best Practices
+
+1. **Audio Quality**: Use high-quality audio files for better transcription accuracy
+2. **File Size**: Keep files under 10MB for optimal performance
+3. **Format Selection**: Use WAV or FLAC for best quality, MP3 for smaller files
+4. **Error Handling**: Always handle transcription errors gracefully
+5. **Streaming**: Use audio streaming for real-time applications
+6. **Cleanup**: Audio files are automatically cleaned up after processing
+
+## Security Considerations
+
+1. **File Validation**: All uploaded files are validated for type and size
+2. **Path Security**: File paths are secured against traversal attacks
+3. **Rate Limiting**: Prevents abuse and DoS attacks
+4. **Authentication**: Use API keys for production deployments
+5. **Data Privacy**: Audio data is processed securely and not stored permanently
+
+## Examples
+
+### Complete Audio Processing Flow
+
+```bash
+# 1. Upload and transcribe audio
+curl -X POST http://localhost:3000/api/audio/{agentId}/transcriptions \
+  -F "file=@voice-memo.wav" \
+  -H "X-API-KEY: your-api-key"
+
+# 2. Convert response to speech
+curl -X POST http://localhost:3000/api/audio/{agentId}/synthesize \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  -d '{
+    "text": "Thank you for your message. I understand your request.",
+    "voice": "neural-female",
+    "format": "mp3"
+  }'
+
+# 3. Start conversation
+curl -X POST http://localhost:3000/api/audio/{agentId}/conversation \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  -d '{
+    "sessionId": "conv-12345",
+    "settings": {
+      "autoTranscribe": true,
+      "autoRespond": true,
+      "voiceResponse": true
+    }
+  }'
+```
+
+### Audio Message Processing
+
+```javascript
+// Client-side audio processing
+const audioData = new FormData();
+audioData.append('file', audioFile);
+
+fetch('/api/audio/agent-uuid/audio-messages', {
+  method: 'POST',
+  body: audioData,
+  headers: {
+    'X-API-KEY': 'your-api-key'
+  }
+})
+.then(response => response.json())
+.then(data => {
+  if (data.success) {
+    console.log('Transcription:', data.data.transcription);
+  }
+});
+```
+
+### Real-time Audio Streaming
+
+```javascript
+// WebSocket-based audio streaming
+const socket = io('http://localhost:3000');
+
+socket.emit('join_audio_session', {
+  agentId: 'agent-uuid',
+  sessionId: 'session-uuid'
+});
+
+// Stream audio data
+const audioStream = new MediaRecorder(microphoneStream);
+audioStream.ondataavailable = (event) => {
+  socket.emit('audio_chunk', {
+    data: event.data,
+    sessionId: 'session-uuid'
+  });
+};
+
+// Receive transcription
+socket.on('transcription', (data) => {
+  console.log('Real-time transcription:', data.text);
+});
+```
+
+*Note: Some endpoints are implementation placeholders and may not be fully functional in the current version.*

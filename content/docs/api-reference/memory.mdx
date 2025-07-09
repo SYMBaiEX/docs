@@ -33,23 +33,22 @@ X-API-KEY: your-api-key
 
 ## Agent Memory Operations
 
-### Search Agent Memory
+### Get Agent Memories
 
 ```http
-GET /api/memory/agents/:agentId/search
+GET /api/memory/agents/:agentId/memories
 ```
 
-Searches through an agent's memory using semantic similarity.
+Gets all memories for an agent with optional filtering.
 
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
 
 **Query Parameters:**
-- `query` (string) - Search text (required)
-- `limit` (number) - Result limit (default: 10, max: 100)
-- `threshold` (number) - Similarity threshold (default: 0.5, range: 0-1)
-- `type` (string) - Memory type filter (reflection, fact, dialogue)
-- `roomId` (UUID) - Filter by room
+- `tableName` (string) - Memory table to query (default: "messages")
+- `includeEmbedding` (boolean) - Include embedding vectors (default: false)
+- `channelId` (UUID) - Filter by channel (converted to unique roomId)
+- `roomId` (UUID) - Filter by room (backward compatibility)
 
 **Response:**
 ```json
@@ -61,47 +60,41 @@ Searches through an agent's memory using semantic similarity.
         "id": "memory-uuid",
         "content": {
           "text": "Memory content",
-          "source": "conversation",
-          "type": "reflection"
+          "type": "message"
         },
-        "similarity": 0.95,
         "roomId": "room-uuid",
         "createdAt": "2024-01-01T00:00:00Z",
-        "metadata": {
-          "tags": ["important", "preference"]
-        }
+        "agentId": "agent-uuid"
       }
-    ],
-    "totalCount": 50,
-    "searchQuery": "user preferences"
+    ]
   }
 }
 ```
 
-### Create Agent Memory
+**Notes:**
+- channelId is automatically converted to agent-specific roomId using `createUniqueUuid(runtime, channelId)`
+- Embedding vectors are excluded by default for performance
+
+### Update Agent Memory
 
 ```http
-POST /api/memory/agents/:agentId/memories
+PATCH /api/memory/agents/:agentId/memories/:memoryId
 ```
 
-Creates a new memory for an agent.
+Updates an existing memory.
 
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
+- `memoryId` (UUID) - Memory identifier
 
 **Request Body:**
 ```json
 {
   "content": {
-    "text": "Memory content",
-    "type": "reflection" | "fact" | "dialogue",
-    "source": "conversation" | "system" | "user_input"
+    "text": "Updated memory content"
   },
-  "roomId": "room-uuid",
   "metadata": {
-    "tags": ["important", "preference"],
-    "priority": "high",
-    "expires": "2024-12-31T23:59:59Z"
+    "importance": "high"
   }
 }
 ```
@@ -112,17 +105,7 @@ Creates a new memory for an agent.
   "success": true,
   "data": {
     "id": "memory-uuid",
-    "content": {
-      "text": "Memory content",
-      "type": "reflection",
-      "source": "conversation"
-    },
-    "roomId": "room-uuid",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "metadata": {
-      "tags": ["important", "preference"],
-      "priority": "high"
-    }
+    "message": "Memory updated successfully"
   }
 }
 ```
@@ -285,20 +268,32 @@ Removes all memories for an agent.
 **Parameters:**
 - `agentId` (UUID) - Agent identifier
 
-**Query Parameters:**
-- `confirm` (string) - Must be "true" to execute
-- `type` (string) - Optional: only remove memories of specific type
-- `roomId` (UUID) - Optional: only remove memories from specific room
-
 **Response:**
 ```json
 {
   "success": true,
   "data": {
     "deletedCount": 150,
-    "message": "All memories removed"
+    "message": "All agent memories cleared successfully"
   }
 }
+```
+
+### Remove All Room Memories
+
+```http
+DELETE /api/memory/agents/:agentId/memories/all/:roomId
+```
+
+Removes all memories for an agent in a specific room.
+
+**Parameters:**
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Response:**
+```http
+204 No Content
 ```
 
 ## Room-based Memory Management
@@ -316,10 +311,10 @@ Gets all memories for an agent in a specific room.
 - `roomId` (UUID) - Room identifier
 
 **Query Parameters:**
-- `unique` (boolean) - Return only unique memories (default: true)
-- `limit` (number) - Number of memories (default: 50)
-- `type` (string) - Filter by memory type
-- `sortBy` (string) - Sort field (createdAt, updatedAt)
+- `limit` (number) - Number of memories to return (default: 20)
+- `before` (number) - Timestamp for pagination (default: current time)
+- `includeEmbedding` (boolean) - Include embedding vectors (default: false)
+- `tableName` (string) - Memory table to query (default: "messages")
 
 **Response:**
 ```json
@@ -331,17 +326,13 @@ Gets all memories for an agent in a specific room.
         "id": "memory-uuid",
         "content": {
           "text": "Room-specific memory",
-          "type": "dialogue"
+          "type": "message"
         },
         "roomId": "room-uuid",
-        "createdAt": "2024-01-01T00:00:00Z"
+        "createdAt": "2024-01-01T00:00:00Z",
+        "agentId": "agent-uuid"
       }
-    ],
-    "roomInfo": {
-      "id": "room-uuid",
-      "name": "Room Name",
-      "memoryCount": 25
-    }
+    ]
   }
 }
 ```
