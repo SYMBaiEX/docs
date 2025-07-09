@@ -1,0 +1,1070 @@
+---
+title: "Complete REST API Guide with Postman Collection"
+description: "Comprehensive guide to ElizaOS REST API with working Postman collection, curl examples, and step-by-step agent messaging workflows"
+keywords: REST API, Postman, collection, messaging, agents, curl, examples, eliza
+---
+
+This comprehensive guide provides everything you need to interact with ElizaOS agents through the REST API, including a complete Postman collection, curl examples, and detailed workflows.
+
+## API Overview
+
+ElizaOS provides a robust REST API that enables programmatic interaction with agents across multiple domains:
+
+### API Endpoints Structure
+
+```
+/api/agents        - Agent management (CRUD, lifecycle, logs)
+/api/messaging     - Message handling and channels
+/api/media         - File uploads and media serving
+/api/memory        - Memory management and retrieval
+/api/audio         - Audio processing and transcription
+/api/server        - Runtime and server management
+/api/system        - System configuration and health
+/api/tee           - TEE (Trusted Execution Environment) operations
+```
+
+### Authentication
+
+API endpoints can be secured with an optional API key:
+
+```bash
+export ELIZA_SERVER_AUTH_TOKEN=your-secret-token
+```
+
+Include the token in requests using the `X-API-KEY` header:
+
+```bash
+curl -H "X-API-KEY: your-secret-token" http://localhost:3000/api/agents
+```
+
+## Quick Start with curl
+
+### 1. Health Check
+
+```bash
+curl http://localhost:3000/api/server/ping
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Server is healthy",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### 2. List Existing Agents
+
+```bash
+curl http://localhost:3000/api/agents
+```
+
+### 3. Create a New Agent
+
+```bash
+curl -X POST http://localhost:3000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "characterJson": {
+      "name": "ChatBot",
+      "bio": ["I am a helpful AI assistant"],
+      "lore": ["Created to help users with various tasks"],
+      "plugins": [
+        "@elizaos/plugin-sql",
+        "@elizaos/plugin-openai", 
+        "@elizaos/plugin-bootstrap"
+      ],
+      "settings": {
+        "secrets": {
+          "openai_api_key": "sk-your-openai-key"
+        }
+      }
+    }
+  }'
+```
+
+### 4. Start the Agent
+
+```bash
+# Replace {agent_id} with the ID from step 3
+curl -X POST http://localhost:3000/api/agents/{agent_id}/start
+```
+
+### 5. Send a Message to the Agent
+
+```bash
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-123",
+    "author_display_name": "John Doe",
+    "content": "Hello! Can you help me?",
+    "source_type": "api",
+    "source_id": "msg-1",
+    "raw_message": {
+      "text": "Hello! Can you help me?",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    },
+    "metadata": {
+      "platform": "rest_api"
+    }
+  }'
+```
+
+## Complete Postman Collection
+
+### Collection Setup
+
+Download the complete Postman collection: **[ElizaOS REST API Collection](./postman/elizaos-api-collection.json)**
+
+<Tabs>
+  <Tab value="json">
+    ```json title="elizaos-api-collection.json"
+    {
+      "info": {
+        "name": "ElizaOS REST API",
+        "description": "Complete collection for ElizaOS REST API interactions",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+      },
+      "variable": [
+        {
+          "key": "base_url",
+          "value": "http://localhost:3000",
+          "type": "string"
+        },
+        {
+          "key": "api_key", 
+          "value": "",
+          "type": "string"
+        },
+        {
+          "key": "agent_id",
+          "value": "",
+          "type": "string"
+        },
+        {
+          "key": "channel_id",
+          "value": "",
+          "type": "string"
+        },
+        {
+          "key": "server_id",
+          "value": "00000000-0000-0000-0000-000000000000",
+          "type": "string"
+        }
+      ],
+      "auth": {
+        "type": "apikey",
+        "apikey": [
+          {
+            "key": "key",
+            "value": "X-API-KEY",
+            "type": "string"
+          },
+          {
+            "key": "value",
+            "value": "{{api_key}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Server Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/server/ping",
+              "host": ["{{base_url}}"],
+              "path": ["api", "server", "ping"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Server is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"characterJson\": {\n    \"name\": \"APITestBot\",\n    \"bio\": [\"I am an AI assistant created for API testing\"],\n    \"lore\": [\"Built with ElizaOS for demonstrating REST API capabilities\"],\n    \"plugins\": [\n      \"@elizaos/plugin-sql\",\n      \"@elizaos/plugin-openai\",\n      \"@elizaos/plugin-bootstrap\"\n    ],\n    \"settings\": {\n      \"secrets\": {\n        \"openai_api_key\": \"sk-your-openai-key-here\"\n      },\n      \"voice\": {\n        \"model\": \"en_US-hfc_female-medium\"\n      }\n    },\n    \"messageExamples\": [\n      [\n        {\n          \"name\": \"{{user1}}\",\n          \"content\": { \"text\": \"Hello, how can you help me?\" }\n        },\n        {\n          \"name\": \"APITestBot\",\n          \"content\": {\n            \"text\": \"Hello! I'm here to help you with any questions or tasks you have. Feel free to ask me anything!\",\n            \"providers\": [\"KNOWLEDGE\"]\n          }\n        }\n      ]\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/agents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "agents"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Agent created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.id).to.exist;",
+                  "    ",
+                  "    // Save agent ID for future requests",
+                  "    pm.environment.set('agent_id', jsonData.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Agent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agents/{{agent_id}}/start",
+              "host": ["{{base_url}}"],
+              "path": ["api", "agents", "{{agent_id}}", "start"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Agent started successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageServerId\": \"{{server_id}}\",\n  \"name\": \"API Test Channel\",\n  \"type\": \"GROUP\",\n  \"sourceType\": \"api_created\",\n  \"participantIds\": [\"{{agent_id}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messaging/central-channels",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messaging", "central-channels"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Channel created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.id).to.exist;",
+                  "    ",
+                  "    // Save channel ID for messaging",
+                  "    pm.environment.set('channel_id', jsonData.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send Message to Agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channel_id}}\",\n  \"server_id\": \"{{server_id}}\",\n  \"author_id\": \"user-{{$timestamp}}\",\n  \"author_display_name\": \"API User\",\n  \"content\": \"Hello! I'm testing the ElizaOS REST API. Can you tell me about your capabilities?\",\n  \"source_type\": \"api\",\n  \"source_id\": \"msg-{{$timestamp}}\",\n  \"raw_message\": {\n    \"text\": \"Hello! I'm testing the ElizaOS REST API. Can you tell me about your capabilities?\",\n    \"timestamp\": \"{{$timestamp}}\",\n    \"platform\": \"postman\"\n  },\n  \"metadata\": {\n    \"platform\": \"postman\",\n    \"test\": true,\n    \"user_agent\": \"Postman API Test\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/messaging/ingest-external",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messaging", "ingest-external"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Message sent successfully', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.messageId).to.exist;",
+                  "    ",
+                  "    // Save message ID for tracking responses",
+                  "    pm.environment.set('last_message_id', jsonData.data.messageId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Channel Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/messaging/central-channels/{{channel_id}}/messages?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "messaging", "central-channels", "{{channel_id}}", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Messages retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.messages).to.be.an('array');",
+                  "    ",
+                  "    // Look for agent responses",
+                  "    var agentResponse = jsonData.data.messages.find(msg => ",
+                  "        msg.authorId === pm.environment.get('agent_id')",
+                  "    );",
+                  "    ",
+                  "    if (agentResponse) {",
+                  "        console.log('Agent Response:', agentResponse.content);",
+                  "        pm.environment.set('agent_response', agentResponse.content);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Media File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "agentId",
+                  "value": "{{agent_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "roomId",
+                  "value": "{{channel_id}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/media/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "media", "upload"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('File uploaded successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.url).to.exist;",
+                  "    ",
+                  "    pm.environment.set('uploaded_file_url', jsonData.data.url);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Agent Memories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/memory/agents/{{agent_id}}/memories?table=messages&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "memory", "agents", "{{agent_id}}", "memories"],
+              "query": [
+                {
+                  "key": "table",
+                  "value": "messages"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Memories retrieved successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "    pm.expect(jsonData.data.memories).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stop Agent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/agents/{{agent_id}}/stop",
+              "host": ["{{base_url}}"],
+              "path": ["api", "agents", "{{agent_id}}", "stop"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Agent stopped successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab value="download">
+    **Download Links:**
+    - [Postman Collection JSON](./elizaos-api-collection.json)
+    - [Environment Variables Template](./elizaos-environment.json)
+  </Tab>
+</Tabs>
+
+### Environment Setup
+
+Create a Postman environment with these variables:
+
+| Variable | Initial Value | Description |
+|----------|---------------|-------------|
+| `base_url` | `http://localhost:3000` | Your ElizaOS server URL |
+| `api_key` | `your-secret-token` | API key if authentication is enabled |
+| `agent_id` | | Will be set after creating an agent |
+| `server_id` | `00000000-0000-0000-0000-000000000000` | Default server ID |
+| `channel_id` | | Will be set after creating a channel |
+
+## Advanced Messaging Patterns
+
+### 1. Conversation Threading
+
+```bash
+# Send initial message
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-123",
+    "content": "What is machine learning?",
+    "source_type": "api",
+    "source_id": "msg-1",
+    "raw_message": {
+      "text": "What is machine learning?",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    }
+  }'
+
+# Send follow-up message (in reply to previous)
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-123",
+    "content": "Can you give me a simple example?",
+    "source_type": "api",
+    "source_id": "msg-2",
+    "in_reply_to_message_id": "response-from-step-1",
+    "raw_message": {
+      "text": "Can you give me a simple example?",
+      "timestamp": "2024-01-01T00:01:00.000Z",
+      "context": "follow_up_question"
+    }
+  }'
+```
+
+### 2. Multi-Agent Conversations
+
+```bash
+# Create second agent
+curl -X POST http://localhost:3000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "characterJson": {
+      "name": "ExpertBot",
+      "bio": ["I am a specialized technical expert"],
+      "plugins": [
+        "@elizaos/plugin-sql",
+        "@elizaos/plugin-openai",
+        "@elizaos/plugin-bootstrap"
+      ]
+    }
+  }'
+
+# Add second agent to channel
+curl -X POST http://localhost:3000/api/messaging/central-channels/{channel_id}/participants \
+  -H "Content-Type: application/json" \
+  -d '{
+    "participantIds": ["{agent2_id}"]
+  }'
+
+# Send message mentioning both agents
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "{channel_id}",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-123",
+    "content": "@ChatBot and @ExpertBot, what are your thoughts on AI development?",
+    "source_type": "api",
+    "raw_message": {
+      "text": "@ChatBot and @ExpertBot, what are your thoughts on AI development?",
+      "mentions": ["{agent1_id}", "{agent2_id}"]
+    }
+  }'
+```
+
+### 3. Message with Attachments
+
+```bash
+# First upload media
+curl -X POST http://localhost:3000/api/media/upload \
+  -F "file=@document.pdf" \
+  -F "agentId={agent_id}" \
+  -F "roomId={channel_id}"
+
+# Send message with attachment reference
+curl -X POST http://localhost:3000/api/messaging/ingest-external \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel_id": "{channel_id}",
+    "server_id": "00000000-0000-0000-0000-000000000000",
+    "author_id": "user-123",
+    "content": "Can you analyze this document?",
+    "source_type": "api",
+    "raw_message": {
+      "text": "Can you analyze this document?",
+      "attachments": [{
+        "url": "/media/uploads/agents/{agent_id}/document.pdf",
+        "contentType": "application/pdf",
+        "name": "document.pdf"
+      }]
+    },
+    "metadata": {
+      "attachments": [{
+        "url": "/media/uploads/agents/{agent_id}/document.pdf",
+        "contentType": "application/pdf",
+        "name": "document.pdf"
+      }]
+    }
+  }'
+```
+
+## Error Handling and Best Practices
+
+### Common Error Responses
+
+<Tabs>
+  <Tab value="401">
+    **401 Unauthorized**
+    ```json
+    {
+      "success": false,
+      "error": {
+        "message": "Missing or invalid API key",
+        "code": "UNAUTHORIZED"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="404">
+    **404 Not Found**
+    ```json
+    {
+      "success": false,
+      "error": {
+        "message": "Agent not found",
+        "code": "AGENT_NOT_FOUND"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="429">
+    **429 Rate Limited**
+    ```json
+    {
+      "success": false,
+      "error": {
+        "message": "Rate limit exceeded",
+        "code": "RATE_LIMIT_EXCEEDED"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="500">
+    **500 Server Error**
+    ```json
+    {
+      "success": false,
+      "error": {
+        "message": "Internal server error",
+        "code": "INTERNAL_ERROR"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Best Practices
+
+#### 1. Rate Limiting
+
+```javascript
+// Implement exponential backoff for rate limits
+async function makeApiRequest(url, options, retries = 3) {
+  try {
+    const response = await fetch(url, options);
+    
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const delay = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, 4 - retries) * 1000;
+      
+      if (retries > 0) {
+        console.log(`Rate limited. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return makeApiRequest(url, options, retries - 1);
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Request failed. Retrying... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return makeApiRequest(url, options, retries - 1);
+    }
+    throw error;
+  }
+}
+```
+
+#### 2. Agent Status Monitoring
+
+```javascript
+// Check agent status before sending messages
+async function ensureAgentActive(agentId) {
+  const response = await fetch(`/api/agents/${agentId}`, {
+    headers: {
+      'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
+    }
+  });
+  
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error(`Agent not found: ${agentId}`);
+  }
+  
+  if (data.data.status !== 'active') {
+    // Start the agent if it's not active
+    await fetch(`/api/agents/${agentId}/start`, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
+      }
+    });
+    
+    // Wait a moment for startup
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  
+  return data.data;
+}
+```
+
+#### 3. Message Polling
+
+```javascript
+// Poll for new messages in a channel
+async function pollChannelMessages(channelId, lastMessageTime = null) {
+  const params = new URLSearchParams({
+    limit: '50',
+    ...(lastMessageTime && { before: lastMessageTime })
+  });
+  
+  const response = await fetch(
+    `/api/messaging/central-channels/${channelId}/messages?${params}`,
+    {
+      headers: {
+        'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
+      }
+    }
+  );
+  
+  const data = await response.json();
+  
+  if (data.success) {
+    return data.data.messages.sort((a, b) => 
+      new Date(a.createdAt) - new Date(b.createdAt)
+    );
+  }
+  
+  return [];
+}
+
+// Usage
+let lastPollTime = null;
+setInterval(async () => {
+  const messages = await pollChannelMessages('channel-id', lastPollTime);
+  
+  if (messages.length > 0) {
+    console.log('New messages:', messages);
+    lastPollTime = messages[messages.length - 1].createdAt;
+  }
+}, 5000);
+```
+
+## WebSocket Integration
+
+For real-time updates, combine REST API with WebSocket connections:
+
+```javascript
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
+
+// Join channel for real-time updates
+socket.emit('join', { channelId: 'your-channel-id' });
+
+// Listen for incoming messages
+socket.on('messageBroadcast', (data) => {
+  console.log('New message:', data);
+  // Handle incoming message
+});
+
+// Listen for agent typing indicators
+socket.on('messageComplete', (data) => {
+  console.log('Agent finished responding in channel:', data.channelId);
+});
+
+// Send message via REST API, receive response via WebSocket
+async function sendMessageWithRealTimeResponse(channelId, content) {
+  // Send via REST
+  const response = await fetch('/api/messaging/ingest-external', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': process.env.ELIZA_SERVER_AUTH_TOKEN
+    },
+    body: JSON.stringify({
+      channel_id: channelId,
+      server_id: '00000000-0000-0000-0000-000000000000',
+      author_id: 'user-123',
+      content: content,
+      source_type: 'api',
+      source_id: `msg-${Date.now()}`,
+      raw_message: { text: content }
+    })
+  });
+  
+  // Response will come via WebSocket
+  return response.json();
+}
+```
+
+## Testing and Validation
+
+### Unit Test Examples
+
+```javascript
+describe('ElizaOS REST API', () => {
+  let agentId;
+  let channelId;
+  
+  beforeAll(async () => {
+    // Setup test environment
+  });
+  
+  test('should create and start agent', async () => {
+    // Create agent
+    const createResponse = await fetch('/api/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        characterJson: {
+          name: 'TestBot',
+          bio: ['Test agent'],
+          plugins: ['@elizaos/plugin-sql', '@elizaos/plugin-bootstrap']
+        }
+      })
+    });
+    
+    const createData = await createResponse.json();
+    expect(createData.success).toBe(true);
+    agentId = createData.data.id;
+    
+    // Start agent
+    const startResponse = await fetch(`/api/agents/${agentId}/start`, {
+      method: 'POST'
+    });
+    
+    const startData = await startResponse.json();
+    expect(startData.success).toBe(true);
+  });
+  
+  test('should send message and receive response', async () => {
+    // Create channel
+    const channelResponse = await fetch('/api/messaging/central-channels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messageServerId: '00000000-0000-0000-0000-000000000000',
+        name: 'Test Channel',
+        type: 'GROUP',
+        sourceType: 'test',
+        participantIds: [agentId]
+      })
+    });
+    
+    const channelData = await channelResponse.json();
+    channelId = channelData.data.id;
+    
+    // Send message
+    const messageResponse = await fetch('/api/messaging/ingest-external', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel_id: channelId,
+        server_id: '00000000-0000-0000-0000-000000000000',
+        author_id: 'test-user',
+        content: 'Hello test',
+        source_type: 'test',
+        source_id: 'test-msg-1',
+        raw_message: { text: 'Hello test' }
+      })
+    });
+    
+    expect(messageResponse.status).toBe(202);
+    
+    // Wait for response and check messages
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const messagesResponse = await fetch(
+      `/api/messaging/central-channels/${channelId}/messages?limit=10`
+    );
+    const messagesData = await messagesResponse.json();
+    
+    expect(messagesData.success).toBe(true);
+    expect(messagesData.data.messages.length).toBeGreaterThan(1);
+  });
+});
+```
+
+## Production Deployment
+
+### Environment Configuration
+
+```bash
+# Required environment variables
+export ELIZA_SERVER_AUTH_TOKEN="secure-random-token-here"
+export OPENAI_API_KEY="sk-your-openai-key"
+export NODE_ENV="production"
+export PORT="3000"
+
+# Optional security enhancements
+export CORS_ORIGIN="https://yourdomain.com"
+export API_CORS_ORIGIN="https://api.yourdomain.com"
+export ELIZA_UI_ENABLE="false"  # Disable UI in production for API-only deployment
+```
+
+### Load Balancing
+
+```nginx
+# nginx configuration for load balancing
+upstream eliza_api {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+}
+
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+    
+    location /api/ {
+        proxy_pass http://eliza_api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    location /socket.io/ {
+        proxy_pass http://eliza_api;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<Accordion>
+  <AccordionItem title="Agent not responding to messages">
+    **Possible causes:**
+    1. Agent is not started (`status !== 'active'`)
+    2. Agent is not added to the channel
+    3. Message format is incorrect
+    4. OpenAI API key is missing or invalid
+    
+    **Solutions:**
+    ```bash
+    # Check agent status
+    curl http://localhost:3000/api/agents/{agent_id}
+    
+    # Start agent if needed
+    curl -X POST http://localhost:3000/api/agents/{agent_id}/start
+    
+    # Verify channel participants
+    curl http://localhost:3000/api/messaging/central-channels/{channel_id}/details
+    ```
+  </AccordionItem>
+  
+  <AccordionItem title="Messages not appearing in channel">
+    **Check message ingestion:**
+    ```bash
+    # Verify message was created
+    curl http://localhost:3000/api/messaging/central-channels/{channel_id}/messages
+    
+    # Check server logs for errors
+    # Look for database connection issues
+    ```
+  </AccordionItem>
+  
+  <AccordionItem title="File upload failures">
+    **Common issues:**
+    - File size exceeds limit (default 2MB)
+    - Invalid file type
+    - Missing agentId or roomId parameters
+    
+    **Solution:**
+    ```bash
+    # Check file size and type
+    file your-file.pdf
+    ls -lh your-file.pdf
+    
+    # Ensure proper form data format
+    curl -X POST http://localhost:3000/api/media/upload \
+      -F "file=@your-file.pdf" \
+      -F "agentId={valid-uuid}" \
+      -F "roomId={valid-uuid}"
+    ```
+  </AccordionItem>
+</Accordion>
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Message Handlers"
+    description="Learn how agents process and respond to messages"
+    href="/core-concepts/communication/message-handlers"
+  />
+  <Card
+    title="WebSocket Events"
+    description="Implement real-time communication"
+    href="/core-concepts/communication/websocket-events"
+  />
+  <Card
+    title="Client Types"
+    description="Explore all supported client implementations"
+    href="/guides/client-types-implementations"
+  />
+  <Card
+    title="Custom Actions"
+    description="Build custom agent actions and behaviors"
+    href="/core-concepts/agent-development/actions"
+  />
+</Cards>

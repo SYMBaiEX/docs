@@ -1,0 +1,580 @@
+---
+title: "Message Handler Customization"
+description: "Guide to customizing message handlers and prompt templates in ElizaOS"
+keywords: message handlers, prompts, customization, templates, agent behavior
+---
+
+Learn how to customize message handling behavior and prompt templates to create unique agent personalities and specialized response patterns.
+
+## Understanding Message Processing
+
+ElizaOS processes messages through a configurable pipeline that can be customized at multiple levels:
+
+<Callout type="info">
+The `processMessage` function is **client-agnostic** - it works the same way whether messages come from Discord, Twitter, REST API, or any other client. The client type only affects the initial message ingestion, not the core processing logic.
+</Callout>
+
+## Prompt Template System
+
+### Core Templates
+
+ElizaOS uses several key templates for message processing:
+
+#### shouldRespondTemplate
+
+Determines if the agent should respond to a message:
+
+```typescript
+export const shouldRespondTemplate = `<task>Decide on behalf of {{agentName}} whether they should respond to the message, ignore it or stop the conversation.</task>
+
+<providers>
+{{providers}}
+</providers>
+
+<instructions>Decide if {{agentName}} should respond to or interact with the conversation.
+If the message is directed at or relevant to {{agentName}}, respond with RESPOND action.
+If a user asks {{agentName}} to be quiet, respond with STOP action.
+If {{agentName}} should ignore the message, respond with IGNORE action.</instructions>
+
+<output>
+<response>
+  <name>{{agentName}}</name>
+  <reasoning>Your reasoning here</reasoning>
+  <action>RESPOND | IGNORE | STOP</action>
+</response>
+</output>`;
+```
+
+#### messageHandlerTemplate
+
+Generates the agent's response and determines actions:
+
+```typescript
+export const messageHandlerTemplate = `<task>Generate dialog and actions for the character {{agentName}}.</task>
+
+<providers>
+{{providers}}
+</providers>
+
+These are the available valid actions:
+<actionNames>
+{{actionNames}}
+</actionNames>
+
+<instructions>
+Write a thought and plan for {{agentName}} and decide what actions to take.
+
+IMPORTANT ACTION ORDERING RULES:
+- Actions are executed in the ORDER you list them
+- REPLY should come FIRST to acknowledge the user's request
+- Common patterns:
+  - For requests: REPLY,CALL_MCP_TOOL
+  - For tasks: REPLY,SEND_MESSAGE
+  - For multi-step: REPLY,ACTION1,ACTION2
+</instructions>
+
+<output>
+<response>
+    <thought>Your thought here</thought>
+    <actions>ACTION1,ACTION2</actions>
+    <providers>PROVIDER1,PROVIDER2</providers>
+    <text>Your response text here</text>
+</response>
+</output>`;
+```
+
+## Customizing Templates
+
+### Character-Level Customization
+
+Override templates at the character level:
+
+```json
+{
+  "name": "TechSupport",
+  "bio": ["I'm a technical support specialist"],
+  "templates": {
+    "shouldRespondTemplate": "Custom template for tech support agent...",
+    "messageHandlerTemplate": "Custom response generation template...",
+    "postCreationTemplate": "Custom social media post template..."
+  }
+}
+```
+
+### Runtime Template Replacement
+
+Replace templates dynamically during runtime:
+
+```typescript
+// In your custom plugin or initialization
+runtime.character.templates = {
+  ...runtime.character.templates,
+  messageHandlerTemplate: `<task>Generate technical support responses for {{agentName}}.</task>
+  
+<providers>
+{{providers}}
+</providers>
+
+<instructions>
+As a technical support agent, analyze the user's issue and provide:
+1. Acknowledgment of the problem
+2. Diagnostic questions if needed
+3. Step-by-step solution
+4. Follow-up verification
+</instructions>
+
+<output>
+<response>
+    <thought>Analysis of the technical issue</thought>
+    <actions>REPLY</actions>
+    <providers>KNOWLEDGE,FACTS</providers>
+    <text>Your technical support response</text>
+</response>
+</output>`
+};
+```
+
+## Creating Custom Message Handlers
+
+### Basic Custom Handler
+
+```typescript
+import { 
+  IAgentRuntime, 
+  Memory, 
+  HandlerCallback,
+  State,
+  Content
+} from '@elizaos/core';
+
+export async function customMessageHandler(
+  runtime: IAgentRuntime,
+  message: Memory,
+  state: State,
+  callback: HandlerCallback
+): Promise<void> {
+  // Custom processing logic
+  const customResponse = await processWithCustomLogic(message);
+  
+  // Create response content
+  const responseContent: Content = {
+    text: customResponse.text,
+    actions: customResponse.actions || ['REPLY'],
+    thought: customResponse.thought,
+    providers: customResponse.providers || []
+  };
+  
+  // Execute callback
+  await callback(responseContent);
+}
+```
+
+### Advanced Handler with Context
+
+```typescript
+export async function contextAwareHandler(
+  runtime: IAgentRuntime,
+  message: Memory,
+  state: State,
+  callback: HandlerCallback
+): Promise<void> {
+  // Load conversation context
+  const recentMessages = await runtime.getMemories({
+    roomId: message.roomId,
+    count: 10,
+    tableName: 'messages'
+  });
+  
+  // Analyze sentiment and context
+  const sentiment = await analyzeSentiment(message.content.text);
+  const context = await extractContext(recentMessages);
+  
+  // Generate contextual response
+  const prompt = composeContextualPrompt({
+    message: message.content.text,
+    sentiment,
+    context,
+    agentName: runtime.character.name
+  });
+  
+  const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt
+  });
+  
+  // Process and deliver response
+  const content = parseResponse(response);
+  await callback(content);
+}
+```
+
+## Registering Custom Handlers
+
+### Plugin-Based Registration
+
+```typescript
+import { Plugin, EventType } from '@elizaos/core';
+
+export const customHandlerPlugin: Plugin = {
+  name: 'custom-handler',
+  description: 'Custom message handling logic',
+  events: {
+    [EventType.MESSAGE_RECEIVED]: [
+      async (payload) => {
+        const { runtime, message, callback } = payload;
+        
+        // Check if custom handling should apply
+        if (shouldUseCustomHandler(message)) {
+          await customMessageHandler(runtime, message, null, callback);
+          // Mark as handled to skip default processing
+          payload.handled = true;
+        }
+      }
+    ]
+  }
+};
+```
+
+### Conditional Handler Selection
+
+```typescript
+export const conditionalHandlerPlugin: Plugin = {
+  name: 'conditional-handler',
+  description: 'Routes messages to appropriate handlers',
+  events: {
+    [EventType.MESSAGE_RECEIVED]: [
+      async (payload) => {
+        const { runtime, message, callback } = payload;
+        
+        // Route based on message type
+        if (message.content.text?.startsWith('/support')) {
+          await technicalSupportHandler(runtime, message, callback);
+          payload.handled = true;
+        } else if (message.content.text?.includes('order')) {
+          await orderManagementHandler(runtime, message, callback);
+          payload.handled = true;
+        }
+        // Let default handler process other messages
+      }
+    ]
+  }
+};
+```
+
+## Custom Action Processing
+
+### Modifying processActions Behavior
+
+```typescript
+// Custom action processor
+export async function customProcessActions(
+  runtime: IAgentRuntime,
+  message: Memory,
+  responses: Memory[],
+  state: State,
+  callback: HandlerCallback
+): Promise<void> {
+  for (const response of responses) {
+    const actions = response.content?.actions || [];
+    
+    for (const actionName of actions) {
+      // Custom action routing
+      if (actionName === 'CUSTOM_ACTION') {
+        await handleCustomAction(runtime, message, state);
+      } else {
+        // Delegate to default action processing
+        const action = runtime.actions.find(a => 
+          a.name.toLowerCase() === actionName.toLowerCase()
+        );
+        
+        if (action?.handler) {
+          await action.handler(runtime, message, state, {}, callback);
+        }
+      }
+    }
+  }
+}
+```
+
+## Provider Customization
+
+### Custom Provider Implementation
+
+```typescript
+import { Provider, State, IAgentRuntime } from '@elizaos/core';
+
+export const customDataProvider: Provider = {
+  name: 'CUSTOM_DATA',
+  description: 'Provides custom data context',
+  
+  async get(runtime: IAgentRuntime, message: Memory, state: State) {
+    // Fetch custom data
+    const customData = await fetchCustomData(message.entityId);
+    
+    return `Custom data for user:
+- Preference: ${customData.preference}
+- History: ${customData.history}
+- Status: ${customData.status}`;
+  }
+};
+```
+
+### Dynamic Provider Selection
+
+```typescript
+// In your message handler
+const providers = selectProviders(message);
+const state = await runtime.composeState(message, providers);
+
+function selectProviders(message: Memory): string[] {
+  const providers = ['KNOWLEDGE']; // Base provider
+  
+  if (message.content.text?.includes('image')) {
+    providers.push('ATTACHMENTS');
+  }
+  
+  if (message.content.text?.includes('fact')) {
+    providers.push('FACTS');
+  }
+  
+  if (message.entityId) {
+    providers.push('ENTITIES');
+  }
+  
+  return providers;
+}
+```
+
+## Template Variables
+
+### Available Variables
+
+Templates have access to these variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{agentName}}` | Agent's character name | "Assistant" |
+| `{{providers}}` | Formatted provider data | "Knowledge: ..." |
+| `{{actionNames}}` | Available actions | "REPLY,IGNORE,FOLLOW" |
+| `{{adjective}}` | Random character adjective | "helpful" |
+| `{{topic}}` | Current topic | "technology" |
+
+### Custom Variable Injection
+
+```typescript
+function composePromptFromState({
+  state,
+  template,
+  customVars = {}
+}: {
+  state: State;
+  template: string;
+  customVars?: Record<string, any>;
+}): string {
+  const allVars = {
+    ...state.values,
+    ...customVars,
+    timestamp: new Date().toISOString(),
+    platform: state.data?.platform || 'unknown'
+  };
+  
+  return Object.entries(allVars).reduce(
+    (prompt, [key, value]) => 
+      prompt.replace(new RegExp(`{{${key}}}`, 'g'), String(value)),
+    template
+  );
+}
+```
+
+## Response Formatting
+
+### Custom Response Parsers
+
+```typescript
+export function parseCustomResponse(response: string): Content {
+  // Handle custom XML format
+  const customPattern = /<custom>([\s\S]*?)<\/custom>/;
+  const match = response.match(customPattern);
+  
+  if (match) {
+    const parsed = parseCustomXml(match[1]);
+    return {
+      text: parsed.message,
+      actions: parsed.commands || ['REPLY'],
+      thought: parsed.reasoning,
+      metadata: parsed.extra
+    };
+  }
+  
+  // Fallback to default parsing
+  return parseKeyValueXml(response);
+}
+```
+
+### Response Post-Processing
+
+```typescript
+export function postProcessResponse(
+  content: Content,
+  context: any
+): Content {
+  // Add contextual information
+  content.text = content.text
+    .replace(/\[TIME\]/g, new Date().toLocaleTimeString())
+    .replace(/\[USER\]/g, context.userName || 'user');
+  
+  // Ensure response ends properly
+  if (!content.text.match(/[.!?]$/)) {
+    content.text += '.';
+  }
+  
+  // Add metadata
+  content.metadata = {
+    ...content.metadata,
+    processedAt: Date.now(),
+    contextId: context.id
+  };
+  
+  return content;
+}
+```
+
+## Error Handling in Custom Handlers
+
+### Graceful Fallbacks
+
+```typescript
+export async function robustMessageHandler(
+  runtime: IAgentRuntime,
+  message: Memory,
+  callback: HandlerCallback
+): Promise<void> {
+  try {
+    // Try custom processing
+    const response = await customProcessing(message);
+    await callback(response);
+  } catch (error) {
+    runtime.logger.error('Custom processing failed:', error);
+    
+    // Fallback to simple response
+    const fallbackContent: Content = {
+      text: "I encountered an issue processing your message. Could you please rephrase?",
+      actions: ['REPLY'],
+      thought: `Error in custom handler: ${error.message}`
+    };
+    
+    await callback(fallbackContent);
+  }
+}
+```
+
+## Best Practices
+
+### Template Design
+
+<Callout type="lightbulb">
+Keep templates focused and use clear XML structure for reliable parsing. Test templates with various inputs to ensure consistent output.
+</Callout>
+
+1. **Clear Instructions**: Be explicit about expected output format
+2. **Structured Output**: Use consistent XML or JSON structures
+3. **Context Inclusion**: Include relevant context in the template
+4. **Error States**: Define how to handle edge cases
+
+### Handler Performance
+
+```typescript
+// Cache compiled templates
+const templateCache = new Map<string, Function>();
+
+function getCompiledTemplate(template: string): Function {
+  if (!templateCache.has(template)) {
+    const compiled = compileTemplate(template);
+    templateCache.set(template, compiled);
+  }
+  return templateCache.get(template)!;
+}
+
+// Use streaming for long responses
+async function* streamResponse(
+  runtime: IAgentRuntime,
+  prompt: string
+): AsyncGenerator<string> {
+  const stream = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt,
+    stream: true
+  });
+  
+  for await (const chunk of stream) {
+    yield chunk;
+  }
+}
+```
+
+## Testing Custom Handlers
+
+### Unit Testing
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { createMockRuntime } from '@elizaos/core/test-utils';
+
+describe('Custom Message Handler', () => {
+  it('should process technical support messages', async () => {
+    const runtime = createMockRuntime();
+    const message = createTestMessage({
+      text: "My computer won't start"
+    });
+    
+    let capturedResponse: Content | null = null;
+    const callback = async (content: Content) => {
+      capturedResponse = content;
+    };
+    
+    await technicalSupportHandler(runtime, message, null, callback);
+    
+    expect(capturedResponse).toBeDefined();
+    expect(capturedResponse!.text).toContain('troubleshoot');
+    expect(capturedResponse!.actions).toContain('REPLY');
+  });
+});
+```
+
+### Integration Testing
+
+```typescript
+// Test with real runtime
+const testCharacter = {
+  name: "TestBot",
+  templates: {
+    messageHandlerTemplate: customTemplate
+  }
+};
+
+const runtime = new AgentRuntime({
+  character: testCharacter,
+  plugins: [customHandlerPlugin]
+});
+
+// Send test message
+await runtime.processMessage(testMessage);
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Actions Development"
+    description="Create custom actions for your handlers"
+    href="/core-concepts/agent-development/actions"
+  />
+  <Card
+    title="Provider System"
+    description="Build custom context providers"
+    href="/core-concepts/agent-development/providers"
+  />
+  <Card
+    title="Plugin Architecture"
+    description="Package handlers as reusable plugins"
+    href="/plugins/creating-plugins"
+  />
+</Cards>

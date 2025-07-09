@@ -3,23 +3,25 @@ title: "Message Handlers"
 description: "Comprehensive guide to message processing and handling patterns in ElizaOS"
 ---
 
-# Message Handlers
-
 Message handlers are the core processing units in ElizaOS that handle incoming messages, generate
 responses, and execute actions. The bootstrap plugin provides the primary message handling pipeline,
 orchestrating the entire agent response lifecycle from message reception to final output.
+
+<Callout type="info">
+**Platform-Agnostic Design**: The `processMessage` function and message handling pipeline are **completely platform-agnostic**. They work identically whether messages come from Discord, Twitter, Telegram, REST API, WebSocket, or any other client. The client type only affects how messages are initially ingested into the system, not how they are processed. This unified approach ensures consistent agent behavior across all platforms.
+</Callout>
 
 ## Message Processing Pipeline
 
 The message processing pipeline follows these key stages:
 
-1. **Message Reception**: Incoming messages are received via the message bus
+1. **Message Reception**: Incoming messages are received via the message bus from any client (Discord, Twitter, REST API, etc.)
 2. **Validation**: Message and agent validation checks
 3. **Memory Storage**: Message saved to agent memory
 4. **Response Decision**: Determine if the agent should respond
 5. **Response Generation**: Create appropriate response content
 6. **Action Processing**: Execute any required actions
-7. **Response Delivery**: Send response back through the message bus
+7. **Response Delivery**: Send response back through the message bus to the originating client
 
 ## MessageBusService
 
@@ -39,10 +41,10 @@ export class MessageBusService extends Service {
 
 ### Message Flow Through MessageBusService
 
-1. **Subscription**: Service subscribes to internal message bus events
+1. **Subscription**: Service subscribes to internal message bus events from all client types
 2. **Validation**: Validates server subscription and channel participation
-3. **Processing**: Converts message format and emits to agent runtime
-4. **Response**: Handles agent responses and sends back to central bus
+3. **Processing**: Converts message format and emits to agent runtime (same process for all clients)
+4. **Response**: Handles agent responses and sends back to central bus for client delivery
 
 ```typescript
 private async handleIncomingMessage(message: MessageServiceMessage) {
@@ -147,15 +149,19 @@ export function shouldBypassShouldRespond(
   source?: string
 ): boolean {
   const defaultBypassTypes = [
-    ChannelType.DM,
-    ChannelType.VOICE_DM,
-    ChannelType.SELF,
-    ChannelType.API,
+    ChannelType.DM,         // Direct messages from any platform
+    ChannelType.VOICE_DM,   // Voice DMs from any platform
+    ChannelType.SELF,       // Self-messages
+    ChannelType.API,        // API-initiated messages
   ];
 
-  const defaultBypassSources = ["client_chat"];
+  const defaultBypassSources = [
+    "client_chat",   // Web UI chat
+    "api",          // REST API
+    "postman",      // Postman testing
+  ];
 
-  // Check room type and source
+  // Check room type and source (platform-agnostic)
   const roomType = room?.type?.toString().toLowerCase();
   const sourceStr = source?.toLowerCase() || "";
 

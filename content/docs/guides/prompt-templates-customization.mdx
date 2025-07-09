@@ -1,0 +1,925 @@
+---
+title: "Prompt Templates Customization Guide"
+description: "Complete guide to customizing prompt templates for all message handlers in ElizaOS, including examples for different client types and use cases"
+keywords: prompts, templates, customization, message handlers, platform-agnostic, client types
+---
+
+Learn how to customize prompt templates for all ElizaOS message handlers to create specialized agent behaviors across all client types - REST API, Discord, Twitter, Telegram, and more.
+
+<Callout type="info">
+**Universal Processing**: All prompt templates work identically across all client types. Whether messages come from Discord, Twitter, REST API, or any other platform, the same templates and handlers process them through the unified message processing pipeline.
+</Callout>
+
+## Template System Overview
+
+ElizaOS uses a sophisticated template system that controls how agents process and respond to messages. The core templates are:
+
+### Core Message Processing Templates
+
+<Tabs>
+  <Tab value="shouldRespond">
+    **shouldRespondTemplate** - Decision Making
+    
+    Controls whether the agent should respond to incoming messages:
+    
+    ```typescript
+    export const shouldRespondTemplate = `<task>
+    Decide on behalf of {{agentName}} whether they should respond to the message, ignore it or stop the conversation.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <recentMessages>
+    {{recentMessages}}
+    </recentMessages>
+    
+    <instructions>
+    Decide if {{agentName}} should respond to or interact with the conversation.
+    
+    Response Guidelines:
+    - RESPOND: If message is directed at {{agentName}} or relevant to their role
+    - IGNORE: If message is not relevant or should be ignored
+    - STOP: If user asks {{agentName}} to be quiet or stop responding
+    
+    Consider:
+    - Message content relevance
+    - User's tone and intent
+    - {{agentName}}'s character and role
+    - Conversation context
+    </instructions>
+    
+    <output>
+    <response>
+      <name>{{agentName}}</name>
+      <reasoning>Brief explanation of decision</reasoning>
+      <action>RESPOND | IGNORE | STOP</action>
+    </response>
+    </output>`;
+    ```
+  </Tab>
+  
+  <Tab value="messageHandler">
+    **messageHandlerTemplate** - Response Generation
+    
+    Generates the agent's response content and determines actions:
+    
+    ```typescript
+    export const messageHandlerTemplate = `<task>
+    Generate dialog and actions for the character {{agentName}}.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <recentMessages>
+    {{recentMessages}}
+    </recentMessages>
+    
+    <availableActions>
+    {{actionNames}}
+    </availableActions>
+    
+    <instructions>
+    Write a thought and plan for {{agentName}} and decide what actions to take.
+    
+    CHARACTER CONTEXT:
+    - Name: {{agentName}}
+    - Bio: {{bio}}
+    - Personality: {{adjective}}
+    - Current Topic: {{topic}}
+    
+    ACTION ORDERING RULES:
+    - Actions execute in the ORDER listed
+    - REPLY should come FIRST to acknowledge the user
+    - Common patterns:
+      * Simple response: REPLY
+      * With information: REPLY,KNOWLEDGE
+      * With task: REPLY,SEND_MESSAGE
+      * With tool: REPLY,CALL_MCP_TOOL
+    
+    RESPONSE GUIDELINES:
+    - Stay in character
+    - Be helpful and engaging
+    - Reference conversation context
+    - Use appropriate tone for platform
+    </instructions>
+    
+    <output>
+    <response>
+        <thought>Your internal reasoning process</thought>
+        <actions>ACTION1,ACTION2,ACTION3</actions>
+        <providers>PROVIDER1,PROVIDER2</providers>
+        <text>Your response to the user</text>
+    </response>
+    </output>`;
+    ```
+  </Tab>
+  
+  <Tab value="postCreation">
+    **postCreationTemplate** - Content Creation
+    
+    For creating social media posts or proactive content:
+    
+    ```typescript
+    export const postCreationTemplate = `<task>
+    Create a social media post for {{agentName}} about {{topic}}.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <instructions>
+    Create an engaging social media post that:
+    - Reflects {{agentName}}'s personality
+    - Is appropriate for the platform
+    - Includes relevant hashtags if applicable
+    - Encourages engagement
+    
+    Platform considerations:
+    - Twitter: 280 characters, hashtags, mentions
+    - LinkedIn: Professional tone, longer form
+    - Discord: Casual, community-focused
+    - General: Adaptable to platform
+    </instructions>
+    
+    <output>
+    <response>
+        <thought>Post strategy and reasoning</thought>
+        <text>The actual post content</text>
+        <hashtags>#relevant #hashtags</hashtags>
+    </response>
+    </output>`;
+    ```
+  </Tab>
+</Tabs>
+
+## Platform-Specific Template Customization
+
+### REST API Optimized Templates
+
+For REST API interactions, optimize templates for structured data exchange:
+
+```typescript
+const apiOptimizedTemplate = `<task>
+Generate a structured response for {{agentName}} to API request.
+</task>
+
+<providers>
+{{providers}}
+</providers>
+
+<requestContext>
+- Platform: REST API
+- Endpoint: {{endpoint}}
+- Method: {{method}}
+- User Agent: {{userAgent}}
+</requestContext>
+
+<instructions>
+As {{agentName}}, provide a structured response for the API request.
+
+API Response Guidelines:
+- Be concise but complete
+- Include relevant data points
+- Use consistent formatting
+- Provide actionable information
+- Reference request context when relevant
+
+Response Structure:
+- Clear acknowledgment
+- Relevant information
+- Next steps if applicable
+- Error handling if needed
+</instructions>
+
+<output>
+<response>
+    <thought>API request analysis and response strategy</thought>
+    <actions>REPLY</actions>
+    <providers>KNOWLEDGE,FACTS</providers>
+    <text>Structured response for API consumer</text>
+    <metadata>
+        <responseType>api_response</responseType>
+        <confidence>{{confidence}}</confidence>
+        <sources>{{sources}}</sources>
+    </metadata>
+</response>
+</output>`;
+```
+
+### Discord-Optimized Templates
+
+For Discord interactions, customize for community engagement:
+
+```typescript
+const discordOptimizedTemplate = `<task>
+Generate a Discord message response for {{agentName}}.
+</task>
+
+<providers>
+{{providers}}
+</providers>
+
+<discordContext>
+- Server: {{serverName}}
+- Channel: {{channelName}}
+- Message Type: {{messageType}}
+- Mentions: {{mentions}}
+- Thread: {{threadInfo}}
+</discordContext>
+
+<instructions>
+As {{agentName}}, engage with the Discord community.
+
+Discord Guidelines:
+- Use Discord markdown (**, *, \`\`\`, etc.)
+- Reference users with @mentions when appropriate
+- Keep responses conversational and community-focused
+- Use emojis sparingly and appropriately
+- Consider server context and channel purpose
+
+Response Style:
+- Friendly and approachable
+- Community-oriented
+- Contextually aware
+- Engaging and interactive
+</instructions>
+
+<output>
+<response>
+    <thought>Discord community engagement strategy</thought>
+    <actions>REPLY</actions>
+    <providers>KNOWLEDGE,ENTITIES</providers>
+    <text>Discord-formatted response with markdown</text>
+    <reactions>👍,✨,🤖</reactions>
+</response>
+</output>`;
+```
+
+### Twitter-Optimized Templates
+
+For Twitter interactions, focus on concise, engaging content:
+
+```typescript
+const twitterOptimizedTemplate = `<task>
+Generate a Twitter response for {{agentName}}.
+</task>
+
+<providers>
+{{providers}}
+</providers>
+
+<twitterContext>
+- Tweet Type: {{tweetType}}
+- In Reply To: {{inReplyTo}}
+- Mentions: {{mentions}}
+- Hashtags: {{hashtags}}
+- Character Limit: 280
+</twitterContext>
+
+<instructions>
+As {{agentName}}, create a Twitter-appropriate response.
+
+Twitter Guidelines:
+- Maximum 280 characters
+- Use relevant hashtags (#)
+- Include @mentions when replying
+- Be concise but engaging
+- Consider viral potential
+- Use Twitter-friendly formatting
+
+Tone Considerations:
+- Conversational and accessible
+- Personality-driven
+- Topical and timely
+- Engaging and shareable
+</instructions>
+
+<output>
+<response>
+    <thought>Twitter engagement strategy</thought>
+    <actions>REPLY</actions>
+    <providers>KNOWLEDGE</providers>
+    <text>Concise Twitter response under 280 characters</text>
+    <hashtags>#relevant #hashtags</hashtags>
+    <mentions>@relevantUsers</mentions>
+</response>
+</output>`;
+```
+
+## Character-Specific Template Customization
+
+### Technical Support Agent
+
+```json
+{
+  "name": "TechSupport",
+  "bio": ["I'm a technical support specialist helping users with software and hardware issues"],
+  "templates": {
+    "shouldRespondTemplate": "{{shouldRespondTemplate}}",
+    "messageHandlerTemplate": `<task>
+    Provide technical support as {{agentName}}.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <supportContext>
+    {{recentMessages}}
+    </supportContext>
+    
+    <instructions>
+    As {{agentName}}, provide technical support following these steps:
+    
+    1. ACKNOWLEDGE the user's issue
+    2. ANALYZE the problem description
+    3. ASK clarifying questions if needed
+    4. PROVIDE step-by-step solution
+    5. OFFER follow-up assistance
+    
+    Technical Support Guidelines:
+    - Be patient and understanding
+    - Use clear, non-technical language
+    - Provide specific, actionable steps
+    - Offer multiple solutions when possible
+    - Escalate complex issues appropriately
+    
+    Response Structure:
+    - Problem acknowledgment
+    - Diagnosis or clarification
+    - Solution steps
+    - Verification request
+    </instructions>
+    
+    <output>
+    <response>
+        <thought>Technical analysis and support strategy</thought>
+        <actions>REPLY</actions>
+        <providers>KNOWLEDGE,FACTS</providers>
+        <text>Technical support response with clear steps</text>
+        <troubleshooting>
+            <diagnosis>Problem analysis</diagnosis>
+            <steps>Solution steps</steps>
+            <verification>How to verify fix</verification>
+        </troubleshooting>
+    </response>
+    </output>`
+  }
+}
+```
+
+### Sales Assistant
+
+```json
+{
+  "name": "SalesBot",
+  "bio": ["I'm a sales assistant helping customers find the right products"],
+  "templates": {
+    "messageHandlerTemplate": `<task>
+    Provide sales assistance as {{agentName}}.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <salesContext>
+    - Customer: {{customerName}}
+    - Previous Interactions: {{recentMessages}}
+    - Current Products: {{availableProducts}}
+    - Customer Preferences: {{customerPreferences}}
+    </salesContext>
+    
+    <instructions>
+    As {{agentName}}, guide customers through the sales process:
+    
+    SALES METHODOLOGY:
+    1. DISCOVER customer needs
+    2. PRESENT relevant solutions
+    3. HANDLE objections professionally
+    4. CLOSE with clear next steps
+    
+    Sales Guidelines:
+    - Be helpful, not pushy
+    - Focus on customer value
+    - Provide detailed product information
+    - Offer comparisons when helpful
+    - Create urgency appropriately
+    
+    Response Style:
+    - Professional and friendly
+    - Solution-oriented
+    - Value-focused
+    - Consultative approach
+    </instructions>
+    
+    <output>
+    <response>
+        <thought>Sales strategy and customer needs analysis</thought>
+        <actions>REPLY</actions>
+        <providers>KNOWLEDGE,PRODUCTS</providers>
+        <text>Sales-focused response with product recommendations</text>
+        <products>
+            <recommended>Product recommendations</recommended>
+            <alternatives>Alternative options</alternatives>
+        </products>
+        <nextSteps>Clear next steps for customer</nextSteps>
+    </response>
+    </output>`
+  }
+}
+```
+
+### Creative Writing Assistant
+
+```json
+{
+  "name": "CreativeWriter",
+  "bio": ["I'm a creative writing assistant helping with stories, poems, and creative content"],
+  "templates": {
+    "messageHandlerTemplate": `<task>
+    Provide creative writing assistance as {{agentName}}.
+    </task>
+    
+    <providers>
+    {{providers}}
+    </providers>
+    
+    <creativeContext>
+    - Writing Project: {{projectType}}
+    - Genre: {{genre}}
+    - Style: {{writingStyle}}
+    - Audience: {{targetAudience}}
+    - Previous Work: {{recentMessages}}
+    </creativeContext>
+    
+    <instructions>
+    As {{agentName}}, help with creative writing by:
+    
+    CREATIVE PROCESS:
+    1. UNDERSTAND the creative vision
+    2. BRAINSTORM ideas and concepts
+    3. DEVELOP characters, plot, or themes
+    4. REFINE and polish content
+    5. PROVIDE constructive feedback
+    
+    Creative Guidelines:
+    - Encourage experimentation
+    - Provide specific, actionable feedback
+    - Offer multiple creative options
+    - Balance creativity with structure
+    - Inspire and motivate
+    
+    Response Approach:
+    - Enthusiastic and supportive
+    - Detail-oriented
+    - Imaginative and inspiring
+    - Technically skilled
+    </instructions>
+    
+    <output>
+    <response>
+        <thought>Creative analysis and writing strategy</thought>
+        <actions>REPLY</actions>
+        <providers>KNOWLEDGE,CREATIVE</providers>
+        <text>Creative writing guidance and suggestions</text>
+        <techniques>
+            <suggested>Writing techniques to try</suggested>
+            <examples>Specific examples or prompts</examples>
+        </techniques>
+        <inspiration>Creative inspiration or direction</inspiration>
+    </response>
+    </output>`
+  }
+}
+```
+
+## Advanced Template Features
+
+### Dynamic Template Selection
+
+```typescript
+export function selectTemplateForContext(
+  message: Memory,
+  runtime: IAgentRuntime
+): string {
+  const messageText = message.content.text?.toLowerCase() || '';
+  const source = message.content.source;
+  
+  // Platform-specific templates
+  if (source === 'discord') {
+    return runtime.character.templates?.discordTemplate || discordOptimizedTemplate;
+  }
+  
+  if (source === 'twitter') {
+    return runtime.character.templates?.twitterTemplate || twitterOptimizedTemplate;
+  }
+  
+  if (source === 'api' || source === 'rest_api') {
+    return runtime.character.templates?.apiTemplate || apiOptimizedTemplate;
+  }
+  
+  // Content-specific templates
+  if (messageText.includes('support') || messageText.includes('help')) {
+    return runtime.character.templates?.supportTemplate || supportHandlerTemplate;
+  }
+  
+  if (messageText.includes('buy') || messageText.includes('price')) {
+    return runtime.character.templates?.salesTemplate || salesHandlerTemplate;
+  }
+  
+  if (messageText.includes('write') || messageText.includes('story')) {
+    return runtime.character.templates?.creativeTemplate || creativeHandlerTemplate;
+  }
+  
+  // Default template
+  return runtime.character.templates?.messageHandlerTemplate || messageHandlerTemplate;
+}
+```
+
+### Template Inheritance
+
+```typescript
+export function createInheritedTemplate(
+  baseTemplate: string,
+  customizations: Record<string, string>
+): string {
+  let template = baseTemplate;
+  
+  // Replace specific sections
+  Object.entries(customizations).forEach(([section, replacement]) => {
+    const sectionRegex = new RegExp(`<${section}>[\\s\\S]*?</${section}>`, 'g');
+    template = template.replace(sectionRegex, `<${section}>\n${replacement}\n</${section}>`);
+  });
+  
+  return template;
+}
+
+// Usage
+const customSupportTemplate = createInheritedTemplate(messageHandlerTemplate, {
+  instructions: `
+    As a technical support agent:
+    1. Acknowledge the technical issue
+    2. Gather diagnostic information
+    3. Provide step-by-step troubleshooting
+    4. Verify the solution works
+    5. Document the resolution
+  `
+});
+```
+
+### Context-Aware Variables
+
+```typescript
+export function injectContextVariables(
+  template: string,
+  context: {
+    message: Memory;
+    runtime: IAgentRuntime;
+    additionalContext?: Record<string, any>;
+  }
+): string {
+  const variables = {
+    // Standard variables
+    agentName: context.runtime.character.name,
+    bio: context.runtime.character.bio?.join(' ') || '',
+    
+    // Context-specific variables
+    platform: context.message.content.source || 'unknown',
+    userAgent: context.message.content.metadata?.userAgent || 'unknown',
+    timestamp: new Date().toISOString(),
+    
+    // Message context
+    hasAttachments: context.message.content.attachments?.length > 0,
+    mentionsAgent: context.message.content.text?.includes(context.runtime.character.name),
+    
+    // Additional context
+    ...context.additionalContext
+  };
+  
+  return Object.entries(variables).reduce(
+    (template, [key, value]) => 
+      template.replace(new RegExp(`{{${key}}}`, 'g'), String(value)),
+    template
+  );
+}
+```
+
+## Template Testing and Validation
+
+### Template Validation
+
+```typescript
+export function validateTemplate(template: string): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Check for required sections
+  const requiredSections = ['task', 'instructions', 'output'];
+  requiredSections.forEach(section => {
+    if (!template.includes(`<${section}>`)) {
+      errors.push(`Missing required section: ${section}`);
+    }
+  });
+  
+  // Check for output structure
+  if (!template.includes('<response>')) {
+    errors.push('Missing response structure in output section');
+  }
+  
+  // Check for unclosed tags
+  const tagRegex = /<(\w+)>/g;
+  const closingTagRegex = /<\/(\w+)>/g;
+  
+  const openTags = [...template.matchAll(tagRegex)].map(match => match[1]);
+  const closeTags = [...template.matchAll(closingTagRegex)].map(match => match[1]);
+  
+  openTags.forEach(tag => {
+    if (!closeTags.includes(tag)) {
+      errors.push(`Unclosed tag: ${tag}`);
+    }
+  });
+  
+  // Check for common variables
+  const commonVars = ['{{agentName}}', '{{providers}}'];
+  commonVars.forEach(variable => {
+    if (!template.includes(variable)) {
+      warnings.push(`Consider including ${variable} for better context`);
+    }
+  });
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+```
+
+### Template Testing Framework
+
+```typescript
+export class TemplateTestFramework {
+  private runtime: IAgentRuntime;
+  
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+  }
+  
+  async testTemplate(
+    template: string,
+    testCases: Array<{
+      input: string;
+      expectedActions?: string[];
+      expectedKeywords?: string[];
+      platform?: string;
+    }>
+  ): Promise<Array<{
+    input: string;
+    output: any;
+    passed: boolean;
+    errors: string[];
+  }>> {
+    const results = [];
+    
+    for (const testCase of testCases) {
+      try {
+        const message = this.createTestMessage(testCase.input, testCase.platform);
+        const state = await this.runtime.composeState(message);
+        
+        // Apply template
+        const prompt = this.applyTemplate(template, state);
+        
+        // Get response
+        const response = await this.runtime.useModel(ModelType.TEXT_LARGE, {
+          prompt
+        });
+        
+        const parsed = parseKeyValueXml(response);
+        const errors = this.validateResponse(parsed, testCase);
+        
+        results.push({
+          input: testCase.input,
+          output: parsed,
+          passed: errors.length === 0,
+          errors
+        });
+        
+      } catch (error) {
+        results.push({
+          input: testCase.input,
+          output: null,
+          passed: false,
+          errors: [error.message]
+        });
+      }
+    }
+    
+    return results;
+  }
+  
+  private validateResponse(response: any, testCase: any): string[] {
+    const errors: string[] = [];
+    
+    if (testCase.expectedActions) {
+      const actions = response.actions || [];
+      testCase.expectedActions.forEach(expectedAction => {
+        if (!actions.includes(expectedAction)) {
+          errors.push(`Expected action ${expectedAction} not found`);
+        }
+      });
+    }
+    
+    if (testCase.expectedKeywords) {
+      const text = response.text || '';
+      testCase.expectedKeywords.forEach(keyword => {
+        if (!text.toLowerCase().includes(keyword.toLowerCase())) {
+          errors.push(`Expected keyword '${keyword}' not found in response`);
+        }
+      });
+    }
+    
+    return errors;
+  }
+}
+```
+
+## Performance Optimization
+
+### Template Caching
+
+```typescript
+class TemplateCache {
+  private cache = new Map<string, string>();
+  private compiled = new Map<string, Function>();
+  
+  get(key: string): string | undefined {
+    return this.cache.get(key);
+  }
+  
+  set(key: string, template: string): void {
+    this.cache.set(key, template);
+    // Pre-compile template for faster execution
+    this.compiled.set(key, this.compile(template));
+  }
+  
+  private compile(template: string): Function {
+    // Create optimized template function
+    return (variables: Record<string, any>) => {
+      return Object.entries(variables).reduce(
+        (result, [key, value]) => 
+          result.replace(new RegExp(`{{${key}}}`, 'g'), String(value)),
+        template
+      );
+    };
+  }
+  
+  execute(key: string, variables: Record<string, any>): string {
+    const compiled = this.compiled.get(key);
+    if (!compiled) {
+      throw new Error(`Template not found: ${key}`);
+    }
+    return compiled(variables);
+  }
+}
+
+// Global template cache
+export const templateCache = new TemplateCache();
+```
+
+### Async Template Processing
+
+```typescript
+export async function processTemplateAsync(
+  template: string,
+  context: any,
+  options: {
+    streaming?: boolean;
+    timeout?: number;
+    retries?: number;
+  } = {}
+): Promise<string | AsyncGenerator<string>> {
+  const {
+    streaming = false,
+    timeout = 30000,
+    retries = 3
+  } = options;
+  
+  const processWithRetry = async (attempt: number): Promise<string> => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Template processing timeout')), timeout);
+      });
+      
+      const processingPromise = context.runtime.useModel(ModelType.TEXT_LARGE, {
+        prompt: template,
+        stream: streaming
+      });
+      
+      return await Promise.race([processingPromise, timeoutPromise]);
+      
+    } catch (error) {
+      if (attempt < retries) {
+        console.warn(`Template processing failed, retrying (${attempt + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        return processWithRetry(attempt + 1);
+      }
+      throw error;
+    }
+  };
+  
+  return processWithRetry(0);
+}
+```
+
+## Best Practices
+
+### Template Design Guidelines
+
+<Callout type="lightbulb">
+**Template Design Principles:**
+1. **Clarity**: Use clear, specific instructions
+2. **Structure**: Maintain consistent XML structure
+3. **Flexibility**: Design for multiple platforms
+4. **Performance**: Optimize for fast processing
+5. **Testing**: Validate with diverse inputs
+</Callout>
+
+### Security Considerations
+
+```typescript
+export function sanitizeTemplateInput(input: string): string {
+  // Remove potential injection attacks
+  return input
+    .replace(/<script[^>]*>.*?<\/script>/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .replace(/\{\{[^}]*\}\}/g, match => {
+      // Only allow whitelisted variables
+      const allowedVars = ['agentName', 'providers', 'recentMessages'];
+      const varName = match.slice(2, -2);
+      return allowedVars.includes(varName) ? match : '';
+    });
+}
+```
+
+### Error Recovery
+
+```typescript
+export function createFallbackTemplate(
+  primaryTemplate: string,
+  fallbackTemplate: string
+): string {
+  return `
+  <task>
+  Try processing with primary template, fall back to secondary if needed.
+  </task>
+  
+  <primaryTemplate>
+  ${primaryTemplate}
+  </primaryTemplate>
+  
+  <fallbackTemplate>
+  ${fallbackTemplate}
+  </fallbackTemplate>
+  
+  <instructions>
+  Attempt to process using the primary template. If that fails or produces invalid output, use the fallback template instead.
+  </instructions>
+  `;
+}
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Message Handlers"
+    description="Understand the complete message processing pipeline"
+    href="/core-concepts/communication/message-handlers"
+  />
+  <Card
+    title="Client Types"
+    description="Learn about platform-specific implementations"
+    href="/guides/client-types-implementations"
+  />
+  <Card
+    title="Action Development"
+    description="Create custom actions for your templates"
+    href="/core-concepts/agent-development/actions"
+  />
+  <Card
+    title="Provider System"
+    description="Build context providers for your templates"
+    href="/core-concepts/agent-development/providers"
+  />
+</Cards>
