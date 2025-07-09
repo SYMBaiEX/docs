@@ -1,8 +1,302 @@
 ---
-title: Communication & Events
+title: Overview
 description: Understanding communication and event systems in ElizaOS
 ---
 
-# Communication & Events
+# Overview
 
-Content to be added.
+ElizaOS provides a comprehensive communication system that enables agents to interact with users through multiple channels and platforms. The system supports real-time communication, event-driven architecture, and seamless integration with various messaging platforms.
+
+## Core Components
+
+### [Server Architecture](./server)
+
+The AgentServer (`@elizaos/server`) provides HTTP and WebSocket endpoints for agent communication:
+
+**Server Features**:
+- **Express.js Foundation**: Robust HTTP server with middleware support
+- **Multi-Agent Support**: Isolated runtime environments for multiple agents
+- **Room-Based Conversations**: Organized chat channels and group discussions
+- **File Upload Handling**: Media and document processing capabilities
+- **Authentication**: Secure access control and session management
+- **CORS Support**: Cross-origin resource sharing configuration
+
+**Server Architecture**:
+```typescript
+interface AgentServer {
+  agents: Map<string, IAgentRuntime>;
+  upload: UploadHandler;
+  bus: EventBus;
+  start(port: number): Promise<void>;
+  stop(): Promise<void>;
+}
+```
+
+### [REST API](./rest-api)
+
+A comprehensive REST API for agent management, messaging, memory operations, and system administration:
+
+**Core Endpoints**:
+- **Agent Management**: `/agents` - Create, update, list, and delete agents
+- **Messaging**: `/agents/:id/message` - Send messages to specific agents
+- **Memory Operations**: `/agents/:id/memory` - Manage agent memory and knowledge
+- **Room Management**: `/agents/:id/rooms` - Handle conversation rooms
+- **File Upload**: `/upload` - Handle media and document uploads
+- **System Status**: `/health` - System health and status information
+
+**API Features**:
+- **RESTful Design**: Standard HTTP methods and status codes
+- **JSON Responses**: Consistent response format across all endpoints
+- **Error Handling**: Comprehensive error responses with details
+- **Pagination**: Support for large dataset pagination
+- **Filtering**: Advanced filtering and search capabilities
+
+### [WebSockets](./websockets)
+
+Real-time communication capabilities with Socket.IO for live chat, notifications, and system monitoring:
+
+**WebSocket Features**:
+- **Real-time Messaging**: Instant message delivery and notifications
+- **Room Support**: Join and leave conversation rooms
+- **Presence Tracking**: Online/offline status and user presence
+- **Message History**: Access to conversation history
+- **Typing Indicators**: Real-time typing status
+- **Connection Management**: Automatic reconnection and heartbeat
+
+**Socket Events**:
+```typescript
+interface SocketEvents {
+  // Client to Server
+  'message': (data: MessageData) => void;
+  'join_room': (roomId: string) => void;
+  'leave_room': (roomId: string) => void;
+  'typing': (roomId: string, isTyping: boolean) => void;
+  
+  // Server to Client
+  'message_response': (response: MessageResponse) => void;
+  'user_joined': (userId: string, roomId: string) => void;
+  'user_left': (userId: string, roomId: string) => void;
+  'typing_indicator': (userId: string, roomId: string, isTyping: boolean) => void;
+}
+```
+
+### [Message Bus](./message-bus)
+
+Internal event-driven communication system for decoupled agent-to-agent and agent-to-service communication:
+
+**Message Bus Features**:
+- **Pub/Sub Architecture**: Publish and subscribe to events
+- **Event Routing**: Intelligent routing based on event types
+- **Message Queuing**: Reliable message delivery with queuing
+- **Dead Letter Handling**: Failed message processing and retry logic
+- **Performance Monitoring**: Message throughput and latency metrics
+
+**Bus Interface**:
+```typescript
+interface MessageBus {
+  publish(event: string, data: any): Promise<void>;
+  subscribe(event: string, handler: EventHandler): Promise<void>;
+  unsubscribe(event: string, handler: EventHandler): Promise<void>;
+  request(event: string, data: any): Promise<any>;
+}
+```
+
+### [Event System](./events)
+
+Comprehensive event handling for message processing, user interactions, and system events:
+
+**Event Types**:
+- **Message Events**: User messages, agent responses, system notifications
+- **User Events**: User join/leave, presence changes, profile updates
+- **System Events**: Agent start/stop, plugin load/unload, errors
+- **Custom Events**: Plugin-specific and application-defined events
+
+**Event Processing**:
+```typescript
+interface EventProcessor {
+  process(event: Event): Promise<void>;
+  validate(event: Event): boolean;
+  transform(event: Event): Event;
+  route(event: Event): string[];
+}
+```
+
+### [Message Handlers](./message-handlers)
+
+Intelligent message processing pipeline that determines actions, generates responses, and manages conversation flow:
+
+**Processing Pipeline**:
+1. **Message Validation**: Input sanitization and validation
+2. **Context Building**: Conversation history and state composition
+3. **Intent Detection**: Determine user intent and required actions
+4. **Action Selection**: Choose appropriate actions based on context
+5. **Response Generation**: Generate contextual responses using AI models
+6. **Memory Storage**: Persist conversation and learned information
+
+**Handler Interface**:
+```typescript
+interface MessageHandler {
+  validate(message: Message): Promise<boolean>;
+  process(message: Message, context: Context): Promise<Response>;
+  postProcess(response: Response): Promise<void>;
+}
+```
+
+## Communication Patterns
+
+### Client-Server Communication
+
+**HTTP Request/Response**:
+- **Stateless**: Each request contains all necessary information
+- **Cacheable**: Responses can be cached for performance
+- **Standardized**: RESTful API design with consistent patterns
+- **Secure**: HTTPS encryption and authentication
+
+**WebSocket Connections**:
+- **Persistent**: Long-lived connections for real-time communication
+- **Bidirectional**: Both client and server can initiate communication
+- **Low Latency**: Minimal overhead for message delivery
+- **Event-Driven**: Asynchronous event-based communication
+
+### Agent-to-Agent Communication
+
+**Message Bus Integration**:
+- **Decoupled**: Agents communicate through message bus
+- **Scalable**: Support for multiple agents and services
+- **Reliable**: Message delivery guarantees and retry logic
+- **Observable**: Event tracking and monitoring
+
+**Communication Patterns**:
+- **Request/Response**: Synchronous communication for immediate responses
+- **Publish/Subscribe**: Asynchronous event broadcasting
+- **Message Queuing**: Reliable message delivery with persistence
+- **Event Sourcing**: Complete event history for auditing and replay
+
+## Platform Integration
+
+### Multi-Platform Support
+
+**Supported Platforms**:
+- **Discord**: Bot integration with Discord servers
+- **Telegram**: Telegram bot API integration
+- **Twitter**: Twitter API for social media interactions
+- **Slack**: Slack bot integration for team communication
+- **Web**: Direct web client integration
+- **Mobile**: React Native and mobile app integration
+
+**Platform Adapters**:
+```typescript
+interface PlatformAdapter {
+  platform: string;
+  connect(credentials: PlatformCredentials): Promise<void>;
+  disconnect(): Promise<void>;
+  sendMessage(message: Message): Promise<void>;
+  handleMessage(handler: MessageHandler): void;
+}
+```
+
+### Cross-Platform Features
+
+- **Unified API**: Consistent interface across all platforms
+- **Message Translation**: Platform-specific message formatting
+- **Media Handling**: Platform-appropriate media processing
+- **Rate Limiting**: Platform-specific rate limit management
+- **Error Handling**: Platform-specific error handling and recovery
+
+## Advanced Features
+
+### Real-Time Features
+
+**Live Chat**:
+- **Instant Messaging**: Real-time message delivery
+- **Typing Indicators**: Live typing status updates
+- **Presence Tracking**: Online/offline status
+- **Message Status**: Read receipts and delivery confirmation
+
+**Notifications**:
+- **Push Notifications**: Mobile and desktop notifications
+- **Email Notifications**: Email alerts for important events
+- **Webhook Integration**: External service notifications
+- **Custom Alerts**: Configurable notification rules
+
+### Performance Optimization
+
+**Connection Management**:
+- **Connection Pooling**: Reuse connections for efficiency
+- **Load Balancing**: Distribute connections across servers
+- **Auto-Reconnect**: Automatic connection recovery
+- **Health Monitoring**: Connection health tracking
+
+**Message Optimization**:
+- **Compression**: Message compression for bandwidth efficiency
+- **Batching**: Batch multiple messages for efficiency
+- **Caching**: Message and response caching
+- **Deduplication**: Prevent duplicate message processing
+
+## Security Features
+
+### Authentication and Authorization
+
+- **JWT Tokens**: Secure authentication tokens
+- **Role-Based Access**: Fine-grained permission control
+- **API Keys**: Secure API access management
+- **OAuth Integration**: Third-party authentication support
+
+### Data Security
+
+- **Encryption**: End-to-end message encryption
+- **Data Validation**: Input sanitization and validation
+- **Rate Limiting**: Protection against abuse
+- **Audit Logging**: Complete audit trail
+
+## Monitoring and Analytics
+
+### Performance Monitoring
+
+- **Response Time**: Track message processing latency
+- **Throughput**: Monitor message volume and rate
+- **Error Rates**: Track errors and failure patterns
+- **Connection Metrics**: Monitor connection health
+
+### Analytics
+
+- **Usage Statistics**: User engagement and activity metrics
+- **Conversation Analytics**: Message flow and pattern analysis
+- **Platform Performance**: Platform-specific performance metrics
+- **User Behavior**: User interaction patterns and preferences
+
+## Best Practices
+
+### Communication Design
+
+1. **Stateless Design**: Design for stateless communication
+2. **Error Handling**: Implement comprehensive error handling
+3. **Rate Limiting**: Respect platform rate limits
+4. **Message Validation**: Validate all incoming messages
+
+### Performance Optimization
+
+1. **Connection Reuse**: Reuse connections when possible
+2. **Message Batching**: Batch messages for efficiency
+3. **Caching**: Cache frequently accessed data
+4. **Monitoring**: Continuously monitor performance
+
+### Security
+
+1. **Input Validation**: Validate all user inputs
+2. **Authentication**: Implement proper authentication
+3. **Encryption**: Use encryption for sensitive data
+4. **Audit Logging**: Log all security-relevant events
+
+## Getting Started
+
+Explore the following sections to understand the communication system in ElizaOS:
+
+- **[Server Architecture](./server)** - Core server implementation and setup
+- **[REST API](./rest-api)** - HTTP endpoints for agent interaction
+- **[WebSockets](./websockets)** - Real-time communication patterns
+- **[Message Bus](./message-bus)** - Internal event communication
+- **[Event System](./events)** - Event handling and processing
+- **[Message Handlers](./message-handlers)** - Message processing pipeline
+
+This comprehensive communication system provides the foundation for building sophisticated, real-time agent interactions across multiple platforms while maintaining security, performance, and reliability.

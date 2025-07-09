@@ -3,31 +3,365 @@ title: Overview
 description: Understanding data and state management in ElizaOS
 ---
 
-# Data & State Management Overview
+# Overview
 
-ElizaOS provides a comprehensive data and state management system built on an Entity-Component architecture. This system handles agent memory, knowledge storage, and real-time state composition for intelligent conversations.
+ElizaOS provides a comprehensive data and state management system built on flexible architecture patterns. This system handles agent memory, knowledge storage, and real-time state composition for intelligent conversations and persistent learning.
 
 ## Core Components
 
+### [State Management](./state-management)
+
+Dynamic state composition from multiple providers, enabling agents to maintain context across conversations and interactions:
+
+**State Composition**:
+- **Provider-Based**: State built from multiple data providers
+- **Dynamic**: Real-time state updates based on conversation context
+- **Contextual**: State varies based on user, room, and conversation history
+- **Extensible**: Custom providers can contribute to state
+
+**State Interface**:
+```typescript
+interface State {
+  agentId: string;
+  userId: string;
+  roomId: string;
+  userState: string;
+  agentState: string;
+  conversationLength: number;
+  recentMessages: Memory[];
+  goals: Goal[];
+  entities: Entity[];
+  providers: { [key: string]: string };
+}
+```
+
+**State Providers**:
+- **Time Provider**: Current time and scheduling information
+- **Facts Provider**: Verified information and knowledge base
+- **Goals Provider**: Active goals and objectives
+- **Boredom Provider**: Conversation engagement metrics
+- **Recent Messages**: Conversation history and context
+
+### [Memory System](./memory-system)
+
+Persistent memory storage with vector embeddings for semantic search and retrieval:
+
+**Memory Types**:
+```typescript
+enum MemoryType {
+  MESSAGES = 'messages',
+  FACTS = 'facts',
+  DOCUMENTS = 'documents',
+  KNOWLEDGE = 'knowledge',
+  RELATIONSHIPS = 'relationships'
+}
+```
+
+**Memory Features**:
+- **Vector Embeddings**: Semantic search capabilities using vector similarity
+- **Batch Processing**: Efficient batch operations for large datasets
+- **Similarity Search**: Find relevant memories based on content similarity
+- **Memory Deduplication**: Prevent duplicate memory storage
+- **Memory Validation**: Ensure memory quality and consistency
+
+**Memory Interface**:
+```typescript
+interface Memory {
+  id: UUID;
+  userId: UUID;
+  agentId: UUID;
+  roomId: UUID;
+  content: Content;
+  embedding?: number[];
+  createdAt: Date;
+  type: MemoryType;
+  metadata?: MemoryMetadata;
+}
+```
+
+### [Knowledge Management](./knowledge-management)
+
+Structured knowledge storage and retrieval system for facts, documents, and domain-specific information:
+
+**Knowledge Types**:
+- **Facts**: Verified information and statements
+- **Documents**: Structured document storage and retrieval
+- **Relationships**: Entity relationships and connections
+- **Domain Knowledge**: Specialized knowledge bases
+- **Learned Information**: Knowledge acquired through interactions
+
+**Knowledge Features**:
+- **Semantic Search**: Find relevant knowledge using vector embeddings
+- **Knowledge Validation**: Verify information accuracy and consistency
+- **Knowledge Updates**: Dynamic knowledge base updates
+- **Knowledge Graphs**: Relationship mapping and visualization
+- **Knowledge Scoring**: Relevance and confidence scoring
+
+**Knowledge Interface**:
+```typescript
+interface Knowledge {
+  id: UUID;
+  content: string;
+  source: string;
+  confidence: number;
+  type: KnowledgeType;
+  relationships: Relationship[];
+  metadata: KnowledgeMetadata;
+}
+```
+
+### [Database Architecture](./database)
+
+Flexible database adapter pattern supporting multiple backends with consistent APIs:
+
+**Database Adapters**:
+- **PostgreSQL**: Full-featured SQL database with JSON support
+- **SQLite**: Lightweight database for development and testing
+- **Supabase**: PostgreSQL with real-time features
+- **Custom Adapters**: Pluggable architecture for custom backends
+
+**Database Interface**:
+```typescript
+interface IDatabaseAdapter {
+  // Memory operations
+  createMemory(memory: Memory): Promise<void>;
+  getMemories(params: GetMemoriesParams): Promise<Memory[]>;
+  searchMemories(params: SearchMemoriesParams): Promise<Memory[]>;
+  updateMemory(memory: Memory): Promise<void>;
+  removeMemory(memoryId: UUID): Promise<void>;
+
+  // Knowledge operations
+  createKnowledge(knowledge: Knowledge): Promise<void>;
+  getKnowledge(params: GetKnowledgeParams): Promise<Knowledge[]>;
+  searchKnowledge(params: SearchKnowledgeParams): Promise<Knowledge[]>;
+
+  // Entity operations
+  createEntity(entity: Entity): Promise<void>;
+  getEntities(params: GetEntitiesParams): Promise<Entity[]>;
+  updateEntity(entity: Entity): Promise<void>;
+
+  // Relationship operations
+  createRelationship(relationship: Relationship): Promise<void>;
+  getRelationships(params: GetRelationshipsParams): Promise<Relationship[]>;
+}
+```
+
+## Data Architecture
+
+### Entity-Component System
+
+**Entity Definition**:
+```typescript
+interface Entity {
+  id: UUID;
+  name: string;
+  type: EntityType;
+  attributes: { [key: string]: any };
+  relationships: Relationship[];
+  metadata: EntityMetadata;
+}
+```
+
+**Component System**:
+- **Flexible Data Modeling**: Entities can have various components
+- **Extensible**: New component types can be added
+- **Queryable**: Components can be queried and filtered
+- **Versioned**: Track component changes over time
+
+**Relationship Management**:
+- **Typed Relationships**: Strongly typed relationship definitions
+- **Bidirectional**: Relationships are maintained in both directions
+- **Weighted**: Relationships have strength and confidence scores
+- **Temporal**: Relationships can change over time
+
+### Vector Embeddings
+
+**Embedding Generation**:
+- **Multiple Providers**: OpenAI, Cohere, Hugging Face, local models
+- **Batch Processing**: Efficient batch embedding generation
+- **Caching**: Local caching for frequently used embeddings
+- **Dimension Consistency**: Consistent embedding dimensions
+
+**Similarity Search**:
+- **Cosine Similarity**: Standard similarity metric
+- **Euclidean Distance**: Alternative distance metric
+- **Threshold Filtering**: Filter results by similarity threshold
+- **Result Ranking**: Rank results by relevance and confidence
+
+### Memory Architecture
+
+**Memory Persistence**:
+- **Durable Storage**: Persistent memory across agent restarts
+- **Incremental Updates**: Efficient memory updates
+- **Batch Operations**: Bulk memory operations
+- **Backup and Recovery**: Memory backup and restoration
+
+**Memory Retrieval**:
+- **Semantic Search**: Content-based memory retrieval
+- **Temporal Filtering**: Time-based memory filtering
+- **Context Filtering**: Filter by conversation context
+- **Relevance Scoring**: Score memories by relevance
+
+## Advanced Features
+
+### Real-Time Updates
+
+**Live State Updates**:
+- **WebSocket Integration**: Real-time state synchronization
+- **Event-Driven**: State updates trigger events
+- **Optimistic Updates**: Immediate UI updates with rollback
+- **Conflict Resolution**: Handle concurrent state changes
+
+**Memory Streaming**:
+- **Incremental Loading**: Load memories incrementally
+- **Live Updates**: Real-time memory updates
+- **Subscription Model**: Subscribe to memory changes
+- **Efficient Sync**: Minimize data transfer
+
+### Performance Optimization
+
+**Caching Strategies**:
+- **Memory Caching**: In-memory caching for frequently accessed data
+- **Query Caching**: Cache query results for repeated requests
+- **Embedding Caching**: Cache embeddings for reuse
+- **State Caching**: Cache composed state for performance
+
+**Database Optimization**:
+- **Connection Pooling**: Reuse database connections
+- **Query Optimization**: Optimize database queries
+- **Indexing**: Strategic indexing for performance
+- **Partitioning**: Partition large datasets for efficiency
+
+### Data Security
+
+**Privacy Protection**:
+- **Data Encryption**: Encrypt sensitive data at rest
+- **Access Control**: Role-based access to data
+- **Data Anonymization**: Anonymize sensitive information
+- **Audit Logging**: Log all data access and changes
+
+**Data Integrity**:
+- **Validation**: Validate data before storage
+- **Consistency Checks**: Ensure data consistency
+- **Backup Verification**: Verify backup integrity
+- **Recovery Testing**: Test recovery procedures
+
+## Development Patterns
+
+### State Management Patterns
+
+**Provider Pattern**:
+```typescript
+class CustomStateProvider implements Provider {
+  async get(runtime: IAgentRuntime, message: Memory): Promise<string> {
+    // Custom state logic
+    return "Custom state information";
+  }
+}
+```
+
+**State Composition**:
+```typescript
+const state = await composeState(runtime, {
+  providers: [
+    timeProvider,
+    factsProvider,
+    goalsProvider,
+    customProvider
+  ],
+  userId,
+  roomId
+});
+```
+
+### Memory Management Patterns
+
+**Memory Creation**:
+```typescript
+const memory: Memory = {
+  id: uuidv4(),
+  userId,
+  agentId,
+  roomId,
+  content: { text: "User message" },
+  type: MemoryType.MESSAGES,
+  createdAt: new Date()
+};
+
+await runtime.messageManager.createMemory(memory);
+```
+
+**Memory Retrieval**:
+```typescript
+const memories = await runtime.messageManager.getMemories({
+  roomId,
+  count: 10,
+  type: MemoryType.MESSAGES
+});
+```
+
+### Knowledge Management Patterns
+
+**Knowledge Storage**:
+```typescript
+const knowledge: Knowledge = {
+  id: uuidv4(),
+  content: "Important fact about the domain",
+  source: "documentation",
+  confidence: 0.95,
+  type: KnowledgeType.FACTS
+};
+
+await runtime.knowledgeManager.createKnowledge(knowledge);
+```
+
+**Knowledge Search**:
+```typescript
+const relevantKnowledge = await runtime.knowledgeManager.searchKnowledge({
+  query: "user question",
+  threshold: 0.8,
+  limit: 5
+});
+```
+
+## Best Practices
+
+### Data Modeling
+
+1. **Normalize Data**: Avoid data duplication
+2. **Use Appropriate Types**: Choose correct data types
+3. **Index Strategically**: Index frequently queried fields
+4. **Validate Input**: Validate all data before storage
+
+### Memory Management
+
+1. **Regular Cleanup**: Remove old or irrelevant memories
+2. **Batch Operations**: Use batch operations for efficiency
+3. **Monitor Usage**: Track memory usage and performance
+4. **Optimize Queries**: Write efficient database queries
+
 ### State Management
-Dynamic state composition from multiple providers, enabling agents to maintain context across conversations and interactions.
 
-### Memory System
-Persistent memory storage with vector embeddings for semantic search and retrieval of conversation history and learned information.
+1. **Minimize State**: Keep state lean and focused
+2. **Cache Intelligently**: Cache frequently accessed state
+3. **Update Efficiently**: Minimize state update frequency
+4. **Handle Errors**: Implement robust error handling
 
-### Knowledge Management
-Structured knowledge storage and retrieval system for facts, documents, and domain-specific information.
+## Troubleshooting
 
-### Database Architecture
-Flexible database adapter pattern supporting multiple backends with consistent APIs for all data operations.
+### Common Issues
 
-## Key Features
+1. **Memory Leaks**: Monitor memory usage and cleanup
+2. **Slow Queries**: Optimize database queries and indexes
+3. **Embedding Issues**: Verify embedding generation and storage
+4. **State Inconsistency**: Ensure state synchronization
 
-- **Entity-Component System**: Flexible data modeling with entities, components, and relationships
-- **Vector Embeddings**: Semantic search capabilities for intelligent information retrieval
-- **Memory Types**: Structured storage for different content types (messages, facts, documents)
-- **State Composition**: Dynamic aggregation from multiple data sources
-- **Database Adapters**: Pluggable backend support (PostgreSQL, SQLite, custom)
+### Debugging Tools
+
+- **Memory Inspector**: Analyze memory usage and patterns
+- **Query Profiler**: Profile database query performance
+- **State Debugger**: Debug state composition and updates
+- **Performance Monitor**: Monitor system performance metrics
 
 ## Getting Started
 
@@ -37,3 +371,5 @@ Explore the following sections to understand how to work with data and state in 
 - **[Memory System](./memory-system)** - Persistent memory with embeddings
 - **[Knowledge Management](./knowledge-management)** - Facts and domain knowledge
 - **[Database Architecture](./database)** - Storage adapters and schemas
+
+This comprehensive data and state management system provides the foundation for building intelligent agents with persistent memory, contextual understanding, and continuous learning capabilities.

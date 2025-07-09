@@ -1,8 +1,314 @@
 ---
-title: AI & Language Models
+title: Overview
 description: Understanding the AI and language model system in ElizaOS
 ---
 
-# AI & Language Models
+# Overview
 
-Content to be added.
+ElizaOS provides a comprehensive AI and language model system that supports multiple model providers, types, and configurations. The system is designed to be flexible, allowing agents to work with various AI models seamlessly through a unified interface.
+
+## Core Components
+
+### [LLM Plugins](./llm-plugins)
+
+Model-specific plugins that provide standardized interfaces for different AI providers:
+
+**Supported Providers**:
+- **OpenAI**: GPT-4, GPT-3.5, DALL-E, Whisper, text-embedding-ada-002
+- **Anthropic**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
+- **Google**: Gemini Pro, Gemini Pro Vision, PaLM 2
+- **Ollama**: Local model hosting with Llama 2, Mistral, CodeLlama
+- **Groq**: High-speed inference for supported models
+- **Together**: Distributed AI model hosting
+- **Heurist**: Specialized model providers
+
+**Plugin Architecture**:
+```typescript
+interface ModelPlugin {
+  name: string;
+  description: string;
+  models: ModelConfig[];
+  handler: ModelHandler;
+  validateConfig: (config: any) => boolean;
+}
+```
+
+### [Model Providers](./model-providers)
+
+A unified provider system that handles model selection, configuration, and failover:
+
+**Provider Features**:
+- **Automatic Failover**: Switch to backup providers on failure
+- **Load Balancing**: Distribute requests across multiple providers
+- **Rate Limiting**: Respect provider API limits
+- **Cost Optimization**: Route to most cost-effective providers
+- **Performance Monitoring**: Track response times and success rates
+
+**Configuration Example**:
+```json
+{
+  "providers": {
+    "primary": "openai",
+    "fallback": ["anthropic", "google"]
+  },
+  "models": {
+    "text": "gpt-4",
+    "embedding": "text-embedding-ada-002",
+    "image": "dall-e-3"
+  }
+}
+```
+
+### [useModel API](./use-model-api)
+
+The core API for interacting with different model types:
+
+**Model Types**:
+- **Text Generation**: Chat completions, text completion, structured outputs
+- **Embedding**: Vector representations for semantic search
+- **Image Generation**: DALL-E, Midjourney, Stable Diffusion
+- **Image Analysis**: Vision models for image understanding
+- **Audio Processing**: Speech-to-text, text-to-speech
+- **Object Generation**: Structured data generation
+
+**Usage Example**:
+```typescript
+const response = await useModel({
+  runtime,
+  model: ModelType.TEXT,
+  prompt: "Generate a response about AI",
+  temperature: 0.7,
+  maxTokens: 1000
+});
+```
+
+### [Embedding Setup](./embeddings)
+
+Vector embedding generation and management for semantic search and memory retrieval:
+
+**Embedding Features**:
+- **Multiple Providers**: OpenAI, Cohere, Hugging Face, local models
+- **Batch Processing**: Efficient batch embedding generation
+- **Caching**: Local caching for frequently used embeddings
+- **Similarity Search**: Cosine similarity and other distance metrics
+- **Dimension Reduction**: PCA and t-SNE for visualization
+
+**Memory Integration**:
+- **Semantic Search**: Find relevant memories based on meaning
+- **Knowledge Retrieval**: Access relevant information from knowledge base
+- **Context Building**: Build conversation context from similar interactions
+- **Relationship Mapping**: Understand entity relationships
+
+### [Templates & Prompts](./templates)
+
+Structured prompt management system for consistent AI interactions:
+
+**Template Features**:
+- **Variable Substitution**: Dynamic content injection
+- **Context Injection**: Automatic context building
+- **Conditional Logic**: Template branching and conditions
+- **Reusable Components**: Shared template fragments
+- **Validation**: Schema-based template validation
+
+**Template Example**:
+```handlebars
+# Character Context
+You are {{character.name}}, {{character.bio}}
+
+# Recent Conversation
+{{#each recentMessages}}
+{{sender}}: {{content}}
+{{/each}}
+
+# Instructions
+{{#if isDirectMessage}}
+Respond directly to the user's message.
+{{else}}
+Respond in the context of the group conversation.
+{{/if}}
+```
+
+## Model Integration
+
+### Configuration Management
+
+**Environment Variables**:
+```bash
+# Primary providers
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
+
+# Model selection
+DEFAULT_MODEL=gpt-4
+EMBEDDING_MODEL=text-embedding-ada-002
+IMAGE_MODEL=dall-e-3
+
+# Failover configuration
+FALLBACK_PROVIDERS=anthropic,google
+MAX_RETRIES=3
+```
+
+### Runtime Model Selection
+
+**Dynamic Selection**:
+- **Capability-based**: Choose models based on required capabilities
+- **Cost-aware**: Select most cost-effective option
+- **Performance-based**: Route to fastest available provider
+- **Availability**: Automatic failover when providers are unavailable
+
+**Selection Logic**:
+```typescript
+const model = await selectModel({
+  type: ModelType.TEXT,
+  capabilities: ['conversation', 'reasoning'],
+  constraints: {
+    maxCost: 0.01,
+    maxLatency: 5000
+  }
+});
+```
+
+## Advanced Features
+
+### Structured Outputs
+
+**JSON Schema Validation**:
+```typescript
+const result = await useModel({
+  runtime,
+  model: ModelType.TEXT,
+  prompt: "Extract information from this text",
+  schema: {
+    type: "object",
+    properties: {
+      entities: { type: "array", items: { type: "string" } },
+      sentiment: { type: "string", enum: ["positive", "negative", "neutral"] }
+    }
+  }
+});
+```
+
+### Multi-Modal Processing
+
+**Image + Text**:
+```typescript
+const response = await useModel({
+  runtime,
+  model: ModelType.VISION,
+  prompt: "Describe this image",
+  image: imageBuffer
+});
+```
+
+**Audio Processing**:
+```typescript
+const transcription = await useModel({
+  runtime,
+  model: ModelType.SPEECH_TO_TEXT,
+  audio: audioBuffer
+});
+```
+
+### Custom Model Integration
+
+**Plugin Development**:
+```typescript
+const customPlugin: ModelPlugin = {
+  name: "custom-provider",
+  description: "Custom AI provider integration",
+  models: [
+    {
+      name: "custom-model",
+      type: ModelType.TEXT,
+      endpoint: "https://api.custom-provider.com/v1/chat"
+    }
+  ],
+  handler: async (params) => {
+    // Custom implementation
+  }
+};
+```
+
+## Performance Optimization
+
+### Caching Strategies
+
+- **Response Caching**: Cache model responses for identical inputs
+- **Embedding Caching**: Store embeddings locally for reuse
+- **Template Caching**: Compile templates for faster rendering
+- **Provider Caching**: Cache provider availability and performance
+
+### Request Optimization
+
+- **Batch Processing**: Group multiple requests together
+- **Connection Pooling**: Reuse HTTP connections
+- **Compression**: Compress request/response payloads
+- **Streaming**: Use streaming for real-time responses
+
+## Monitoring and Analytics
+
+### Performance Metrics
+
+- **Response Time**: Track latency per provider and model
+- **Success Rate**: Monitor API call success rates
+- **Token Usage**: Track token consumption and costs
+- **Error Rates**: Monitor and alert on error patterns
+
+### Cost Management
+
+- **Usage Tracking**: Monitor API usage and costs
+- **Budget Alerts**: Set spending limits and alerts
+- **Cost Optimization**: Analyze cost per interaction
+- **Provider Comparison**: Compare costs across providers
+
+## Best Practices
+
+### Model Selection
+
+1. **Match Capability to Task**: Choose models appropriate for the task
+2. **Consider Cost**: Balance performance with cost requirements
+3. **Test Thoroughly**: Validate model performance with real data
+4. **Monitor Performance**: Continuously monitor and optimize
+
+### Prompt Engineering
+
+1. **Clear Instructions**: Provide clear, specific instructions
+2. **Context Management**: Include relevant context without overloading
+3. **Example Usage**: Use examples to guide model behavior
+4. **Iterative Improvement**: Refine prompts based on results
+
+### Error Handling
+
+1. **Graceful Degradation**: Handle failures gracefully
+2. **Retry Logic**: Implement intelligent retry strategies
+3. **Fallback Models**: Use backup models when primary fails
+4. **User Communication**: Inform users of temporary limitations
+
+## Troubleshooting
+
+### Common Issues
+
+1. **API Key Issues**: Verify API keys are correctly configured
+2. **Rate Limiting**: Implement proper rate limiting and backoff
+3. **Model Availability**: Check provider status and model availability
+4. **Cost Overruns**: Monitor usage and implement cost controls
+
+### Debugging Tools
+
+- **Request Logging**: Log all API requests and responses
+- **Performance Profiling**: Identify bottlenecks and optimization opportunities
+- **Error Tracking**: Comprehensive error monitoring and alerting
+- **Usage Analytics**: Detailed usage reports and analytics
+
+## Getting Started
+
+Explore the following sections to understand how to work with AI models in ElizaOS:
+
+- **[LLM Plugins](./llm-plugins)** - Model-specific plugin architecture
+- **[Model Providers](./model-providers)** - Provider configuration and management
+- **[useModel API](./use-model-api)** - Core API for model interactions
+- **[Embedding Setup](./embeddings)** - Vector embedding configuration
+- **[Templates & Prompts](./templates)** - Prompt management system
+
+This comprehensive AI model system provides the foundation for sophisticated agent interactions while maintaining flexibility, performance, and cost-effectiveness.

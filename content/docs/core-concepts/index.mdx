@@ -1,34 +1,79 @@
 ---
-title: Core Concepts
+title: Overview
 description: Essential concepts for understanding ElizaOS
 ---
 
-# Core Concepts
+# Overview
 
-Welcome to the Core Concepts section of ElizaOS documentation. This section covers the fundamental concepts and components that form the foundation of the ElizaOS framework.
+Welcome to the Core Concepts section of ElizaOS documentation. This section covers the fundamental concepts and components that form the foundation of the ElizaOS framework - a powerful, extensible platform for building AI agents.
 
-## Architecture & Core
+ElizaOS is built around a modular architecture that enables developers to create intelligent agents with persistent memory, multi-modal capabilities, and extensive platform integrations. The framework consists of several key domains that work together to provide a complete agent development experience.
 
-Learn about the system architecture, runtime environment, project structure, package organization, and plugin system that powers ElizaOS.
+## [Architecture & Core](./architecture)
 
-## Agent Development
+The foundational layer of ElizaOS, built on:
 
-Comprehensive guide to developing agents, including character definitions, actions, evaluators, providers, and task management.
+- **AgentRuntime**: The core runtime environment (`@elizaos/core`) that manages agent lifecycle, memory, and execution
+- **Plugin System**: Extensible architecture allowing custom actions, evaluators, and providers through standardized interfaces
+- **Project Structure**: Monorepo organization with packages for core, CLI, client, server, and plugins
+- **Package Organization**: Clean separation of concerns with `@elizaos/core`, `@elizaos/cli`, `@elizaos/client`, `@elizaos/server`
+- **Client-Server Architecture**: Web-based client communicating with HTTP/WebSocket server endpoints
 
-## AI & Language Models
+## [Agent Development](./agent-development)
 
-Understanding AI model integration, LLM plugins, model providers, embedding systems, and template management.
+Comprehensive agent creation and customization:
 
-## Communication & Events
+- **Character Definition**: JSON-based character schemas with personality traits, knowledge, and behavioral patterns
+- **Actions**: Extensible action system for agent behaviors and responses to user interactions
+- **Evaluators**: Decision-making components that assess situations and determine appropriate responses
+- **Providers**: Integration adapters for external services, platforms, and data sources
+- **Tasks**: Long-running operations and background processes managed by the task system
+- **Agents**: Complete agent instances with memory, personality, and capabilities
 
-Explore server architecture, REST APIs, WebSockets, message bus systems, events, and message handlers.
+## [AI & Language Models](./ai-models)
 
-## Data & State Management
+Multi-provider AI integration and model management:
 
-Learn about state management, memory systems, knowledge management, and database architecture.
+- **LLM Plugins**: Standardized interfaces for OpenAI, Anthropic, Google, Ollama, and local models
+- **Model Providers**: Unified provider system with automatic failover and load balancing
+- **useModel API**: Core API for text generation, embeddings, image processing, and structured outputs
+- **Embedding Systems**: Vector embeddings for semantic search and memory retrieval
+- **Templates**: Structured prompt management with context injection and variable substitution
 
-## Infrastructure & Tools
+## [Communication & Events](./communication)
 
-Discover services, testing infrastructure, CLI tools, and environment configuration options.
+Real-time communication and event-driven architecture:
 
-Each section provides detailed documentation, examples, and best practices for working with ElizaOS components.
+- **Server Architecture**: Express.js-based server with HTTP and WebSocket endpoints
+- **REST API**: Complete API for agent management, messaging, memory operations, and system administration
+- **WebSockets**: Real-time communication using Socket.IO for live chat and notifications
+- **Message Bus**: Internal event system for decoupled agent-to-agent communication
+- **Event System**: Comprehensive event handling for messages, user interactions, and system events
+- **Message Handlers**: Intelligent message processing pipeline with action detection and response generation
+
+## [Data & State Management](./data-state)
+
+Persistent storage and intelligent memory systems:
+
+- **State Management**: Dynamic state composition from multiple providers and data sources
+- **Memory System**: Vector-based memory storage with embedding search and retrieval
+- **Knowledge Management**: Structured knowledge base with facts, documents, and domain expertise
+- **Database Architecture**: Pluggable database adapters supporting PostgreSQL, SQLite, and custom backends
+- **Entity System**: Relationship management for users, agents, and contextual entities
+
+## [Infrastructure & Tools](./infrastructure)
+
+Developer tools and deployment infrastructure:
+
+- **CLI Tools**: `@elizaos/cli` for project creation, development, testing, and deployment
+- **Environment Configuration**: Hierarchical configuration system with secret management
+- **Testing Framework**: Comprehensive testing with unit, integration, and E2E test support
+- **Services**: Core services for file operations, plugin management, and system utilities
+- **Build System**: TypeScript compilation with tsup, Vite frontend builds, and Docker containerization
+- **Development Workflow**: Hot reloading, automatic rebuilds, and development server
+
+## Getting Started
+
+Each section provides detailed documentation, code examples, and best practices for working with ElizaOS components. Whether you're building your first agent or extending the platform with custom plugins, these core concepts form the foundation of effective ElizaOS development.
+
+The framework is designed to be approachable for beginners while providing the depth and flexibility needed for complex, production-ready AI applications.

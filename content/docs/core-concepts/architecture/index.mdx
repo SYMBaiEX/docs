@@ -1,39 +1,181 @@
 ---
-title: Architecture & Core
+title: Overview
 description: System architecture and design patterns of ElizaOS
 ---
 
-# Architecture & Core
+# Overview
 
-This section covers the foundational architecture and core components of ElizaOS, providing a comprehensive understanding of how the system is structured and organized.
+ElizaOS is built with a modular, extensible architecture that supports agent-based computing, plugin extensibility, and real-time communication. The system is designed around a core runtime that manages agent lifecycle, memory, and execution while providing a flexible plugin system for customization.
 
 ## System Architecture
 
-ElizaOS is built with a modular, extensible architecture that supports:
-- Agent-based computing
-- Plugin system
-- Event-driven communication
-- Distributed processing
-- Scalable infrastructure
+### Core Runtime (`@elizaos/core`)
 
-## Core Components
+The heart of ElizaOS is the **AgentRuntime** class, which provides:
 
-### Agent Runtime
-The runtime environment that executes agents and manages their lifecycle.
+- **Agent Lifecycle Management**: Initialization, execution, and cleanup of agent instances
+- **Memory Management**: Persistent storage and retrieval of conversation history, facts, and knowledge
+- **State Composition**: Dynamic state building from multiple providers and data sources
+- **Action Processing**: Execution of agent actions and response generation
+- **Plugin Integration**: Loading and management of plugins that extend agent capabilities
+- **Event System**: Internal event bus for decoupled communication between components
 
-### Project Structure
-Understanding the organization of ElizaOS projects and codebases.
+### Client-Server Architecture
 
-### Package Organization
-How packages are structured and organized within the monorepo.
+ElizaOS uses a distributed architecture with clear separation between client and server:
+
+**Server Components (`@elizaos/server`)**:
+- **HTTP API**: Express.js-based REST endpoints for agent management and system operations
+- **WebSocket Server**: Real-time communication using Socket.IO for live chat and notifications
+- **Agent Management**: Multi-agent support with isolated runtime environments
+- **Upload Handling**: File and media processing capabilities
+- **Authentication**: Middleware for secure access control
+
+**Client Components (`@elizaos/client`)**:
+- **React Application**: Modern web interface built with React 19 and TypeScript
+- **Real-time Chat**: WebSocket-based chat interface with message streaming
+- **Agent Management**: UI for creating, configuring, and monitoring agents
+- **Memory Visualization**: Interactive views of agent memory and knowledge graphs
+- **Plugin Configuration**: Interface for managing plugin settings and integrations
 
 ### Plugin System
-The extensible plugin architecture that allows for custom functionality.
+
+The plugin architecture enables extensibility through standardized interfaces:
+
+**Plugin Structure**:
+```typescript
+interface Plugin {
+  name: string;
+  description: string;
+  actions?: Action[];
+  evaluators?: Evaluator[];
+  providers?: Provider[];
+  services?: Service[];
+}
+```
+
+**Core Plugin Types**:
+- **Actions**: Executable behaviors that agents can perform
+- **Evaluators**: Decision-making components for response evaluation
+- **Providers**: Data and service integration adapters
+- **Services**: System-level utilities and background processes
+
+## Project Structure
+
+The ElizaOS monorepo is organized into focused packages:
+
+```
+packages/
+├── core/                 # Core runtime and types (@elizaos/core)
+├── cli/                  # Command-line interface (@elizaos/cli)
+├── client/              # Web client application (@elizaos/client)
+├── server/              # HTTP/WebSocket server (@elizaos/server)
+├── api-client/          # API client library (@elizaos/api-client)
+├── plugin-*/            # Individual plugin packages
+└── create-eliza/        # Project bootstrapping tool
+```
+
+### Package Organization
+
+**Core Package** (`@elizaos/core`):
+- `runtime.ts`: AgentRuntime class and core execution logic
+- `types/`: TypeScript type definitions for all system components
+- `database.ts`: Database adapter interfaces and implementations
+- `actions.ts`: Action composition and execution utilities
+- `entities.ts`: Entity resolution and relationship management
+- `prompts.ts`: Prompt templates and context injection
+- `services.ts`: Service registry and lifecycle management
+
+**CLI Package** (`@elizaos/cli`):
+- Command implementations for project management
+- Template system for project and plugin creation
+- Development server with hot reloading
+- Testing framework integration
+- Build and deployment utilities
+
+**Client Package** (`@elizaos/client`):
+- React components for agent interaction
+- Real-time communication hooks
+- State management with React Context
+- Plugin configuration interfaces
+- Memory and knowledge visualization
+
+**Server Package** (`@elizaos/server`):
+- Express.js server with middleware
+- WebSocket handlers for real-time communication
+- Multi-agent runtime management
+- File upload and media processing
+- Authentication and authorization
 
 ## Design Principles
 
-Content to be added about:
-- Modularity and separation of concerns
-- Extensibility and plugin architecture
-- Performance and scalability considerations
-- Security and reliability patterns
+### Modularity and Separation of Concerns
+
+- **Clear Boundaries**: Each package has well-defined responsibilities
+- **Interface-Driven**: Components communicate through typed interfaces
+- **Dependency Injection**: Services and providers are injected rather than tightly coupled
+- **Plugin Isolation**: Plugins operate in isolated environments with controlled access
+
+### Extensibility and Plugin Architecture
+
+- **Standardized Interfaces**: All plugins implement consistent interfaces
+- **Runtime Loading**: Plugins can be loaded and unloaded at runtime
+- **Configuration Management**: Plugin settings are managed through environment variables
+- **Dependency Resolution**: Automatic resolution of plugin dependencies
+
+### Performance and Scalability
+
+- **Memory Management**: Efficient memory usage with configurable limits
+- **Asynchronous Processing**: Non-blocking operations throughout the system
+- **Connection Pooling**: Database connections are pooled for efficiency
+- **Caching**: Intelligent caching of frequently accessed data
+
+### Security and Reliability
+
+- **Input Validation**: All user inputs are validated and sanitized
+- **Environment Isolation**: Sensitive configuration is isolated from application code
+- **Error Handling**: Comprehensive error handling with graceful degradation
+- **Audit Logging**: Detailed logging for security and debugging
+
+## Runtime Architecture
+
+### Agent Execution Flow
+
+1. **Initialization**: Agent runtime loads character definition and plugins
+2. **State Composition**: Dynamic state is built from providers and memory
+3. **Message Processing**: Incoming messages are analyzed and actions are selected
+4. **Action Execution**: Selected actions are executed with proper context
+5. **Response Generation**: AI models generate responses based on character and context
+6. **Memory Storage**: Conversation history and facts are persisted to memory
+
+### Memory and State Management
+
+- **Vector Embeddings**: Semantic search capabilities for memory retrieval
+- **Entity Resolution**: Intelligent entity identification and relationship tracking
+- **Context Windows**: Efficient context management for large conversations
+- **Knowledge Graph**: Structured knowledge representation with relationships
+
+### Communication Patterns
+
+- **Event-Driven**: Components communicate through events rather than direct calls
+- **Message Bus**: Internal pub/sub system for decoupled communication
+- **Real-time Updates**: WebSocket connections for instant UI updates
+- **API Consistency**: Unified API patterns across all endpoints
+
+## Development Workflow
+
+### Local Development
+
+1. **Project Creation**: Use `elizaos create` to bootstrap new projects
+2. **Development Server**: Run `elizaos dev` for hot reloading development
+3. **Testing**: Comprehensive test suite with `elizaos test`
+4. **Plugin Development**: Create and test plugins in isolation
+
+### Production Deployment
+
+- **Build System**: TypeScript compilation with optimized output
+- **Container Support**: Docker containerization for consistent deployment
+- **Environment Management**: Hierarchical configuration with secret management
+- **Monitoring**: Built-in health checks and performance metrics
+
+This architecture provides a solid foundation for building sophisticated AI agents while maintaining flexibility, performance, and reliability.
