@@ -136,19 +136,20 @@ Structure your tutorial pages to guide users through a complete workflow:
 
 ```mdx
 ---
-title: Build Your First Agent
-description: Learn how to create and deploy an AI agent in 5 minutes
-keywords: tutorial, quickstart, agent, getting-started
+title: Build Your First ElizaOS Agent
+description: Create an AI agent with memory, actions, and Discord integration in 10 minutes
+keywords: tutorial, quickstart, agent, discord, elizaos
 ---
 
-Learn how to build your first ElizaOS agent with this step-by-step guide.
+Learn how to build your first ElizaOS agent with Discord integration.
 
 ## What you'll build
 
 In this tutorial, you'll create an agent that can:
-- Respond to user messages
+- Respond intelligently on Discord
 - Remember conversation context
-- Execute custom actions
+- Execute the REPLY action
+- Use OpenAI for responses
 
 <Callout type="info">
 This tutorial takes approximately 10 minutes to complete.
@@ -160,16 +161,17 @@ Before starting, ensure you have:
 
 | Requirement | Version | Check Command |
 |------------|---------|---------------|
-| Node.js | 20+ | `node --version` |
-| Bun | 1.0+ | `bun --version` |
+| Node.js | 20.18+ | `node --version` |
+| Bun | 1.1.43+ | `bun --version` |
 | Git | Any | `git --version` |
+| OpenAI API Key | - | [Get from OpenAI](https://platform.openai.com) |
 
 ## Build your agent
 
 <Steps>
 
 <Step>
-## Install ElizaOS
+## Install ElizaOS CLI
 
 First, install the ElizaOS CLI globally:
 
@@ -187,10 +189,10 @@ elizaos --version
 <Step>
 ## Create your project
 
-Create a new agent project:
+Create a new ElizaOS agent project:
 
 ```bash
-elizaos create my-first-agent
+elizaos create my-first-agent --type project
 cd my-first-agent
 ```
 
@@ -198,25 +200,92 @@ This creates a project with the following structure:
 
 <Files>
   <Folder name="my-first-agent" defaultOpen>
-    <File name="character.json" />
+    <Folder name="characters">
+      <File name="example.json" />
+    </Folder>
     <File name="package.json" />
     <File name=".env.example" />
+    <File name=".gitignore" />
   </Folder>
 </Files>
 </Step>
 
 <Step>
-## Configure your agent
+## Configure environment
 
-Edit `character.json` to define your agent's personality:
+Copy the example environment file and add your keys:
 
-```json title="character.json"
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your API keys:
+
+```bash title=".env"
+# Core Database
+DATABASE_URL=postgresql://localhost/elizaos
+
+# OpenAI Configuration
+OPENAI_API_KEY=sk-your-openai-key
+
+# Discord Configuration
+DISCORD_BOT_TOKEN=your-discord-token
+DISCORD_APPLICATION_ID=your-app-id
+```
+</Step>
+
+<Step>
+## Create your character
+
+Create a new character file:
+
+```json title="characters/my-agent.json"
 {
-  "name": "Assistant",
-  "description": "A helpful AI assistant",
-  "personality": "friendly and knowledgeable"
+  "name": "Ada",
+  "bio": [
+    "Ada is a helpful AI assistant built with ElizaOS.",
+    "She specializes in answering questions and helping users."
+  ],
+  "plugins": [
+    "@elizaos/plugin-sql",      // Required first
+    "@elizaos/plugin-openai",   // AI provider
+    "@elizaos/plugin-discord",  // Discord integration
+    "@elizaos/plugin-bootstrap" // Required last
+  ],
+  "settings": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 2000
+  },
+  "messageExamples": [
+    [
+      {
+        "name": "{{user1}}",
+        "content": { "text": "What can you help me with?" }
+      },
+      {
+        "name": "Ada",
+        "content": { 
+          "text": "I can help you with a variety of tasks! I'm here to answer questions, provide information, and assist with anything you need.",
+          "providers": ["KNOWLEDGE"]
+        }
+      }
+    ]
+  ]
 }
 ```
+</Step>
+
+<Step>
+## Start your agent
+
+Run your agent in development mode:
+
+```bash
+elizaos dev --character characters/my-agent.json
+```
+
+Your agent is now running and connected to Discord!
 </Step>
 
 </Steps>
@@ -228,13 +297,18 @@ Now that you've created your first agent:
 <Cards>
   <Card 
     title="Add Custom Actions" 
-    description="Learn how to extend your agent with custom actions"
-    href="/guides/custom-actions"
+    description="Learn how to create custom actions for your agent"
+    href="/advanced/custom-actions"
   />
   <Card 
-    title="Deploy Your Agent" 
-    description="Deploy your agent to production"
-    href="/guides/deployment"
+    title="Deploy to Production" 
+    description="Deploy your agent using Docker or cloud services"
+    href="/advanced/deployment"
+  />
+  <Card 
+    title="Add More Plugins" 
+    description="Integrate Twitter, Telegram, and blockchain"
+    href="/plugins"
   />
 </Cards>
 ```
@@ -245,56 +319,58 @@ For conceptual documentation, use this pattern:
 
 ```mdx
 ---
-title: Understanding Agents
-description: Core concepts of agents in ElizaOS
-keywords: agents, architecture, concepts
+title: Understanding AgentRuntime in ElizaOS
+description: Core concepts of the AgentRuntime orchestration system
+keywords: agent, runtime, orchestration, elizaos
 ---
 
-Agents are the fundamental building blocks of ElizaOS applications.
+AgentRuntime is the central orchestration system that powers ElizaOS agents.
 
-## What is an agent?
+## What is AgentRuntime?
 
-An agent is an autonomous AI entity that can:
-- Process natural language
-- Maintain conversation state
-- Execute actions
-- Learn from interactions
+AgentRuntime is the core class that:
+- Orchestrates all agent operations
+- Manages plugins and services
+- Handles memory and state
+- Processes messages through actions
 
 <Callout type="lightbulb">
-Think of agents as AI-powered team members that can handle specific tasks autonomously.
+Think of AgentRuntime as the brain of your agent - it coordinates all components to create intelligent behavior.
 </Callout>
 
 ## Core concepts
 
-### Agent lifecycle
+### Runtime lifecycle
 
-Agents go through several lifecycle stages:
+The AgentRuntime goes through several lifecycle stages:
 
-| Stage | Description | Triggered By |
-|-------|-------------|--------------|
-| **Initialization** | Agent loads configuration | System startup |
-| **Active** | Agent processes messages | User interaction |
-| **Idle** | Agent waits for input | No activity |
-| **Shutdown** | Agent saves state | System shutdown |
+| Stage | Description | Key Methods |
+|-------|-------------|-------------|
+| **Initialization** | Load character and plugins | `runtime.initialize()` |
+| **Registration** | Register services and actions | `runtime.registerService()` |
+| **Active** | Process messages and events | `runtime.processActions()` |
+| **Shutdown** | Clean up resources | `runtime.stop()` |
 
-### Agent vs. Traditional Bots
+### Runtime vs. Character
 
-Understanding the key differences:
+Understanding the separation of concerns:
 
 <Tabs>
-  <Tab value="agents">
-    **AI Agents**
-    - Contextual understanding
-    - Dynamic responses
-    - Learning capabilities
-    - Multi-step reasoning
+  <Tab value="runtime">
+    **AgentRuntime**
+    - Execution engine
+    - Service management
+    - Memory operations
+    - Plugin coordination
+    - State composition
   </Tab>
-  <Tab value="bots">
-    **Traditional Bots**
-    - Rule-based responses
-    - Static workflows
-    - No learning
-    - Single-step logic
+  <Tab value="character">
+    **Character**
+    - Personality definition
+    - Response style
+    - Knowledge base
+    - Example messages
+    - Settings & secrets
   </Tab>
 </Tabs>
 
@@ -302,62 +378,103 @@ Understanding the key differences:
 
 ```mermaid
 graph TD
-    A[User Input] --> B[Agent Runtime]
-    B --> C[Memory System]
-    B --> D[Action Processor]
-    B --> E[Response Generator]
-    C --> B
-    D --> B
-    E --> F[User Output]
+    A[Message Input] --> B[AgentRuntime]
+    B --> C[State Composer]
+    B --> D[Action Evaluator]
+    B --> E[Memory Manager]
+    B --> F[Service Registry]
+    C --> G[Model Provider]
+    D --> G
+    G --> H[Response Output]
 ```
 
 ## Common patterns
 
-### Stateful conversations
+### Accessing services
 
-Agents maintain conversation state across interactions:
+Use typed service access for type safety:
 
-```typescript title="examples/stateful-agent.ts"
-const agent = new Agent({
-  name: "MemoryBot",
-  plugins: [memoryPlugin],
-  // Agent remembers context
-  contextWindow: 10
+```typescript title="examples/service-access.ts"
+// Get a typed service instance
+const twitterService = runtime.getTypedService<TwitterService>('twitter');
+
+// Use the service
+await twitterService.postTweet({
+  text: "Hello from ElizaOS!",
+  mediaIds: []
 });
 ```
 
-### Action chains
+### State composition
 
-Agents can execute complex action sequences:
+Compose runtime state for context:
 
-```typescript title="examples/action-chains.ts"
-agent.registerAction({
-  name: "processOrder",
-  steps: [
-    "validateInput",
-    "checkInventory", 
-    "createOrder",
-    "sendConfirmation"
-  ]
+```typescript title="examples/state-composition.ts"
+// Compose state with specific components
+const state = await runtime.composeState(message, {
+  useRecentMessages: true,
+  useKnowledge: true,
+  useMemories: true
 });
+
+// Access composed data
+console.log(state.recentMessages);
+console.log(state.relevantKnowledge);
+```
+
+### Memory operations
+
+Work with the memory system:
+
+```typescript title="examples/memory-operations.ts"
+// Create a memory
+await runtime.createMemory({
+  content: "User prefers technical explanations",
+  entityId: message.userId,
+  type: "preference"
+});
+
+// Search memories
+const memories = await runtime.searchMemories({
+  tableName: "memories",
+  query: "technical preferences",
+  limit: 10
+});
+```
+
+## Plugin architecture
+
+```typescript title="examples/plugin-structure.ts"
+const myPlugin: Plugin = {
+  name: "my-plugin",
+  description: "Custom functionality",
+  actions: [replyAction, analyzeAction],
+  providers: [knowledgeProvider],
+  services: [backgroundService],
+  evaluators: [sentimentEvaluator]
+};
+
+// Register during initialization
+runtime.registerPlugin(myPlugin);
 ```
 
 ## Best practices
 
 <Callout type="warning">
-Always validate agent responses in production environments.
+Always ensure plugin-sql is loaded first and plugin-bootstrap is loaded last.
 </Callout>
 
-1. **Keep agents focused** - One agent per domain
-2. **Use appropriate models** - Match model to task complexity
-3. **Monitor performance** - Track response times and accuracy
-4. **Test edge cases** - Ensure graceful failure handling
+1. **Initialize properly** - Wait for async initialization
+2. **Type your services** - Use TypeScript generics
+3. **Handle errors** - Runtime operations can fail
+4. **Clean shutdown** - Always call `runtime.stop()`
 
 ## Related topics
 
-- [Creating Custom Agents](/guides/custom-agents)
-- [Agent Memory Systems](/concepts/memory)
-- [Action Development](/guides/actions)
+- [Character Configuration](/core-concepts/character)
+- [Action Development](/advanced/custom-actions)
+- [Memory Systems](/core-concepts/memory)
+- [Plugin Development](/plugins/creating-plugins)
 ```
 
 **3. API Reference Pages**
@@ -366,12 +483,12 @@ For API documentation, use this structure:
 
 ```mdx
 ---
-title: Agent API Reference
-description: Complete API reference for the Agent class
-keywords: api, reference, agent, documentation
+title: AgentRuntime API Reference
+description: Complete API reference for the AgentRuntime class
+keywords: api, reference, runtime, elizaos
 ---
 
-Complete reference for the ElizaOS Agent API.
+Complete reference for the ElizaOS AgentRuntime API.
 
 ## Installation
 
@@ -390,205 +507,354 @@ Complete reference for the ElizaOS Agent API.
 
 ## Quick start
 
-```typescript title="examples/basic-agent.ts"
-import { Agent } from '@elizaos/core';
+```typescript title="examples/basic-runtime.ts"
+import { AgentRuntime } from '@elizaos/core';
 
-const agent = new Agent({
-  name: 'MyAgent',
-  model: 'gpt-4'
+const runtime = new AgentRuntime({
+  token: 'your-agent-token',
+  character: characterData,
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",
+    "@elizaos/plugin-bootstrap"
+  ]
 });
 
-await agent.start();
+await runtime.initialize();
 ```
 
 ## Constructor
 
-### `new Agent(config)`
+### `new AgentRuntime(config)`
 
-Creates a new agent instance.
+Creates a new AgentRuntime instance.
 
 #### Parameters
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `config` | `AgentConfig` | Yes | - | Agent configuration object |
-| `config.name` | `string` | Yes | - | Unique agent identifier |
-| `config.model` | `string` | No | `'gpt-3.5-turbo'` | LLM model to use |
-| `config.temperature` | `number` | No | `0.7` | Response randomness (0-1) |
-| `config.plugins` | `Plugin[]` | No | `[]` | Agent plugins |
+| `config.token` | `string` | Yes | - | Unique agent identifier |
+| `config.character` | `Character` | Yes | - | Agent character definition |
+| `config.plugins` | `Plugin[]` | No | `[]` | Runtime plugins to load |
+| `config.services` | `Service[]` | No | `[]` | Services to register |
+| `config.providers` | `Provider[]` | No | `[]` | Context providers |
 
 #### Returns
 
-Returns an `Agent` instance.
+Returns an `AgentRuntime` instance.
 
 #### Example
 
 ```typescript
-const agent = new Agent({
-  name: 'SupportBot',
-  model: 'gpt-4',
-  temperature: 0.5,
-  plugins: [memoryPlugin, actionPlugin]
+const runtime = new AgentRuntime({
+  token: crypto.randomUUID(),
+  character: {
+    name: "Ada",
+    bio: ["AI researcher and assistant"],
+    plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
+  }
 });
 ```
 
-## Methods
+## Core Methods
 
-### `start()`
+### `initialize()`
 
-Starts the agent runtime.
+Initializes the runtime and all plugins.
 
 ```typescript
-await agent.start();
+await runtime.initialize();
 ```
 
 <Callout type="info">
-The agent must be started before processing messages.
+Must be called before using any runtime features.
 </Callout>
 
-### `processMessage(message, context?)`
+### `processActions(message, responses)`
 
-Processes a user message and returns a response.
+Processes a message through all registered actions.
 
 #### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `message` | `string` | Yes | User input message |
-| `context` | `Context` | No | Optional conversation context |
+| `message` | `Memory` | Yes | Input message to process |
+| `responses` | `Memory[]` | Yes | Array to collect responses |
 
 #### Returns
 
 ```typescript
-Promise<{
-  text: string;
-  actions?: Action[];
-  metadata?: Record<string, any>;
-}>
+Promise<void>
 ```
 
 #### Example
 
 ```typescript
-const response = await agent.processMessage(
-  "What's the weather?",
-  { userId: "user123" }
-);
+const message = {
+  content: { text: "What's the weather?" },
+  userId: "user123",
+  roomId: "room456"
+};
 
-console.log(response.text);
-// "I'll check the weather for you."
+const responses: Memory[] = [];
+await runtime.processActions(message, responses);
 ```
 
-### `registerAction(action)`
+### `composeState(message, options?)`
 
-Registers a custom action with the agent.
+Composes the current runtime state.
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `message` | `Memory` | Yes | Current message context |
+| `options.useRecentMessages` | `boolean` | No | Include recent messages |
+| `options.useKnowledge` | `boolean` | No | Include knowledge base |
+| `options.useMemories` | `boolean` | No | Include relevant memories |
+
+#### Returns
+
+```typescript
+Promise<State>
+```
+
+#### Example
+
+```typescript
+const state = await runtime.composeState(message, {
+  useRecentMessages: true,
+  useKnowledge: true,
+  useMemories: true
+});
+
+console.log(state.recentMessages);
+console.log(state.relevantKnowledge);
+```
+
+## Service Management
+
+### `registerService(serviceDef)`
+
+Registers a new service with the runtime.
 
 <Tabs>
-  <Tab value="simple">
+  <Tab value="basic">
     ```typescript
-    agent.registerAction({
-      name: 'getWeather',
-      handler: async (params) => {
-        const weather = await fetchWeather(params.location);
-        return weather;
-      }
+    runtime.registerService({
+      service: new TwitterService(),
+      serviceType: 'twitter'
     });
     ```
   </Tab>
-  <Tab value="advanced">
+  <Tab value="typed">
     ```typescript
-    agent.registerAction({
-      name: 'getWeather',
-      description: 'Fetches current weather',
-      parameters: {
-        location: {
-          type: 'string',
-          required: true,
-          description: 'City name or coordinates'
-        }
-      },
-      handler: async (params) => {
-        // Implementation
+    class CustomService extends Service {
+      static serviceType = 'custom';
+      
+      async start() {
+        // Initialize service
       }
+    }
+    
+    runtime.registerService({
+      service: new CustomService(),
+      serviceType: CustomService.serviceType
     });
     ```
   </Tab>
 </Tabs>
 
-## Events
+### `getTypedService<T>(serviceType)`
 
-The Agent class extends EventEmitter and emits the following events:
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `message` | `{text: string, userId: string}` | New message received |
-| `response` | `{text: string, actions: Action[]}` | Response generated |
-| `error` | `Error` | Error occurred |
-| `action` | `{name: string, result: any}` | Action executed |
-
-### Event example
+Gets a typed service instance.
 
 ```typescript
-agent.on('message', (payload) => {
-  console.log(`User ${payload.userId}: ${payload.text}`);
+const twitter = runtime.getTypedService<TwitterService>('twitter');
+await twitter.postTweet({ text: "Hello world!" });
+```
+
+## Memory Operations
+
+### `createMemory(memory, tableName?, unique?)`
+
+Creates a new memory entry.
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `memory` | `Memory` | Yes | - | Memory object to store |
+| `tableName` | `string` | No | `'memories'` | Target table |
+| `unique` | `boolean` | No | `false` | Prevent duplicates |
+
+#### Example
+
+```typescript
+await runtime.createMemory({
+  content: { text: "User likes TypeScript" },
+  entityId: message.userId,
+  type: "preference"
+}, "preferences", true);
+```
+
+### `searchMemories(params)`
+
+Searches memories using semantic search.
+
+```typescript
+const memories = await runtime.searchMemories({
+  tableName: "memories",
+  query: "programming preferences",
+  match_count: 10,
+  unique: true
+});
+```
+
+## Plugin Management
+
+### `registerPlugin(plugin)`
+
+Registers a plugin with the runtime.
+
+```typescript
+const customPlugin: Plugin = {
+  name: "custom-plugin",
+  actions: [customAction],
+  providers: [customProvider],
+  services: [customService]
+};
+
+runtime.registerPlugin(customPlugin);
+```
+
+## Events
+
+### `emitEvent(eventName, data)`
+
+Emits a custom event.
+
+```typescript
+runtime.emitEvent('agent:thinking', {
+  message: "Processing request...",
+  timestamp: Date.now()
+});
+```
+
+### `registerEvent(eventDef)`
+
+Registers a custom event handler.
+
+```typescript
+runtime.registerEvent({
+  name: 'agent:thinking',
+  handler: async (data) => {
+    console.log('Agent is thinking:', data.message);
+  }
+});
+```
+
+## Model Operations
+
+### `useModel(modelType, params)`
+
+Uses a model for completion or embedding.
+
+```typescript
+// Text completion
+const completion = await runtime.useModel(ModelType.COMPLETION, {
+  prompt: "Translate to Spanish: Hello",
+  temperature: 0.7,
+  max_tokens: 100
 });
 
-agent.on('error', (error) => {
-  console.error('Agent error:', error);
+// Generate embedding
+const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+  text: "ElizaOS is amazing"
 });
 ```
 
 ## Types
 
-### `AgentConfig`
+### `Character`
 
 ```typescript
-interface AgentConfig {
+interface Character {
   name: string;
-  model?: string;
-  temperature?: number;
-  maxTokens?: number;
-  plugins?: Plugin[];
-  memory?: MemoryConfig;
-  actions?: Action[];
+  bio: string[];
+  messageExamples: Array<[Message, Message]>;
+  postExamples?: string[];
+  topics?: string[];
+  adjectives?: string[];
+  knowledge?: string[];
+  plugins: string[];
+  settings?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
+  secrets?: Record<string, string>;
 }
 ```
 
-### `Context`
+### `Memory`
 
 ```typescript
-interface Context {
-  userId?: string;
-  sessionId?: string;
-  metadata?: Record<string, any>;
+interface Memory {
+  id?: string;
+  content: {
+    text: string;
+    [key: string]: any;
+  };
+  entityId?: string;
+  roomId?: string;
+  worldId?: string;
+  embedding?: number[];
+  createdAt?: number;
+}
+```
+
+### `State`
+
+```typescript
+interface State {
+  values: Record<string, any>;
+  data?: any;
+  text?: string;
+  recentMessages?: Memory[];
+  relevantKnowledge?: string[];
+  relevantMemories?: Memory[];
 }
 ```
 
 ## Error handling
 
 <Callout type="warning">
-Always wrap agent operations in try-catch blocks in production.
+Always handle async operations and potential service failures.
 </Callout>
 
 ```typescript
 try {
-  const response = await agent.processMessage(message);
+  await runtime.initialize();
+  const service = runtime.getTypedService<TwitterService>('twitter');
+  await service.postTweet({ text: "Hello!" });
 } catch (error) {
-  if (error.code === 'RATE_LIMIT') {
-    // Handle rate limiting
-  } else if (error.code === 'INVALID_INPUT') {
-    // Handle validation errors
+  if (error.message.includes('not registered')) {
+    console.error('Service not found');
+  } else if (error.code === 'RATE_LIMIT') {
+    console.error('Rate limited');
   } else {
-    // Handle other errors
+    console.error('Unexpected error:', error);
   }
 }
 ```
 
 ## See also
 
-- [Agent Configuration Guide](/guides/agent-configuration)
-- [Plugin Development](/guides/plugin-development)
-- [Memory Systems](/concepts/memory)
+- [Character Configuration](/core-concepts/character)
+- [Action Development](/advanced/custom-actions)
+- [Plugin Architecture](/plugins)
+- [Memory Systems](/core-concepts/memory)
 ```
 
 ### Content Guidelines
