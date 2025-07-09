@@ -1,7 +1,6 @@
 {
   "title": "Agent Development",
   "pages": [
-    "index",
     "agents",
     "character-definition",
     "actions",

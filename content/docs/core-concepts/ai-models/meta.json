@@ -1,4 +1,4 @@
 {
   "title": "AI & Language Models",
-  "pages": ["index", "llm-plugins", "model-providers", "use-model-api", "embeddings", "templates"]
+  "pages": ["llm-plugins", "model-providers", "use-model-api", "embeddings", "templates"]
 }

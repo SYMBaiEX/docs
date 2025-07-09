@@ -1,7 +1,6 @@
 {
   "title": "Plugins",
   "pages": [
-    "index",
     "creating-plugins",
     "plugin-development",
     "plugin-registry",
