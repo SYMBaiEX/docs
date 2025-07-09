@@ -84,10 +84,6 @@ alwaysApply: false
 - `bun run format:check`: Checks formatting for TS, TSX, MD, and MDX files
 - `bun run format`: Formats files using Prettier
 - `bun run clean`: Removes .next, .source, and node_modules directories
-- Competition management:
-  - `bun run competition:add`: Adds new competition
-  - `bun run competition:update`: Updates competition data
-  - `bun run competition:list`: Lists competitions from config
 
 ### Code Quality
 
