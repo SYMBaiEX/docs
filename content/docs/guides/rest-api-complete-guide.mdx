@@ -404,7 +404,7 @@ setTimeout(checkForResponse, 1000);
 
 ### Platform-Agnostic Processing
 
-<Callout type="lightbulb">
+<Callout type="info">
 All messages, regardless of source (REST API, Discord, Twitter, etc.), go through the same `processMessage` function in the AgentRuntime. The platform only matters for:
 1. Initial message ingestion format
 2. Response delivery method
@@ -719,7 +719,7 @@ ws.on('messageBroadcast', (data) => {
 ## Troubleshooting
 
 ### Common Issues
-
+<Accordions>
 <Accordion title="Agent not responding">
 1. Check agent status: `GET /api/agents/{{agent_id}}`
 2. Verify agent is in channel participants
@@ -740,6 +740,7 @@ ws.on('messageBroadcast', (data) => {
 3. Consider using streaming responses
 4. Implement response caching
 </Accordion>
+</Accordions>
 
 ## Next Steps
 

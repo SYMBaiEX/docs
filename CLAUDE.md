@@ -342,7 +342,7 @@ AgentRuntime is the core class that:
 - Handles memory and state
 - Processes messages through actions
 
-<Callout type="lightbulb">
+<Callout type="info">
   Think of AgentRuntime as the brain of your agent - it coordinates all components to create
   intelligent behavior.
 </Callout>
@@ -880,7 +880,7 @@ try {
 - `<Callout type="info">` - General information, tips
 - `<Callout type="warning">` - Important warnings, gotchas
 - `<Callout type="success">` - Success confirmations
-- `<Callout type="lightbulb">` - Best practices, pro tips
+- `<Callout type="info">` - Best practices, pro tips
 
 **Code Block Best Practices:**
 - Always include `title` attribute with filename

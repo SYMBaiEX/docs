@@ -64,7 +64,7 @@ export class MessageBusService extends Service {
 3. **Processing**: Converts message format and emits to agent runtime (**same `processMessage` for all clients**)
 4. **Response**: Handles agent responses and sends back to central bus for client delivery
 
-<Callout type="lightbulb">
+<Callout type="info">
 Regardless of whether a message comes from Discord, Twitter, Telegram, REST API, or any other source, it gets converted to the same internal format and processed by the same `processMessage` function. The platform differences are abstracted away at the client layer.
 </Callout>
 
