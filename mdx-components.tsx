@@ -10,6 +10,7 @@ import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { FileIcon, CpuIcon, NetworkIcon } from "lucide-react";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
+import { Mermaid } from "@/components/mdx/mermaid";
 
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
@@ -29,6 +30,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Banner,
     Accordion,
     Accordions,
+    // Add Mermaid component for diagrams
+    Mermaid,
     // Add icons to make them available in MDX
     FileIcon,
     CpuIcon,

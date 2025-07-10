@@ -24,8 +24,7 @@ export default internalMessageBus;
 
 ### Message Flow
 
-```mermaid
-graph LR
+<Mermaid chart="graph LR
     A[Client] -->|WebSocket| B[Server]
     B -->|Store| C[Database]
     B -->|Emit| D[Message Bus]
@@ -34,8 +33,7 @@ graph LR
     D -->|Subscribe| G[Agent N]
     E -->|Response| D
     D -->|Broadcast| B
-    B -->|WebSocket| A
-```
+    B -->|WebSocket| A" />
 
 ## Message Structure
 

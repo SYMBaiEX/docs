@@ -25,8 +25,7 @@ ElizaOS supports multiple client types for connecting agents to different platfo
 
 ### Message Flow Architecture
 
-```mermaid
-graph LR
+<Mermaid chart="graph LR
     A[Discord Client] --> E[Message Bus]
     B[Twitter Client] --> E
     C[REST API Client] --> E
@@ -40,8 +39,7 @@ graph LR
     E --> B
     E --> C
     E --> D
-    E --> F
-```
+    E --> F" />
 
 ## Client Types
 
