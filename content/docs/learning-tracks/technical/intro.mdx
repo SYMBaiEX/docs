@@ -41,22 +41,21 @@ By completing this track, you'll be able to create:
 
 ## Technical Architecture Overview
 
-```mermaid
-graph TB
-    subgraph "ElizaOS Core"
+<Mermaid chart="graph TB
+    subgraph 'ElizaOS Core'
         Runtime[AgentRuntime]
         Memory[Memory System]
         State[State Management]
         Actions[Action System]
     end
     
-    subgraph "Plugin Layer"
+    subgraph 'Plugin Layer'
         Model[Model Providers]
         Platform[Platform Clients]
         Custom[Custom Plugins]
     end
     
-    subgraph "External Services"
+    subgraph 'External Services'
         AI[AI APIs]
         DB[Databases]
         Services[External APIs]
@@ -70,8 +69,7 @@ graph TB
     Runtime --> Custom
     Model --> AI
     Memory --> DB
-    Custom --> Services
-```
+    Custom --> Services" />
 
 ## Core Technical Concepts
 

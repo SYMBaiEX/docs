@@ -413,8 +413,7 @@ All messages, regardless of source (REST API, Discord, Twitter, etc.), go throug
 
 ### Message Flow Diagram
 
-```mermaid
-graph LR
+<Mermaid chart="graph LR
     A[REST API Request] --> B[/api/messaging/ingest-external]
     B --> C[Message Bus]
     C --> D[AgentRuntime.processMessage]
@@ -423,8 +422,7 @@ graph LR
     E -->|No| G[Create Ignore Memory]
     F --> H[Process Actions]
     H --> I[/api/messaging/submit]
-    I --> J[Client Response]
-```
+    I --> J[Client Response]" />
 
 ### Message Handler Templates
 

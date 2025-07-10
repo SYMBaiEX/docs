@@ -11,23 +11,22 @@ developers who want to understand the system's internals and build upon it.
 ElizaOS follows a modular, plugin-based architecture that enables flexible AI agent creation and
 deployment across multiple platforms.
 
-```mermaid
-graph TB
-    subgraph "Core Runtime"
+<Mermaid chart="graph TB
+    subgraph 'Core Runtime'
         RT[Runtime Engine]
         MM[Memory Manager]
         SM[State Manager]
         EV[Event System]
     end
 
-    subgraph "Service Layer"
+    subgraph 'Service Layer'
         DB[Database Service]
         AI[AI Service]
         TR[Transport Service]
         AU[Auth Service]
     end
 
-    subgraph "Plugin System"
+    subgraph 'Plugin System'
         PL[Plugin Loader]
         AC[Actions]
         PR[Providers]
@@ -35,7 +34,7 @@ graph TB
         TS[Tasks]
     end
 
-    subgraph "Platform Adapters"
+    subgraph 'Platform Adapters'
         DC[Discord]
         TW[Twitter]
         TG[Telegram]
@@ -60,8 +59,7 @@ graph TB
     TR --> DC
     TR --> TW
     TR --> TG
-    TR --> WB
-```
+    TR --> WB" />
 
 ## Core Components
 
@@ -193,8 +191,7 @@ interface State {
 
 ### Plugin Loading
 
-```mermaid
-sequenceDiagram
+<Mermaid chart="sequenceDiagram
     participant R as Runtime
     participant PL as PluginLoader
     participant P as Plugin
@@ -206,8 +203,7 @@ sequenceDiagram
     PL->>S: registerServices(services)
     PL->>R: registerComponents(actions, providers, evaluators)
     R->>R: validatePlugin()
-    R->>P: initialize()
-```
+    R->>P: initialize()" />
 
 ## Platform Abstraction
 
@@ -245,8 +241,7 @@ interface Message {
 
 ### Message Processing Pipeline
 
-```mermaid
-sequenceDiagram
+<Mermaid chart="sequenceDiagram
     participant C as Client
     participant T as Transport
     participant R as Runtime
@@ -266,8 +261,7 @@ sequenceDiagram
     R->>E: Evaluate Response
     E->>M: Store Learnings
     R->>T: Send Response
-    T->>C: Platform Response
-```
+    T->>C: Platform Response" />
 
 ## Database Architecture
 
@@ -398,17 +392,16 @@ interface Metrics {
 
 ### Horizontal Scaling
 
-```mermaid
-graph LR
+<Mermaid chart="graph LR
     LB[Load Balancer]
 
-    subgraph "Agent Cluster"
+    subgraph 'Agent Cluster'
         A1[Agent 1]
         A2[Agent 2]
         A3[Agent 3]
     end
 
-    subgraph "Shared Services"
+    subgraph 'Shared Services'
         DB[(PostgreSQL)]
         RD[(Redis)]
         Q[Message Queue]
@@ -428,8 +421,7 @@ graph LR
 
     A1 --> Q
     A2 --> Q
-    A3 --> Q
-```
+    A3 --> Q" />
 
 ### High Availability
 

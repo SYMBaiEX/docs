@@ -22,16 +22,14 @@ The core message processing, decision making, and response generation are 100% i
 
 The message processing pipeline follows these key stages:
 
-```mermaid
-graph TD
+<Mermaid chart="graph TD
     A[Client: Discord/Twitter/REST/etc] --> B[Message Bus]
     B --> C[processMessage Function]
     C --> D[Platform-Agnostic Processing]
     D --> E[Response Generation]
     E --> F[Action Processing]
     F --> G[Response Delivery]
-    G --> A
-```
+    G --> A" />
 
 1. **Message Reception**: Incoming messages are received via the message bus from any client (Discord, Twitter, REST API, etc.)
 2. **Validation**: Message and agent validation checks

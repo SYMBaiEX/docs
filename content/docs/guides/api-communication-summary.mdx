@@ -16,8 +16,7 @@ ElizaOS uses a unified communication architecture that processes messages identi
 
 ### Unified Message Flow
 
-```mermaid
-graph TD
+<Mermaid chart="graph TD
     A[External Clients] --> B[Message Ingestion]
     B --> C[Message Bus]
     C --> D[Agent Runtime]
@@ -29,7 +28,7 @@ graph TD
     I --> C
     C --> A
     
-    subgraph "External Clients"
+    subgraph 'External Clients'
         A1[REST API]
         A2[Discord Bot]
         A3[Twitter Client]
@@ -38,13 +37,12 @@ graph TD
         A6[Custom Clients]
     end
     
-    subgraph "Core Processing"
+    subgraph 'Core Processing'
         E1[shouldRespond Check]
         E2[Content Generation]
         E3[Action Execution]
         E4[Memory Storage]
-    end
-```
+    end" />
 
 ## Communication Components
 
