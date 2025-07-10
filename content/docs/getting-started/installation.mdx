@@ -66,13 +66,13 @@ nvm alias default 23.3.0
 node --version  # Should show v23.3.0
 ```
 
-**macOS-specific notes:**
-
-Apple Silicon (M1/M2) users: All tools are fully compatible
-
-Intel Mac users: No special configuration needed
-
-If you encounter permission issues, avoid using `sudo` with npm
+<Accordions type="single">
+  <Accordion title="macOS-specific notes">
+    - **Apple Silicon (M1/M2) users**: All tools are fully compatible
+    - **Intel Mac users**: No special configuration needed
+    - **Permission issues**: Avoid using `sudo` with npm
+  </Accordion>
+</Accordions>
 
   </Tab>
   <Tab value="Linux">
@@ -106,13 +106,16 @@ sudo yum install -y nodejs
 sudo pacman -S nodejs npm
 ```
 
-**Linux-specific notes:**
-
-Recommended distributions: Ubuntu 20.04+, CentOS 8+, Debian 11+
-
-Ensure you have build tools: `sudo apt-get install build-essential`
-
-For older distributions, use nvm instead of package managers
+<Accordions type="single">
+  <Accordion title="Linux-specific notes">
+    - **Recommended distributions**: Ubuntu 20.04+, CentOS 8+, Debian 11+
+    - **Build tools**: Ensure you have build tools installed:
+      ```bash
+      sudo apt-get install build-essential
+      ```
+    - **Older distributions**: Use nvm instead of package managers
+  </Accordion>
+</Accordions>
 
   </Tab>
   <Tab value="Windows">
@@ -141,15 +144,14 @@ nvm alias default 23.3.0
 node --version  # Should show v23.3.0
 ```
 
-**Windows-specific notes:**
-
-WSL 2 is required - native Windows installation is not supported
-
-Install WSL 2 with Ubuntu distribution for best compatibility
-
-Use WSL 2 terminal for all ElizaOS development
-
-Avoid mixing Windows and WSL file systems for better performance
+<Accordions type="single">
+  <Accordion title="Windows-specific notes">
+    - **WSL 2 is required**: Native Windows installation is not supported
+    - **Recommended setup**: Install WSL 2 with Ubuntu distribution for best compatibility
+    - **Development**: Use WSL 2 terminal for all ElizaOS development
+    - **Performance tip**: Avoid mixing Windows and WSL file systems
+  </Accordion>
+</Accordions>
 
   </Tab>
 </Tabs>
@@ -573,44 +575,57 @@ elizaos env test-keys
 
 ### Platform-Specific Issues
 
-#### macOS Issues
-- **Apple Silicon compatibility**: All dependencies are M1/M2 compatible
-- **Homebrew conflicts**: Use `brew doctor` to resolve issues
-- **Path issues**: Ensure `/opt/homebrew/bin` is in your PATH for Apple Silicon
-
-#### Linux Issues
-- **Missing build tools**: Install with `sudo apt-get install build-essential`
-- **Permission issues**: Use a Node version manager instead of system Node
-- **Firewall restrictions**: Ensure ports 3000 and database ports are open
-
-#### Windows (WSL2) Issues
-- **WSL 2 not installed**: Run `wsl --install` in PowerShell as Administrator
-- **Network issues**: Use `localhost` instead of `127.0.0.1` in WSL 2
-- **File system performance**: Keep projects in WSL file system, not Windows drives
+<Accordions type="single">
+  <Accordion title="macOS Issues">
+    - **Apple Silicon compatibility**: All dependencies are M1/M2 compatible
+    - **Homebrew conflicts**: Use `brew doctor` to resolve issues
+    - **Path issues**: Ensure `/opt/homebrew/bin` is in your PATH for Apple Silicon
+  </Accordion>
+  
+  <Accordion title="Linux Issues">
+    - **Missing build tools**: Install with:
+      ```bash
+      sudo apt-get install build-essential
+      ```
+    - **Permission issues**: Use a Node version manager instead of system Node
+    - **Firewall restrictions**: Ensure ports 3000 and database ports are open
+  </Accordion>
+  
+  <Accordion title="Windows (WSL2) Issues">
+    - **WSL 2 not installed**: Run in PowerShell as Administrator:
+      ```powershell
+      wsl --install
+      ```
+    - **Network issues**: Use `localhost` instead of `127.0.0.1` in WSL 2
+    - **File system performance**: Keep projects in WSL file system, not Windows drives
+  </Accordion>
+</Accordions>
 
 ### Environment Variable Issues
 
-Common `.env` mistakes and solutions:
-
-```bash
-# ❌ Wrong: Quotes around values
-OPENAI_API_KEY="sk-abc123"
-
-# ✅ Correct: No quotes
-OPENAI_API_KEY=sk-abc123
-
-# ❌ Wrong: Spaces around equals
-OPENAI_API_KEY = sk-abc123
-
-# ✅ Correct: No spaces
-OPENAI_API_KEY=sk-abc123
-
-# ❌ Wrong: Using export
-export OPENAI_API_KEY=sk-abc123
-
-# ✅ Correct: Just key=value
-OPENAI_API_KEY=sk-abc123
-```
+<Accordions type="single">
+  <Accordion title="Common .env mistakes and solutions">
+    ```bash
+    # ❌ Wrong: Quotes around values
+    OPENAI_API_KEY="sk-abc123"
+    
+    # ✅ Correct: No quotes
+    OPENAI_API_KEY=sk-abc123
+    
+    # ❌ Wrong: Spaces around equals
+    OPENAI_API_KEY = sk-abc123
+    
+    # ✅ Correct: No spaces
+    OPENAI_API_KEY=sk-abc123
+    
+    # ❌ Wrong: Using export
+    export OPENAI_API_KEY=sk-abc123
+    
+    # ✅ Correct: Just key=value
+    OPENAI_API_KEY=sk-abc123
+    ```
+  </Accordion>
+</Accordions>
 
 ## Next Steps
 
