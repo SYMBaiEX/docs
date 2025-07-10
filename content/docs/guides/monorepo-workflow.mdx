@@ -163,7 +163,7 @@ Key features:
    ```json
    {
      "name": "@elizaos/my-new-package",
-     "version": "1.0.16",
+     "version": "1.2.0",
      "type": "module",
      "main": "dist/index.js",
      "types": "dist/index.d.ts",
@@ -222,7 +222,11 @@ For developing packages locally without publishing:
 
 ## Plugin Development
 
-### Creating a Plugin
+### Creating a Plugin in the Monorepo
+
+There are two approaches for plugin development:
+
+#### Option 1: Internal Plugin (Recommended for core plugins)
 
 Use the plugin starter template:
 
@@ -239,7 +243,7 @@ Use the plugin starter template:
    {
      "name": "@elizaos/plugin-myservice",
      "description": "My service integration for Eliza",
-     "version": "1.0.16",
+     "version": "1.2.0",
      "private": false
    }
    ```
@@ -260,6 +264,61 @@ Use the plugin starter template:
 
    export default myServicePlugin;
    ```
+
+#### Option 2: External Plugin via Git Submodule (For third-party plugins)
+
+Add external plugins as git submodules:
+
+1. **Add the submodule**
+
+   ```bash
+   # Add external plugin repository as submodule
+   git submodule add https://github.com/elizaos-plugins/plugin-telegram packages/plugin-telegram
+   
+   # Initialize and update submodule
+   git submodule update --init --recursive
+   ```
+
+2. **Ensure it's in workspaces**
+   
+   The `packages/*` pattern in `package.json` will automatically include it:
+   ```json
+   "workspaces": [
+     "packages/*",
+     "plugin-specification/*"
+   ]
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   bun install
+   ```
+
+### Using Plugins as Workspace Dependencies
+
+Once a plugin is in the monorepo (either internal or via submodule), use it as a workspace dependency:
+
+```json
+// In your character or agent package.json
+{
+  "dependencies": {
+    "@elizaos/plugin-myservice": "workspace:*",
+    "@elizaos/plugin-telegram": "workspace:*"
+  }
+}
+```
+
+<Callout type="info">
+The `workspace:*` protocol ensures Bun uses the local version of the plugin from the monorepo instead of trying to fetch it from npm.
+</Callout>
+
+### Benefits of Workspace Dependencies
+
+- **Hot Reload**: Changes to plugins are immediately available
+- **Type Safety**: TypeScript can resolve types across packages
+- **Version Consistency**: All packages use the same plugin version
+- **Faster Builds**: No network fetches for local dependencies
 
 ### Plugin Configuration
 
@@ -385,15 +444,29 @@ bun run release:alpha
 
 ### Database Migrations
 
-For packages using SQL:
+ElizaOS uses a dynamic migration system that automatically handles database schema changes:
 
-```bash
-# Run migrations
-bun run migrate
+1. **Automatic Migration**: Migrations run automatically when the server starts
+2. **Plugin-Based Schemas**: Each plugin defines its schema which is discovered and migrated dynamically
+3. **No Manual Steps**: There's no manual migration process - everything is handled by the `DatabaseMigrationService`
 
-# Generate new migration
-bun run migrate:generate
+```typescript
+// Example: Plugin with schema
+export const plugin: Plugin = {
+  name: '@elizaos/plugin-example',
+  schema: mySchema, // Drizzle ORM schema
+  // ... other plugin properties
+}
 ```
+
+The migration service will:
+- Discover plugin schemas on startup
+- Create tables and constraints as needed  
+- Handle schema updates automatically
+
+<Callout type="info">
+The `bun run migrate` commands in package.json are for development purposes only and are not used in the standard workflow.
+</Callout>
 
 ### Docker Development
 

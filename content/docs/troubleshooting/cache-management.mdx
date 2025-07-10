@@ -1,0 +1,861 @@
+---
+title: "Cache Management & Debugging Guide"
+description:
+  "Comprehensive guide for managing ElizaOS cache systems, debugging performance issues, and optimizing memory usage"
+keywords: cache, performance, debugging, memory, optimization, elizaos
+---
+
+This guide addresses cache-related issues that cause "unexplainable bugs" and helps you debug and
+optimize ElizaOS cache systems effectively.
+
+<Callout type="warning">
+  **Developer Experience**: "Often I would just have to start over completely because either the
+  cache got stuck etc." - This guide prevents that frustration.
+</Callout>
+
+## Understanding ElizaOS Cache Systems
+
+ElizaOS uses multiple cache layers:
+
+| Cache Type            | Purpose                    | Location                          | Size Limit |
+| --------------------- | -------------------------- | --------------------------------- | ----------- |
+| **Memory Cache**      | Runtime data               | RAM                               | 512MB       |
+| **Embedding Cache**   | Vector embeddings          | `~/.eliza/cache/embeddings/`      | 1GB         |
+| **Response Cache**    | LLM responses              | `~/.eliza/cache/responses/`       | 500MB       |
+| **Model Cache**       | Downloaded models          | `~/.eliza/cache/models/`          | 2GB         |
+| **Session Cache**     | User sessions              | `~/.eliza/cache/sessions/`        | 100MB       |
+| **Plugin Cache**      | Plugin artifacts           | `~/.eliza/cache/plugins/`         | 200MB       |
+
+## Cache Diagnosis and Monitoring
+
+<Steps>
+
+<Step>
+## Install Cache Monitoring Tools
+
+```bash
+# Install monitoring utilities
+npm install --save-dev du-analyzer cache-inspector
+
+# Create monitoring script
+cat << 'EOF' > scripts/cache-monitor.js
+const fs = require('fs');
+const path = require('path');
+
+async function analyzeCacheUsage() {
+  const cacheDir = path.join(process.env.HOME, '.eliza', 'cache');
+  const analysis = await analyzeDirectory(cacheDir);
+  
+  console.log('Cache Usage Analysis:');
+  console.log('==================');
+  
+  for (const [type, info] of Object.entries(analysis)) {
+    console.log(`${type}: ${info.size} (${info.files} files)`);
+  }
+}
+
+async function analyzeDirectory(dir) {
+  // Implementation here
+}
+
+analyzeCacheUsage();
+EOF
+```
+
+</Step>
+
+<Step>
+## Check Cache Health
+
+```bash
+# Check cache directory sizes
+du -sh ~/.eliza/cache/*/
+
+# Check for corrupted cache files
+find ~/.eliza/cache -name "*.cache" -size 0
+
+# Check cache permissions
+ls -la ~/.eliza/cache/
+
+# Monitor cache growth over time
+watch -n 5 'du -sh ~/.eliza/cache/*'
+```
+
+</Step>
+
+<Step>
+## Identify Cache Issues
+
+Signs of cache problems:
+
+```bash
+# Check for stuck processes
+ps aux | grep eliza
+
+# Check memory usage
+free -h
+
+# Check for large log files
+find ~/.eliza/logs -name "*.log" -size +100M
+
+# Check for orphaned cache files
+find ~/.eliza/cache -name "*.tmp" -mtime +1
+```
+
+</Step>
+
+</Steps>
+
+## Cache Management Strategies
+
+### 1. Automated Cache Cleanup
+
+```typescript title="src/cache/cleanup-manager.ts"
+import { promises as fs } from 'fs';
+import path from 'path';
+import { logger } from '../logger';
+
+export class CacheCleanupManager {
+  private cacheDir: string;
+  private maxSizeBytes: number;
+  private maxAgeMs: number;
+  private cleanupInterval: NodeJS.Timer | null = null;
+
+  constructor(options: {
+    cacheDir?: string;
+    maxSizeMB?: number;
+    maxAgeDays?: number;
+    cleanupIntervalHours?: number;
+  } = {}) {
+    this.cacheDir = options.cacheDir || path.join(process.env.HOME!, '.eliza', 'cache');
+    this.maxSizeBytes = (options.maxSizeMB || 1000) * 1024 * 1024;
+    this.maxAgeMs = (options.maxAgeDays || 7) * 24 * 60 * 60 * 1000;
+    
+    if (options.cleanupIntervalHours) {
+      this.startAutomaticCleanup(options.cleanupIntervalHours);
+    }
+  }
+
+  async startAutomaticCleanup(intervalHours: number): Promise<void> {
+    const intervalMs = intervalHours * 60 * 60 * 1000;
+    
+    this.cleanupInterval = setInterval(async () => {
+      try {
+        await this.performCleanup();
+      } catch (error) {
+        logger.error('Cache cleanup failed:', error);
+      }
+    }, intervalMs);
+    
+    // Initial cleanup
+    await this.performCleanup();
+  }
+
+  async performCleanup(): Promise<void> {
+    logger.info('Starting cache cleanup...');
+    
+    const before = await this.getCacheSize();
+    
+    // Remove old files
+    await this.removeOldFiles();
+    
+    // Remove large files if over limit
+    await this.enforceSizeLimit();
+    
+    // Remove corrupted files
+    await this.removeCorruptedFiles();
+    
+    const after = await this.getCacheSize();
+    
+    logger.info(`Cache cleanup completed. Size: ${before}MB -> ${after}MB`);
+  }
+
+  private async removeOldFiles(): Promise<void> {
+    const now = Date.now();
+    const cutoff = now - this.maxAgeMs;
+    
+    await this.walkDirectory(this.cacheDir, async (filePath, stats) => {
+      if (stats.mtime.getTime() < cutoff) {
+        await fs.unlink(filePath);
+        logger.debug(`Removed old cache file: ${filePath}`);
+      }
+    });
+  }
+
+  private async enforceSizeLimit(): Promise<void> {
+    const currentSize = await this.getCacheSize();
+    
+    if (currentSize * 1024 * 1024 > this.maxSizeBytes) {
+      const files = await this.getAllCacheFiles();
+      
+      // Sort by last access time (oldest first)
+      files.sort((a, b) => a.stats.atime.getTime() - b.stats.atime.getTime());
+      
+      let removedSize = 0;
+      const targetSize = this.maxSizeBytes * 0.8; // Remove to 80% of limit
+      
+      for (const file of files) {
+        if (removedSize >= targetSize) break;
+        
+        await fs.unlink(file.path);
+        removedSize += file.stats.size;
+        logger.debug(`Removed cache file for size limit: ${file.path}`);
+      }
+    }
+  }
+
+  private async removeCorruptedFiles(): Promise<void> {
+    await this.walkDirectory(this.cacheDir, async (filePath, stats) => {
+      if (stats.size === 0) {
+        await fs.unlink(filePath);
+        logger.debug(`Removed corrupted cache file: ${filePath}`);
+      }
+      
+      // Check for incomplete JSON files
+      if (filePath.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(filePath, 'utf8');
+          JSON.parse(content);
+        } catch (error) {
+          await fs.unlink(filePath);
+          logger.debug(`Removed corrupted JSON cache file: ${filePath}`);
+        }
+      }
+    });
+  }
+
+  private async walkDirectory(
+    dir: string,
+    callback: (filePath: string, stats: fs.Stats) => Promise<void>
+  ): Promise<void> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          await this.walkDirectory(fullPath, callback);
+        } else {
+          const stats = await fs.stat(fullPath);
+          await callback(fullPath, stats);
+        }
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        logger.error(`Error walking directory ${dir}:`, error);
+      }
+    }
+  }
+
+  private async getCacheSize(): Promise<number> {
+    let totalSize = 0;
+    
+    await this.walkDirectory(this.cacheDir, async (filePath, stats) => {
+      totalSize += stats.size;
+    });
+    
+    return Math.round(totalSize / 1024 / 1024); // Convert to MB
+  }
+
+  private async getAllCacheFiles(): Promise<Array<{ path: string; stats: fs.Stats }>> {
+    const files: Array<{ path: string; stats: fs.Stats }> = [];
+    
+    await this.walkDirectory(this.cacheDir, async (filePath, stats) => {
+      files.push({ path: filePath, stats });
+    });
+    
+    return files;
+  }
+
+  stopAutomaticCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+}
+```
+
+### 2. Intelligent Cache Warming
+
+```typescript title="src/cache/cache-warmer.ts"
+export class CacheWarmer {
+  private runtime: IAgentRuntime;
+  private commonQueries: string[] = [];
+
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+  }
+
+  async warmCache(): Promise<void> {
+    logger.info('Warming cache with common queries...');
+    
+    // Common embeddings to pre-compute
+    const commonTexts = [
+      "Hello, how are you?",
+      "What can you help me with?",
+      "Thank you for your help",
+      "I have a question about...",
+      "Can you explain..."
+    ];
+    
+    // Pre-compute embeddings
+    await Promise.all(
+      commonTexts.map(text => this.runtime.embed(text))
+    );
+    
+    // Pre-load common response patterns
+    await this.preloadResponsePatterns();
+    
+    logger.info('Cache warming completed');
+  }
+
+  private async preloadResponsePatterns(): Promise<void> {
+    // Pre-generate responses for common patterns
+    const patterns = [
+      { role: 'greeting', text: 'Hello!' },
+      { role: 'help', text: 'How can I help you?' },
+      { role: 'clarification', text: 'Could you clarify that?' }
+    ];
+    
+    for (const pattern of patterns) {
+      await this.runtime.processMessage({
+        text: pattern.text,
+        userId: 'cache-warmer',
+        roomId: 'warmup'
+      });
+    }
+  }
+}
+```
+
+### 3. Cache Invalidation Strategy
+
+```typescript title="src/cache/cache-invalidator.ts"
+export class CacheInvalidator {
+  private cacheKeys: Map<string, Set<string>> = new Map();
+
+  invalidateByPattern(pattern: string): void {
+    const regex = new RegExp(pattern);
+    
+    for (const [key, dependencies] of this.cacheKeys) {
+      if (regex.test(key)) {
+        this.invalidateKey(key);
+      }
+    }
+  }
+
+  invalidateByDependency(dependency: string): void {
+    for (const [key, dependencies] of this.cacheKeys) {
+      if (dependencies.has(dependency)) {
+        this.invalidateKey(key);
+      }
+    }
+  }
+
+  private invalidateKey(key: string): void {
+    // Remove from memory cache
+    this.runtime.cache.delete(key);
+    
+    // Remove from disk cache
+    const cachePath = this.getCachePath(key);
+    fs.unlink(cachePath).catch(() => {});
+    
+    // Remove from tracking
+    this.cacheKeys.delete(key);
+  }
+
+  trackDependencies(key: string, dependencies: string[]): void {
+    this.cacheKeys.set(key, new Set(dependencies));
+  }
+
+  private getCachePath(key: string): string {
+    return path.join(process.env.HOME!, '.eliza', 'cache', `${key}.cache`);
+  }
+}
+```
+
+## Debugging Tools and Techniques
+
+### 1. Cache Inspector
+
+```typescript title="src/debug/cache-inspector.ts"
+export class CacheInspector {
+  async inspectCache(): Promise<void> {
+    console.log('🔍 Cache Inspection Report');
+    console.log('========================');
+    
+    await this.inspectMemoryCache();
+    await this.inspectDiskCache();
+    await this.inspectCachePerformance();
+  }
+
+  private async inspectMemoryCache(): Promise<void> {
+    const memoryUsage = process.memoryUsage();
+    
+    console.log('\n📊 Memory Usage:');
+    console.log(`  Heap Used: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`);
+    console.log(`  Heap Total: ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`);
+    console.log(`  External: ${Math.round(memoryUsage.external / 1024 / 1024)}MB`);
+    
+    // V8 heap space usage
+    if (process.memoryUsage().heapUsed > 500 * 1024 * 1024) {
+      console.log('⚠️  High memory usage detected!');
+    }
+  }
+
+  private async inspectDiskCache(): Promise<void> {
+    const cacheDir = path.join(process.env.HOME!, '.eliza', 'cache');
+    
+    console.log('\n💾 Disk Cache:');
+    
+    const subdirs = await fs.readdir(cacheDir, { withFileTypes: true });
+    
+    for (const subdir of subdirs) {
+      if (subdir.isDirectory()) {
+        const size = await this.getDirectorySize(path.join(cacheDir, subdir.name));
+        console.log(`  ${subdir.name}: ${size}MB`);
+      }
+    }
+  }
+
+  private async inspectCachePerformance(): Promise<void> {
+    console.log('\n⚡ Cache Performance:');
+    
+    const stats = this.runtime.getCacheStats();
+    console.log(`  Hit Rate: ${stats.hitRate.toFixed(2)}%`);
+    console.log(`  Total Requests: ${stats.totalRequests}`);
+    console.log(`  Cache Hits: ${stats.hits}`);
+    console.log(`  Cache Misses: ${stats.misses}`);
+    
+    if (stats.hitRate < 70) {
+      console.log('⚠️  Low cache hit rate detected!');
+    }
+  }
+
+  private async getDirectorySize(dir: string): Promise<number> {
+    let size = 0;
+    
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          size += await this.getDirectorySize(fullPath);
+        } else {
+          const stats = await fs.stat(fullPath);
+          size += stats.size;
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist or no permissions
+    }
+    
+    return Math.round(size / 1024 / 1024);
+  }
+}
+```
+
+### 2. Performance Profiler
+
+```typescript title="src/debug/performance-profiler.ts"
+export class PerformanceProfiler {
+  private metrics: Map<string, Array<{ duration: number; timestamp: number }>> = new Map();
+
+  profile<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    const start = performance.now();
+    
+    return fn().then(result => {
+      const duration = performance.now() - start;
+      this.recordMetric(operation, duration);
+      return result;
+    });
+  }
+
+  private recordMetric(operation: string, duration: number): void {
+    if (!this.metrics.has(operation)) {
+      this.metrics.set(operation, []);
+    }
+    
+    const operationMetrics = this.metrics.get(operation)!;
+    operationMetrics.push({ duration, timestamp: Date.now() });
+    
+    // Keep only last 100 measurements
+    if (operationMetrics.length > 100) {
+      operationMetrics.shift();
+    }
+  }
+
+  generateReport(): void {
+    console.log('🚀 Performance Report');
+    console.log('====================');
+    
+    for (const [operation, metrics] of this.metrics) {
+      const durations = metrics.map(m => m.duration);
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+      const max = Math.max(...durations);
+      const min = Math.min(...durations);
+      
+      console.log(`\n${operation}:`);
+      console.log(`  Average: ${avg.toFixed(2)}ms`);
+      console.log(`  Max: ${max.toFixed(2)}ms`);
+      console.log(`  Min: ${min.toFixed(2)}ms`);
+      console.log(`  Samples: ${durations.length}`);
+      
+      if (avg > 1000) {
+        console.log(`  ⚠️  Slow operation detected!`);
+      }
+    }
+  }
+}
+```
+
+## Cache Configuration Best Practices
+
+### 1. Production Configuration
+
+```typescript title="src/config/cache-config.ts"
+export const cacheConfig = {
+  // Memory cache settings
+  memory: {
+    maxSize: process.env.NODE_ENV === 'production' ? 512 * 1024 * 1024 : 256 * 1024 * 1024,
+    ttl: 30 * 60 * 1000, // 30 minutes
+    checkPeriod: 5 * 60 * 1000, // Check every 5 minutes
+  },
+  
+  // Disk cache settings
+  disk: {
+    maxSize: process.env.NODE_ENV === 'production' ? 2 * 1024 * 1024 * 1024 : 1024 * 1024 * 1024,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    cleanupInterval: 6 * 60 * 60 * 1000, // Every 6 hours
+  },
+  
+  // Cache-specific settings
+  embeddings: {
+    maxSize: 1024 * 1024 * 1024, // 1GB
+    compress: true,
+    persistToDisk: true,
+  },
+  
+  responses: {
+    maxSize: 500 * 1024 * 1024, // 500MB
+    ttl: 24 * 60 * 60 * 1000, // 24 hours
+    maxEntries: 10000,
+  },
+  
+  // Performance settings
+  performance: {
+    batchSize: 100,
+    concurrentCleanups: 3,
+    backgroundCleanup: true,
+  }
+};
+```
+
+### 2. Environment-Specific Tuning
+
+```typescript title="src/config/environment-cache.ts"
+export function getCacheConfig() {
+  const env = process.env.NODE_ENV || 'development';
+  
+  const configs = {
+    development: {
+      memory: { maxSize: 256 * 1024 * 1024 },
+      disk: { maxSize: 500 * 1024 * 1024 },
+      logging: { level: 'debug' },
+    },
+    
+    production: {
+      memory: { maxSize: 1024 * 1024 * 1024 },
+      disk: { maxSize: 5 * 1024 * 1024 * 1024 },
+      logging: { level: 'info' },
+    },
+    
+    test: {
+      memory: { maxSize: 64 * 1024 * 1024 },
+      disk: { maxSize: 100 * 1024 * 1024 },
+      logging: { level: 'error' },
+    }
+  };
+  
+  return configs[env] || configs.development;
+}
+```
+
+## Emergency Recovery Procedures
+
+### 1. Complete Cache Reset
+
+```bash title="scripts/cache-reset.sh"
+#!/bin/bash
+
+echo "🚨 Emergency Cache Reset"
+echo "======================"
+
+# Stop all ElizaOS processes
+echo "Stopping ElizaOS processes..."
+pkill -f eliza
+
+# Backup current cache
+echo "Creating backup..."
+BACKUP_DIR="~/.eliza/cache.backup.$(date +%Y%m%d-%H%M%S)"
+cp -r ~/.eliza/cache "$BACKUP_DIR"
+
+# Clear all cache
+echo "Clearing cache..."
+rm -rf ~/.eliza/cache/*
+
+# Clear temporary files
+echo "Clearing temporary files..."
+rm -rf ~/.eliza/tmp/*
+
+# Reset cache directories
+echo "Recreating cache structure..."
+mkdir -p ~/.eliza/cache/{embeddings,responses,models,sessions,plugins}
+
+# Clear Node.js module cache
+echo "Clearing Node.js cache..."
+rm -rf node_modules/.cache
+npm cache clean --force
+
+echo "✅ Cache reset complete!"
+echo "Backup saved to: $BACKUP_DIR"
+echo "You can now restart ElizaOS"
+```
+
+### 2. Selective Cache Repair
+
+```typescript title="src/recovery/cache-repair.ts"
+export class CacheRepair {
+  async repairCache(): Promise<void> {
+    console.log('🔧 Starting cache repair...');
+    
+    await this.repairCorruptedFiles();
+    await this.rebuildIndexes();
+    await this.validateCacheIntegrity();
+    
+    console.log('✅ Cache repair completed');
+  }
+
+  private async repairCorruptedFiles(): Promise<void> {
+    const cacheDir = path.join(process.env.HOME!, '.eliza', 'cache');
+    
+    await this.walkDirectory(cacheDir, async (filePath, stats) => {
+      if (stats.size === 0) {
+        await fs.unlink(filePath);
+        console.log(`🗑️  Removed empty file: ${filePath}`);
+      }
+      
+      if (filePath.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(filePath, 'utf8');
+          JSON.parse(content);
+        } catch (error) {
+          await fs.unlink(filePath);
+          console.log(`🗑️  Removed corrupted JSON: ${filePath}`);
+        }
+      }
+    });
+  }
+
+  private async rebuildIndexes(): Promise<void> {
+    // Rebuild embedding indexes
+    const embeddingDir = path.join(process.env.HOME!, '.eliza', 'cache', 'embeddings');
+    const indexPath = path.join(embeddingDir, 'index.json');
+    
+    const embeddings = await this.scanEmbeddingFiles(embeddingDir);
+    await fs.writeFile(indexPath, JSON.stringify(embeddings, null, 2));
+    
+    console.log(`📊 Rebuilt embedding index with ${embeddings.length} entries`);
+  }
+
+  private async validateCacheIntegrity(): Promise<void> {
+    const issues: string[] = [];
+    
+    // Check for missing directories
+    const requiredDirs = ['embeddings', 'responses', 'models', 'sessions', 'plugins'];
+    for (const dir of requiredDirs) {
+      const dirPath = path.join(process.env.HOME!, '.eliza', 'cache', dir);
+      try {
+        await fs.access(dirPath);
+      } catch (error) {
+        await fs.mkdir(dirPath, { recursive: true });
+        console.log(`📁 Created missing directory: ${dir}`);
+      }
+    }
+    
+    // Check permissions
+    const cacheDir = path.join(process.env.HOME!, '.eliza', 'cache');
+    try {
+      await fs.access(cacheDir, fs.constants.R_OK | fs.constants.W_OK);
+    } catch (error) {
+      issues.push('Cache directory not writable');
+    }
+    
+    if (issues.length > 0) {
+      console.log('⚠️  Cache integrity issues found:');
+      issues.forEach(issue => console.log(`  - ${issue}`));
+    } else {
+      console.log('✅ Cache integrity verified');
+    }
+  }
+
+  private async scanEmbeddingFiles(dir: string): Promise<any[]> {
+    const embeddings: any[] = [];
+    
+    try {
+      const files = await fs.readdir(dir);
+      
+      for (const file of files) {
+        if (file.endsWith('.embedding')) {
+          const filePath = path.join(dir, file);
+          try {
+            const content = await fs.readFile(filePath, 'utf8');
+            const embedding = JSON.parse(content);
+            embeddings.push(embedding);
+          } catch (error) {
+            console.log(`⚠️  Skipping corrupted embedding: ${file}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️  Could not scan embedding directory: ${error.message}`);
+    }
+    
+    return embeddings;
+  }
+
+  private async walkDirectory(
+    dir: string,
+    callback: (filePath: string, stats: fs.Stats) => Promise<void>
+  ): Promise<void> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          await this.walkDirectory(fullPath, callback);
+        } else {
+          const stats = await fs.stat(fullPath);
+          await callback(fullPath, stats);
+        }
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        console.log(`⚠️  Error accessing ${dir}: ${error.message}`);
+      }
+    }
+  }
+}
+```
+
+## Monitoring and Alerting
+
+### 1. Cache Health Monitoring
+
+```typescript title="src/monitoring/cache-health.ts"
+export class CacheHealthMonitor {
+  private alerts: Array<{ type: string; message: string; timestamp: number }> = [];
+
+  async checkHealth(): Promise<{ healthy: boolean; issues: string[] }> {
+    const issues: string[] = [];
+    
+    // Check cache size
+    const size = await this.getCacheSize();
+    if (size > 2000) { // 2GB
+      issues.push(`Cache size too large: ${size}MB`);
+    }
+    
+    // Check cache hit rate
+    const hitRate = await this.getCacheHitRate();
+    if (hitRate < 50) {
+      issues.push(`Low cache hit rate: ${hitRate}%`);
+    }
+    
+    // Check for corrupted files
+    const corruptedCount = await this.countCorruptedFiles();
+    if (corruptedCount > 10) {
+      issues.push(`Too many corrupted files: ${corruptedCount}`);
+    }
+    
+    // Check memory usage
+    const memoryUsage = process.memoryUsage();
+    if (memoryUsage.heapUsed > 1024 * 1024 * 1024) { // 1GB
+      issues.push(`High memory usage: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`);
+    }
+    
+    return {
+      healthy: issues.length === 0,
+      issues
+    };
+  }
+
+  private async getCacheSize(): Promise<number> {
+    // Implementation from previous example
+    return 0;
+  }
+
+  private async getCacheHitRate(): Promise<number> {
+    // Implementation to calculate hit rate
+    return 0;
+  }
+
+  private async countCorruptedFiles(): Promise<number> {
+    // Implementation to count corrupted files
+    return 0;
+  }
+}
+```
+
+## Quick Reference Commands
+
+```bash
+# Cache inspection
+du -sh ~/.eliza/cache/*/
+find ~/.eliza/cache -name "*.cache" -size 0
+watch -n 5 'du -sh ~/.eliza/cache'
+
+# Emergency cleanup
+rm -rf ~/.eliza/cache/responses/*
+rm -rf ~/.eliza/cache/embeddings/*
+
+# Performance monitoring
+top -p $(pgrep eliza)
+htop -p $(pgrep eliza)
+
+# Memory debugging
+node --inspect=9229 src/index.js
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Common Issues Guide"
+    description="Troubleshoot specific problems"
+    href="/troubleshooting/common-issues"
+  />
+  <Card
+    title="Performance Optimization"
+    description="Optimize ElizaOS performance"
+    href="/advanced/performance"
+  />
+  <Card
+    title="Production Deployment"
+    description="Deploy optimized configurations"
+    href="/advanced/deployment"
+  />
+  <Card
+    title="Monitoring Setup"
+    description="Set up comprehensive monitoring"
+    href="/infrastructure/monitoring"
+  />
+</Cards>
+
+Remember: Cache issues are usually symptoms of deeper problems. Use this guide to not just fix the
+cache, but understand and prevent the underlying issues.

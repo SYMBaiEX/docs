@@ -108,7 +108,7 @@ export const replyAction = {
     // Check if any responses had providers associated with them
     const allProviders = responses?.flatMap((res) => res.content?.providers ?? []) ?? [];
 
-    // Only generate response using LLM if no suitable response was found
+    // Compose state with providers from previous responses plus RECENT_MESSAGES
     state = await runtime.composeState(message, [...(allProviders ?? []), "RECENT_MESSAGES"]);
 
     const prompt = composePromptFromState({
@@ -186,6 +186,39 @@ Response format should be formatted in a valid JSON block like this:
 \`\`\`
 
 Your response should include the valid JSON block and nothing else.`;
+```
+
+## Understanding composeState in Actions
+
+The `composeState` method is crucial for providing context to actions. It accepts:
+
+```typescript
+async composeState(
+  message: Memory,
+  includeList: string[] | null = null,
+  onlyInclude = false,
+  skipCache = false
+): Promise<State>
+```
+
+### Parameters:
+- **message**: The current message being processed
+- **includeList**: Array of provider names to include (e.g., ['RECENT_MESSAGES', 'CHARACTER'])
+- **onlyInclude**: If true, ONLY includes providers in includeList; if false, includes all non-private providers plus those in includeList
+- **skipCache**: If true, bypasses the state cache and fetches fresh data
+
+### Common Usage Patterns:
+
+```typescript
+// Include specific providers only
+state = await runtime.composeState(message, ['CHARACTER', 'RECENT_MESSAGES']);
+
+// Include all default providers plus additional ones
+state = await runtime.composeState(message, ['KNOWLEDGE', 'FACTS']);
+
+// Dynamic provider inclusion based on previous responses
+const allProviders = responses?.flatMap((res) => res.content?.providers ?? []) ?? [];
+state = await runtime.composeState(message, [...allProviders, 'RECENT_MESSAGES']);
 ```
 
 ## Action Implementation Patterns
@@ -315,10 +348,16 @@ handler: async (runtime, message, state, options, callback) => {
   const data = await fetchExternalData();
   const processedData = processData(data);
 
-  // Update state
-  await runtime.updateState(message.roomId, {
-    lastUpdate: Date.now(),
-    data: processedData,
+  // Store processed data in memory for future use
+  await runtime.createMemory({
+    id: crypto.randomUUID() as UUID,
+    content: {
+      text: `Processed ${processedData.length} items`,
+      data: processedData,
+    },
+    entityId: message.entityId,
+    roomId: message.roomId,
+    type: "processing_result",
   });
 
   const responseContent = {
@@ -334,35 +373,60 @@ handler: async (runtime, message, state, options, callback) => {
 
 ## More Action Examples from Plugin-Bootstrap
 
-### Send Message Action
+### Send Message Action (from plugin-bootstrap)
 
 ```typescript
-export const sendMessageAction = {
+export const sendMessageAction: Action = {
   name: "SEND_MESSAGE",
   similes: ["MESSAGE", "SEND", "POST", "PUBLISH"],
-  description: "Send a message to a specific room or user",
+  description: "Send a message to a specific channel",
 
-  validate: async (runtime: IAgentRuntime, message: Memory) => {
-    // Check if user has permission to send messages
-    return true;
+  validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+    // Only validate if there's a target room or channel specified
+    return !!state?.values?.targetRoomId || !!options?.targetRoomId;
   },
 
   handler: async (runtime, message, state, options, callback) => {
-    const targetRoom = options?.roomId || message.roomId;
+    const targetRoomId = options?.targetRoomId || state?.values?.targetRoomId;
     const messageText = options?.text || state?.values?.messageText;
 
     if (!messageText) {
       throw new Error("No message text provided");
     }
 
-    // Send message to target room
-    await runtime.sendMessage(targetRoom, {
-      text: messageText,
+    if (!targetRoomId) {
+      throw new Error("No target room specified");
+    }
+
+    // Create a message memory in the target room
+    const messageMemory = {
+      id: crypto.randomUUID() as UUID,
+      content: {
+        text: messageText,
+        actions: ["SEND_MESSAGE"],
+      },
       entityId: runtime.agentId,
-    });
+      roomId: targetRoomId,
+      createdAt: Date.now(),
+    };
+
+    await runtime.createMemory(messageMemory);
+
+    // If there's a send handler registered for the platform, use it
+    const room = await runtime.getRoom(targetRoomId);
+    if (room?.source) {
+      await runtime.sendMessageToTarget(
+        {
+          roomId: targetRoomId,
+          channelId: room.channelId,
+          serverId: room.serverId,
+        },
+        messageMemory.content
+      );
+    }
 
     const responseContent = {
-      text: `Message sent to ${targetRoom}`,
+      text: `Message sent to room ${targetRoomId}`,
       actions: ["SEND_MESSAGE"],
     };
 
@@ -379,7 +443,7 @@ export const sendMessageAction = {
       {
         name: "Agent",
         content: {
-          text: "Message sent to general channel",
+          text: "I'll send that message to the general channel",
           actions: ["SEND_MESSAGE"],
         },
       },
@@ -388,45 +452,135 @@ export const sendMessageAction = {
 };
 ```
 
-### Update Entity Action
+### Update Entity Action (from plugin-bootstrap)
+
+The actual `updateEntityAction` in plugin-bootstrap updates entity **components** (contact information across different platforms), not the entity itself:
 
 ```typescript
-export const updateEntityAction = {
-  name: "UPDATE_ENTITY",
-  similes: ["MODIFY", "CHANGE", "UPDATE", "EDIT"],
-  description: "Update information about an entity",
+export const updateEntityAction: Action = {
+  name: "UPDATE_CONTACT",
+  similes: ["UPDATE_ENTITY"],
+  description:
+    "Add or edit contact details for a person you are talking to or observing in the conversation. Use this when you learn this information from the conversation about a contact. This is for the agent to relate entities across platforms, not for world settings or configuration.",
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    // Check if there's an entity to update
-    return !!state?.values?.entityId;
+  validate: async (_runtime: IAgentRuntime, _message: Memory, _state?: State) => {
+    return true; // Always valid
   },
 
-  handler: async (runtime, message, state, options, callback) => {
-    const entityId = options?.entityId || state?.values?.entityId;
-    const updates = options?.updates || {};
+  handler: async (runtime, message, state, options, callback, responses) => {
+    // Handle initial responses
+    for (const response of responses) {
+      await callback(response.content);
+    }
 
-    // Update entity in database
-    await runtime.updateEntity(entityId, updates);
+    const sourceEntityId = message.entityId;
+    const agentId = runtime.agentId;
+    const room = state.data.room ?? (await runtime.getRoom(message.roomId));
+    const worldId = room.worldId;
 
-    const responseContent = {
-      text: `Entity ${entityId} updated successfully`,
-      actions: ["UPDATE_ENTITY"],
-    };
+    // First, find the entity being referenced
+    const entity = await findEntityByName(runtime, message, state);
+    if (!entity) {
+      await callback({
+        text: "I'm not sure which entity you're trying to update. Could you please specify who you're talking about?",
+        actions: ["UPDATE_ENTITY_ERROR"],
+        source: message.content.source,
+      });
+      return;
+    }
 
-    await callback?.(responseContent);
-    return true;
+    // Use LLM to extract platform and component data from conversation
+    const prompt = composePromptFromState({
+      state,
+      template: componentTemplate, // Template to extract source and data
+    });
+
+    const result = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt,
+      stopSequences: [],
+    });
+
+    // Parse the generated data
+    const parsedResult = JSON.parse(result.match(/\{[\s\S]*\}/)[0]);
+    const componentType = parsedResult.source.toLowerCase();
+    const componentData = parsedResult.data;
+
+    // Check if component exists
+    const existingComponent = await runtime.getComponent(
+      entity.id!,
+      componentType,
+      worldId,
+      sourceEntityId
+    );
+
+    if (existingComponent) {
+      // Update existing component
+      await runtime.updateComponent({
+        id: existingComponent.id,
+        entityId: entity.id!,
+        worldId,
+        type: componentType,
+        data: componentData,
+        agentId,
+        roomId: message.roomId,
+        sourceEntityId,
+        createdAt: existingComponent.createdAt,
+      });
+
+      await callback({
+        text: `I've updated the ${componentType} information for ${entity.names[0]}.`,
+        actions: ["UPDATE_ENTITY"],
+        source: message.content.source,
+      });
+    } else {
+      // Create new component
+      await runtime.createComponent({
+        id: uuidv4() as UUID,
+        entityId: entity.id!,
+        worldId,
+        type: componentType,
+        data: componentData,
+        agentId,
+        roomId: message.roomId,
+        sourceEntityId,
+        createdAt: Date.now(),
+      });
+
+      await callback({
+        text: `I've added new ${componentType} information for ${entity.names[0]}.`,
+        actions: ["UPDATE_ENTITY"],
+        source: message.content.source,
+      });
+    }
   },
 
   examples: [
     [
       {
-        name: "User",
-        content: { text: "Update user profile with new email" },
+        name: "{{name1}}",
+        content: {
+          text: "Please update my telegram username to @dev_guru",
+        },
       },
       {
-        name: "Agent",
+        name: "{{name2}}",
         content: {
-          text: "User profile updated with new email address",
+          text: "I've updated your telegram information.",
+          actions: ["UPDATE_ENTITY"],
+        },
+      },
+    ],
+    [
+      {
+        name: "{{name1}}",
+        content: {
+          text: "Set Jimmy's twitter username to @jimmy_codes",
+        },
+      },
+      {
+        name: "{{name2}}",
+        content: {
+          text: "I've updated Jimmy's twitter information.",
           actions: ["UPDATE_ENTITY"],
         },
       },

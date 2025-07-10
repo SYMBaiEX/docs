@@ -1,0 +1,752 @@
+---
+title: "Replit Deployment Guide"
+description:
+  "Complete guide for deploying ElizaOS on Replit, including VM setup, troubleshooting, and best practices"
+keywords: replit, deployment, vm, container, hosting, elizaos
+---
+
+This guide addresses the challenge that "Deploying a VM on Replit is not as easy as one would
+think" by providing step-by-step instructions for successfully deploying ElizaOS on Replit.
+
+<Callout type="info">
+  **Developer Experience**: While Replit can be tricky for complex deployments, this guide makes it
+  straightforward with proven solutions for common issues.
+</Callout>
+
+## Replit Deployment Options
+
+Replit offers several ways to deploy ElizaOS:
+
+| Method              | Best For                | Complexity | Limitations              |
+| ------------------- | ----------------------- | ---------- | ------------------------ |
+| **Replit Core**     | Quick prototyping       | Low        | No persistence           |
+| **Replit Deployments** | Production apps         | Medium     | Some resource limits     |
+| **Replit VMs**      | Full control            | High       | Requires VM management   |
+| **Replit Ghostwriter** | AI-assisted development | Low        | Limited to development   |
+
+## Quick Start (Replit Core)
+
+<Steps>
+
+<Step>
+## Create a New Repl
+
+1. Go to [replit.com](https://replit.com)
+2. Click "Create Repl"
+3. Choose "Node.js" template
+4. Name your repl "eliza-agent"
+
+</Step>
+
+<Step>
+## Install ElizaOS
+
+In the Replit shell:
+
+```bash
+# Install ElizaOS CLI
+npm install -g @elizaos/cli
+
+# Create a new project
+npx create-eliza my-agent
+cd my-agent
+
+# Install dependencies
+npm install
+```
+
+</Step>
+
+<Step>
+## Configure for Replit
+
+Create a `.replit` file:
+
+```toml title=".replit"
+run = "npm start"
+entrypoint = "src/index.js"
+modules = ["nodejs-20"]
+
+[env]
+PATH = "/home/runner/$REPL_SLUG/node_modules/.bin:$PATH"
+NODE_ENV = "production"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+enabledForHosting = false
+
+[languages.javascript]
+pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
+syntax = "javascript"
+
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"
+
+[deployment]
+run = ["sh", "-c", "npm start"]
+deploymentTarget = "cloudrun"
+```
+
+</Step>
+
+<Step>
+## Create Character File
+
+```json title="character.json"
+{
+  "name": "ReplitBot",
+  "bio": [
+    "I'm an AI assistant running on Replit",
+    "I help with coding, debugging, and general questions",
+    "I'm designed to work well in the Replit environment"
+  ],
+  "plugins": [
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "model": "gpt-4",
+    "temperature": 0.7
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Run Your Agent
+
+```bash
+# Start the agent
+npm start -- --character character.json
+
+# Or with environment variables
+OPENAI_API_KEY=your-key npm start -- --character character.json
+```
+
+Your agent should now be running! The Replit interface will show the output and provide a URL.
+
+</Step>
+
+</Steps>
+
+## Replit Deployments (Recommended)
+
+For production deployments, use Replit Deployments:
+
+<Steps>
+
+<Step>
+## Prepare for Deployment
+
+Update your `package.json`:
+
+```json title="package.json"
+{
+  "name": "eliza-replit",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "@elizaos/core": "^1.0.19",
+    "@elizaos/plugin-bootstrap": "^1.0.19"
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Configure Environment Variables
+
+In your Replit project:
+
+1. Go to the "Secrets" tab
+2. Add these environment variables:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+NODE_ENV=production
+PORT=3000
+```
+
+</Step>
+
+<Step>
+## Create Deployment Configuration
+
+```yaml title="replit.yaml"
+version: 1
+name: eliza-agent
+run: node src/index.js
+entrypoint: src/index.js
+
+deployment:
+  target: cloudrun
+  env:
+    NODE_ENV: production
+    PORT: 3000
+  
+  health_check:
+    path: /health
+    port: 3000
+    timeout: 30
+    
+  scaling:
+    min_instances: 1
+    max_instances: 10
+    
+  resources:
+    cpu: 1
+    memory: 1Gi
+```
+
+</Step>
+
+<Step>
+## Deploy
+
+1. Click the "Deploy" button in Replit
+2. Choose "Replit Deployments"
+3. Configure your deployment settings
+4. Click "Deploy"
+
+Your agent will be deployed to a public URL!
+
+</Step>
+
+</Steps>
+
+## Advanced VM Setup
+
+For full control, use Replit VMs:
+
+<Steps>
+
+<Step>
+## Create a VM Repl
+
+1. Create a new Repl
+2. Choose "Blank Repl"
+3. Select "VM" as the runtime
+4. Choose Ubuntu or another Linux distribution
+
+</Step>
+
+<Step>
+## Install Dependencies
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install build tools
+sudo apt-get install -y build-essential git curl
+
+# Install Bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+```
+
+</Step>
+
+<Step>
+## Clone and Setup ElizaOS
+
+```bash
+# Clone the repository
+git clone https://github.com/elizaOS/eliza.git
+cd eliza
+
+# Install dependencies
+bun install
+
+# Build the project
+bun run build
+```
+
+</Step>
+
+<Step>
+## Configure for VM
+
+Create a systemd service:
+
+```ini title="/etc/systemd/system/eliza.service"
+[Unit]
+Description=ElizaOS Agent
+After=network.target
+
+[Service]
+Type=simple
+User=runner
+WorkingDirectory=/home/runner/eliza
+ExecStart=/home/runner/.bun/bin/bun start --character /home/runner/eliza/character.json
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+EnvironmentFile=/home/runner/eliza/.env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+</Step>
+
+<Step>
+## Start and Enable Service
+
+```bash
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Start the service
+sudo systemctl start eliza
+
+# Enable on boot
+sudo systemctl enable eliza
+
+# Check status
+sudo systemctl status eliza
+```
+
+</Step>
+
+</Steps>
+
+## Troubleshooting Common Issues
+
+### Issue 1: "Module not found" errors
+
+**Problem**: Node modules aren't found in Replit
+
+**Solution**:
+
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Delete node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+
+# Or use yarn
+yarn install --force
+```
+
+### Issue 2: Memory limits exceeded
+
+**Problem**: Agent crashes with "JavaScript heap out of memory"
+
+**Solution**:
+
+```bash
+# Increase memory limit
+NODE_OPTIONS="--max-old-space-size=2048" npm start
+
+# Or configure in package.json
+{
+  "scripts": {
+    "start": "NODE_OPTIONS='--max-old-space-size=2048' node src/index.js"
+  }
+}
+```
+
+### Issue 3: Port binding issues
+
+**Problem**: "Port already in use" or "EADDRINUSE"
+
+**Solution**:
+
+```bash
+# Kill existing processes
+pkill -f node
+
+# Use PORT environment variable
+PORT=3000 npm start
+
+# Or configure in code
+const port = process.env.PORT || 3000;
+```
+
+### Issue 4: File system permissions
+
+**Problem**: Permission denied when writing files
+
+**Solution**:
+
+```bash
+# Fix permissions
+chmod +x src/index.js
+chmod -R 755 src/
+
+# Use proper paths
+const dataPath = process.env.REPL_SLUG ? 
+  `/home/runner/${process.env.REPL_SLUG}/data` : 
+  './data';
+```
+
+### Issue 5: Environment variables not loading
+
+**Problem**: API keys not accessible
+
+**Solution**:
+
+```javascript
+// Use process.env in Replit
+const config = {
+  openaiKey: process.env.OPENAI_API_KEY,
+  anthropicKey: process.env.ANTHROPIC_API_KEY
+};
+
+// Check for missing variables
+if (!config.openaiKey) {
+  console.error('OPENAI_API_KEY not found in environment');
+  process.exit(1);
+}
+```
+
+## Replit-Specific Optimizations
+
+### 1. Database Configuration
+
+Use SQLite for simplicity:
+
+```javascript title="src/database.js"
+import sqlite3 from 'sqlite3';
+import path from 'path';
+
+// Use persistent storage path
+const dbPath = process.env.REPL_SLUG ? 
+  `/home/runner/${process.env.REPL_SLUG}/data/eliza.db` : 
+  './data/eliza.db';
+
+const db = new sqlite3.Database(dbPath);
+
+export { db };
+```
+
+### 2. File Upload Handling
+
+```javascript title="src/uploads.js"
+import multer from 'multer';
+import path from 'path';
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Use Replit's persistent storage
+    const uploadPath = process.env.REPL_SLUG ? 
+      `/home/runner/${process.env.REPL_SLUG}/uploads` : 
+      './uploads';
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+export const upload = multer({ storage });
+```
+
+### 3. Logging Configuration
+
+```javascript title="src/logger.js"
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ 
+      filename: process.env.REPL_SLUG ? 
+        `/home/runner/${process.env.REPL_SLUG}/logs/eliza.log` : 
+        './logs/eliza.log'
+    })
+  ]
+});
+
+export { logger };
+```
+
+## Performance Optimization
+
+### 1. Reduce Memory Usage
+
+```javascript title="src/memory-optimization.js"
+// Limit message history
+const MAX_MESSAGE_HISTORY = 50;
+
+class MessageManager {
+  constructor() {
+    this.messages = [];
+  }
+  
+  addMessage(message) {
+    this.messages.push(message);
+    
+    // Keep only recent messages
+    if (this.messages.length > MAX_MESSAGE_HISTORY) {
+      this.messages.shift();
+    }
+  }
+}
+
+// Use garbage collection
+setInterval(() => {
+  if (global.gc) {
+    global.gc();
+  }
+}, 60000); // Every minute
+```
+
+### 2. Optimize Plugin Loading
+
+```javascript title="src/plugin-loader.js"
+// Lazy load plugins
+const loadPlugin = async (pluginName) => {
+  try {
+    const plugin = await import(pluginName);
+    return plugin.default || plugin;
+  } catch (error) {
+    console.warn(`Failed to load plugin ${pluginName}:`, error);
+    return null;
+  }
+};
+
+// Load only essential plugins
+const essentialPlugins = [
+  '@elizaos/plugin-bootstrap'
+];
+
+const plugins = await Promise.all(
+  essentialPlugins.map(loadPlugin)
+);
+```
+
+## Deployment Best Practices
+
+### 1. Health Checks
+
+```javascript title="src/health.js"
+import express from 'express';
+
+const app = express();
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
+app.get('/ready', (req, res) => {
+  // Check if agent is ready
+  res.json({ ready: true });
+});
+
+export { app };
+```
+
+### 2. Graceful Shutdown
+
+```javascript title="src/shutdown.js"
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  
+  // Close connections
+  await closeDatabase();
+  await stopAgent();
+  
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  
+  // Close connections
+  await closeDatabase();
+  await stopAgent();
+  
+  process.exit(0);
+});
+```
+
+### 3. Error Handling
+
+```javascript title="src/error-handler.js"
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  
+  // Log the error
+  logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  
+  // Graceful shutdown
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  
+  // Log the error
+  logger.error('Unhandled Rejection', { reason, promise });
+});
+```
+
+## Monitoring and Debugging
+
+### 1. Real-time Monitoring
+
+```javascript title="src/monitoring.js"
+import { EventEmitter } from 'events';
+
+class Monitor extends EventEmitter {
+  constructor() {
+    super();
+    this.metrics = {
+      requests: 0,
+      errors: 0,
+      startTime: Date.now()
+    };
+  }
+  
+  trackRequest() {
+    this.metrics.requests++;
+    this.emit('request');
+  }
+  
+  trackError() {
+    this.metrics.errors++;
+    this.emit('error');
+  }
+  
+  getMetrics() {
+    return {
+      ...this.metrics,
+      uptime: Date.now() - this.metrics.startTime
+    };
+  }
+}
+
+export const monitor = new Monitor();
+```
+
+### 2. Debug Mode
+
+```javascript title="src/debug.js"
+const DEBUG = process.env.NODE_ENV === 'development';
+
+export const debug = (message, ...args) => {
+  if (DEBUG) {
+    console.log(`[DEBUG] ${message}`, ...args);
+  }
+};
+
+export const debugRequest = (req, res, next) => {
+  if (DEBUG) {
+    console.log(`[DEBUG] ${req.method} ${req.url}`);
+  }
+  next();
+};
+```
+
+## Sample Complete Setup
+
+Here's a complete working example:
+
+```javascript title="src/index.js"
+import { AgentRuntime } from '@elizaos/core';
+import { bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+import express from 'express';
+import { logger } from './logger.js';
+import { monitor } from './monitoring.js';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use((req, res, next) => {
+  monitor.trackRequest();
+  next();
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    metrics: monitor.getMetrics()
+  });
+});
+
+// Initialize agent
+const character = {
+  name: "ReplitBot",
+  bio: ["I'm running on Replit!"],
+  plugins: [bootstrapPlugin]
+};
+
+const runtime = new AgentRuntime(character);
+
+// Chat endpoint
+app.post('/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    const response = await runtime.processMessage(message);
+    res.json({ response });
+  } catch (error) {
+    logger.error('Chat error:', error);
+    monitor.trackError();
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Start server
+app.listen(port, () => {
+  logger.info(`ElizaOS agent running on port ${port}`);
+});
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Replit Community"
+    description="Join Replit's community for help"
+    href="https://community.replit.com"
+  />
+  <Card
+    title="Cloud Platform Guide"
+    description="Alternative deployment options"
+    href="/advanced/cloud-platforms-deployment"
+  />
+  <Card
+    title="Troubleshooting"
+    description="Common issues and solutions"
+    href="/troubleshooting/common-issues"
+  />
+  <Card
+    title="Performance Optimization"
+    description="Optimize your agent for production"
+    href="/advanced/performance"
+  />
+</Cards>
+
+Remember: While deploying VMs on Replit can be complex, start with Replit Deployments for most use
+cases. Only use VMs when you need full system control.

@@ -13,9 +13,10 @@ import { Card, Cards } from "fumadocs-ui/components/card";
 Before you begin, ensure you have:
 
 - **Node.js** (v23.3.0 exact version required)
-- **Bun** package manager (v1.2.15 recommended)
-- **API Key** from OpenAI, Anthropic, or local AI setup
+- **Bun** package manager (v1.2.15 or higher)
+- **API Key** from OpenAI, Anthropic, Google AI, or local AI setup (Ollama)
 - **Windows Users**: WSL 2 required
+- **Database**: PostgreSQL or PGLite (automatic with CLI)
 
 <Callout type="info">
   Complete installation instructions are available in the [Installation
@@ -51,9 +52,10 @@ elizaos create my-first-agent --type project
 The CLI will prompt you to choose:
 
 - **Project Type**: Select `project` (full ElizaOS application)
+- **Project Type**: Select `project` (full ElizaOS application), `plugin`, `agent`, or `tee`
 - **Database**: Select `pglite` (lightweight, no setup required) or `postgres` (production-ready)
-- **Model Provider**: Select `openai` (most reliable for beginners)
-- **Template**: Select `default` (includes common plugins) or `minimal` (basic setup)
+- **Model Provider**: Select from `local`, `openai`, `claude`, `openrouter`, `ollama`, or `google`
+- **Embedding Model**: Required for Claude and OpenRouter (select from `local`, `openai`, `ollama`, or `google`)
 
 ## Step 3: Configure Your Agent
 
@@ -79,17 +81,22 @@ nano .env
 Add your API key and basic configuration:
 
 ```bash
-# Required: Your OpenAI API key
+# Required: Choose one AI provider
 OPENAI_API_KEY=your_api_key_here
+# ANTHROPIC_API_KEY=your_anthropic_key_here
+# GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
+# OPENROUTER_API_KEY=your_openrouter_key_here
+# OLLAMA_API_ENDPOINT=http://localhost:11434  # For local AI
 
-# Optional: Logging level
+# Optional: Logging level (fatal, error, warn, info, debug, trace)
 LOG_LEVEL=info
 
 # Optional: Server configuration
 SERVER_PORT=3000
 SERVER_HOST=localhost
+NODE_ENV=development
 
-# Optional: Discord integration (if needed)
+# Optional: Discord integration (if using Discord plugin)
 DISCORD_APPLICATION_ID=your_discord_app_id
 DISCORD_API_TOKEN=your_discord_bot_token
 ```
@@ -179,9 +186,12 @@ elizaos dev --character characters/my-agent.json
 
 # Build and test your changes
 elizaos test
+elizaos test component  # Run only component tests
+elizaos test e2e       # Run only end-to-end tests
 
 # Update CLI and dependencies
 elizaos update
+elizaos update --check  # Check for updates without installing
 ```
 
 ### Plugin Management
@@ -205,8 +215,9 @@ elizaos plugins remove @elizaos/plugin-discord
 
 - Verify your API key is correctly set: `elizaos env list`
 - Check that Node.js v23.3.0 (exact version) is installed: `node --version`
-- Ensure port 3000 is available or use `--port` option
+- Ensure port 3000 is available or use `--port` option: `elizaos dev --port 8080`
 - Try building first: `elizaos start --build`
+- Check database connection: `elizaos env test-db`
 
 **Agent not responding?**
 
@@ -223,9 +234,11 @@ elizaos plugins remove @elizaos/plugin-discord
 
 **Plugin problems?**
 
+- List available plugins: `elizaos plugins list`
 - List installed plugins: `elizaos plugins installed-plugins`
 - Remove problematic plugin: `elizaos plugins remove <plugin-name>`
 - Check plugin compatibility with v1.2.0
+- Verify plugin order (sql must be first, bootstrap must be last)
 
 ### Getting Help
 

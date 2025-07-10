@@ -1,4 +1,10 @@
 {
   "title": "Templates",
-  "pages": ["discord-agent"]
+  "pages": [
+    "discord-agent",
+    "twitter-agent",
+    "helpful-assistant",
+    "creative-writer",
+    "gaming-buddy"
+  ]
 }

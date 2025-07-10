@@ -1,0 +1,524 @@
+---
+title: "Pre-1.0.0 to Current Version Migration Guide"
+description:
+  "Complete guide for migrating from ElizaOS versions before 1.0.0 to the current version, with detailed breaking changes and practical solutions"
+keywords: migration, pre-1.0.0, upgrade, breaking changes, elizaos
+---
+
+This comprehensive migration guide addresses the challenges developers face when upgrading from pre-1.0.0 versions of ElizaOS to the current version (1.0.19+). Based on developer feedback, many users found pre-1.0.0 versions more stable for certain use cases, so this guide provides a careful migration path.
+
+<Callout type="warning">
+  **Major Breaking Changes Ahead**: The architecture has fundamentally changed between pre-1.0.0 and
+  current versions. This migration requires significant code updates and careful testing.
+</Callout>
+
+## Why This Guide Exists
+
+Developer feedback indicates:
+
+- "I finally settled for using the version pre 1.0.0, as I thought that was the most usable"
+- Pre-1.0.0 versions had simpler architecture but lacked modern features
+- Current versions offer better scalability but require more complex setup
+
+## Version Comparison
+
+### Pre-1.0.0 Architecture
+
+| Component             | Pre-1.0.0                        | Current (1.0.19+)                   |
+| --------------------- | -------------------------------- | ----------------------------------- |
+| **API Structure**     | Simple REST endpoints            | Domain-based routing                |
+| **Plugin System**     | Basic loading, any order         | Strict ordering, dependency system  |
+| **Database**          | Optional adapters                | Required SQL adapter                |
+| **Character Format**  | Flexible JSON                    | Strict schema validation            |
+| **Message Bus**       | Direct agent communication       | Centralized bus architecture        |
+| **Multi-agent**       | Limited support                  | Full multi-agent capabilities       |
+| **State Management**  | In-memory                        | Persistent with database            |
+| **Client Connection** | WebSocket                        | Socket.IO with reconnection         |
+| **Node Version**      | Node 20.x                        | Node 23.3.0 required                |
+| **TypeScript**        | Optional                         | Required for all packages           |
+
+## Pre-Migration Assessment
+
+<Steps>
+
+<Step>
+## Inventory Your Setup
+
+Document your current pre-1.0.0 implementation:
+
+```bash
+# Check your current version
+cat package.json | grep version
+
+# List your dependencies
+cat package.json | grep eliza
+
+# Document your character files
+ls -la characters/
+```
+
+Create a migration checklist:
+
+- [ ] Current ElizaOS version: \_\_\_\_\_\_
+- [ ] Custom actions count: \_\_\_\_\_\_
+- [ ] Custom providers count: \_\_\_\_\_\_
+- [ ] Character files count: \_\_\_\_\_\_
+- [ ] Database type (if any): \_\_\_\_\_\_
+- [ ] Client integrations: \_\_\_\_\_\_
+
+</Step>
+
+<Step>
+## Backup Everything
+
+Before starting migration:
+
+```bash
+# Backup your entire project
+cp -r your-eliza-project your-eliza-project-backup
+
+# Export character definitions
+mkdir migration-backup
+cp characters/*.json migration-backup/
+
+# Document custom code
+find . -name "*.ts" -o -name "*.js" | grep -E "(action|provider|evaluator)" > custom-code-list.txt
+```
+
+</Step>
+
+<Step>
+## Understand Breaking Changes
+
+Key differences from pre-1.0.0:
+
+### 1. Node.js Version Requirement
+
+```json
+// Pre-1.0.0
+{
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+
+// Current
+{
+  "engines": {
+    "node": "23.3.0"
+  }
+}
+```
+
+### 2. Plugin System Changes
+
+```typescript
+// Pre-1.0.0: Plugins could be loaded in any order
+const plugins = [
+  myCustomPlugin,
+  "@ai16z/eliza-plugin-discord",
+  "@ai16z/eliza-plugin-openai",
+];
+
+// Current: Strict ordering required
+const plugins = [
+  "@elizaos/plugin-sql", // MUST be first
+  "@elizaos/plugin-openai",
+  "@elizaos/plugin-discord",
+  "@elizaos/plugin-bootstrap", // MUST be last
+];
+```
+
+### 3. Package Naming
+
+All packages have been renamed:
+
+- `@ai16z/eliza-*` → `@elizaos/*`
+- `eliza` → `@elizaos/core`
+
+### 4. Database Requirements
+
+```typescript
+// Pre-1.0.0: Database was optional
+const runtime = new AgentRuntime({
+  character,
+  // Database adapter was optional
+});
+
+// Current: SQL adapter is required
+const runtime = new AgentRuntime({
+  character,
+  databaseAdapter: new SqliteAdapter(), // Required!
+});
+```
+
+</Step>
+
+</Steps>
+
+## Migration Process
+
+<Steps>
+
+<Step>
+## Update Node.js
+
+First, update to the required Node.js version:
+
+```bash
+# Using nvm
+nvm install 23.3.0
+nvm use 23.3.0
+
+# Using bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+```
+
+<Callout type="info">
+  ElizaOS now recommends using Bun instead of npm/yarn for better performance and compatibility.
+</Callout>
+
+</Step>
+
+<Step>
+## Create New Project Structure
+
+Start with a fresh ElizaOS installation:
+
+```bash
+# Create new project
+bunx create-eliza my-migrated-agent
+cd my-migrated-agent
+
+# Install dependencies
+bun install
+```
+
+</Step>
+
+<Step>
+## Migrate Character Files
+
+Update your character JSON files to the new format:
+
+<Tabs>
+  <Tab value="old">
+    ```json title="characters/old-format.json"
+    {
+      "name": "MyAgent",
+      "description": "A helpful assistant",
+      "personality": "friendly and helpful",
+      "modelProvider": "openai",
+      "model": "gpt-4"
+    }
+    ```
+  </Tab>
+  <Tab value="new">
+    ```json title="characters/new-format.json"
+    {
+      "name": "MyAgent",
+      "bio": [
+        "A helpful assistant",
+        "Friendly and knowledgeable"
+      ],
+      "plugins": [
+        "@elizaos/plugin-sql",
+        "@elizaos/plugin-openai",
+        "@elizaos/plugin-bootstrap"
+      ],
+      "settings": {
+        "model": "gpt-4",
+        "temperature": 0.7
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Key changes:
+
+- `description` + `personality` → `bio` array
+- `modelProvider` → specified in plugins
+- Plugins must be explicitly listed with correct order
+
+</Step>
+
+<Step>
+## Update Custom Actions
+
+Migrate your custom actions to the new interface:
+
+<Tabs>
+  <Tab value="old">
+    ```typescript title="actions/old-action.ts"
+    // Pre-1.0.0 action format
+    export const myAction = {
+      name: "MY_ACTION",
+      description: "Does something",
+      async execute(runtime, message) {
+        // Action logic
+        return "Action completed";
+      }
+    };
+    ```
+  </Tab>
+  <Tab value="new">
+    ```typescript title="actions/new-action.ts"
+    // Current action format
+    import { Action, IAgentRuntime, Memory } from "@elizaos/core";
+
+    export const myAction: Action = {
+      name: "MY_ACTION",
+      description: "Does something",
+      similes: ["do something", "perform action"],
+      examples: [
+        [{
+          user: "Do the thing",
+          content: { text: "I'll do that for you" }
+        }]
+      ],
+      validate: async (runtime: IAgentRuntime, message: Memory) => {
+        return true;
+      },
+      handler: async (runtime: IAgentRuntime, message: Memory) => {
+        // Action logic
+        return {
+          text: "Action completed",
+          action: "MY_ACTION"
+        };
+      }
+    };
+    ```
+
+  </Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+## Update API Calls
+
+If you have external integrations, update API endpoints:
+
+<Tabs>
+  <Tab value="old">
+    ```typescript title="api/old-api.ts"
+    // Pre-1.0.0 API calls
+    const response = await fetch(`/api/agents/${agentId}/message`, {
+      method: 'POST',
+      body: JSON.stringify({ text: message })
+    });
+    ```
+  </Tab>
+  <Tab value="new">
+    ```typescript title="api/new-api.ts"
+    // Current API calls
+    const response = await fetch('/api/messaging/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        agentId: agentId,
+        text: message,
+        userId: userId,
+        roomId: roomId
+      })
+    });
+    ```
+  </Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+## Configure Database
+
+Set up the required database adapter:
+
+```typescript title="src/index.ts"
+import { AgentRuntime, SqliteAdapter } from "@elizaos/core";
+import Database from "better-sqlite3";
+
+// Create database connection
+const db = new Database("./eliza.db");
+
+// Initialize adapter
+const databaseAdapter = new SqliteAdapter(db);
+
+// Create runtime with adapter
+const runtime = new AgentRuntime({
+  character,
+  databaseAdapter, // Required in current version
+  plugins: [
+    "@elizaos/plugin-sql",
+    // ... other plugins
+    "@elizaos/plugin-bootstrap",
+  ],
+});
+```
+
+</Step>
+
+<Step>
+## Test Migration
+
+Run comprehensive tests:
+
+```bash
+# Start in development mode
+bun dev
+
+# Test basic functionality
+bun test
+
+# Test with your character
+bun start --character characters/migrated-character.json
+```
+
+Common issues to check:
+
+- [ ] Character loads without schema errors
+- [ ] Database tables are created
+- [ ] Actions execute properly
+- [ ] Memory persistence works
+- [ ] Client connections are stable
+
+</Step>
+
+</Steps>
+
+## Common Migration Issues
+
+### Issue 1: Plugin Loading Errors
+
+**Problem**: "Cannot find plugin" or "Plugin loading failed"
+
+**Solution**:
+
+```bash
+# Ensure all plugins are installed
+bun add @elizaos/plugin-sql @elizaos/plugin-bootstrap
+
+# Check plugin order in character file
+```
+
+### Issue 2: Database Connection Errors
+
+**Problem**: "Database adapter is required"
+
+**Solution**:
+
+```typescript
+// Always initialize with a database adapter
+import { SqliteAdapter } from "@elizaos/plugin-sql";
+
+const adapter = new SqliteAdapter();
+```
+
+### Issue 3: Character Validation Errors
+
+**Problem**: "Invalid character format"
+
+**Solution**:
+
+- Ensure `bio` is an array, not a string
+- Add required `plugins` array
+- Move model settings to `settings` object
+
+### Issue 4: API Response Format Changes
+
+**Problem**: Different response structure breaking clients
+
+**Solution**:
+
+```typescript
+// Add compatibility layer
+function convertResponse(newResponse) {
+  return {
+    // Map new format to old format
+    message: newResponse.text,
+    agent: newResponse.agentId,
+    // ... other mappings
+  };
+}
+```
+
+## Rollback Strategy
+
+If migration fails, you can temporarily use both versions:
+
+```bash
+# Keep old version in separate directory
+mv your-eliza-project-backup eliza-legacy
+
+# Run legacy version on different port
+cd eliza-legacy
+PORT=3001 npm start
+
+# Gradually migrate features
+```
+
+## Feature Comparison Table
+
+| Feature                   | Pre-1.0.0       | Current Version | Migration Effort |
+| ------------------------- | --------------- | --------------- | ---------------- |
+| **Simple Actions**        | ✅ Supported    | ✅ Enhanced     | Low              |
+| **Custom Providers**      | ✅ Basic        | ✅ Advanced     | Medium           |
+| **Database Optional**     | ✅ Yes          | ❌ Required     | High             |
+| **Plugin Order**          | ✅ Flexible     | ❌ Strict       | Medium           |
+| **Multi-agent**           | ⚠️ Limited      | ✅ Full         | Low              |
+| **WebSocket**             | ✅ Native       | ⚠️ Socket.IO    | Medium           |
+| **Memory Persistence**    | ❌ In-memory    | ✅ Database     | Low              |
+| **TypeScript Optional**   | ✅ Yes          | ❌ Required     | High             |
+| **Simple Configuration**  | ✅ Yes          | ⚠️ Complex      | Medium           |
+| **Production Stability**  | ✅ Stable       | ⚠️ Evolving     | N/A              |
+
+## Best Practices for Migration
+
+<Callout type="lightbulb">
+  **Tip**: Don't try to migrate everything at once. Start with core functionality and gradually add
+  features.
+</Callout>
+
+1. **Start Simple**: Migrate basic character first, add features incrementally
+2. **Test Often**: Run tests after each migration step
+3. **Keep Backups**: Maintain working pre-1.0.0 version during migration
+4. **Document Changes**: Track what you've changed for team members
+5. **Use Version Control**: Commit after each successful migration step
+
+## Next Steps
+
+After successful migration:
+
+<Cards>
+  <Card
+    title="Troubleshooting Guide"
+    description="Common issues and solutions"
+    href="/troubleshooting"
+  />
+  <Card
+    title="v1.2.0 Migration"
+    description="If targeting latest features"
+    href="/migration/v1.2.0-migration"
+  />
+  <Card
+    title="Plugin Development"
+    description="Create custom plugins for new version"
+    href="/plugins/creating-plugins"
+  />
+  <Card
+    title="Deployment Guide"
+    description="Deploy your migrated agent"
+    href="/advanced/deployment"
+  />
+</Cards>
+
+## Getting Help
+
+If you encounter issues during migration:
+
+1. Check the [FAQ](/docs/faq) for common questions
+2. Search [GitHub Issues](https://github.com/elizaOS/eliza/issues)
+3. Join the [Discord community](https://discord.gg/elizaos)
+4. Review [example migrations](https://github.com/elizaOS/eliza/tree/main/examples/migration)
+
+Remember: The pre-1.0.0 versions were simpler but less capable. The current version offers more
+features but requires more setup. Choose based on your project needs.

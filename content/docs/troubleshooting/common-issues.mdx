@@ -1,0 +1,630 @@
+---
+title: "Common Issues & Solutions"
+description:
+  "Detailed solutions for the most frequently encountered ElizaOS issues based on developer feedback"
+keywords: troubleshooting, common issues, cache, bugs, errors, elizaos
+---
+
+This guide addresses the most common issues developers encounter with ElizaOS, with solutions based
+on real developer experiences and feedback.
+
+<Callout type="info">
+  **Developer Quote**: "There were also unexplainable bugs and often I would just have to start over
+  completely because either the cache got stuck etc."
+</Callout>
+
+## Cache-Related Issues
+
+### Problem: Cache Gets Stuck
+
+One of the most frustrating issues reported by developers is when the cache becomes corrupted or
+"stuck," requiring a complete restart.
+
+<Steps>
+
+<Step>
+## Identify Cache Issues
+
+Signs your cache is stuck:
+
+- Agent responses become repetitive or nonsensical
+- Changes to character files don't take effect
+- Memory queries return outdated data
+- Performance degrades over time
+
+```bash
+# Check cache size and last modified
+du -sh ~/.eliza/cache/
+ls -la ~/.eliza/cache/
+```
+
+</Step>
+
+<Step>
+## Clear Cache Safely
+
+```bash
+# Stop all ElizaOS processes first
+pkill -f eliza
+
+# Backup cache (just in case)
+cp -r ~/.eliza/cache ~/.eliza/cache.backup
+
+# Clear specific cache types
+rm -rf ~/.eliza/cache/embeddings/*
+rm -rf ~/.eliza/cache/responses/*
+rm -rf ~/.eliza/cache/models/*
+
+# Or clear everything
+rm -rf ~/.eliza/cache/*
+```
+
+</Step>
+
+<Step>
+## Implement Cache Management
+
+Add cache management to your workflow:
+
+```typescript title="src/utils/cache-manager.ts"
+import { promises as fs } from 'fs';
+import path from 'path';
+
+export class CacheManager {
+  private cacheDir = path.join(process.env.HOME!, '.eliza/cache');
+  
+  async clearOldCache(daysOld: number = 7) {
+    const now = Date.now();
+    const cutoff = now - (daysOld * 24 * 60 * 60 * 1000);
+    
+    const files = await fs.readdir(this.cacheDir, { recursive: true });
+    
+    for (const file of files) {
+      const filePath = path.join(this.cacheDir, file);
+      const stats = await fs.stat(filePath);
+      
+      if (stats.mtime.getTime() < cutoff) {
+        await fs.unlink(filePath);
+      }
+    }
+  }
+  
+  async getCacheSize(): Promise<number> {
+    // Implementation to calculate total cache size
+    return 0;
+  }
+  
+  async clearIfTooLarge(maxSizeMB: number = 500) {
+    const size = await this.getCacheSize();
+    if (size > maxSizeMB * 1024 * 1024) {
+      await this.clearOldCache(1); // Clear files older than 1 day
+    }
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Configure Cache Limits
+
+```json title=".env"
+# Cache configuration
+CACHE_MAX_SIZE_MB=500
+CACHE_TTL_HOURS=24
+CACHE_CLEANUP_INTERVAL_HOURS=6
+ENABLE_CACHE_COMPRESSION=true
+```
+
+```typescript title="eliza.config.ts"
+export default {
+  cache: {
+    maxSize: process.env.CACHE_MAX_SIZE_MB || 500,
+    ttl: process.env.CACHE_TTL_HOURS || 24,
+    compression: process.env.ENABLE_CACHE_COMPRESSION === 'true',
+    autoCleanup: {
+      enabled: true,
+      interval: process.env.CACHE_CLEANUP_INTERVAL_HOURS || 6
+    }
+  }
+};
+```
+
+</Step>
+
+</Steps>
+
+## Version Compatibility Issues
+
+### Problem: "I finally settled for using the version pre 1.0.0"
+
+Many developers find older versions more stable. Here's how to work with different versions:
+
+<Tabs>
+  <Tab value="use-old">
+    ### Using Pre-1.0.0 Versions
+
+    ```bash
+    # Install specific pre-1.0.0 version
+    npm install elizaos@0.9.5
+    
+    # Or clone and checkout old version
+    git clone https://github.com/elizaOS/eliza.git
+    cd eliza
+    git checkout v0.9.5
+    npm install
+    ```
+    
+    **Pros:**
+    - Simpler architecture
+    - Fewer dependencies
+    - More stable for basic use cases
+    
+    **Cons:**
+    - Missing new features
+    - No security updates
+    - Limited plugin support
+  </Tab>
+  <Tab value="fix-new">
+    ### Fixing Current Version Issues
+
+    ```bash
+    # Use LTS approach with current version
+    npm install @elizaos/core@1.0.19
+    
+    # Lock all dependencies
+    npm shrinkwrap
+    
+    # Disable problematic features
+    export ELIZA_FEATURES_EXPERIMENTAL=false
+    export ELIZA_SIMPLE_MODE=true
+    ```
+    
+    Configure for stability:
+    ```json title="eliza.config.json"
+    {
+      "features": {
+        "experimental": false,
+        "advancedPlugins": false,
+        "complexRouting": false
+      },
+      "compatibility": {
+        "mode": "legacy",
+        "strictValidation": false
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## TypeScript Learning Curve
+
+### Problem: "Steep learning curve with TypeScript"
+
+For developers more comfortable with JavaScript or Python:
+
+<Steps>
+
+<Step>
+## Use JavaScript Instead
+
+ElizaOS supports JavaScript with JSDoc types:
+
+```javascript title="character.js"
+/**
+ * @type {import('@elizaos/core').Character}
+ */
+const myCharacter = {
+  name: "JSAgent",
+  bio: ["A JavaScript-based agent"],
+  settings: {
+    model: "gpt-4",
+    temperature: 0.7
+  }
+};
+
+/**
+ * Custom action in JavaScript
+ * @type {import('@elizaos/core').Action}
+ */
+const myAction = {
+  name: "HELLO_ACTION",
+  description: "Says hello",
+  
+  /**
+   * @param {import('@elizaos/core').IAgentRuntime} runtime
+   * @param {import('@elizaos/core').Memory} message
+   */
+  async handler(runtime, message) {
+    return {
+      text: "Hello from JavaScript!",
+      action: "HELLO_ACTION"
+    };
+  }
+};
+
+module.exports = { myCharacter, myAction };
+```
+
+</Step>
+
+<Step>
+## Gradual TypeScript Adoption
+
+Start with minimal TypeScript:
+
+```typescript title="simple-action.ts"
+// Just use 'any' to start
+export const simpleAction = {
+  name: "SIMPLE_ACTION",
+  handler: async (runtime: any, message: any) => {
+    // Your logic here
+    return { text: "Response" };
+  }
+};
+```
+
+Then gradually add types:
+
+```typescript
+import { Action, IAgentRuntime, Memory } from '@elizaos/core';
+
+export const typedAction: Action = {
+  name: "TYPED_ACTION",
+  handler: async (runtime: IAgentRuntime, message: Memory) => {
+    // Now you get intellisense!
+    return { text: "Response" };
+  }
+};
+```
+
+</Step>
+
+<Step>
+## Use Type Generation Tools
+
+```bash
+# Generate types from JSON
+npx quicktype -o character-types.ts character.json
+
+# Use AI to convert JavaScript to TypeScript
+npx ts-migrate migrate ./src
+```
+
+</Step>
+
+</Steps>
+
+## Memory and Performance Issues
+
+### Problem: Memory Leaks and Growing Memory Usage
+
+<Steps>
+
+<Step>
+## Monitor Memory Usage
+
+```typescript title="src/monitoring/memory-monitor.ts"
+export class MemoryMonitor {
+  private baseline: NodeJS.MemoryUsage;
+  
+  start() {
+    this.baseline = process.memoryUsage();
+    
+    setInterval(() => {
+      const current = process.memoryUsage();
+      const heapUsed = Math.round(current.heapUsed / 1024 / 1024);
+      const heapTotal = Math.round(current.heapTotal / 1024 / 1024);
+      
+      console.log(`Memory: ${heapUsed}MB / ${heapTotal}MB`);
+      
+      // Alert if memory usage is too high
+      if (heapUsed > 1024) { // 1GB
+        console.warn('High memory usage detected!');
+        this.performCleanup();
+      }
+    }, 60000); // Check every minute
+  }
+  
+  performCleanup() {
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc();
+    }
+    
+    // Clear caches
+    // Clear unused references
+    // etc.
+  }
+}
+```
+
+Run with garbage collection exposed:
+
+```bash
+node --expose-gc dist/index.js
+```
+
+</Step>
+
+<Step>
+## Fix Common Memory Leaks
+
+```typescript
+// BAD: Keeping all messages in memory
+class BadMessageHandler {
+  private allMessages: Message[] = []; // This grows forever!
+  
+  handleMessage(msg: Message) {
+    this.allMessages.push(msg);
+  }
+}
+
+// GOOD: Limit message history
+class GoodMessageHandler {
+  private recentMessages: Message[] = [];
+  private maxMessages = 100;
+  
+  handleMessage(msg: Message) {
+    this.recentMessages.push(msg);
+    
+    // Keep only recent messages
+    if (this.recentMessages.length > this.maxMessages) {
+      this.recentMessages.shift();
+    }
+  }
+}
+```
+
+</Step>
+
+</Steps>
+
+## Database Connection Issues
+
+### Problem: Database Connections Exhausted
+
+```typescript title="src/db/connection-pool.ts"
+import { Pool } from 'pg';
+
+// Configure connection pool properly
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20, // Maximum connections
+  idleTimeoutMillis: 30000, // Close idle connections
+  connectionTimeoutMillis: 2000, // Fail fast
+});
+
+// Monitor pool health
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await pool.end();
+});
+
+export { pool };
+```
+
+## Plugin Loading Issues
+
+### Problem: Plugins Fail to Load or Conflict
+
+<Steps>
+
+<Step>
+## Debug Plugin Loading
+
+```typescript title="src/debug/plugin-loader.ts"
+export async function debugPluginLoading(plugins: string[]) {
+  for (const plugin of plugins) {
+    try {
+      console.log(`Loading plugin: ${plugin}`);
+      const start = Date.now();
+      
+      const loaded = await import(plugin);
+      
+      console.log(`✓ Loaded ${plugin} in ${Date.now() - start}ms`);
+      console.log(`  Exports: ${Object.keys(loaded).join(', ')}`);
+      
+    } catch (error) {
+      console.error(`✗ Failed to load ${plugin}:`, error);
+    }
+  }
+}
+```
+
+</Step>
+
+<Step>
+## Fix Plugin Order Issues
+
+```typescript
+// Ensure correct plugin order
+const PLUGIN_LOAD_ORDER = [
+  '@elizaos/plugin-sql',        // ALWAYS FIRST
+  '@elizaos/plugin-*',           // Core plugins
+  './custom-plugins/*',          // Your plugins
+  '@elizaos/plugin-bootstrap'    // ALWAYS LAST
+];
+
+function sortPlugins(plugins: string[]): string[] {
+  return plugins.sort((a, b) => {
+    const orderA = getPluginOrder(a);
+    const orderB = getPluginOrder(b);
+    return orderA - orderB;
+  });
+}
+```
+
+</Step>
+
+</Steps>
+
+## Build and Deployment Issues
+
+### Problem: "bun run build error"
+
+Common build errors and solutions:
+
+<Tabs>
+  <Tab value="error1">
+    ### TypeScript Errors
+    
+    ```bash
+    # Error: Cannot find module or type declarations
+    
+    # Solution 1: Install missing types
+    bun add -D @types/node @types/bun
+    
+    # Solution 2: Skip type checking
+    bun run build --no-typecheck
+    
+    # Solution 3: Fix tsconfig.json
+    {
+      "compilerOptions": {
+        "skipLibCheck": true,
+        "allowJs": true
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="error2">
+    ### Memory Errors
+    
+    ```bash
+    # Error: JavaScript heap out of memory
+    
+    # Solution: Increase memory limit
+    NODE_OPTIONS="--max-old-space-size=4096" bun run build
+    
+    # Or configure in package.json
+    {
+      "scripts": {
+        "build": "NODE_OPTIONS='--max-old-space-size=4096' turbo build"
+      }
+    }
+    ```
+  </Tab>
+  <Tab value="error3">
+    ### Module Resolution
+    
+    ```bash
+    # Error: Module not found
+    
+    # Solution 1: Clear cache and reinstall
+    rm -rf node_modules bun.lock
+    bun install
+    
+    # Solution 2: Check workspaces
+    bun workspaces focus
+    
+    # Solution 3: Use specific version
+    bun add @elizaos/core@1.0.19
+    ```
+  </Tab>
+</Tabs>
+
+## Quick Recovery Scripts
+
+Save these scripts for emergency recovery:
+
+```bash title="scripts/emergency-recovery.sh"
+#!/bin/bash
+
+echo "ElizaOS Emergency Recovery"
+echo "========================="
+
+# Stop all processes
+echo "Stopping ElizaOS processes..."
+pkill -f eliza
+
+# Backup current state
+echo "Creating backup..."
+tar -czf eliza-backup-$(date +%Y%m%d-%H%M%S).tar.gz \
+  --exclude=node_modules \
+  --exclude=.eliza/cache \
+  .
+
+# Clear problematic files
+echo "Clearing cache and temp files..."
+rm -rf ~/.eliza/cache/*
+rm -rf ~/.eliza/tmp/*
+rm -rf node_modules
+rm -rf dist
+rm -f bun.lock package-lock.json
+
+# Reinstall
+echo "Reinstalling dependencies..."
+bun install
+
+# Rebuild
+echo "Rebuilding..."
+bun run build
+
+echo "Recovery complete!"
+```
+
+## Prevention Tips
+
+<Callout type="lightbulb">
+  **Best Practice**: Set up automated monitoring and cleanup to prevent issues before they occur.
+</Callout>
+
+1. **Regular Maintenance**
+
+   ```bash
+   # Add to crontab
+   0 */6 * * * /path/to/eliza-maintenance.sh
+   ```
+
+2. **Resource Limits**
+
+   ```bash
+   # Limit memory usage
+   systemd-run --uid=$(id -u) --gid=$(id -g) \
+     --setenv=HOME=$HOME \
+     --property=MemoryLimit=2G \
+     --property=CPUQuota=80% \
+     bun run start
+   ```
+
+3. **Health Checks**
+
+   ```typescript
+   // Add health endpoint
+   app.get('/health', async (req, res) => {
+     const health = await checkHealth();
+     res.status(health.ok ? 200 : 503).json(health);
+   });
+   ```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Cache Management Guide"
+    description="Deep dive into cache optimization"
+    href="/troubleshooting/cache-management"
+  />
+  <Card
+    title="Performance Tuning"
+    description="Optimize ElizaOS performance"
+    href="/troubleshooting/performance"
+  />
+  <Card
+    title="Migration Guide"
+    description="Migrate from older versions"
+    href="/migration/pre-1.0.0-to-current"
+  />
+  <Card
+    title="Developer Forum"
+    description="Get help from the community"
+    href="https://github.com/elizaOS/eliza/discussions"
+  />
+</Cards>
+
+Remember: Most "unexplainable bugs" have explanations - they just need systematic debugging. Use the
+tools and techniques in this guide to diagnose and fix issues methodically.

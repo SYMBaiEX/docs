@@ -8,7 +8,7 @@ description: Complete guide to installing ElizaOS and setting up your developmen
 This guide covers the complete installation process for ElizaOS, including system requirements, dependencies, and different installation methods.
 
 <Callout type="info">
-ElizaOS v1.2.0 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for optimal compatibility and performance.
+ElizaOS v1.2.0 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 or higher for optimal compatibility and performance.
 </Callout>
 
 ## System Requirements
@@ -45,7 +45,7 @@ ElizaOS v1.2.0 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 for opti
 ```bash
 # Install Node.js 23.3.0
 brew install node@23
-brew link node@23 --force
+brew link node@23 --force --overwrite
 
 # Verify installation
 node --version  # Should show v23.3.0
@@ -342,9 +342,6 @@ Create a `.env` file in your project root with the following configuration:
 # Node environment
 NODE_ENV=development
 
-# ElizaOS Configuration
-ELIZA_VERSION=1.2.0
-
 # Postinstall behavior
 # Set to 1 to skip git submodule initialization during install
 SKIP_POSTINSTALL=0
@@ -354,18 +351,22 @@ SKIP_POSTINSTALL=0
 ELIZA_NONINTERACTIVE=false
 
 # Bootstrap behavior
-# Set to true to skip bootstrap plugin (not recommended)
-IGNORE_BOOTSTRAP=false
+# Set to any value to skip bootstrap plugin (not recommended)
+IGNORE_BOOTSTRAP=
 
 # UI Configuration
 # Controls whether the web UI is available
 # Set to "true" to force enable, "false" to force disable, or leave unset for automatic behavior
 # Default: enabled in development, disabled in production
-ELIZA_UI_ENABLE=true
+ELIZA_UI_ENABLE=
 
 # Character configuration
 # URLs to load remote character files from (comma separated)
 REMOTE_CHARACTER_URLS=
+
+# Quiet mode
+# Set to true to suppress non-error output
+QUIET_MODE=false
 ```
 
 ### Model Provider Configuration
@@ -381,15 +382,18 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
 
 # Google AI Configuration
-GOOGLE_AI_API_KEY=your_google_ai_api_key_here
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key_here
 
 # Eleven Labs (Voice)
 ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 ELEVENLABS_VOICE_ID=your_voice_id_here
 
 # Local AI Configuration (Ollama)
-OLLAMA_API_URL=http://localhost:11434
+OLLAMA_API_ENDPOINT=http://localhost:11434
 OLLAMA_MODEL=llama2
+
+# OpenRouter Configuration (requires embedding provider)
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 ```
 
 ### Database Configuration
@@ -425,10 +429,18 @@ EXPRESS_MAX_PAYLOAD=2mb
 # Logging level (fatal, error, warn, info, debug, trace)
 LOG_LEVEL=info
 
+# Diagnostic logging
+LOG_DIAGNOSTIC=false
+
 # Sentry configuration (optional)
-SENTRY_LOGGING=true
+SENTRY_LOGGING=false  # Set to true to enable
 SENTRY_DSN=your_sentry_dsn_here
 SENTRY_ENVIRONMENT=development
+SENTRY_TRACES_SAMPLE_RATE=1.0
+SENTRY_SEND_DEFAULT_PII=false
+
+# Security configuration
+SECRET_SALT=your_secret_salt_here  # Used for encryption
 ```
 
 ### Platform Integration Variables
@@ -454,6 +466,12 @@ TWITTER_PASSWORD=your_twitter_password
 TWITTER_EMAIL=your_twitter_email
 TWITTER_ENABLE_POST_GENERATION=true
 TWITTER_POST_IMMEDIATELY=false
+
+# Alternative Twitter API configuration
+TWITTER_API_KEY=your_twitter_api_key
+TWITTER_API_SECRET_KEY=your_twitter_api_secret_key
+TWITTER_ACCESS_TOKEN=your_twitter_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
 ```
 
 #### Blockchain Integration
@@ -467,6 +485,10 @@ EVM_PROVIDER_URL=your_rpc_url
 # Solana Configuration
 SOLANA_PRIVATE_KEY=your_solana_private_key
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+
+# TEE (Trusted Execution Environment) Configuration
+TEE_MODE=LOCAL  # or DOCKER, PRODUCTION
+WALLET_SECRET_SALT=your_wallet_secret_salt_here
 ```
 
 ## Health Checks
@@ -483,8 +505,11 @@ elizaos env list
 # Test environment configuration
 elizaos env interactive
 
-# Verify database connection (if using external DB)
-elizaos start --test
+# Verify database connection
+elizaos env test-db
+
+# Test API keys
+elizaos env test-keys
 ```
 
 ## Troubleshooting

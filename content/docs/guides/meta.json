@@ -5,6 +5,8 @@
     "monorepo-workflow",
     "plugin-development-linking", 
     "standalone-vs-monorepo",
+    "python-integration",
+    "replit-deployment",
     "---API & Communication---",
     "api-communication-summary",
     "rest-api-complete-guide",
