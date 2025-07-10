@@ -1,0 +1,658 @@
+---
+title: Bootstrap Plugin
+description: Core plugin providing essential actions, evaluators, and providers for ElizaOS agents
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The Bootstrap plugin (`@elizaos/plugin-bootstrap`) is the core plugin that provides essential functionality for ElizaOS agents. It includes fundamental actions, evaluators, and providers that most agents need to function properly.
+
+## Overview
+
+The Bootstrap plugin provides:
+
+- **Message Processing**: Core message handling and response generation
+- **Essential Actions**: Basic agent actions like reply, ignore, mute, follow
+- **State Providers**: Time, entities, relationships, settings, and more
+- **Event Handling**: Comprehensive event system for agent lifecycle
+- **Media Processing**: Image and document attachment handling
+- **Room Management**: Channel following, muting, and user state management
+
+<Callout type="warning">
+  The Bootstrap plugin should typically be loaded LAST in your plugin list as it depends on other plugins and provides final integration.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'pnpm', 'bun']}>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-bootstrap
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-bootstrap
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-bootstrap
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,           // First - provides database
+    // ... other plugins
+    bootstrapPlugin      // Last - provides core functionality
+  ],
+});
+
+await runtime.initialize();
+```
+
+### Environment Variables
+
+The bootstrap plugin respects several environment variables for configuration:
+
+```bash
+# Control shouldRespond behavior
+SHOULD_RESPOND_BYPASS_TYPES=["dm", "voice_dm", "self", "api"]
+SHOULD_RESPOND_BYPASS_SOURCES=["client_chat"]
+
+# Message processing settings
+MAX_MESSAGE_RETRIES=3
+RESPONSE_TIMEOUT=3600000  # 1 hour in milliseconds
+```
+
+## Core Actions
+
+### Reply Action
+
+The most fundamental action for agent responses:
+
+```typescript
+const replyAction = {
+  name: 'REPLY',
+  description: 'Reply to a message with generated content',
+  examples: [
+    [
+      {
+        user: "{{user1}}",
+        content: { text: "Hello!" }
+      },
+      {
+        user: "{{agentName}}",
+        content: { text: "Hello! How can I help you today?" }
+      }
+    ]
+  ]
+};
+```
+
+### Room Management Actions
+
+Control room interactions:
+
+```typescript
+// Follow a room for notifications
+followRoomAction
+
+// Unfollow a room
+unfollowRoomAction
+
+// Mute a room (ignore messages unless mentioned)
+muteRoomAction
+
+// Unmute a room
+unmuteRoomAction
+
+// Send a message to a specific room
+sendMessageAction
+```
+
+### Entity Management Actions
+
+Manage user and entity information:
+
+```typescript
+// Update entity metadata
+updateEntityAction
+
+// Update user roles
+updateRoleAction
+
+// Update room settings
+updateSettingsAction
+```
+
+### Utility Actions
+
+```typescript
+// Ignore a message (no response)
+ignoreAction
+
+// No action (placeholder)
+noneAction
+
+// Present choices to user
+choiceAction
+
+// Generate images
+generateImageAction
+```
+
+## Core Providers
+
+### Time Provider
+
+Provides current time context:
+
+```typescript
+const timeProvider = {
+  name: 'TIME',
+  description: 'Current time and date information',
+  data: {
+    currentTime: new Date().toISOString(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timestamp: Date.now()
+  }
+};
+```
+
+### Entities Provider
+
+Provides information about known entities:
+
+```typescript
+const entitiesProvider = {
+  name: 'ENTITIES',
+  description: 'Information about known entities in the conversation',
+  data: {
+    entities: [
+      {
+        id: 'user123',
+        name: 'John Doe',
+        metadata: { status: 'active' }
+      }
+    ]
+  }
+};
+```
+
+### Relationships Provider
+
+Provides relationship information between entities:
+
+```typescript
+const relationshipsProvider = {
+  name: 'RELATIONSHIPS',
+  description: 'Relationships between entities',
+  data: {
+    relationships: [
+      {
+        entityAId: 'agent',
+        entityBId: 'user123',
+        type: 'friend',
+        strength: 0.8
+      }
+    ]
+  }
+};
+```
+
+### Recent Messages Provider
+
+Provides recent conversation history:
+
+```typescript
+const recentMessagesProvider = {
+  name: 'RECENT_MESSAGES',
+  description: 'Recent messages in the conversation',
+  data: {
+    recentMessages: [
+      {
+        id: 'msg1',
+        content: { text: 'Hello' },
+        entityId: 'user123',
+        timestamp: Date.now() - 1000
+      }
+    ]
+  }
+};
+```
+
+### Settings Provider
+
+Provides room and user settings:
+
+```typescript
+const settingsProvider = {
+  name: 'SETTINGS',
+  description: 'Current room and user settings',
+  data: {
+    settings: {
+      language: 'en',
+      notifications: true,
+      theme: 'dark'
+    }
+  }
+};
+```
+
+## Event System
+
+### Message Events
+
+```typescript
+// Message received (triggers main response logic)
+EventType.MESSAGE_RECEIVED
+
+// Voice message received
+EventType.VOICE_MESSAGE_RECEIVED
+
+// Message sent by agent
+EventType.MESSAGE_SENT
+
+// Message deleted
+EventType.MESSAGE_DELETED
+
+// Channel cleared
+EventType.CHANNEL_CLEARED
+
+// Reaction received
+EventType.REACTION_RECEIVED
+```
+
+### World Events
+
+```typescript
+// User joined a world/server
+EventType.WORLD_JOINED
+
+// Connected to a world/server
+EventType.WORLD_CONNECTED
+
+// Entity joined a room
+EventType.ENTITY_JOINED
+
+// Entity left a room
+EventType.ENTITY_LEFT
+```
+
+### Action Events
+
+```typescript
+// Action started
+EventType.ACTION_STARTED
+
+// Action completed
+EventType.ACTION_COMPLETED
+
+// Evaluator started
+EventType.EVALUATOR_STARTED
+
+// Evaluator completed
+EventType.EVALUATOR_COMPLETED
+```
+
+## Media Processing
+
+### Image Processing
+
+Automatically processes image attachments:
+
+```typescript
+const processedAttachments = await processAttachments(
+  message.content.attachments,
+  runtime
+);
+
+// Generates descriptions for images
+// Extracts text from documents
+// Handles both remote URLs and local files
+```
+
+### Supported Media Types
+
+- **Images**: PNG, JPEG, GIF, WebP
+- **Documents**: Plain text files
+- **URLs**: HTTP/HTTPS resources
+
+## Response Logic
+
+### Should Respond Logic
+
+The plugin includes sophisticated logic for determining when to respond:
+
+```typescript
+// Bypass shouldRespond check for certain channel types
+const shouldBypassShouldRespond = (runtime, room, source) => {
+  const bypassTypes = [
+    ChannelType.DM,
+    ChannelType.VOICE_DM,
+    ChannelType.SELF,
+    ChannelType.API
+  ];
+  
+  const bypassSources = ['client_chat'];
+  
+  return bypassTypes.includes(room.type) || 
+         bypassSources.some(pattern => source.includes(pattern));
+};
+```
+
+### Response Generation
+
+Multi-step response generation process:
+
+<Steps>
+
+<Step>
+## Evaluate Should Respond
+
+Determine if the agent should respond to the message:
+
+```typescript
+const shouldRespondPrompt = composePromptFromState({
+  state,
+  template: shouldRespondTemplate
+});
+
+const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+  prompt: shouldRespondPrompt
+});
+```
+</Step>
+
+<Step>
+## Generate Response Content
+
+Create the actual response content:
+
+```typescript
+const prompt = composePromptFromState({
+  state,
+  template: messageHandlerTemplate
+});
+
+const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+  prompt
+});
+```
+</Step>
+
+<Step>
+## Process Actions
+
+Execute any actions specified in the response:
+
+```typescript
+await runtime.processActions(message, responseMessages, state, callback);
+```
+</Step>
+
+<Step>
+## Run Evaluators
+
+Run evaluators to assess the response:
+
+```typescript
+await runtime.evaluate(message, state, shouldRespond, callback, responseMessages);
+```
+</Step>
+
+</Steps>
+
+## Advanced Features
+
+### Post Generation
+
+Generate posts for social media platforms:
+
+```typescript
+const postGeneratedHandler = async ({ runtime, callback, worldId, userId, roomId, source }) => {
+  // Generate content using postCreationTemplate
+  const postPrompt = composePromptFromState({
+    state,
+    template: postCreationTemplate
+  });
+  
+  const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt: postPrompt
+  });
+  
+  // Process and clean the response
+  const cleanedText = cleanupPostText(response.post);
+  
+  // Create and send the post
+  await callback({
+    text: cleanedText,
+    source,
+    type: 'post'
+  });
+};
+```
+
+### User Synchronization
+
+Synchronize users across different platforms:
+
+```typescript
+const syncSingleUser = async (entityId, runtime, serverId, channelId, type, source) => {
+  const entity = await runtime.getEntityById(entityId);
+  
+  await runtime.ensureConnection({
+    entityId,
+    roomId: createUniqueUuid(runtime, channelId),
+    name: entity?.metadata?.name || `User${entityId}`,
+    source,
+    channelId,
+    serverId,
+    type,
+    worldId: createUniqueUuid(runtime, serverId)
+  });
+};
+```
+
+### Control Messages
+
+Handle UI control messages:
+
+```typescript
+const controlMessageHandler = async ({ runtime, message, source }) => {
+  // Find WebSocket service
+  const websocketService = runtime.getService('websocket');
+  
+  if (websocketService) {
+    await websocketService.sendMessage({
+      type: 'controlMessage',
+      payload: {
+        action: message.payload.action,
+        target: message.payload.target,
+        roomId: message.roomId
+      }
+    });
+  }
+};
+```
+
+## Best Practices
+
+### 1. Plugin Order
+
+Always load bootstrap plugin last:
+
+```typescript
+const plugins = [
+  sqlPlugin,           // First - database
+  openaiPlugin,        // Middle - AI provider
+  discordPlugin,       // Middle - client
+  bootstrapPlugin      // Last - core functionality
+];
+```
+
+### 2. Event Handling
+
+Register custom event handlers:
+
+```typescript
+runtime.on(EventType.MESSAGE_RECEIVED, async (payload) => {
+  // Custom message processing
+});
+```
+
+### 3. Action Integration
+
+Create actions that work with bootstrap:
+
+```typescript
+const myAction = {
+  name: 'MY_ACTION',
+  description: 'Custom action',
+  handler: async (runtime, message, state) => {
+    // Your action logic
+    return { success: true };
+  }
+};
+```
+
+### 4. Provider Integration
+
+Create providers that enhance bootstrap:
+
+```typescript
+const myProvider = {
+  name: 'MY_PROVIDER',
+  description: 'Custom provider',
+  get: async (runtime, message) => {
+    return {
+      myData: 'custom data'
+    };
+  }
+};
+```
+
+## Error Handling
+
+The bootstrap plugin includes comprehensive error handling:
+
+```typescript
+try {
+  await messageReceivedHandler({ runtime, message, callback });
+} catch (error) {
+  logger.error('Message processing failed:', error);
+  
+  // Emit error event
+  await runtime.emitEvent(EventType.RUN_ENDED, {
+    status: 'error',
+    error: error.message
+  });
+}
+```
+
+## Performance Considerations
+
+### Response Timeouts
+
+- Default timeout: 1 hour
+- Configurable via environment variables
+- Automatic cleanup of expired responses
+
+### Memory Management
+
+- Automatic cleanup of old response IDs
+- Efficient message processing pipeline
+- Memory-conscious attachment processing
+
+### Concurrent Processing
+
+- Thread-safe response ID management
+- Prevents duplicate responses
+- Handles concurrent message processing
+
+## API Reference
+
+### Plugin Export
+
+```typescript
+export const bootstrapPlugin: Plugin = {
+  name: 'bootstrap',
+  description: 'Agent bootstrap with basic actions and evaluators',
+  actions: [
+    replyAction,
+    followRoomAction,
+    unfollowRoomAction,
+    ignoreAction,
+    noneAction,
+    muteRoomAction,
+    unmuteRoomAction,
+    sendMessageAction,
+    updateEntityAction,
+    choiceAction,
+    updateRoleAction,
+    updateSettingsAction,
+    generateImageAction
+  ],
+  events: events,
+  evaluators: [reflectionEvaluator],
+  providers: [
+    evaluatorsProvider,
+    anxietyProvider,
+    timeProvider,
+    entitiesProvider,
+    relationshipsProvider,
+    choiceProvider,
+    factsProvider,
+    roleProvider,
+    settingsProvider,
+    capabilitiesProvider,
+    attachmentsProvider,
+    providersProvider,
+    actionsProvider,
+    characterProvider,
+    recentMessagesProvider,
+    worldProvider
+  ],
+  services: [TaskService]
+};
+```
+
+### Utility Functions
+
+```typescript
+// Process media attachments
+export async function processAttachments(
+  attachments: Media[],
+  runtime: IAgentRuntime
+): Promise<Media[]>
+
+// Fetch media data
+export async function fetchMediaData(
+  attachments: Media[]
+): Promise<MediaData[]>
+
+// Determine if should bypass shouldRespond
+export function shouldBypassShouldRespond(
+  runtime: IAgentRuntime,
+  room?: Room,
+  source?: string
+): boolean
+```
+
+## Conclusion
+
+The Bootstrap plugin is the foundation of ElizaOS agents, providing essential functionality for message processing, user interaction, and system integration. It should be included in virtually all agent configurations and loaded last to ensure proper integration with other plugins.

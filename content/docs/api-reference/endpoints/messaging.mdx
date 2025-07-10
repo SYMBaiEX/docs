@@ -1,898 +1,770 @@
 ---
 title: Messaging System
-description: Messaging System endpoints reference
+description: Complete messaging system API endpoints for message submission, ingestion, and channel management
 ---
 
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 
-## Submit Message
+## Overview
 
-Submit a message from an agent or system (already processed messages)
+The messaging system provides a centralized message bus architecture for handling all communication across ElizaOS. It includes endpoints for message submission, external message ingestion, channel management, and server administration.
 
-### Endpoint
+<Callout type="info">
+All messaging endpoints require proper UUID validation for IDs, except for the default server ID which can be `00000000-0000-0000-0000-000000000000`.
+</Callout>
 
+## Message Submission
+
+### Submit Message
+
+Submit a message from an agent or system (for already processed messages that don't need further agent processing).
+
+**Endpoint:** `POST /api/messaging/submit`
+
+**Request Body:**
+```json
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "author_id": "123e4567-e89b-12d3-a456-426614174000",
+  "content": "Hello from the agent",
+  "source_type": "agent_response",
+  "raw_message": {
+    "text": "Hello from the agent",
+    "thought": "User greeted me, responding politely",
+    "actions": ["REPLY"]
+  },
+  "metadata": {
+    "agentName": "Ada",
+    "attachments": []
+  },
+  "in_reply_to_message_id": "987fcdeb-51a2-43c1-9def-0123456789ab"
+}
 ```
-POST /api/messaging/submit
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "new-message-id",
+    "channelId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorId": "123e4567-e89b-12d3-a456-426614174000",
+    "content": "Hello from the agent",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
 ```
 
-### Parameters
+<Callout type="warning">
+This endpoint does NOT broadcast to the internal message bus as it's for messages already processed by agents.
+</Callout>
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
+### Complete Message
 
-### Request Body
+Notify clients that message processing is complete.
 
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "channel_id": "{{channelId}}",
-      "server_id": "00000000-0000-0000-0000-000000000000",
-      "author_id": "{{userId}}",
-      "content": "Hello from API",
-      "source_type": "user_message",
-      "raw_message": {
-        "text": "Hello from API"
-      },
-      "metadata": {
-        "platform": "api"
+**Endpoint:** `POST /api/messaging/complete`
+
+**Request Body:**
+```json
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "00000000-0000-0000-0000-000000000000"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Completion event emitted"
+}
+```
+
+## External Message Ingestion
+
+### Ingest External Message
+
+Ingest messages from external platforms (Discord, Telegram, etc.) for agent processing.
+
+**Endpoint:** `POST /api/messaging/ingest-external`
+
+**Request Body:**
+```json
+{
+  "channel_id": "550e8400-e29b-41d4-a716-446655440000",
+  "server_id": "660e8400-e29b-41d4-a716-446655440001",
+  "author_id": "user-123",
+  "author_display_name": "John Doe",
+  "content": "Hello from Discord",
+  "source_id": "discord-msg-12345",
+  "source_type": "discord",
+  "raw_message": {
+    "text": "Hello from Discord",
+    "original_data": {}
+  },
+  "metadata": {
+    "platform": "discord",
+    "guildId": "123456789"
+  },
+  "in_reply_to_message_id": "previous-message-id"
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Message ingested and published to bus",
+  "data": {
+    "messageId": "created-message-id"
+  }
+}
+```
+
+<Callout type="info">
+This endpoint publishes messages to the internal message bus for agent processing.
+</Callout>
+
+## Channel Management
+
+### Post Message to Channel
+
+Post a new message from the GUI to a specific channel.
+
+**Endpoint:** `POST /api/messaging/central-channels/:channelId/messages`
+
+**Request Body:**
+```json
+{
+  "author_id": "123e4567-e89b-12d3-a456-426614174000",
+  "content": "Hello from the GUI",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "source_type": "eliza_gui",
+  "raw_message": {
+    "text": "Hello from the GUI"
+  },
+  "metadata": {
+    "user_display_name": "Alice",
+    "isDm": false
+  },
+  "in_reply_to_message_id": "optional-parent-message-id"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "new-message-id",
+    "channel_id": "channel-id",
+    "server_id": "server-id",
+    "author_id": "author-id",
+    "content": "Hello from the GUI",
+    "created_at": 1704067200000,
+    "source_type": "eliza_gui"
+  }
+}
+```
+
+<Callout type="info">
+If the channel doesn't exist, it will be auto-created based on the provided metadata.
+</Callout>
+
+### Get Channel Messages
+
+Retrieve messages for a specific channel with pagination support.
+
+**Endpoint:** `GET /api/messaging/central-channels/:channelId/messages`
+
+**Query Parameters:**
+- `limit` (number, optional): Number of messages to retrieve (default: 50)
+- `before` (number, optional): Unix timestamp to get messages before
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "id": "message-id",
+        "channelId": "channel-id",
+        "authorId": "author-id",
+        "content": "Message content",
+        "created_at": 1704067200000,
+        "updated_at": 1704067200000,
+        "sourceType": "eliza_gui",
+        "metadata": {
+          "thought": "Agent's thought process",
+          "actions": ["REPLY"]
+        }
       }
+    ]
+  }
+}
+```
+
+### Create Channel
+
+Create a new messaging channel.
+
+**Endpoint:** `POST /api/messaging/channels`
+
+**Request Body:**
+```json
+{
+  "serverId": "00000000-0000-0000-0000-000000000000",
+  "name": "General Discussion",
+  "type": "GROUP",
+  "topic": "A place for general chat",
+  "sourceType": "gui_created",
+  "sourceId": "optional-external-id",
+  "metadata": {
+    "custom": "data"
+  }
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "channel": {
+      "id": "new-channel-id",
+      "messageServerId": "server-id",
+      "name": "General Discussion",
+      "type": "GROUP"
     }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/submit
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/submit', {
-      method: 'POST',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        'http://localhost:3000/api/messaging/submit',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Complete Message
-
-Notify that message processing is complete
-
-### Endpoint
-
-```
-POST /api/messaging/complete
+  }
+}
 ```
 
-### Parameters
+### Create Group Channel
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
+Create a group channel with participants.
 
-### Request Body
+**Endpoint:** `POST /api/messaging/central-channels`
 
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "channel_id": "{{channelId}}",
-      "server_id": "{{serverId}}"
-    }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/complete
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/complete', {
-      method: 'POST',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        'http://localhost:3000/api/messaging/complete',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Ingest External Message
-
-Ingest a message from an external source for agent processing
-
-### Endpoint
-
-```
-POST /api/messaging/ingest-external
+**Request Body:**
+```json
+{
+  "name": "Team Chat",
+  "server_id": "00000000-0000-0000-0000-000000000000",
+  "type": "GROUP",
+  "participantCentralUserIds": [
+    "user-id-1",
+    "user-id-2",
+    "user-id-3"
+  ],
+  "metadata": {
+    "createdBy": "user-id-1"
+  }
+}
 ```
 
-### Parameters
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "new-channel-id",
+    "name": "Team Chat",
+    "type": "GROUP",
+    "messageServerId": "server-id"
+  }
+}
+```
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
+### Find or Create DM Channel
 
-### Request Body
+Get or create a direct message channel between two users.
 
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "channel_id": "{{channelId}}",
-      "server_id": "{{serverId}}",
-      "author_id": "{{userId}}",
-      "author_display_name": "External User",
-      "content": "Message from external system",
-      "source_id": "external-msg-123",
-      "source_type": "discord",
-      "raw_message": {
-        "text": "Message from external system"
-      },
-      "metadata": {
-        "platform": "discord"
+**Endpoint:** `GET /api/messaging/dm-channel`
+
+**Query Parameters:**
+- `currentUserId` (UUID, required): Current user's ID
+- `targetUserId` (UUID, required): Target user's ID
+- `dmServerId` (UUID, optional): Specific server for the DM
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "dm-channel-id",
+    "name": "DM abcd1234",
+    "type": "DM",
+    "participants": ["user-id-1", "user-id-2"]
+  }
+}
+```
+
+### Get Channel Details
+
+Get detailed information about a channel.
+
+**Endpoint:** `GET /api/messaging/central-channels/:channelId/details`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-id",
+    "name": "Channel Name",
+    "type": "GROUP",
+    "messageServerId": "server-id",
+    "metadata": {}
+  }
+}
+```
+
+### Get Channel Participants
+
+Get all participants in a channel.
+
+**Endpoint:** `GET /api/messaging/central-channels/:channelId/participants`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    "participant-id-1",
+    "participant-id-2",
+    "participant-id-3"
+  ]
+}
+```
+
+### Update Channel
+
+Update channel properties.
+
+**Endpoint:** `PATCH /api/messaging/central-channels/:channelId`
+
+**Request Body:**
+```json
+{
+  "name": "Updated Channel Name",
+  "participantCentralUserIds": ["user-1", "user-2"],
+  "metadata": {
+    "updated": true
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "channel-id",
+    "name": "Updated Channel Name"
+  }
+}
+```
+
+### Delete Channel
+
+Delete a channel and all its messages.
+
+**Endpoint:** `DELETE /api/messaging/central-channels/:channelId`
+
+**Response (204 No Content)**
+
+### Delete Channel Messages
+
+Clear all messages in a channel without deleting the channel.
+
+**Endpoint:** `DELETE /api/messaging/central-channels/:channelId/messages`
+
+**Response (204 No Content)**
+
+### Delete Single Message
+
+Delete a specific message from a channel.
+
+**Endpoint:** `DELETE /api/messaging/central-channels/:channelId/messages/:messageId`
+
+**Response (204 No Content)**
+
+## Channel Agents
+
+### Add Agent to Channel
+
+Add an agent as a participant to a channel.
+
+**Endpoint:** `POST /api/messaging/central-channels/:channelId/agents`
+
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-id",
+    "agentId": "agent-id",
+    "message": "Agent added to channel successfully"
+  }
+}
+```
+
+### Remove Agent from Channel
+
+Remove an agent from a channel.
+
+**Endpoint:** `DELETE /api/messaging/central-channels/:channelId/agents/:agentId`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-id",
+    "agentId": "agent-id",
+    "message": "Agent removed from channel successfully"
+  }
+}
+```
+
+### List Channel Agents
+
+Get all participants (including agents) in a channel.
+
+**Endpoint:** `GET /api/messaging/central-channels/:channelId/agents`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "channelId": "channel-id",
+    "participants": [
+      "user-id-1",
+      "agent-id-1",
+      "user-id-2"
+    ]
+  }
+}
+```
+
+## Channel Features
+
+### Generate Channel Title
+
+Use AI to generate a descriptive title for a channel based on its message history.
+
+**Endpoint:** `POST /api/messaging/central-channels/:channelId/generate-title`
+
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
+```
+
+**Query Parameters:**
+- `limit` (number, optional): Number of messages to analyze (default: 50)
+- `before` (number, optional): Analyze messages before this timestamp
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "title": "React Component Help",
+    "channelId": "channel-id"
+  }
+}
+```
+
+### Upload Media to Channel
+
+Upload media files to a channel.
+
+**Endpoint:** `POST /api/messaging/channels/:channelId/upload-media`
+
+**Request:**
+- Method: `POST`
+- Content-Type: `multipart/form-data`
+- Field name: `file`
+- Max file size: 50MB
+- Allowed types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `audio/mpeg`, `audio/mp3`, `audio/wav`, `audio/ogg`, `audio/webm`, `audio/mp4`, `audio/aac`, `audio/flac`, `audio/x-wav`, `audio/wave`, `video/mp4`, `video/webm`, `application/pdf`, `text/plain`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "url": "/media/uploads/channels/channel-id/1234567890-123456789.jpg",
+    "type": "image/jpeg",
+    "filename": "1234567890-123456789.jpg",
+    "originalName": "photo.jpg",
+    "size": 245678
+  }
+}
+```
+
+<Callout type="warning">
+This endpoint has rate limiting: 10 uploads per minute and 100MB total per hour.
+</Callout>
+
+## Server Management
+
+### Get All Servers
+
+Get all messaging servers.
+
+**Endpoint:** `GET /api/messaging/central-servers`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "servers": [
+      {
+        "id": "server-id",
+        "name": "Main Server",
+        "sourceType": "discord",
+        "sourceId": "discord-guild-id"
       }
+    ]
+  }
+}
+```
+
+### Create Server
+
+Create a new messaging server.
+
+**Endpoint:** `POST /api/messaging/servers`
+
+**Request Body:**
+```json
+{
+  "name": "My Server",
+  "sourceType": "discord",
+  "sourceId": "external-server-id",
+  "metadata": {
+    "description": "A Discord server"
+  }
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "server": {
+      "id": "new-server-id",
+      "name": "My Server",
+      "sourceType": "discord"
     }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/ingest-external
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/ingest-external', {
-      method: 'POST',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        'http://localhost:3000/api/messaging/ingest-external',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Get Central Servers
-
-Get all central messaging servers
-
-### Endpoint
-
-```
-GET /api/messaging/central-servers
+  }
+}
 ```
 
-### Response
+### Get Server Channels
 
-**Status Code:** 200 OK
+Get all channels for a specific server.
 
-Successful response
+**Endpoint:** `GET /api/messaging/central-servers/:serverId/channels`
 
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X GET \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/central-servers
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/central-servers', {
-      method: 'GET',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.get(
-        'http://localhost:3000/api/messaging/central-servers',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Get All Servers
-
-Get all messaging servers
-
-### Endpoint
-
-```
-GET /api/messaging/servers
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "channels": [
+      {
+        "id": "channel-id",
+        "name": "General",
+        "type": "GROUP",
+        "messageServerId": "server-id"
+      }
+    ]
+  }
+}
 ```
 
-### Response
+## Server Agent Management
 
-**Status Code:** 200 OK
+### Add Agent to Server
 
-Successful response
+Associate an agent with a server.
 
-### Example
+**Endpoint:** `POST /api/messaging/servers/:serverId/agents`
 
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X GET \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/servers
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers', {
-      method: 'GET',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.get(
-        'http://localhost:3000/api/messaging/servers',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Create Server
-
-Create a new messaging server
-
-### Endpoint
-
-```
-POST /api/messaging/servers
+**Request Body:**
+```json
+{
+  "agentId": "agent-uuid"
+}
 ```
 
-### Parameters
-
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
-
-### Request Body
-
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "name": "Server Name",
-      "description": "Server description"
-    }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/servers
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers', {
-      method: 'POST',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        'http://localhost:3000/api/messaging/servers',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Get Specific Server
-
-Get details of a specific server
-
-### Endpoint
-
-```
-GET /api/messaging/servers/{serverId}
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "serverId": "server-id",
+    "agentId": "agent-id",
+    "message": "Agent added to server successfully"
+  }
+}
 ```
 
-### Parameters
+### Remove Agent from Server
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| serverId | string | path | Yes | - |
+Remove an agent's association with a server.
 
-### Response
+**Endpoint:** `DELETE /api/messaging/servers/:serverId/agents/:agentId`
 
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X GET \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/servers/{serverId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
-      method: 'GET',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.get(
-        'http://localhost:3000/api/messaging/servers/{serverId}',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Update Server
-
-Update server details
-
-### Endpoint
-
-```
-PATCH /api/messaging/servers/{serverId}
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "serverId": "server-id",
+    "agentId": "agent-id",
+    "message": "Agent removed from server successfully"
+  }
+}
 ```
 
-### Parameters
+### Get Server Agents
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
-| serverId | string | path | Yes | - |
+List all agents associated with a server.
 
-### Request Body
+**Endpoint:** `GET /api/messaging/servers/:serverId/agents`
 
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "name": "Updated Server Name",
-      "description": "Updated server description"
-    }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X PATCH \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/servers/{serverId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
-      method: 'PATCH',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.patch(
-        'http://localhost:3000/api/messaging/servers/{serverId}',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Delete Server
-
-Delete a messaging server
-
-### Endpoint
-
-```
-DELETE /api/messaging/servers/{serverId}
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "serverId": "server-id",
+    "agents": [
+      "agent-id-1",
+      "agent-id-2"
+    ]
+  }
+}
 ```
 
-### Parameters
+### Get Agent Servers
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| serverId | string | path | Yes | - |
+List all servers an agent is associated with.
 
-### Response
+**Endpoint:** `GET /api/messaging/agents/:agentId/servers`
 
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X DELETE \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/servers/{serverId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}', {
-      method: 'DELETE',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.delete(
-        'http://localhost:3000/api/messaging/servers/{serverId}',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Add Agent to Server
-
-Add an agent to a messaging server
-
-### Endpoint
-
-```
-POST /api/messaging/servers/{serverId}/agents
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "agent-id",
+    "servers": [
+      "server-id-1",
+      "server-id-2"
+    ]
+  }
+}
 ```
 
-### Parameters
+## Error Responses
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
-| serverId | string | path | Yes | - |
+All endpoints return consistent error responses:
 
-### Request Body
-
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "agentId": "{{agentId}}"
-    }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X POST \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/messaging/servers/{serverId}/agents
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents', {
-      method: 'POST',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        'http://localhost:3000/api/messaging/servers/{serverId}/agents',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Get Server Agents
-
-Get all agents for a server
-
-### Endpoint
-
-```
-GET /api/messaging/servers/{serverId}/agents
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong"
+}
 ```
 
-### Parameters
+Common HTTP status codes:
+- `400 Bad Request`: Invalid parameters or missing required fields
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Server-side error
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| serverId | string | path | Yes | - |
+## WebSocket Events
 
-### Response
+The messaging system emits the following WebSocket events:
 
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X GET \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/servers/{serverId}/agents
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents', {
-      method: 'GET',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.get(
-        'http://localhost:3000/api/messaging/servers/{serverId}/agents',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Remove Agent from Server
-
-Remove an agent from a messaging server
-
-### Endpoint
-
-```
-DELETE /api/messaging/servers/{serverId}/agents/{agentId}
+### messageBroadcast
+Emitted when a new message is created:
+```json
+{
+  "senderId": "author-id",
+  "senderName": "User Name",
+  "text": "Message content",
+  "roomId": "channel-id",
+  "serverId": "server-id",
+  "createdAt": 1704067200000,
+  "source": "eliza_gui",
+  "id": "message-id",
+  "thought": "Agent thought",
+  "actions": ["REPLY"],
+  "attachments": []
+}
 ```
 
-### Parameters
-
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| serverId | string | path | Yes | - |
-| agentId | string | path | Yes | - |
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X DELETE \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}', {
-      method: 'DELETE',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.delete(
-        'http://localhost:3000/api/messaging/servers/{serverId}/agents/{agentId}',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Get Agent Servers
-
-Get all servers for an agent
-
-### Endpoint
-
-```
-GET /api/messaging/agents/{agentId}/servers
+### messageComplete
+Emitted when message processing is complete:
+```json
+{
+  "channelId": "channel-id",
+  "serverId": "server-id"
+}
 ```
 
-### Parameters
+### messageDeleted
+Emitted when a message is deleted:
+```json
+{
+  "messageId": "message-id",
+  "channelId": "channel-id"
+}
+```
 
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| agentId | string | path | Yes | - |
+### channelCleared
+Emitted when all messages in a channel are cleared:
+```json
+{
+  "channelId": "channel-id"
+}
+```
 
-### Response
+### channelUpdated
+Emitted when a channel is updated:
+```json
+{
+  "channelId": "channel-id",
+  "updates": {
+    "name": "New Name"
+  }
+}
+```
 
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X GET \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/messaging/agents/{agentId}/servers
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/messaging/agents/{agentId}/servers', {
-      method: 'GET',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.get(
-        'http://localhost:3000/api/messaging/agents/{agentId}/servers',
-        headers={'apikey': 'your-api-key'},
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
+### channelDeleted
+Emitted when a channel is deleted:
+```json
+{
+  "channelId": "channel-id"
+}
+```

@@ -51,7 +51,6 @@ elizaos create my-first-agent --type project
 
 The CLI will prompt you to choose:
 
-- **Project Type**: Select `project` (full ElizaOS application)
 - **Project Type**: Select `project` (full ElizaOS application), `plugin`, `agent`, or `tee`
 - **Database**: Select `pglite` (lightweight, no setup required) or `postgres` (production-ready)
 - **Model Provider**: Select from `local`, `openai`, `claude`, `openrouter`, `ollama`, or `google`
@@ -65,7 +64,7 @@ Navigate to your project directory:
 cd my-first-agent
 ```
 
-Set up your environment variables using the new v1.2.0 environment management:
+Set up your environment variables using the environment management tools:
 
 ```bash
 # Interactive environment setup (recommended)
@@ -129,7 +128,7 @@ Your agent will start and be available at:
 3. **Try different questions** and commands
 4. **Observe responses** and behavior
 
-### Testing Commands (New in v1.2.0)
+### Testing Commands
 
 ```bash
 # Run basic tests
@@ -237,7 +236,6 @@ elizaos plugins remove @elizaos/plugin-discord
 - List available plugins: `elizaos plugins list`
 - List installed plugins: `elizaos plugins installed-plugins`
 - Remove problematic plugin: `elizaos plugins remove <plugin-name>`
-- Check plugin compatibility with v1.2.0
 - Verify plugin order (sql must be first, bootstrap must be last)
 
 ### Getting Help
@@ -251,7 +249,7 @@ elizaos plugins remove @elizaos/plugin-discord
 
 ---
 
-**Congratulations!** You've successfully created your first AI agent with ElizaOS v1.2.0.
+**Congratulations!** You've successfully created your first AI agent with ElizaOS.
 
 ### What You've Accomplished
 

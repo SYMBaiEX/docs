@@ -40,9 +40,9 @@ OPENAI_API_KEY=sk-...
 ````
 
 **Available Models:**
-- `text-embedding-3-large` (3072 dimensions)
+- `text-embedding-3-large` (3072 dimensions) 
 - `text-embedding-3-small` (1536 dimensions)
-- `text-embedding-ada-002` (1536 dimensions)
+- `text-embedding-ada-002` (1536 dimensions) - legacy model
 
 #### Google Embeddings
 ```typescript
@@ -108,15 +108,16 @@ console.log(embedding.length); // 1536 (for OpenAI ada-002)
 ### Alternative Parameter Formats
 
 ```typescript
-// Using object parameter
+// Standard parameter format
 const embedding1 = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
   text: "Sample text",
 });
 
-// Using string parameter
+// Alternative parameter formats (implementation-specific)
+// String parameter may work with some providers
 const embedding2 = await runtime.useModel(ModelType.TEXT_EMBEDDING, "Sample text");
 
-// Using null (for dimension testing)
+// Null parameter may work for testing (implementation-specific)
 const embedding3 = await runtime.useModel(ModelType.TEXT_EMBEDDING, null);
 ```
 
@@ -248,23 +249,25 @@ await runtime.initialize();
 ### Embedding Caching
 
 ```typescript
-// Cache embeddings to avoid redundant API calls
-const embeddingCache = new Map();
+// The runtime provides caching capabilities
+// Use getCachedEmbeddings for efficient retrieval
+const cachedResults = await runtime.getCachedEmbeddings({
+  query_table_name: "embeddings_cache",
+  query_threshold: 0.95, // High similarity for cache hits
+  query_input: text,
+  query_field_name: "content",
+  query_field_sub_name: "text",
+  query_match_count: 1,
+});
 
-async function getCachedEmbedding(text: string) {
-  const cacheKey = `embed:${text}`;
-
-  if (embeddingCache.has(cacheKey)) {
-    return embeddingCache.get(cacheKey);
-  }
-
-  const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
-    text: text,
-  });
-
-  embeddingCache.set(cacheKey, embedding);
-  return embedding;
+if (cachedResults.length > 0 && cachedResults[0].levenshtein_score > 0.95) {
+  return cachedResults[0].embedding;
 }
+
+// Generate new embedding if not cached
+const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+  text: text,
+});
 ```
 
 ### Batch Processing
@@ -305,9 +308,9 @@ const createKnowledgeBase = async (documents: string[]) => {
     });
   }
 
-  // Store in knowledge base
+  // Store in memory using appropriate table
   for (const item of knowledgeItems) {
-    await runtime.createKnowledge(item);
+    await runtime.createMemory(item, "knowledge", true);
   }
 };
 
@@ -317,11 +320,11 @@ const searchKnowledge = async (query: string) => {
     text: query,
   });
 
-  return await runtime.searchKnowledge({
-    agentId: runtime.agentId,
+  return await runtime.searchMemories({
     embedding: queryEmbedding,
     match_threshold: 0.7,
-    match_count: 5,
+    count: 5,
+    tableName: "knowledge",
   });
 };
 ```

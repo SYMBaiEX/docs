@@ -19,7 +19,10 @@ This comprehensive guide helps you diagnose and resolve common issues in ElizaOS
 <Step>
 ## Check ElizaOS Version
 ```bash
-eliza --version
+# Using the CLI
+bunx @elizaos/cli --version
+# or if installed globally
+elizaos --version
 ```
 Ensure you're running v1.2.0 or later.
 </Step>
@@ -27,9 +30,14 @@ Ensure you're running v1.2.0 or later.
 <Step>
 ## Verify Installation
 ```bash
-eliza doctor
+# Check if the CLI is accessible
+which elizaos  # Linux/macOS
+where elizaos  # Windows
+
+# Run basic health check
+bunx @elizaos/cli --help
 ```
-This command checks your ElizaOS installation for common issues.
+This verifies your ElizaOS installation is working.
 </Step>
 
 <Step>
@@ -46,9 +54,13 @@ tail -f ~/.eliza/logs/error.log
 <Step>
 ## Test Configuration
 ```bash
-eliza validate --config ./eliza.config.js
+# Validate character files
+bunx @elizaos/cli validate characters/*.json
+
+# Test runtime configuration
+bun run build
 ```
-Validates your configuration file for syntax and schema errors.
+Validates your configuration files for syntax and schema errors.
 </Step>
 </Steps>
 

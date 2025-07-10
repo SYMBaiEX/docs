@@ -3,6 +3,13 @@
   "pages": [
     "---Core Plugins---",
     "plugin-sql",
+    "plugin-bootstrap",
+    "---Platform Integrations---", 
+    "plugin-discord",
+    "plugin-twitter",
+    "plugin-ws",
+    "---AI & Models---",
+    "plugin-openai",
     "---Development---",
     "creating-plugins",
     "plugin-development",

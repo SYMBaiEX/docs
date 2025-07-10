@@ -36,7 +36,6 @@ Plugins now register model handlers for specific model types:
 export const openaiPlugin: Plugin = {
   name: "openai",
   description: "OpenAI model integration",
-  version: "1.2.0",
 
   // Register model handlers
   models: {
@@ -60,7 +59,7 @@ export const openaiPlugin: Plugin = {
       return response.data[0].embedding;
     },
 
-    [ModelType.IMAGE_GENERATION]: async (runtime: IAgentRuntime, params) => {
+    [ModelType.IMAGE]: async (runtime: IAgentRuntime, params) => {
       const client = createOpenAIClient(runtime);
       const response = await client.images.generate({
         model: "dall-e-3",
@@ -71,11 +70,8 @@ export const openaiPlugin: Plugin = {
     },
   },
 
-  // Plugin configuration
-  config: {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    OPENAI_API_BASE: process.env.OPENAI_API_BASE,
-  },
+  // Optional priority for model selection
+  priority: 1000,
 };
 ```
 
@@ -89,14 +85,9 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
   prompt: "Explain quantum computing",
   temperature: 0.7,
   maxTokens: 1000,
-  // Additional context for smart routing
-  context: {
-    requestId: uuidv4(),
-    runId: runtime.runId,
-    requiresStreaming: false,
-    prioritizeLatency: true,
-  },
 });
+
+// The runtime internally handles context and routing
 ```
 
 ### Model Capabilities Detection
@@ -104,16 +95,9 @@ const response = await runtime.useModel(ModelType.TEXT_LARGE, {
 Plugins can declare their capabilities for better routing:
 
 ```typescript
-export const enhancedOpenAIPlugin: Plugin = {
-  name: "openai",
-  models: {
-    [ModelType.TEXT_LARGE]: async (runtime, params) => {
-      // Handler implementation
-    },
-  },
-
-  // Declare capabilities (new in v1.2.0)
-  capabilities: {
+// Capabilities can be tracked separately in your implementation
+const modelCapabilities = {
+  openai: {
     [ModelType.TEXT_LARGE]: {
       supportsStreaming: true,
       maxTokens: 4096,
@@ -124,6 +108,18 @@ export const enhancedOpenAIPlugin: Plugin = {
     },
   },
 };
+
+// Use in your plugin handler
+export const openaiPlugin: Plugin = {
+  name: "openai",
+  models: {
+    [ModelType.TEXT_LARGE]: async (runtime, params) => {
+      // Access capabilities if needed
+      const caps = modelCapabilities.openai[ModelType.TEXT_LARGE];
+      // Handler implementation
+    },
+  },
+};
 ```
 
 ### Priority-Based Selection
@@ -131,23 +127,24 @@ export const enhancedOpenAIPlugin: Plugin = {
 Multiple plugins can register handlers for the same model type, with priority-based selection:
 
 ```typescript
-// High priority OpenAI plugin
-runtime.registerModel(
-  ModelType.TEXT_LARGE,
-  openaiHandler,
-  "openai",
-  1000 // High priority
-);
+// Plugins register with priority during initialization
+const openaiPlugin: Plugin = {
+  name: "openai",
+  priority: 1000, // High priority
+  models: {
+    [ModelType.TEXT_LARGE]: openaiHandler,
+  },
+};
 
-// Lower priority Anthropic plugin
-runtime.registerModel(
-  ModelType.TEXT_LARGE,
-  anthropicHandler,
-  "anthropic",
-  900 // Lower priority
-);
+const anthropicPlugin: Plugin = {
+  name: "anthropic",
+  priority: 900, // Lower priority
+  models: {
+    [ModelType.TEXT_LARGE]: anthropicHandler,
+  },
+};
 
-// Runtime selects highest priority handler
+// Runtime automatically selects highest priority handler
 const response = await runtime.useModel(ModelType.TEXT_LARGE, params);
 ```
 
@@ -578,14 +575,9 @@ const response = await runtime.useModel(
   {
     prompt: "Generate response",
     temperature: 0.7,
-    context: {
-      requestId: uuidv4(),
-      runId: runtime.runId,
-      actionContext: runtime.currentActionContext,
-    },
   },
-  "anthropic"
-); // Force specific provider
+  "anthropic" // Force specific provider
+);
 ```
 
 ### Provider Availability Check
@@ -595,15 +587,12 @@ Check if a provider is available with enhanced capabilities:
 ```typescript
 const textLargeHandler = runtime.getModel(ModelType.TEXT_LARGE);
 if (textLargeHandler) {
-  const capabilities = runtime.getModelCapabilities(ModelType.TEXT_LARGE);
-
   console.log(`Provider: ${textLargeHandler.provider}`);
-  console.log(`Max tokens: ${capabilities.maxTokens}`);
-  console.log(`Supports streaming: ${capabilities.supportsStreaming}`);
+  console.log(`Priority: ${textLargeHandler.priority || 0}`);
 
   const response = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt: "Generate response",
-    maxTokens: Math.min(1000, capabilities.maxTokens),
+    maxTokens: 1000,
   });
 }
 ```
@@ -613,69 +602,26 @@ if (textLargeHandler) {
 Implement automatic fallbacks with capability-aware selection:
 
 ```typescript
-async function generateWithFallback(runtime, prompt, requirements = {}) {
-  const modelType = ModelType.TEXT_LARGE;
-  const availableHandlers = runtime.getModelHandlers(modelType);
+async function generateWithFallback(runtime, prompt) {
+  const providers = ["openai", "anthropic", "ollama"];
 
-  // Sort by capability score
-  const sortedHandlers = availableHandlers.sort((a, b) => {
-    const scoreA = calculateCapabilityScore(a.capabilities, requirements);
-    const scoreB = calculateCapabilityScore(b.capabilities, requirements);
-    return scoreB - scoreA;
-  });
-
-  for (const handler of sortedHandlers) {
+  for (const provider of providers) {
     try {
       return await runtime.useModel(
-        modelType,
+        ModelType.TEXT_LARGE,
         {
           prompt,
           temperature: 0.7,
-          context: {
-            requestId: uuidv4(),
-            runId: runtime.runId,
-            preferredProvider: handler.provider,
-          },
         },
-        handler.provider
+        provider
       );
     } catch (error) {
-      console.warn(`Provider ${handler.provider} failed:`, error.message);
-
-      // Log failure for monitoring
-      await runtime.emitEvent("model_provider_failed", {
-        provider: handler.provider,
-        modelType,
-        error: error.message,
-        runId: runtime.runId,
-      });
-
+      console.warn(`Provider ${provider} failed:`, error.message);
       continue;
     }
   }
 
   throw new Error("All providers failed");
-}
-
-function calculateCapabilityScore(capabilities, requirements) {
-  let score = 0;
-
-  if (requirements.prioritizeLatency && capabilities.averageLatency < 3000) {
-    score += 10;
-  }
-
-  if (requirements.prioritizeCost && capabilities.costPerToken < 0.0001) {
-    score += 5;
-  }
-
-  if (requirements.requiresStreaming && capabilities.supportsStreaming) {
-    score += 15;
-  }
-
-  // Reliability bonus
-  score += capabilities.reliabilityScore * 10;
-
-  return score;
 }
 ```
 

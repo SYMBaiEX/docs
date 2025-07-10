@@ -15,25 +15,27 @@ with various AI models seamlessly through a unified interface.
 
 Model-specific plugins that provide standardized interfaces for different AI providers:
 
-**Supported Providers**:
+**Available Provider Plugins**:
 
-- **OpenAI**: GPT-4, GPT-3.5, DALL-E, Whisper, text-embedding-ada-002
-- **Anthropic**: Claude 3 (Opus, Sonnet, Haiku), Claude 2
-- **Google**: Gemini Pro, Gemini Pro Vision, PaLM 2
-- **Ollama**: Local model hosting with Llama 2, Mistral, CodeLlama
-- **Groq**: High-speed inference for supported models
-- **Together**: Distributed AI model hosting
-- **Heurist**: Specialized model providers
+- **@elizaos/plugin-openai**: GPT-4, GPT-3.5, DALL-E, Whisper, text-embedding models
+- **@elizaos/plugin-anthropic**: Claude 3 (Opus, Sonnet, Haiku) models
+- **@elizaos/plugin-google-genai**: Gemini Pro, Gemini Flash, text-embedding-004
+- **@elizaos/plugin-ollama**: Local model hosting with Llama 3.1, Mistral, CodeLlama
+- **@elizaos/plugin-groq**: High-speed inference for supported models
+- **@elizaos/plugin-openrouter**: Access to multiple models through unified API
+- **@elizaos/plugin-local-ai**: Local AI model support
 
 **Plugin Architecture**:
 
 ```typescript
-interface ModelPlugin {
+interface Plugin {
   name: string;
   description: string;
-  models: ModelConfig[];
-  handler: ModelHandler;
-  validateConfig: (config: any) => boolean;
+  models?: {
+    [modelType: string]: (runtime: IAgentRuntime, params: any) => Promise<any>;
+  };
+  priority?: number;
+  init?: (config: any) => Promise<void>;
 }
 ```
 
@@ -75,23 +77,24 @@ The core API for interacting with different model types:
 
 **Model Types**:
 
-- **Text Generation**: Chat completions, text completion, structured outputs
-- **Embedding**: Vector representations for semantic search
-- **Image Generation**: DALL-E, Midjourney, Stable Diffusion
-- **Image Analysis**: Vision models for image understanding
-- **Audio Processing**: Speech-to-text, text-to-speech
-- **Object Generation**: Structured data generation
+- **Text Generation**: TEXT_SMALL, TEXT_LARGE, TEXT_REASONING_SMALL, TEXT_REASONING_LARGE, TEXT_COMPLETION
+- **Embedding**: TEXT_EMBEDDING, TEXT_TOKENIZER_ENCODE, TEXT_TOKENIZER_DECODE
+- **Image Generation**: IMAGE generation
+- **Image Analysis**: IMAGE_DESCRIPTION for vision models
+- **Audio Processing**: TRANSCRIPTION (speech-to-text), TEXT_TO_SPEECH
+- **Object Generation**: OBJECT_SMALL, OBJECT_LARGE for structured data
 
 **Usage Example**:
 
 ```typescript
-const response = await useModel({
-  runtime,
-  model: ModelType.TEXT,
-  prompt: "Generate a response about AI",
-  temperature: 0.7,
-  maxTokens: 1000,
-});
+const response = await runtime.useModel(
+  ModelType.TEXT_LARGE,
+  {
+    prompt: "Generate a response about AI",
+    temperature: 0.7,
+    maxTokens: 1000,
+  }
+);
 ```
 
 ### Embedding Setup
@@ -102,7 +105,7 @@ Vector embedding generation and management for semantic search and memory retrie
 
 **Embedding Features**:
 
-- **Multiple Providers**: OpenAI, Cohere, Hugging Face, local models
+- **Multiple Providers**: OpenAI, Google, Ollama, and other supported plugins
 - **Batch Processing**: Efficient batch embedding generation
 - **Caching**: Local caching for frequently used embeddings
 - **Similarity Search**: Cosine similarity and other distance metrics
@@ -184,14 +187,15 @@ MAX_RETRIES=3
 **Selection Logic**:
 
 ```typescript
-const model = await selectModel({
-  type: ModelType.TEXT,
-  capabilities: ["conversation", "reasoning"],
-  constraints: {
-    maxCost: 0.01,
-    maxLatency: 5000,
-  },
-});
+// Models are selected based on priority and availability
+const handler = runtime.getModel(ModelType.TEXT_LARGE);
+if (handler) {
+  const response = await runtime.useModel(
+    ModelType.TEXT_LARGE,
+    { prompt: "Your prompt here" },
+    "preferred-provider" // optional provider override
+  );
+}
 ```
 
 ## Advanced Features

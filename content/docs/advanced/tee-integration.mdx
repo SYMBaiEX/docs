@@ -57,8 +57,9 @@ bun install
 cp .env.example .env
 
 # Configure TEE settings in .env:
-TEE_MODE=PHALA_DSTACK    # Options: PHALA_DSTACK, TDX_DSTACK, NONE
-TEE_VENDOR=phala          # Options: phala, intel
+TEE_MODE=PRODUCTION       # Production TEE mode
+TEE_VENDOR=phala          # TEE vendor selection
+WALLET_SECRET_SALT=your_salt  # Required for key derivation
 OPENAI_API_KEY=your_key
 
 # Run in development
@@ -67,16 +68,26 @@ bun run dev
 
 ## TEE Modes
 
-### 1. Development Mode (TEE_MODE=NONE)
+### 1. Production Mode (TEE_MODE=PRODUCTION)
+
+For production deployment with TEE:
+
+```bash
+TEE_MODE=PRODUCTION
+TEE_VENDOR=phala
+WALLET_SECRET_SALT=your_secure_salt
+```
+
+### 2. Local Development Mode
 
 For local development without TEE hardware:
 
 ```bash
-TEE_MODE=NONE
-# Simulates TEE responses for testing
+TEE_MODE=LOCAL
+# TEE functionality will be simulated
 ```
 
-### 2. Docker Mode (TEE_MODE=DOCKER)
+### 3. Docker Mode
 
 For containerized testing:
 
@@ -85,56 +96,40 @@ TEE_MODE=DOCKER
 # Uses Docker to simulate isolated environment
 ```
 
-### 3. Phala Network (TEE_MODE=PHALA_DSTACK)
+## TEE Integration
 
-For production deployment on Phala Cloud:
+The TEE integration in the project starter provides secure key derivation and TEE status verification:
+
+### Key Derivation
+
+The StarterService uses the Phala Dstack SDK to derive cryptographic keys:
+
+```typescript
+// Derive keys using TEE
+const deriveKeyResponse = await teeClient.deriveKey(secretSalt);
+
+// Generate ECDSA key
+const hex = keccak256(deriveKeyResponse.asUint8Array());
+const ecdsaKeypair = privateKeyToAccount(hex);
+
+// Generate ED25519 key
+const ed25519Keypair = Keypair.fromSeed(seedArray.slice(0, 32));
+```
+
+### TEE Status Endpoint
+
+Check TEE operational status:
 
 ```bash
-TEE_MODE=PHALA_DSTACK
-TEE_VENDOR=phala
+curl http://localhost:3000/mr-tee-status
 ```
 
-### 4. Intel TDX (TEE_MODE=TDX_DSTACK)
-
-For Intel TDX environments:
-
-```bash
-TEE_MODE=TDX_DSTACK
-TEE_VENDOR=intel
-```
-
-## Remote Attestation
-
-The TEE plugin provides remote attestation capabilities through the `remoteAttestationAction`:
-
-### Using Attestation
-
-Ask your agent for attestation:
-
-```
-User: "Generate a remote attestation report"
-Agent: [Generates cryptographic attestation proof]
-
-User: "Show me proof you're in a secure environment"
-Agent: [Provides TEE status and attestation]
-
-User: "I need TEE attestation with nonce xyz123"
-Agent: [Generates attestation with specific nonce]
-```
-
-### Attestation Response Format
-
+Response:
 ```json
 {
-  "success": true,
-  "attestation": {
-    "report": "base64_encoded_attestation_report",
-    "signature": "cryptographic_signature",
-    "certificate": "x509_certificate_chain",
-    "timestamp": "2024-01-15T10:30:00Z",
-    "teeType": "PHALA_DSTACK",
-    "nonce": "xyz123"
-  }
+  "message": "Mr. TEE is operational, fool!",
+  "tee_mode": "PRODUCTION",
+  "tee_vendor": "phala"
 }
 ```
 
@@ -190,8 +185,9 @@ services:
   eliza-tee:
     image: your-registry/eliza-tee:latest
     environment:
-      - TEE_MODE=PHALA_DSTACK
+      - TEE_MODE=PRODUCTION
       - TEE_VENDOR=phala
+      - WALLET_SECRET_SALT=${WALLET_SECRET_SALT}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "3000:3000"
@@ -246,8 +242,9 @@ All communication with TEE uses encrypted channels:
 
 ```bash
 # TEE Configuration
-TEE_MODE=PHALA_DSTACK        # TEE deployment mode
+TEE_MODE=PRODUCTION          # TEE deployment mode
 TEE_VENDOR=phala             # TEE vendor selection
+WALLET_SECRET_SALT=secret    # Required for key derivation
 
 # Agent Configuration
 OPENAI_API_KEY=your_key      # Required for AI operations
@@ -258,21 +255,32 @@ DISCORD_API_TOKEN=token       # Discord bot token
 ELEVENLABS_API_KEY=key       # For voice synthesis
 ```
 
-### Plugin Configuration
+### Service Configuration
+
+The TEE functionality is implemented through the StarterService:
 
 ```typescript
-import { teePlugin } from "@elizaos/plugin-tee";
+// In project-tee-starter/src/plugin.ts
+export class StarterService extends Service {
+  static serviceType = 'starter';
+  private teeClient: TappdClient;
+  private secretSalt: string;
+  
+  constructor(protected runtime: IAgentRuntime) {
+    super(runtime);
+    this.teeClient = new TappdClient();
+    this.secretSalt = process.env.WALLET_SECRET_SALT || 'secret_salt';
+  }
+}
 
+// Character configuration references plugin-tee (future implementation)
 const character = {
   name: "Mr. TEE",
-  plugins: [teePlugin],
-  settings: {
-    tee: {
-      enabled: true,
-      attestationInterval: 3600, // seconds
-      requireAttestation: true,
-    },
-  },
+  plugins: [
+    '@elizaos/plugin-sql',
+    '@elizaos/plugin-bootstrap',
+    '@elizaos/plugin-tee', // Placeholder for future plugin
+  ],
 };
 ```
 
@@ -347,11 +355,11 @@ TEE_MODE=DOCKER bun test:integration
 ### Attestation Testing
 
 ```typescript
-// Test attestation generation
-test("should generate valid attestation", async () => {
-  const attestation = await teePlugin.generateAttestation();
-  expect(attestation).toHaveProperty("report");
-  expect(attestation).toHaveProperty("signature");
+// Test TEE connection and key derivation
+test("should connect to TEE and derive keys", async () => {
+  const service = new StarterService(runtime);
+  await StarterService.start(runtime);
+  // Service will log key derivation success or warn if TEE not available
 });
 ```
 
@@ -428,16 +436,20 @@ async function getCachedAttestation(nonce) {
 
 ## Advanced Topics
 
-### Custom Attestation Handlers
+### Custom TEE Service Implementation
 
 ```typescript
-import { TEEProvider } from "@elizaos/plugin-tee";
-
-class CustomTEEProvider extends TEEProvider {
-  async generateAttestation(params) {
-    // Custom attestation logic
-    const report = await this.createCustomReport(params);
-    return this.signReport(report);
+// Extend the StarterService for custom TEE operations
+export class CustomTEEService extends StarterService {
+  async generateAttestation(nonce: string) {
+    // Custom attestation logic using teeClient
+    const attestation = await this.teeClient.tdxQuote(nonce);
+    return attestation;
+  }
+  
+  async secureCompute(data: Uint8Array) {
+    // Perform computation in TEE
+    return await this.teeClient.deriveKey(data.toString());
   }
 }
 ```
@@ -465,5 +477,5 @@ const sharedComputation = await initializesMPC(parties);
 
 - [Phala Network Documentation](https://docs.phala.network)
 - [Intel TDX Overview](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-trust-domain-extensions.html)
-- [TEE Plugin Source](https://github.com/elizaos/eliza/tree/main/packages/plugin-tee)
+- [TEE Starter Source](https://github.com/elizaos/eliza/tree/main/packages/project-tee-starter)
 - [Mr. TEE Starter Project](https://github.com/elizaos/eliza/tree/main/packages/project-tee-starter)

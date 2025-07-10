@@ -11,55 +11,56 @@ developers who want to understand the system's internals and build upon it.
 ElizaOS follows a modular, plugin-based architecture that enables flexible AI agent creation and
 deployment across multiple platforms.
 
-<Mermaid chart="graph TB
-    subgraph 'Core Runtime'
-        RT[Runtime Engine]
-        MM[Memory Manager]
-        SM[State Manager]
+```mermaid
+graph TB
+    subgraph "Core Runtime"
+        RT[AgentRuntime]
+        DB[Database Adapter]
+        SC[State Composition]
         EV[Event System]
     end
 
-    subgraph 'Service Layer'
-        DB[Database Service]
-        AI[AI Service]
-        TR[Transport Service]
-        AU[Auth Service]
+    subgraph "Service Layer"
+        SR[Service Registry]
+        MS[Model Services]
+        PS[Platform Services]
+        CS[Custom Services]
     end
 
-    subgraph 'Plugin System'
+    subgraph "Plugin System"
         PL[Plugin Loader]
         AC[Actions]
         PR[Providers]
         EL[Evaluators]
-        TS[Tasks]
+        SV[Services]
     end
 
-    subgraph 'Platform Adapters'
-        DC[Discord]
-        TW[Twitter]
-        TG[Telegram]
-        WB[Web]
+    subgraph "Platform Adapters"
+        DC[Discord Client]
+        TW[Twitter Client]
+        TG[Telegram Client]
+        WB[Direct/Web Client]
     end
 
-    RT --> MM
-    RT --> SM
+    RT --> DB
+    RT --> SC
     RT --> EV
-    RT --> PL
+    RT --> SR
+
+    SR --> MS
+    SR --> PS
+    SR --> CS
 
     PL --> AC
     PL --> PR
     PL --> EL
-    PL --> TS
+    PL --> SV
 
-    RT --> DB
-    RT --> AI
-    RT --> TR
-    RT --> AU
-
-    TR --> DC
-    TR --> TW
-    TR --> TG
-    TR --> WB" />
+    PS --> DC
+    PS --> TW
+    PS --> TG
+    PS --> WB
+```
 
 ## Core Components
 
@@ -73,24 +74,40 @@ The heart of ElizaOS, responsible for:
 - **Response Generation**: Orchestrating AI providers to generate responses
 
 ```typescript
-class AgentRuntime {
+class AgentRuntime implements IAgentRuntime {
   // Core properties
-  agentId: UUID;
-  character: Character;
-  memory: IMemoryManager;
-  state: IStateManager;
-
+  readonly agentId: UUID;
+  readonly character: Character;
+  public adapter!: IDatabaseAdapter;
+  
+  // Plugin components (arrays, not maps)
+  readonly actions: Action[] = [];
+  readonly providers: Provider[] = [];
+  readonly evaluators: Evaluator[] = [];
+  readonly plugins: Plugin[] = [];
+  
   // Service registry
-  services: Map<string, IService>;
-
-  // Plugin components
-  actions: Map<string, Action>;
-  providers: Map<string, Provider>;
-  evaluators: Map<string, Evaluator>;
-
-  // Message processing
-  async processMessage(message: Message): Promise<Response>;
-  async evaluate(message: Message, response: Response): Promise<void>;
+  services = new Map<ServiceTypeName, Service>();
+  
+  // Event system
+  events: Map<string, ((params: any) => Promise<void>)[]> = new Map();
+  
+  // State cache
+  stateCache = new Map<UUID, {
+    values: { [key: string]: any };
+    data: { [key: string]: any };
+    text: string;
+  }>();
+  
+  // Core methods
+  async processActions(
+    message: Memory,
+    responses: Memory[],
+    state?: State,
+    callback?: HandlerCallback
+  ): Promise<void>;
+  
+  async composeState(message: Memory): Promise<State>;
 }
 ```
 
@@ -106,19 +123,43 @@ Sophisticated memory management with multiple storage types:
 4. **Semantic Memory**: Embeddings for similarity search
 
 ```typescript
-interface IMemoryManager {
-  // Core operations
-  createMemory(memory: Memory): Promise<void>;
-  searchMemories(query: string, count: number): Promise<Memory[]>;
-  getRecentMemories(count: number): Promise<Memory[]>;
-
-  // Relationship management
-  createRelationship(userA: UUID, userB: UUID, type: string): Promise<void>;
-  getRelationships(userId: UUID): Promise<Relationship[]>;
-
-  // Embedding operations
-  createEmbedding(text: string): Promise<number[]>;
-  searchByEmbedding(embedding: number[], threshold: number): Promise<Memory[]>;
+// Memory operations are part of IAgentRuntime interface
+interface IAgentRuntime extends IDatabaseAdapter {
+  // Memory operations
+  createMemory(memory: Memory, unique?: boolean): Promise<void>;
+  
+  getRecentMessagesInRoom(
+    roomId: UUID,
+    count?: number
+  ): Promise<Memory[]>;
+  
+  searchMemoryByEmbedding(
+    embedding: number[],
+    params: {
+      match_threshold?: number;
+      count?: number;
+      worldId?: UUID;
+      table?: string;
+    }
+  ): Promise<Memory[]>;
+  
+  // Relationship operations
+  getRelationship(
+    userA: UUID,
+    userB: UUID
+  ): Promise<Relationship | null>;
+  
+  getRelationships(
+    params: { entityId: UUID }
+  ): Promise<Relationship[]>;
+  
+  createRelationship(
+    params: {
+      entityId1: UUID;
+      entityId2: UUID;
+      relationship: string;
+    }
+  ): Promise<boolean>;
 }
 ```
 
@@ -127,22 +168,24 @@ interface IMemoryManager {
 ElizaOS uses a hierarchical state system:
 
 ```typescript
+// State interface from core
 interface State {
-  // Agent state
-  agentId: UUID;
-  roomId: UUID;
-
-  // Conversation state
-  recentMessages: Message[];
-  conversationContext: string;
-  goals: Goal[];
-
-  // User state
-  userId: UUID;
-  userContext: Map<string, any>;
-
-  // Plugin state
-  pluginStates: Map<string, any>;
+  // Core data
+  values: Record<string, any>;
+  data?: any;
+  text?: string;
+  
+  // Optional context arrays
+  recentMessages?: Memory[];
+  relevantKnowledge?: string[];
+  relevantMemories?: Memory[];
+  
+  // Additional context
+  context?: string;
+  world?: UUID;
+  mood?: string;
+  agentId?: UUID;
+  [key: string]: any; // Extensible
 }
 ```
 
@@ -156,9 +199,10 @@ interface State {
    interface Action {
      name: string;
      description: string;
-     examples: string[][];
-     validate: (context: Context) => Promise<boolean>;
-     execute: (context: Context) => Promise<Response>;
+     similes?: string[];
+     examples?: ActionExample[][];
+     validate: Validator;
+     handler: Handler;
    }
    ```
 
@@ -167,7 +211,15 @@ interface State {
    ```typescript
    interface Provider {
      name: string;
-     get: (context: Context) => Promise<string>;
+     description?: string;
+     dynamic?: boolean;
+     position?: number;
+     private?: boolean;
+     get: (
+       runtime: IAgentRuntime,
+       message: Memory,
+       state: State
+     ) => Promise<ProviderResult>;
    }
    ```
 
@@ -176,34 +228,47 @@ interface State {
    ```typescript
    interface Evaluator {
      name: string;
-     evaluate: (context: Context) => Promise<EvaluationResult>;
+     description: string;
+     similes?: string[];
+     examples: EvaluationExample[];
+     handler: Handler;
+     validate: Validator;
+     alwaysRun?: boolean;
    }
    ```
 
-4. **Tasks**: Scheduled or deferred operations
+4. **Services**: Background services and integrations
    ```typescript
-   interface Task {
-     name: string;
-     schedule: CronExpression | "periodic" | "once";
-     execute: (context: Context) => Promise<void>;
+   interface Service {
+     static serviceType: ServiceTypeName;
+     initialize(runtime: IAgentRuntime): Promise<void>;
+     start(): Promise<void>;
+     stop(): Promise<void>;
    }
    ```
 
 ### Plugin Loading
 
-<Mermaid chart="sequenceDiagram
+```mermaid
+sequenceDiagram
     participant R as Runtime
-    participant PL as PluginLoader
     participant P as Plugin
-    participant S as ServiceRegistry
+    participant S as Service Registry
 
-    R->>PL: loadPlugin(name)
-    PL->>P: import plugin
-    P->>PL: return { actions, providers, evaluators, services }
-    PL->>S: registerServices(services)
-    PL->>R: registerComponents(actions, providers, evaluators)
-    R->>R: validatePlugin()
-    R->>P: initialize()" />
+    R->>R: registerPlugin(plugin)
+    R->>P: plugin.init?(config, runtime)
+    
+    loop For each service in plugin.services
+        R->>S: registerService(ServiceClass)
+        S->>S: new ServiceClass()
+        S->>S: service.initialize(runtime)
+    end
+    
+    R->>R: Register actions[]
+    R->>R: Register providers[]
+    R->>R: Register evaluators[]
+    R->>R: Register events{}
+```
 
 ## Platform Abstraction
 
@@ -213,11 +278,16 @@ ElizaOS abstracts platform-specific concepts into a unified model:
 
 ```typescript
 interface Room {
-  id: UUID; // Platform-agnostic ID
-  platformId: string; // Platform-specific ID
-  type: "discord" | "twitter" | "telegram" | "direct";
-  members: UUID[];
-  metadata: Map<string, any>;
+  id: UUID;
+  entityIds: UUID[];
+  worldId: UUID;
+  source: string;
+  name?: string;
+  platformChannelId?: string;
+  platformServerId?: string;
+  description?: string;
+  topic?: string;
+  createdAt?: number;
 }
 ```
 
@@ -226,14 +296,26 @@ interface Room {
 All platform messages are normalized:
 
 ```typescript
-interface Message {
-  id: UUID;
-  userId: UUID;
-  roomId: UUID;
-  content: string;
-  attachments: Attachment[];
-  platformData: any; // Original platform message
-  timestamp: Date;
+// Memory is the core message type
+interface Memory {
+  id?: UUID;
+  content: Content;
+  entityId?: UUID;
+  roomId?: UUID;
+  worldId?: UUID;
+  createdAt?: number;
+  embedding?: number[];
+  source?: string;
+}
+
+// Content structure
+interface Content {
+  text: string;
+  source?: string;
+  url?: string;
+  inReplyTo?: UUID;
+  attachments?: Media[];
+  [key: string]: any;
 }
 ```
 
@@ -241,27 +323,33 @@ interface Message {
 
 ### Message Processing Pipeline
 
-<Mermaid chart="sequenceDiagram
+```mermaid
+sequenceDiagram
     participant C as Client
-    participant T as Transport
     participant R as Runtime
-    participant M as Memory
-    participant P as Providers
-    participant A as AI Service
+    participant DB as Database
+    participant SC as State Composer
+    participant A as Actions
     participant E as Evaluators
 
-    C->>T: Send Message
-    T->>R: Normalized Message
-    R->>M: Store Message
-    R->>M: Retrieve Context
-    R->>P: Gather Provider Data
-    P->>R: Context Data
-    R->>A: Generate Response
-    A->>R: AI Response
-    R->>E: Evaluate Response
-    E->>M: Store Learnings
-    R->>T: Send Response
-    T->>C: Platform Response" />
+    C->>R: Message (Memory)
+    R->>DB: createMemory(message)
+    R->>SC: composeState(message)
+    SC->>DB: getRecentMessages()
+    SC->>DB: searchMemories()
+    SC->>R: State
+    
+    loop For each action
+        R->>A: validate(runtime, message, state)
+        alt Valid action
+            R->>A: handler(runtime, message, state)
+            A->>R: Response
+        end
+    end
+    
+    R->>E: evaluate(runtime, message, state)
+    R->>C: Responses[]
+```
 
 ## Database Architecture
 
@@ -273,39 +361,52 @@ ElizaOS uses a flexible schema that supports multiple database adapters:
 -- Core tables
 CREATE TABLE memories (
     id UUID PRIMARY KEY,
-    agent_id UUID NOT NULL,
-    user_id UUID,
-    room_id UUID,
-    content TEXT NOT NULL,
-    embedding VECTOR(1536),
-    type VARCHAR(50),
-    created_at TIMESTAMP
+    type TEXT NOT NULL,
+    world_id UUID NOT NULL,
+    entity_id UUID NOT NULL,
+    room_id UUID NOT NULL,
+    source TEXT,
+    content JSONB NOT NULL,
+    embedding vector(1536),
+    created_at BIGINT,
+    metadata JSONB
 );
 
 CREATE TABLE relationships (
     id UUID PRIMARY KEY,
-    user_a UUID NOT NULL,
-    user_b UUID NOT NULL,
-    relationship_type VARCHAR(50),
-    strength FLOAT,
-    created_at TIMESTAMP
+    entity_id1 UUID NOT NULL,
+    entity_id2 UUID NOT NULL,
+    world_id UUID NOT NULL,
+    relationship TEXT NOT NULL,
+    created_at BIGINT
 );
 
-CREATE TABLE goals (
+CREATE TABLE entities (
     id UUID PRIMARY KEY,
-    agent_id UUID NOT NULL,
-    name VARCHAR(255),
-    status VARCHAR(50),
-    objectives JSONB,
-    created_at TIMESTAMP
+    world_id UUID NOT NULL,
+    name TEXT,
+    source TEXT,
+    created_at BIGINT,
+    updated_at BIGINT,
+    metadata JSONB
+);
+
+CREATE TABLE rooms (
+    id UUID PRIMARY KEY,
+    world_id UUID NOT NULL,
+    name TEXT,
+    source TEXT,
+    created_at BIGINT,
+    metadata JSONB
 );
 ```
 
 ### Database Adapters
 
-- **PostgreSQL**: Full-featured with vector support
-- **SQLite/PGLite**: Lightweight for development
+- **PostgreSQL**: Full-featured with pgvector extension for embeddings
+- **SQLite**: Lightweight for development (via plugin-sql)
 - **In-Memory**: Testing and ephemeral agents
+- **Custom Adapters**: Implement IDatabaseAdapter interface
 
 ## Performance Considerations
 
@@ -392,19 +493,20 @@ interface Metrics {
 
 ### Horizontal Scaling
 
-<Mermaid chart="graph LR
+```mermaid
+graph LR
     LB[Load Balancer]
 
-    subgraph 'Agent Cluster'
+    subgraph "Agent Cluster"
         A1[Agent 1]
         A2[Agent 2]
         A3[Agent 3]
     end
 
-    subgraph 'Shared Services'
+    subgraph "Shared Services"
         DB[(PostgreSQL)]
-        RD[(Redis)]
-        Q[Message Queue]
+        VS[(Vector Store)]
+        Q[Event Bus]
     end
 
     LB --> A1
@@ -415,13 +517,14 @@ interface Metrics {
     A2 --> DB
     A3 --> DB
 
-    A1 --> RD
-    A2 --> RD
-    A3 --> RD
+    A1 --> VS
+    A2 --> VS
+    A3 --> VS
 
     A1 --> Q
     A2 --> Q
-    A3 --> Q" />
+    A3 --> Q
+```
 
 ### High Availability
 

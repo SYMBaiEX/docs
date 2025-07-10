@@ -39,14 +39,14 @@ Before you begin, ensure you have:
 
 <Steps>
   <Step>
-    ## Node.js (v23.3.0 or higher)
+    ## Node.js (v23.3.0 exact version required)
     
     Download from [nodejs.org](https://nodejs.org/) or use a version manager like [nvm](https://github.com/nvm-sh/nvm).
   </Step>
   <Step>
     ## Bun (recommended package manager)
     
-    Install from [bun.sh](https://bun.sh/docs/installation)
+    Install from [bun.sh](https://bun.sh/docs/installation) - v1.2.15 or higher recommended
   </Step>
   <Step>
     ## API Keys for your chosen model provider
@@ -77,9 +77,9 @@ Before you begin, ensure you have:
   </Tab>
 </Tabs>
 
-## Project Types in v1.2.0
+## Project Types
 
-ElizaOS v1.2.0 introduces different project types for various use cases:
+ElizaOS supports different project types for various use cases:
 
 <Cards>
   <Card title="Project" href="/docs/getting-started/quickstart">
@@ -98,7 +98,7 @@ ElizaOS v1.2.0 introduces different project types for various use cases:
 
 ## Installation Methods
 
-ElizaOS v1.2.0 offers multiple installation approaches:
+ElizaOS offers multiple installation approaches:
 
 ### Using the CLI (Recommended)
 
@@ -126,6 +126,8 @@ cd eliza
 
 # Install dependencies
 bun install
+
+# Build the project (required for first run)
 bun run build
 ```
 
@@ -185,6 +187,7 @@ Once you've completed the basic setup:
   option
 - **Database connection errors**: Check your database URL in `.env` or switch to `pglite` for
   development
+- **Windows users**: Must use WSL 2, native Windows installation is not supported
 
 ## Community & Support
 

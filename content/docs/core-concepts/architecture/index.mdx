@@ -38,7 +38,7 @@ ElizaOS uses a distributed architecture with clear separation between client and
 
 **Client Components (`@elizaos/client`)**:
 
-- **React Application**: Modern web interface built with React 19 and TypeScript
+- **React Application**: Modern web interface built with React 19.1.0 and TypeScript
 - **Real-time Chat**: WebSocket-based chat interface with message streaming
 - **Agent Management**: UI for creating, configuring, and monitoring agents
 - **Memory Visualization**: Interactive views of agent memory and knowledge graphs
@@ -79,8 +79,16 @@ packages/
 ├── client/              # Web client application (@elizaos/client)
 ├── server/              # HTTP/WebSocket server (@elizaos/server)
 ├── api-client/          # API client library (@elizaos/api-client)
-├── plugin-*/            # Individual plugin packages
-└── create-eliza/        # Project bootstrapping tool
+├── app/                 # Alternative application package
+├── autodoc/             # Documentation generation tools
+├── docs/                # Documentation site (Fumadocs)
+├── plugin-bootstrap/    # Core bootstrap plugin
+├── plugin-sql/          # SQL database plugin
+├── plugin-starter/      # Plugin template
+├── plugin-dummy-services/ # Testing services
+├── create-eliza/        # Project bootstrapping tool
+├── project-starter/     # Project template
+└── project-tee-starter/ # TEE project template
 ```
 
 ### Package Organization
@@ -89,11 +97,14 @@ packages/
 
 - `runtime.ts`: AgentRuntime class and core execution logic
 - `types/`: TypeScript type definitions for all system components
-- `database.ts`: Database adapter interfaces and implementations
-- `actions.ts`: Action composition and execution utilities
-- `entities.ts`: Entity resolution and relationship management
+- `database.ts`: Database adapter interfaces
+- `actions/`: Action implementations and utilities
+- `entities.ts`: Entity resolution and UUID management
 - `prompts.ts`: Prompt templates and context injection
 - `services.ts`: Service registry and lifecycle management
+- `search.ts`: BM25 search implementation
+- `utils.ts`: Utility functions and helpers
+- `logger.ts`: Logging system with configurable levels
 
 **CLI Package** (`@elizaos/cli`):
 
@@ -106,18 +117,21 @@ packages/
 **Client Package** (`@elizaos/client`):
 
 - React components for agent interaction
-- Real-time communication hooks
-- State management with React Context
-- Plugin configuration interfaces
-- Memory and knowledge visualization
+- Real-time communication via Socket.IO
+- State management with Tanstack React Query and Context API
+- Agent and memory management interfaces
+- System configuration and log viewing
+- Built with Vite for fast development
 
 **Server Package** (`@elizaos/server`):
 
-- Express.js server with middleware
-- WebSocket handlers for real-time communication
-- Multi-agent runtime management
-- File upload and media processing
-- Authentication and authorization
+- Express.js server with comprehensive middleware stack
+- Socket.IO for WebSocket real-time communication
+- Multi-agent runtime management with isolated environments
+- File upload and media processing with path validation
+- Optional API key authentication via X-API-KEY header
+- Internal message bus for decoupled agent communication
+- Automatic plugin route registration
 
 ## Design Principles
 
@@ -137,10 +151,12 @@ packages/
 
 ### Performance and Scalability
 
-- **Memory Management**: Efficient memory usage with configurable limits
+- **Memory Management**: Efficient memory usage with configurable conversation length
 - **Asynchronous Processing**: Non-blocking operations throughout the system
 - **Connection Pooling**: Database connections are pooled for efficiency
-- **Caching**: Intelligent caching of frequently accessed data
+- **State Caching**: Runtime state cache for performance optimization
+- **BM25 Search**: Efficient text search implementation for memory retrieval
+- **Semaphore Controls**: Resource access management for concurrent operations
 
 ### Security and Reliability
 

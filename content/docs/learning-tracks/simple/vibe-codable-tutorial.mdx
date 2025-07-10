@@ -34,19 +34,25 @@ Let's build something that works immediately:
 
 Create the simplest possible agent:
 
-```json title="my-agent.json"
-{
-  "name": "Vibes",
-  "bio": ["I'm a chill AI that just vibes with you"],
-  "plugins": ["@elizaos/plugin-bootstrap"]
-}
+```typescript title="my-agent.ts"
+import { type Character } from '@elizaos/core';
+
+export const character: Character = {
+  name: "Vibes",
+  bio: ["I'm a chill AI that just vibes with you"],
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai", // or your AI provider
+    "@elizaos/plugin-bootstrap"
+  ]
+};
 ```
 
 That's it. No complex configuration. No settings. Just vibes.
 
 ```bash
 # Run it
-bun start --character my-agent.json
+elizaos start --character my-agent.ts
 ```
 
 Your agent is now running and ready to chat!
@@ -58,22 +64,28 @@ Your agent is now running and ready to chat!
 
 Make your agent more interesting by just describing them:
 
-```json title="my-agent.json"
-{
-  "name": "Vibes",
-  "bio": [
+```typescript title="my-agent.ts"
+import { type Character } from '@elizaos/core';
+
+export const character: Character = {
+  name: "Vibes",
+  bio: [
     "I'm a chill AI that just vibes with you",
     "I love talking about music, art, and cool projects",
     "I'm always down for a good conversation"
   ],
-  "adjectives": [
+  adjectives: [
     "chill", "creative", "supportive", "curious"
   ],
-  "topics": [
+  topics: [
     "music", "art", "creativity", "tech", "life"
   ],
-  "plugins": ["@elizaos/plugin-bootstrap"]
-}
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",
+    "@elizaos/plugin-bootstrap"
+  ]
+};
 ```
 
 No code changes needed - just describe your agent and it becomes more interesting.
@@ -83,20 +95,21 @@ No code changes needed - just describe your agent and it becomes more interestin
 <Step>
 ## Add Memory by Just Turning It On
 
-Want your agent to remember things? Add one line:
+Your agent already has memory with the SQL plugin! Just add a note in the bio:
 
-```json title="my-agent.json"
-{
-  "name": "Vibes",
-  "bio": [
+```typescript title="my-agent.ts"
+export const character: Character = {
+  name: "Vibes",
+  bio: [
     "I'm a chill AI that just vibes with you",
     "I remember our conversations and what you like"
   ],
-  "adjectives": ["chill", "creative", "supportive", "curious"],
-  "topics": ["music", "art", "creativity", "tech", "life"],
-  "plugins": [
-    "@elizaos/plugin-sql",
-    "@elizaos/plugin-bootstrap"
+  adjectives: ["chill", "creative", "supportive", "curious"],
+  topics: ["music", "art", "creativity", "tech", "life"],
+  plugins: [
+    "@elizaos/plugin-sql",     // Memory system
+    "@elizaos/plugin-openai",   // AI provider
+    "@elizaos/plugin-bootstrap" // Core features
   ]
 }
 ```

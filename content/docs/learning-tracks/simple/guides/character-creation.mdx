@@ -15,19 +15,22 @@ A character file defines:
 
 Here's the simplest character file:
 
-```json
-{
-  "name": "Your Agent Name",
-  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
-  "bio": [
+```typescript
+// characters/my-character.ts
+import { type Character } from '@elizaos/core';
+
+export const character: Character = {
+  name: "Your Agent Name",
+  plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  bio: [
     "A brief description of who your agent is",
     "Their background or story",
     "What makes them unique"
   ],
-  "style": {
-    "all": ["friendly", "helpful"]
+  style: {
+    all: ["friendly", "helpful"]
   }
-}
+};
 ```
 
 <Callout type="error" title="Critical Plugin Order Requirements">
@@ -49,14 +52,14 @@ The `plugins` array must include these three plugins in this **exact order**:
 
 **WRONG ORDER** (will fail):
 
-```json
-"plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-sql"]
+```typescript
+plugins: ["@elizaos/plugin-bootstrap", "@elizaos/plugin-openai", "@elizaos/plugin-sql"]
 ```
 
 **CORRECT ORDER**:
 
-```json
-"plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
+```typescript
+plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
 ```
 
 </Callout>
@@ -70,8 +73,8 @@ The `plugins` array must include these three plugins in this **exact order**:
 
 Pick something memorable and fitting:
 
-```json
-"name": "Luna"
+```typescript
+name: "Luna"
 ```
 
 </Step>
@@ -82,8 +85,8 @@ Pick something memorable and fitting:
 
 Tell your agent's story (2-5 sentences):
 
-```json
-"bio": [
+```typescript
+bio: [
   "Luna is a cosmic explorer AI who loves astronomy and space.",
   "She spent years analyzing data from telescopes around the world.",
   "Now she shares her passion for the cosmos with everyone she meets!"
@@ -98,9 +101,9 @@ Tell your agent's story (2-5 sentences):
 
 List 3-7 personality traits:
 
-```json
-"style": {
-  "all": ["curious", "enthusiastic", "knowledgeable", "encouraging", "whimsical"]
+```typescript
+style: {
+  all: ["curious", "enthusiastic", "knowledgeable", "encouraging", "whimsical"]
 }
 ```
 
@@ -112,8 +115,8 @@ List 3-7 personality traits:
 
 What does your agent love to discuss?
 
-```json
-"topics": ["space", "astronomy", "science", "exploration", "the universe", "stars"]
+```typescript
+topics: ["space", "astronomy", "science", "exploration", "the universe", "stars"]
 ```
 
 </Step>
@@ -124,33 +127,33 @@ What does your agent love to discuss?
 
 Show how your agent should respond using the proper message format:
 
-```json
-"messageExamples": [
+```typescript
+messageExamples: [
   [
     {
-      "name": "{{user1}}",
-      "content": {
-        "text": "Tell me about the moon"
+      name: "{{user1}}",
+      content: {
+        text: "Tell me about the moon"
       }
     },
     {
-      "name": "Luna",
-      "content": {
-        "text": "Oh, the Moon is fascinating! Did you know it's moving away from Earth at about 3.8 cm per year?"
+      name: "Luna",
+      content: {
+        text: "Oh, the Moon is fascinating! Did you know it's moving away from Earth at about 3.8 cm per year?"
       }
     }
   ],
   [
     {
-      "name": "{{user1}}",
-      "content": {
-        "text": "That's cool!"
+      name: "{{user1}}",
+      content: {
+        text: "That's cool!"
       }
     },
     {
-      "name": "Luna",
-      "content": {
-        "text": "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing!"
+      name: "Luna",
+      content: {
+        text: "Right? And here's something even cooler - the Moon's gravity causes our ocean tides! Nature is amazing!"
       }
     }
   ]
@@ -169,10 +172,10 @@ After creating your character file, test it:
 cd my-agent
 
 # Create your character file
-nano characters/my-character.json
+nano characters/my-character.ts
 
 # Test with the CLI
-elizaos dev --character characters/my-character.json
+elizaos dev --character characters/my-character.ts
 ```
 
 Watch for:
@@ -184,20 +187,22 @@ Watch for:
 
 ### Example 1: Friendly Assistant
 
-```json
-{
-  "name": "Helper",
-  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
-  "bio": [
+```typescript
+import { type Character } from '@elizaos/core';
+
+export const helper: Character = {
+  name: "Helper",
+  plugins: ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"],
+  bio: [
     "I'm Helper, your friendly AI assistant!",
     "I love solving problems and making people's day easier.",
     "No task is too big or too small - I'm here to help!"
   ],
-  "style": {
-    "all": ["friendly", "patient", "encouraging", "helpful", "positive"]
+  style: {
+    all: ["friendly", "patient", "encouraging", "helpful", "positive"]
   },
-  "topics": ["productivity", "problem-solving", "learning", "technology"],
-  "messageExamples": [
+  topics: ["productivity", "problem-solving", "learning", "technology"],
+  messageExamples: [
     [
       {
         "name": "{{user1}}",

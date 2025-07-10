@@ -8,7 +8,7 @@ description: Complete guide to installing ElizaOS and setting up your developmen
 This guide covers the complete installation process for ElizaOS, including system requirements, dependencies, and different installation methods.
 
 <Callout type="info">
-ElizaOS v1.2.0 requires Node.js v23.3.0 (exact version) and Bun v1.2.15 or higher for optimal compatibility and performance.
+ElizaOS requires Node.js v23.3.0 (exact version) and Bun v1.2.15 or higher for optimal compatibility and performance.
 </Callout>
 
 ## System Requirements
@@ -169,7 +169,7 @@ node --version  # Should show v23.3.0
 brew install oven-sh/bun/bun
 
 # Verify installation
-bun --version  # Should show v1.2.15
+bun --version  # Should show v1.2.15 or higher
 ```
 
 **Using the official installer:**
@@ -177,7 +177,7 @@ bun --version  # Should show v1.2.15
 curl -fsSL https://bun.sh/install | bash
 
 # Verify installation
-bun --version  # Should show v1.2.15
+bun --version  # Should show v1.2.15 or higher
 ```
 
   </Tab>
@@ -188,7 +188,7 @@ bun --version  # Should show v1.2.15
 curl -fsSL https://bun.sh/install | bash
 
 # Verify installation
-bun --version  # Should show v1.2.15
+bun --version  # Should show v1.2.15 or higher
 ```
 
 **Note**: After installation, you may need to add Bun to your PATH:
@@ -209,7 +209,7 @@ echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
 # Verify installation
-bun --version  # Should show v1.2.15
+bun --version  # Should show v1.2.15 or higher
 ```
 
   </Tab>
@@ -233,7 +233,7 @@ Check that all dependencies are correctly installed:
 node --version  # Should be v23.3.0 (exact version required)
 
 # Check Bun version
-bun --version   # Should be v1.2.15 (recommended)
+bun --version   # Should be v1.2.15 or higher
 ```
 
 </Step>
@@ -248,7 +248,7 @@ Ensure you have the exact Node.js version v23.3.0 installed. Other versions may 
 ### Method 1: CLI Installation (Recommended)
 
 <Callout type="info">
-This is the fastest way to get started with ElizaOS v1.2.0. The CLI handles most configuration automatically and provides enhanced project management features.
+This is the fastest way to get started with ElizaOS. The CLI handles most configuration automatically and provides enhanced project management features.
 </Callout>
 
 The CLI provides the fastest way to get started:
@@ -267,7 +267,7 @@ elizaos create
 elizaos create my-agent --type project
 ```
 
-**New CLI Features in v1.2.0:**
+**CLI Features:**
 - Interactive project creation wizard
 - Multiple project types: `project`, `plugin`, `agent`, `tee`
 - Automatic dependency installation
@@ -282,7 +282,7 @@ For more control over the setup process:
 
 ```bash
 # Clone the repository
-git clone https://github.com/elizaos/eliza.git
+git clone https://github.com/elizaOS/eliza.git
 cd eliza
 
 # Install dependencies
@@ -292,8 +292,11 @@ bun install
 cp .env.example .env
 # Edit .env with your configuration
 
+# Build the project
+bun run build
+
 # Start the development server
-bun dev
+bun run dev
 ```
 
 ### Method 3: Docker Installation
@@ -308,7 +311,7 @@ Docker provides a consistent environment across different platforms and simplifi
 
 ```bash
 # Clone the repository
-git clone https://github.com/elizaos/eliza.git
+git clone https://github.com/elizaOS/eliza.git
 cd eliza
 
 # Copy environment configuration
@@ -463,17 +466,14 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 #### Twitter Integration
 
 ```bash
-TWITTER_USERNAME=your_twitter_username
-TWITTER_PASSWORD=your_twitter_password
-TWITTER_EMAIL=your_twitter_email
-TWITTER_ENABLE_POST_GENERATION=true
-TWITTER_POST_IMMEDIATELY=false
-
-# Alternative Twitter API configuration
+# Twitter API configuration
 TWITTER_API_KEY=your_twitter_api_key
 TWITTER_API_SECRET_KEY=your_twitter_api_secret_key
 TWITTER_ACCESS_TOKEN=your_twitter_access_token
 TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
+
+TWITTER_ENABLE_POST_GENERATION=true
+TWITTER_POST_IMMEDIATELY=false
 ```
 
 #### Blockchain Integration

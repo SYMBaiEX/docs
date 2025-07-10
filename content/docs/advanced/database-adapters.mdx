@@ -79,10 +79,11 @@ pnpm add @elizaos/plugin-sql
 POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
 
 # PGlite data directory (optional, defaults to ./.eliza/.elizadb)
-PGLITE_PATH=./data/pglite
-# Alternative environment variables (also supported)
-DATABASE_PATH=./data/pglite
 PGLITE_DATA_DIR=./data/pglite
+
+# Alternative environment variables accepted by the plugin:
+PGLITE_PATH=./data/pglite      # Read from runtime settings
+DATABASE_PATH=./data/pglite    # Read from runtime settings
 ```
 
 ### Vector Dimensions
@@ -132,6 +133,8 @@ const runtime = new AgentRuntime({
 // 3. Read PGLITE_PATH/DATABASE_PATH from runtime settings
 // 4. Create adapter using createDatabaseAdapter
 // 5. Register adapter with runtime.registerDatabaseAdapter
+//
+// Note: If no settings provided, defaults to ./.eliza/.elizadb
 ```
 
 ### Direct Adapter Usage
@@ -416,8 +419,9 @@ export const customTable = pgTable("custom_data", {
   metadata: text("metadata"),
 });
 
-// Use with adapter
-const results = await adapter.db.select().from(customTable).where(eq(customTable.agentId, agentId));
+// Use with adapter - access the db property
+const db = (adapter as any).db; // Cast needed as db is protected
+const results = await db.select().from(customTable).where(eq(customTable.agentId, agentId));
 ```
 
 ### Schema Factory Pattern
@@ -553,11 +557,11 @@ const runtime = new AgentRuntime({
 });
 // Adapter is automatically created and registered
 
-// Good: Manual adapter creation
+// Good: Manual adapter creation with explicit config
 const adapter = createDatabaseAdapter(
   {
     postgresUrl: process.env.POSTGRES_URL,
-    dataDir: "./.eliza/.elizadb",
+    dataDir: "./data/pglite", // Optional, will use default if not provided
   },
   agentId
 );
@@ -642,17 +646,19 @@ if (adapter instanceof PgliteDatabaseAdapter) {
 ### Query Performance
 
 ```typescript
-// Query logging is handled by the underlying Drizzle ORM
-// Enable with environment variable or drizzle configuration
-const adapter = createDatabaseAdapter(
-  {
-    postgresUrl: url,
-  },
-  agentId
-);
+// The adapters use Drizzle ORM which provides query logging
+// Monitor performance through adapter logs
 
-// Monitor query performance in application logs
-logger.info("Query executed:", { duration: "Xms", query: "SELECT..." });
+// PGlite adapter logs connection state
+if (adapter instanceof PgliteDatabaseAdapter) {
+  logger.info("PGlite adapter initialized");
+}
+
+// PostgreSQL adapter provides connection pool info
+if (adapter instanceof PgDatabaseAdapter) {
+  // Connection pool metrics available through the manager
+  logger.info("PostgreSQL adapter connected");
+}
 ```
 
 ## Troubleshooting

@@ -1,0 +1,803 @@
+---
+title: Twitter Plugin
+description: Twitter/X integration plugin for ElizaOS agents with posting, monitoring, and engagement
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The Twitter plugin (`@elizaos/plugin-twitter`) provides comprehensive Twitter/X integration for ElizaOS agents, enabling automated posting, timeline monitoring, engagement, and social media management.
+
+<Callout type="info">
+  This plugin is part of the ElizaOS plugin ecosystem. Check the [Plugin Registry](/docs/plugins/plugin-registry) for the latest version and availability.
+</Callout>
+
+## Overview
+
+The Twitter plugin provides:
+
+- **Tweet Posting**: Automated tweet creation and scheduling
+- **Timeline Monitoring**: Track mentions, replies, and hashtags
+- **Engagement**: Like, retweet, reply, and follow actions
+- **Media Support**: Images, GIFs, and video posting
+- **Thread Creation**: Multi-tweet thread management
+- **Analytics**: Tweet performance and engagement metrics
+- **Search & Monitoring**: Real-time search and keyword tracking
+
+## Installation
+
+<Tabs items={['CLI', 'npm', 'pnpm', 'bun']}>
+  <Tab value="CLI">
+    ```bash
+    elizaos plugins add @elizaos/plugin-twitter
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-twitter
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-twitter
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-twitter
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+Configure the Twitter plugin using environment variables:
+
+```bash
+# Required - Twitter API v2 credentials
+TWITTER_API_KEY=your-api-key
+TWITTER_API_SECRET=your-api-secret
+TWITTER_ACCESS_TOKEN=your-access-token
+TWITTER_ACCESS_TOKEN_SECRET=your-access-token-secret
+TWITTER_BEARER_TOKEN=your-bearer-token
+
+# Optional - Bot behavior
+TWITTER_USERNAME=your-bot-username
+TWITTER_AUTO_ENGAGE=true
+TWITTER_MAX_TWEETS_PER_HOUR=5
+TWITTER_MENTION_MONITORING=true
+TWITTER_HASHTAG_MONITORING=#elizaos,#ai
+
+# Optional - Content settings
+TWITTER_MAX_TWEET_LENGTH=280
+TWITTER_ENABLE_THREADS=true
+TWITTER_ENABLE_MEDIA=true
+TWITTER_ENABLE_POLLS=false
+
+# Optional - Rate limiting
+TWITTER_RATE_LIMIT_WINDOW=900000  # 15 minutes in ms
+TWITTER_MAX_REQUESTS_PER_WINDOW=50
+```
+
+### Twitter API Setup
+
+<Steps>
+
+<Step>
+## Create Twitter Developer Account
+
+1. Go to [Twitter Developer Portal](https://developer.twitter.com/)
+2. Apply for a developer account
+3. Wait for approval (can take a few days)
+4. Create a new project/app
+</Step>
+
+<Step>
+## Generate API Credentials
+
+1. Navigate to your app settings
+2. Generate API Key and Secret
+3. Generate Access Token and Secret
+4. Copy the Bearer Token
+5. Set appropriate permissions (Read and Write)
+</Step>
+
+<Step>
+## Configure Permissions
+
+Ensure your app has the necessary permissions:
+- Read tweets
+- Write tweets
+- Upload media
+- Read direct messages (optional)
+- Manage tweets (delete, edit)
+</Step>
+
+</Steps>
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { plugin as twitterPlugin } from '@elizaos/plugin-twitter';
+import { plugin as bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,        // Database support
+    twitterPlugin,    // Twitter integration
+    bootstrapPlugin   // Core functionality
+  ],
+});
+
+await runtime.initialize();
+```
+
+## Features
+
+### Tweet Posting
+
+Post tweets programmatically:
+
+```typescript
+const postTweetAction = {
+  name: 'POST_TWEET',
+  description: 'Post a tweet to Twitter',
+  handler: async (runtime, message) => {
+    const tweetText = message.content.text;
+    
+    // Basic tweet
+    const tweet = await runtime.postTweet({
+      text: tweetText,
+      reply_settings: 'everyone'
+    });
+    
+    return {
+      tweetId: tweet.data.id,
+      url: `https://twitter.com/user/status/${tweet.data.id}`,
+      text: tweetText
+    };
+  }
+};
+```
+
+### Media Posting
+
+Post tweets with media attachments:
+
+```typescript
+const postMediaTweetAction = {
+  name: 'POST_MEDIA_TWEET',
+  description: 'Post a tweet with media',
+  handler: async (runtime, message) => {
+    const mediaUrls = message.content.attachments?.map(a => a.url) || [];
+    
+    // Upload media first
+    const mediaIds = [];
+    for (const url of mediaUrls) {
+      const mediaId = await runtime.uploadMedia(url);
+      mediaIds.push(mediaId);
+    }
+    
+    // Post tweet with media
+    const tweet = await runtime.postTweet({
+      text: message.content.text,
+      media: {
+        media_ids: mediaIds
+      }
+    });
+    
+    return {
+      tweetId: tweet.data.id,
+      mediaCount: mediaIds.length
+    };
+  }
+};
+```
+
+### Thread Creation
+
+Create multi-tweet threads:
+
+```typescript
+const postThreadAction = {
+  name: 'POST_THREAD',
+  description: 'Post a Twitter thread',
+  handler: async (runtime, message) => {
+    const threadContent = message.content.thread || 
+      splitIntoTweets(message.content.text);
+    
+    let previousTweetId = null;
+    const tweetIds = [];
+    
+    for (const tweetText of threadContent) {
+      const tweet = await runtime.postTweet({
+        text: tweetText,
+        reply: previousTweetId ? {
+          in_reply_to_tweet_id: previousTweetId
+        } : undefined
+      });
+      
+      tweetIds.push(tweet.data.id);
+      previousTweetId = tweet.data.id;
+      
+      // Wait between tweets
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    return {
+      threadLength: tweetIds.length,
+      tweetIds,
+      threadUrl: `https://twitter.com/user/status/${tweetIds[0]}`
+    };
+  }
+};
+
+const splitIntoTweets = (text: string): string[] => {
+  const maxLength = 270; // Leave room for thread numbering
+  const sentences = text.split('. ');
+  const tweets = [];
+  let currentTweet = '';
+  
+  for (const sentence of sentences) {
+    if ((currentTweet + sentence).length > maxLength) {
+      if (currentTweet) tweets.push(currentTweet.trim());
+      currentTweet = sentence;
+    } else {
+      currentTweet += (currentTweet ? '. ' : '') + sentence;
+    }
+  }
+  
+  if (currentTweet) tweets.push(currentTweet.trim());
+  
+  // Add thread numbering
+  return tweets.map((tweet, index) => 
+    tweets.length > 1 ? `${index + 1}/${tweets.length} ${tweet}` : tweet
+  );
+};
+```
+
+### Engagement Actions
+
+Engage with other tweets:
+
+```typescript
+const engagementActions = {
+  LIKE_TWEET: {
+    name: 'LIKE_TWEET',
+    handler: async (runtime, message) => {
+      const tweetId = message.content.tweetId;
+      await runtime.likeTweet(tweetId);
+      return { liked: true, tweetId };
+    }
+  },
+  
+  RETWEET: {
+    name: 'RETWEET',
+    handler: async (runtime, message) => {
+      const tweetId = message.content.tweetId;
+      const retweet = await runtime.retweet(tweetId);
+      return { retweetId: retweet.data.id, originalTweetId: tweetId };
+    }
+  },
+  
+  REPLY_TO_TWEET: {
+    name: 'REPLY_TO_TWEET',
+    handler: async (runtime, message) => {
+      const { tweetId, replyText } = message.content;
+      
+      const reply = await runtime.postTweet({
+        text: replyText,
+        reply: {
+          in_reply_to_tweet_id: tweetId
+        }
+      });
+      
+      return { replyId: reply.data.id, originalTweetId: tweetId };
+    }
+  },
+  
+  FOLLOW_USER: {
+    name: 'FOLLOW_USER',
+    handler: async (runtime, message) => {
+      const userId = message.content.userId;
+      await runtime.followUser(userId);
+      return { followed: true, userId };
+    }
+  }
+};
+```
+
+### Timeline Monitoring
+
+Monitor timeline and mentions:
+
+```typescript
+const timelineMonitor = {
+  name: 'MONITOR_TIMELINE',
+  description: 'Monitor Twitter timeline for mentions and keywords',
+  handler: async (runtime, message) => {
+    // Monitor mentions
+    const mentions = await runtime.getMentions({
+      max_results: 10,
+      since_id: runtime.getLastProcessedTweetId()
+    });
+    
+    // Process each mention
+    for (const mention of mentions.data || []) {
+      await runtime.processMention(mention);
+    }
+    
+    // Monitor keywords
+    const keywords = runtime.getSetting('TWITTER_HASHTAG_MONITORING')?.split(',') || [];
+    for (const keyword of keywords) {
+      const tweets = await runtime.searchTweets({
+        query: keyword,
+        max_results: 5,
+        since_id: runtime.getLastProcessedTweetId()
+      });
+      
+      for (const tweet of tweets.data || []) {
+        await runtime.processKeywordTweet(tweet, keyword);
+      }
+    }
+    
+    return {
+      mentionsProcessed: mentions.data?.length || 0,
+      keywordTweetsProcessed: keywords.length
+    };
+  }
+};
+```
+
+## Advanced Features
+
+### Automated Engagement
+
+Smart engagement based on content analysis:
+
+```typescript
+const smartEngagementAction = {
+  name: 'SMART_ENGAGEMENT',
+  description: 'Intelligently engage with relevant tweets',
+  handler: async (runtime, message) => {
+    const { tweetData } = message.content;
+    
+    // Analyze tweet content
+    const analysis = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt: `Analyze this tweet for relevance to AI and technology:
+      Tweet: "${tweetData.text}"
+      
+      Return: relevant|not_relevant|spam`
+    });
+    
+    if (analysis.includes('relevant')) {
+      // Decide on engagement type
+      const engagement = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt: `Choose appropriate engagement for this tweet:
+        Tweet: "${tweetData.text}"
+        
+        Options: like, retweet, reply, none
+        Return only the option.`
+      });
+      
+      switch (engagement.trim().toLowerCase()) {
+        case 'like':
+          await runtime.likeTweet(tweetData.id);
+          break;
+        case 'retweet':
+          await runtime.retweet(tweetData.id);
+          break;
+        case 'reply':
+          const replyText = await generateReply(runtime, tweetData);
+          await runtime.postTweet({
+            text: replyText,
+            reply: { in_reply_to_tweet_id: tweetData.id }
+          });
+          break;
+      }
+      
+      return { engaged: true, type: engagement, tweetId: tweetData.id };
+    }
+    
+    return { engaged: false, reason: 'not relevant' };
+  }
+};
+
+const generateReply = async (runtime: IAgentRuntime, tweetData: any): Promise<string> => {
+  const reply = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt: `Generate a thoughtful reply to this tweet:
+    
+    Tweet: "${tweetData.text}"
+    Author: @${tweetData.author.username}
+    
+    Guidelines:
+    - Be helpful and engaging
+    - Keep under 280 characters
+    - Match the tone of the original tweet
+    - Add value to the conversation
+    
+    Reply:`
+  });
+  
+  return reply.trim();
+};
+```
+
+### Content Scheduling
+
+Schedule tweets for optimal posting times:
+
+```typescript
+const scheduleContentAction = {
+  name: 'SCHEDULE_CONTENT',
+  description: 'Schedule tweets for optimal times',
+  handler: async (runtime, message) => {
+    const { content, scheduleTime } = message.content;
+    
+    // Store scheduled tweet
+    await runtime.createMemory({
+      content: {
+        type: 'scheduled_tweet',
+        text: content,
+        scheduleTime,
+        status: 'pending'
+      },
+      type: 'scheduled_content'
+    });
+    
+    // Set up timer (in production, use a job queue)
+    const delay = new Date(scheduleTime).getTime() - Date.now();
+    if (delay > 0) {
+      setTimeout(async () => {
+        await runtime.postTweet({ text: content });
+        
+        // Update status
+        await runtime.updateMemory({
+          content: { status: 'posted' },
+          type: 'scheduled_content'
+        });
+      }, delay);
+    }
+    
+    return {
+      scheduled: true,
+      scheduleTime,
+      contentLength: content.length
+    };
+  }
+};
+```
+
+### Analytics Integration
+
+Track tweet performance:
+
+```typescript
+const analyticsAction = {
+  name: 'TWEET_ANALYTICS',
+  description: 'Get analytics for tweets',
+  handler: async (runtime, message) => {
+    const tweetId = message.content.tweetId;
+    
+    // Get tweet metrics
+    const metrics = await runtime.getTweetMetrics(tweetId);
+    
+    // Store analytics
+    await runtime.createMemory({
+      content: {
+        type: 'tweet_analytics',
+        tweetId,
+        metrics: {
+          likes: metrics.public_metrics.like_count,
+          retweets: metrics.public_metrics.retweet_count,
+          replies: metrics.public_metrics.reply_count,
+          impressions: metrics.public_metrics.impression_count
+        },
+        timestamp: Date.now()
+      },
+      type: 'analytics'
+    });
+    
+    return {
+      tweetId,
+      performance: {
+        engagement_rate: (
+          metrics.public_metrics.like_count + 
+          metrics.public_metrics.retweet_count + 
+          metrics.public_metrics.reply_count
+        ) / metrics.public_metrics.impression_count,
+        total_engagements: 
+          metrics.public_metrics.like_count + 
+          metrics.public_metrics.retweet_count + 
+          metrics.public_metrics.reply_count
+      }
+    };
+  }
+};
+```
+
+## Best Practices
+
+### 1. Rate Limiting
+
+Respect Twitter's rate limits:
+
+```typescript
+class TwitterRateLimiter {
+  private requestTimes: number[] = [];
+  private readonly windowSize = 15 * 60 * 1000; // 15 minutes
+  private readonly maxRequests = 50;
+  
+  async checkLimit(): Promise<void> {
+    const now = Date.now();
+    
+    // Remove old requests
+    this.requestTimes = this.requestTimes.filter(
+      time => now - time < this.windowSize
+    );
+    
+    if (this.requestTimes.length >= this.maxRequests) {
+      const oldestRequest = this.requestTimes[0];
+      const waitTime = this.windowSize - (now - oldestRequest);
+      
+      if (waitTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+    
+    this.requestTimes.push(now);
+  }
+}
+```
+
+### 2. Content Guidelines
+
+Follow Twitter's content policies:
+
+```typescript
+const validateTweetContent = (content: string): boolean => {
+  // Check length
+  if (content.length > 280) return false;
+  
+  // Check for prohibited content
+  const prohibitedPatterns = [
+    /spam/i,
+    /follow me/i,
+    /click here/i,
+    // Add more patterns as needed
+  ];
+  
+  return !prohibitedPatterns.some(pattern => pattern.test(content));
+};
+
+const sanitizeTweet = (content: string): string => {
+  // Remove potentially harmful content
+  content = content.replace(/<[^>]*>/g, ''); // Remove HTML tags
+  content = content.replace(/http[s]?:\/\/bit\.ly\/\w+/g, ''); // Remove suspicious links
+  
+  // Ensure proper length
+  if (content.length > 280) {
+    content = content.slice(0, 277) + '...';
+  }
+  
+  return content;
+};
+```
+
+### 3. Engagement Strategy
+
+Implement thoughtful engagement:
+
+```typescript
+const engagementStrategy = {
+  shouldEngage: (tweet: any): boolean => {
+    // Avoid engaging with spam or irrelevant content
+    const spamIndicators = [
+      'follow for follow',
+      'buy now',
+      'click here',
+      'limited time'
+    ];
+    
+    const isSpam = spamIndicators.some(indicator => 
+      tweet.text.toLowerCase().includes(indicator)
+    );
+    
+    // Check if author is verified or has good engagement
+    const hasGoodEngagement = tweet.public_metrics.like_count > 5;
+    const isVerified = tweet.author.verified;
+    
+    return !isSpam && (hasGoodEngagement || isVerified);
+  },
+  
+  chooseEngagementType: (tweet: any): string => {
+    // Like for general appreciation
+    if (tweet.public_metrics.like_count > 10) return 'like';
+    
+    // Retweet for valuable content
+    if (tweet.text.includes('tutorial') || tweet.text.includes('guide')) {
+      return 'retweet';
+    }
+    
+    // Reply for questions or discussions
+    if (tweet.text.includes('?')) return 'reply';
+    
+    return 'like'; // Default to like
+  }
+};
+```
+
+### 4. Error Handling
+
+Handle Twitter API errors gracefully:
+
+```typescript
+const handleTwitterError = (error: any) => {
+  switch (error.code) {
+    case 429:
+      // Rate limit exceeded
+      logger.warn('Twitter rate limit exceeded');
+      return { retry: true, delay: 15 * 60 * 1000 }; // 15 minutes
+      
+    case 401:
+      // Unauthorized
+      logger.error('Twitter API credentials invalid');
+      return { retry: false, error: 'Invalid credentials' };
+      
+    case 403:
+      // Forbidden (suspended account, etc.)
+      logger.error('Twitter API access forbidden');
+      return { retry: false, error: 'Access forbidden' };
+      
+    case 404:
+      // Not found (deleted tweet, user, etc.)
+      logger.warn('Twitter resource not found');
+      return { retry: false, error: 'Resource not found' };
+      
+    case 422:
+      // Unprocessable entity (duplicate tweet, etc.)
+      logger.warn('Twitter request unprocessable');
+      return { retry: false, error: 'Duplicate or invalid content' };
+      
+    default:
+      logger.error('Unknown Twitter API error:', error);
+      return { retry: true, delay: 60000 }; // 1 minute
+  }
+};
+```
+
+## Configuration Options
+
+### Character Integration
+
+Configure Twitter-specific behavior in your character:
+
+```json
+{
+  "name": "Twitter Bot",
+  "bio": ["I'm a helpful Twitter bot powered by ElizaOS"],
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-twitter",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "twitter": {
+      "autoEngage": true,
+      "maxTweetsPerHour": 5,
+      "enableThreads": true,
+      "engagementThreshold": 0.8,
+      "keywords": ["#AI", "#ElizaOS", "#automation"],
+      "autoFollow": false,
+      "replyToMentions": true
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Errors
+
+```bash
+# Verify credentials
+curl -H "Authorization: Bearer $TWITTER_BEARER_TOKEN" \
+  "https://api.twitter.com/2/users/me"
+
+# Check token permissions
+# Ensure your app has Read and Write permissions
+```
+
+#### Rate Limiting
+
+```bash
+# Monitor rate limits
+# Check response headers:
+# x-rate-limit-limit
+# x-rate-limit-remaining
+# x-rate-limit-reset
+```
+
+#### Content Rejection
+
+```bash
+# Common rejection reasons:
+# - Duplicate content
+# - Content too long
+# - Prohibited content
+# - Invalid media format
+```
+
+## API Reference
+
+### Plugin Configuration
+
+```typescript
+interface TwitterPluginConfig {
+  apiKey: string;
+  apiSecret: string;
+  accessToken: string;
+  accessTokenSecret: string;
+  bearerToken: string;
+  username?: string;
+  autoEngage?: boolean;
+  maxTweetsPerHour?: number;
+  mentionMonitoring?: boolean;
+  hashtagMonitoring?: string[];
+}
+```
+
+### Tweet Object
+
+```typescript
+interface Tweet {
+  id: string;
+  text: string;
+  author_id: string;
+  created_at: string;
+  public_metrics: {
+    retweet_count: number;
+    like_count: number;
+    reply_count: number;
+    quote_count: number;
+    impression_count: number;
+  };
+  referenced_tweets?: {
+    type: 'retweeted' | 'quoted' | 'replied_to';
+    id: string;
+  }[];
+  attachments?: {
+    media_keys: string[];
+  };
+}
+```
+
+### Actions
+
+```typescript
+interface TwitterActions {
+  postTweet: (content: TweetContent) => Promise<Tweet>;
+  retweet: (tweetId: string) => Promise<Tweet>;
+  likeTweet: (tweetId: string) => Promise<void>;
+  followUser: (userId: string) => Promise<void>;
+  uploadMedia: (mediaUrl: string) => Promise<string>;
+  searchTweets: (query: string, options?: SearchOptions) => Promise<Tweet[]>;
+  getMentions: (options?: TimelineOptions) => Promise<Tweet[]>;
+  getTweetMetrics: (tweetId: string) => Promise<TweetMetrics>;
+}
+```
+
+## See Also
+
+- [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system)
+- [Character Configuration](/docs/core-concepts/character)
+- [Bootstrap Plugin](/docs/plugins/plugin-bootstrap)
+- [SQL Plugin](/docs/plugins/plugin-sql)
+- [Twitter API Documentation](https://developer.twitter.com/en/docs/twitter-api)

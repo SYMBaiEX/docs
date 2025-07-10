@@ -11,8 +11,9 @@ This guide helps resolve common installation issues for ElizaOS v1.2.0 across di
 
 <Callout type="info">
 **Minimum Requirements**
-- Node.js 18.0.0 or higher
-- npm 9.0.0 or pnpm 8.0.0
+- Node.js 23.3.0 (exact version required)
+- Bun 1.2.15 or higher (recommended)
+- npm 9.0.0 or pnpm 8.0.0 (alternative)
 - 4GB RAM minimum (8GB recommended)
 - 2GB free disk space
 </Callout>
@@ -25,11 +26,16 @@ This guide helps resolve common installation issues for ElizaOS v1.2.0 across di
 # Check Node.js version
 node --version
 
-# Should output v18.0.0 or higher
-# If not installed or outdated:
-# - macOS: brew install node
-# - Ubuntu: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs
-# - Windows: Download from https://nodejs.org
+# Must output exactly v23.3.0
+# If not installed or incorrect version:
+# - Use nvm: nvm install 23.3.0 && nvm use 23.3.0
+# - macOS: brew install node@23
+# - Ubuntu: Use nvm or n to install specific version
+# - Windows: Download v23.3.0 from https://nodejs.org/en/download/releases/
+
+# Or use Bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+bun --version
 ```
 </Tab>
 <Tab value="Package Manager">
@@ -405,26 +411,30 @@ After installation, verify everything works:
 ### Check Installation
 ```bash
 # Verify CLI is accessible
-which eliza  # Linux/macOS
-where eliza  # Windows
+which elizaos  # Linux/macOS
+where elizaos  # Windows
 
 # Check version
-eliza --version
+elizaos --version
+# or use bunx
+bunx @elizaos/cli --version
 ```
 </Step>
 
 <Step>
 ### Run Diagnostics
 ```bash
-# Run built-in diagnostics
-eliza doctor
+# Check Node.js and Bun versions
+node --version  # Should be 23.3.0
+bun --version   # Should be 1.2.15+
+
+# Verify CLI installation
+bunx @elizaos/cli --version
 
 # Expected output:
-# ✓ Node.js version: 18.17.0
-# ✓ npm version: 9.8.1
+# ✓ Node.js version: 23.3.0
+# ✓ Bun version: 1.2.15
 # ✓ ElizaOS CLI: 1.2.0
-# ✓ Required dependencies: OK
-# ✓ Optional dependencies: OK
 ```
 </Step>
 
@@ -433,10 +443,13 @@ eliza doctor
 ```bash
 # Initialize a test project
 mkdir eliza-test && cd eliza-test
-eliza init
+bunx @elizaos/cli init
+
+# Install dependencies
+bun install
 
 # Start in development mode
-eliza start --dev
+bun dev
 ```
 </Step>
 </Steps>

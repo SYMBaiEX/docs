@@ -41,21 +41,22 @@ By completing this track, you'll be able to create:
 
 ## Technical Architecture Overview
 
-<Mermaid chart="graph TB
-    subgraph 'ElizaOS Core'
+```mermaid
+graph TB
+    subgraph "ElizaOS Core"
         Runtime[AgentRuntime]
         Memory[Memory System]
         State[State Management]
         Actions[Action System]
     end
     
-    subgraph 'Plugin Layer'
+    subgraph "Plugin Layer"
         Model[Model Providers]
         Platform[Platform Clients]
         Custom[Custom Plugins]
     end
     
-    subgraph 'External Services'
+    subgraph "External Services"
         AI[AI APIs]
         DB[Databases]
         Services[External APIs]
@@ -69,7 +70,8 @@ By completing this track, you'll be able to create:
     Runtime --> Custom
     Model --> AI
     Memory --> DB
-    Custom --> Services" />
+    Custom --> Services
+```
 
 ## Core Technical Concepts
 
@@ -78,22 +80,34 @@ By completing this track, you'll be able to create:
 The `AgentRuntime` is the heart of ElizaOS - an orchestration system that:
 
 ```typescript
-// Core runtime responsibilities
-class AgentRuntime {
-  // Manages agent lifecycle
-  async initialize(): Promise<void>
+// Core runtime interface
+interface IAgentRuntime {
+  // Core properties
+  agentId: UUID;
+  character: Character;
+  actions: Action[];
+  evaluators: Evaluator[];
+  providers: Provider[];
+  plugins: Plugin[];
   
-  // Processes incoming messages
-  async processMessage(message: Memory): Promise<Response>
+  // Service management
+  services: Map<ServiceTypeName, Service>;
+  getService<T extends Service>(service: ServiceTypeName | string): T | null;
+  registerService(service: typeof Service): Promise<void>;
   
-  // Manages state and memory
-  async composeState(message: Memory): Promise<State>
+  // Message processing
+  async processActions(
+    message: Memory,
+    responses: Memory[],
+    state?: State,
+    callback?: HandlerCallback
+  ): Promise<void>;
   
-  // Coordinates actions
-  async evaluateActions(state: State): Promise<Action[]>
-  
-  // Handles service registration
-  registerService(service: Service): void
+  // State composition
+  async composeState(
+    message: Memory,
+    additionalData?: any
+  ): Promise<State>;
 }
 ```
 
@@ -108,18 +122,39 @@ class AgentRuntime {
 ElizaOS implements a sophisticated memory architecture:
 
 ```typescript
-interface MemorySystem {
-  // Short-term memory (conversation context)
-  conversationMemory: Memory[]
+// Memory interface from core
+interface Memory {
+  id?: UUID;
+  content: Content;
+  entityId?: UUID;
+  roomId?: UUID;
+  worldId?: UUID;
+  createdAt?: number;
+  embedding?: number[];
+  source?: string;
+}
+
+// Runtime memory operations
+interface IAgentRuntime {
+  // Create and store memories
+  createMemory(memory: Memory, unique?: boolean): Promise<void>;
   
-  // Long-term memory (persistent storage)
-  longTermMemory: MemoryStore
+  // Search memories
+  searchMemoryByEmbedding(
+    embedding: number[],
+    params: {
+      match_threshold?: number;
+      count?: number;
+      worldId?: UUID;
+      table?: string;
+    }
+  ): Promise<Memory[]>;
   
-  // Semantic memory (knowledge base)
-  knowledgeBase: KnowledgeStore
-  
-  // Working memory (current state)
-  workingMemory: State
+  // Get recent messages
+  getRecentMessagesInRoom(
+    roomId: UUID,
+    count?: number
+  ): Promise<Memory[]>;
 }
 ```
 
@@ -162,18 +197,36 @@ Actions are the "muscles" of your agent:
 
 ```typescript
 interface Action {
-  name: string
-  description: string
+  // Core properties
+  name: string;
+  description: string;
+  similes?: string[];
   
-  // Validation logic
-  validate: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>
+  // Validation function
+  validate: Validator;
   
-  // Execution logic
-  handler: (runtime: IAgentRuntime, message: Memory) => Promise<Response>
+  // Handler function
+  handler: Handler;
   
-  // Optional examples for better AI understanding
-  examples?: Example[]
+  // Example usages
+  examples?: ActionExample[][];
 }
+
+// Type definitions
+type Validator = (
+  runtime: IAgentRuntime,
+  message: Memory,
+  state?: State
+) => Promise<boolean>;
+
+type Handler = (
+  runtime: IAgentRuntime,
+  message: Memory,
+  state?: State,
+  options?: { [key: string]: unknown },
+  callback?: HandlerCallback,
+  responses?: Memory[]
+) => Promise<unknown>;
 ```
 
 **Action Types:**
@@ -457,7 +510,7 @@ bun run lint
 
 ## Ready to Begin?
 
-Start your journey with the [Architecture Overview](./architecture/) to understand how ElizaOS works under the hood. Then move to [Development Setup](./development/) to prepare your environment.
+Start your journey with the [Architecture Overview](./architecture/overview) to understand how ElizaOS works under the hood. Then explore the [Development section](./development/) for plugin creation and advanced patterns.
 
 Remember: The best way to learn is by building. Start with simple plugins and gradually increase complexity as you understand the system better.
 

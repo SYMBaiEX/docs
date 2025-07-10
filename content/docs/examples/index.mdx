@@ -89,9 +89,23 @@ example-name/
 Before running the examples, ensure you have:
 
 <Tabs>
+<Tab value="bun">
+```bash
+# Bun installed (recommended)
+curl -fsSL https://bun.sh/install | bash
+bun --version
+
+# Install ElizaOS CLI
+bun add -g @elizaos/cli
+
+# Clone the examples repository
+git clone https://github.com/elizaos/eliza-examples
+cd eliza-examples
+```
+</Tab>
 <Tab value="npm">
 ```bash
-# Node.js 18+ installed
+# Node.js 23.3.0 installed (exact version required)
 node --version
 
 # Install ElizaOS CLI globally
@@ -104,7 +118,7 @@ cd eliza-examples
 </Tab>
 <Tab value="yarn">
 ```bash
-# Node.js 18+ installed
+# Node.js 23.3.0 installed (exact version required)
 node --version
 
 # Install ElizaOS CLI globally
@@ -117,7 +131,7 @@ cd eliza-examples
 </Tab>
 <Tab value="pnpm">
 ```bash
-# Node.js 18+ installed
+# Node.js 23.3.0 installed (exact version required)
 node --version
 
 # Install ElizaOS CLI globally
@@ -164,8 +178,9 @@ npm start
 Common issues and solutions:
 
 ### Installation Issues
-- Ensure Node.js 18+ is installed
-- Clear npm cache: `npm cache clean --force`
+- Ensure Node.js 23.3.0 is installed (exact version required)
+- Or use Bun (recommended): `curl -fsSL https://bun.sh/install | bash`
+- Clear cache: `bun cache purge` or `npm cache clean --force`
 - Delete node_modules and reinstall
 
 ### Runtime Errors

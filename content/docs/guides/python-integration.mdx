@@ -51,6 +51,7 @@ Create a simple Python client to interact with ElizaOS:
 ```python title="eliza_client.py"
 import requests
 import json
+import time
 from typing import Dict, Any, Optional
 
 class ElizaClient:
@@ -72,18 +73,19 @@ class ElizaClient:
         self.agent_id = result["agent"]["id"]
         return result
     
-    def send_message(self, text: str, user_id: str = "python-user") -> Dict[str, Any]:
+    def send_message(self, text: str, channel_id: str, user_id: str = "python-user") -> Dict[str, Any]:
         """Send a message to the agent"""
-        if not self.agent_id:
-            raise ValueError("No agent created yet")
-        
         response = self.session.post(
-            f"{self.base_url}/api/messaging/submit",
+            f"{self.base_url}/api/messaging/ingest-external",
             json={
-                "agentId": self.agent_id,
-                "text": text,
-                "userId": user_id,
-                "roomId": f"room-{user_id}"
+                "channel_id": channel_id,
+                "server_id": "00000000-0000-0000-0000-000000000000",
+                "author_id": user_id,
+                "author_display_name": "Python User",
+                "content": text,
+                "source_type": "python",
+                "source_id": f"py-msg-{int(time.time())}",
+                "raw_message": {"text": text}
             }
         )
         response.raise_for_status()
@@ -115,8 +117,20 @@ if __name__ == "__main__":
     agent = client.create_agent(character)
     print(f"Created agent: {agent['agent']['id']}")
     
+    # Create a channel first
+    channel = requests.post(
+        f"{client.base_url}/api/messaging/central-channels",
+        json={
+            "name": "Python Test Channel",
+            "type": "GROUP",
+            "serverId": "00000000-0000-0000-0000-000000000000",
+            "participantIds": [agent['agent']['id']]
+        }
+    ).json()
+    channel_id = channel['data']['id']
+    
     # Send a message
-    response = client.send_message("Hello from Python!")
+    response = client.send_message("Hello from Python!", channel_id)
     print(f"Response: {response}")
 ```
 
@@ -366,14 +380,19 @@ class ElizaNotebook:
         self.agent_id = None
         self.conversation_history = []
     
-    def chat(self, message: str):
+    def chat(self, message: str, channel_id: str):
         """Interactive chat with display"""
         response = requests.post(
-            f"{self.base_url}/api/messaging/submit",
+            f"{self.base_url}/api/messaging/ingest-external",
             json={
-                "agentId": self.agent_id,
-                "text": message,
-                "userId": "notebook-user"
+                "channel_id": channel_id,
+                "server_id": "00000000-0000-0000-0000-000000000000",
+                "author_id": "notebook-user",
+                "author_display_name": "Notebook User",
+                "content": message,
+                "source_type": "jupyter",
+                "source_id": f"nb-msg-{int(time.time())}",
+                "raw_message": {"text": message}
             }
         )
         
@@ -403,8 +422,20 @@ response = requests.post(
 )
 eliza.agent_id = response.json()["agent"]["id"]
 
-# Cell 3: Interactive chat
-eliza.chat("Can you help me analyze some sales data?")
+# Cell 3: Create channel
+channel_response = requests.post(
+    f"{eliza.base_url}/api/messaging/central-channels",
+    json={
+        "name": "Notebook Channel",
+        "type": "GROUP",
+        "serverId": "00000000-0000-0000-0000-000000000000",
+        "participantIds": [eliza.agent_id]
+    }
+)
+channel_id = channel_response.json()['data']['id']
+
+# Cell 4: Interactive chat
+eliza.chat("Can you help me analyze some sales data?", channel_id)
 
 # Cell 4: Visualize conversation
 df = pd.DataFrame(eliza.conversation_history)
@@ -625,10 +656,14 @@ from datetime import datetime
 
 class ElizaMessage(BaseModel):
     """Type-safe message model"""
-    agent_id: str = Field(alias="agentId")
-    text: str
-    user_id: str = Field(alias="userId")
-    room_id: Optional[str] = Field(alias="roomId", default=None)
+    channel_id: str
+    server_id: str = "00000000-0000-0000-0000-000000000000"
+    author_id: str
+    author_display_name: str
+    content: str
+    source_type: str = "python"
+    source_id: Optional[str] = None
+    raw_message: Optional[dict] = None
     metadata: Optional[dict] = None
 
 class ElizaResponse(BaseModel):
@@ -642,13 +677,13 @@ class ElizaResponse(BaseModel):
 class TypedElizaClient:
     """Type-safe client using Pydantic"""
     
-    def send_message(self, message: ElizaMessage) -> ElizaResponse:
+    def send_message(self, message: ElizaMessage) -> dict:
         response = requests.post(
-            f"{self.base_url}/api/messaging/submit",
-            json=message.dict(by_alias=True)
+            f"{self.base_url}/api/messaging/ingest-external",
+            json=message.dict()
         )
         
-        return ElizaResponse(**response.json())
+        return response.json()
 ```
 
 ## Deployment Considerations

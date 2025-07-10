@@ -30,6 +30,8 @@ Include API key in headers if authentication is enabled:
 X-API-KEY: your-api-key
 ```
 
+**Note:** Authentication is optional. If `ELIZA_SERVER_AUTH_TOKEN` is not set, all requests are allowed without authentication.
+
 ## Agent CRUD Operations
 
 ### List All Agents
@@ -140,6 +142,8 @@ Creates a new agent from character configuration.
 
 **Response:**
 
+**Status Code:** 201 Created
+
 ```json
 {
   "success": true,
@@ -209,9 +213,25 @@ Deletes an agent and all associated data.
 
 **Response:**
 
+**Status Code:** 204 No Content
+
 ```http
 204 No Content
 ```
+
+**Alternative Response (Long Operation):**
+
+**Status Code:** 202 Accepted
+
+```json
+{
+  "success": true,
+  "partial": true,
+  "message": "Agent deletion initiated but taking longer than expected. The operation will continue in the background."
+}
+```
+
+**Note:** Delete operations may take time and include automatic retries. If the operation takes longer than 10 seconds, a 202 response is returned indicating the operation continues in the background.
 
 ## Agent Lifecycle Management
 
@@ -234,10 +254,7 @@ Starts an agent runtime.
   "success": true,
   "data": {
     "id": "agent-uuid",
-    "character": {
-      "name": "Agent Name",
-      "bio": ["Agent biography"]
-    },
+    "name": "Agent Name",
     "status": "active"
   }
 }
@@ -261,8 +278,7 @@ Stops a running agent.
 {
   "success": true,
   "data": {
-    "id": "agent-uuid",
-    "status": "inactive"
+    "message": "Agent stopped"
   }
 }
 ```
@@ -464,6 +480,8 @@ Removes all memories for an agent in a specific room.
 
 **Response:**
 
+**Status Code:** 204 No Content
+
 ```http
 204 No Content
 ```
@@ -527,6 +545,33 @@ Lists all worlds/environments for an agent.
 }
 ```
 
+### Get All Worlds
+
+```http
+GET /api/agents/worlds
+```
+
+Gets all available worlds from any active agent.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "worlds": [
+      {
+        "id": "world-uuid",
+        "name": "World Name",
+        "agentId": "agent-uuid",
+        "serverId": "server-uuid",
+        "metadata": {}
+      }
+    ]
+  }
+}
+```
+
 ### Create Agent World
 
 ```http
@@ -544,10 +589,50 @@ Creates a new world for an agent.
 ```json
 {
   "name": "World Name",
-  "description": "World description",
-  "settings": {
-    "environment": "sandbox",
-    "permissions": ["read", "write"]
+  "serverId": "server-uuid",
+  "metadata": {}
+}
+```
+
+**Response:**
+
+**Status Code:** 201 Created
+
+```json
+{
+  "success": true,
+  "data": {
+    "world": {
+      "id": "world-uuid",
+      "name": "World Name",
+      "agentId": "agent-uuid",
+      "serverId": "server-uuid",
+      "metadata": {}
+    }
+  }
+}
+```
+
+### Update Agent World
+
+```http
+PATCH /api/agents/:agentId/worlds/:worldId
+```
+
+Updates a world for an agent.
+
+**Parameters:**
+
+- `agentId` (UUID) - Agent identifier
+- `worldId` (UUID) - World identifier
+
+**Request Body:**
+
+```json
+{
+  "name": "Updated World Name",
+  "metadata": {
+    "key": "value"
   }
 }
 ```
@@ -558,10 +643,15 @@ Creates a new world for an agent.
 {
   "success": true,
   "data": {
-    "id": "world-uuid",
-    "name": "World Name",
-    "description": "World description",
-    "status": "active"
+    "world": {
+      "id": "world-uuid",
+      "name": "Updated World Name",
+      "agentId": "agent-uuid",
+      "serverId": "server-uuid",
+      "metadata": {
+        "key": "value"
+      }
+    }
   }
 }
 ```
@@ -570,34 +660,11 @@ Creates a new world for an agent.
 
 ### List Agent Rooms
 
-Room management is handled through the Memory API. For agent-specific room operations, use the
-Memory API endpoints.
-
-**Alternative - Memory API:**
-
 ```http
-GET /api/memory/agents/:agentId/rooms
+GET /api/agents/:agentId/rooms
 ```
 
-### Get Room Details
-
-```http
-GET /api/memory/agents/:agentId/rooms/:roomId
-```
-
-Gets detailed information about a specific room through the Memory API.
-
-For complete room management documentation, see the [Memory API documentation](./memory).
-
-## Agent Panels and UI
-
-### Get Agent Panels
-
-```http
-GET /api/agents/:agentId/panels
-```
-
-Gets UI panels for an agent (implementation in progress).
+Gets all rooms where an agent is a participant.
 
 **Parameters:**
 
@@ -609,12 +676,127 @@ Gets UI panels for an agent (implementation in progress).
 {
   "success": true,
   "data": {
-    "panels": []
+    "rooms": [
+      {
+        "id": "room-uuid",
+        "name": "Room Name",
+        "type": "DM",
+        "source": "discord",
+        "worldId": "world-uuid",
+        "serverId": "server-uuid",
+        "metadata": {}
+      }
+    ]
   }
 }
 ```
 
-_Note: Panel functionality is currently under development._
+### Get Room Details
+
+```http
+GET /api/agents/:agentId/rooms/:roomId
+```
+
+Gets detailed information about a specific room.
+
+**Parameters:**
+
+- `agentId` (UUID) - Agent identifier
+- `roomId` (UUID) - Room identifier
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Room Name",
+    "type": "DM",
+    "source": "discord",
+    "worldId": "world-uuid",
+    "worldName": "World Name",
+    "serverId": "server-uuid",
+    "metadata": {}
+  }
+}
+```
+
+### Create Room
+
+```http
+POST /api/agents/:agentId/rooms
+```
+
+Creates a new room for an agent.
+
+**Parameters:**
+
+- `agentId` (UUID) - Agent identifier
+
+**Request Body:**
+
+```json
+{
+  "name": "Room Name",
+  "type": "DM",
+  "source": "discord",
+  "worldId": "world-uuid",
+  "serverId": "server-uuid",
+  "metadata": {}
+}
+```
+
+**Response:**
+
+**Status Code:** 201 Created
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "room-uuid",
+    "name": "Room Name",
+    "agentId": "agent-uuid",
+    "createdAt": 1640995200000,
+    "source": "discord",
+    "type": "DM",
+    "worldId": "world-uuid",
+    "serverId": "server-uuid",
+    "metadata": {}
+  }
+}
+```
+
+## Agent Panels and UI
+
+### Get Agent Panels
+
+```http
+GET /api/agents/:agentId/panels
+```
+
+Gets public plugin panels for an agent.
+
+**Parameters:**
+
+- `agentId` (UUID) - Agent identifier
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "Panel Name",
+      "path": "/api/plugin/path?agentId=agent-uuid"
+    }
+  ]
+}
+```
+
+_Note: Returns public GET routes from agent plugins that have a name defined._
 
 ## Error Handling
 
@@ -638,8 +820,11 @@ Common error codes:
 - `INVALID_REQUEST` - Invalid request parameters
 - `CREATE_ERROR` - Failed to create agent
 - `UPDATE_ERROR` - Failed to update agent
-- `DELETE_ERROR` - Failed to delete agent
+- `DELETE_ERROR` - Failed to delete agent (may include foreign key constraint errors)
 - `DB_ERROR` - Database operation failed
+- `MEMORY_ERROR` - Memory operation failed
+- `LOG_ERROR` - Log operation failed
+- `PANEL_ERROR` - Panel operation failed
 
 ## Rate Limiting
 
@@ -657,7 +842,7 @@ Agent endpoints are subject to rate limiting:
 4. **Implement proper authentication** in production
 5. **Monitor agent status** before performing operations
 6. **Clean up resources** when deleting agents
-7. **Use memory search** efficiently with proper query limits
+7. **Handle async operations** properly (especially delete operations which may take time)
 
 ## Examples
 
@@ -691,8 +876,8 @@ curl -X POST http://localhost:3000/api/agents/{agentId}/memories \
     }
   }'
 
-# 4. Search memories
-curl "http://localhost:3000/api/agents/{agentId}/memories/search?query=preferences&limit=5"
+# 4. Get memories
+curl "http://localhost:3000/api/agents/{agentId}/memories?tableName=messages&limit=10"
 ```
 
 ### Agent Monitoring

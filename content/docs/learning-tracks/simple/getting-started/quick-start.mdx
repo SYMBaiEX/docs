@@ -11,19 +11,24 @@ experience required!
 
 ## Install ElizaOS CLI
 
-First, install the ElizaOS command-line interface:
+First, ensure you have Node.js (v23.3.0+) and Bun installed, then install the ElizaOS command-line interface:
 
 ```bash
-bun install -g @elizaos/cli
+npm install -g @elizaos/cli
 ```
 
-Then create your first agent:
+Then create your first agent project:
 
 ```bash
-elizaos create my-first-agent
+elizaos create my-first-agent --type project
+cd my-first-agent
 ```
 
-This will create a new directory with all the files you need.
+This will create a new directory with:
+- Basic project structure
+- Character configuration template
+- Environment file template
+- All necessary dependencies
 
 </Step>
 
@@ -41,6 +46,10 @@ You'll need an API key from one of these providers:
 3. Add it to your `.env` file
 
 ```bash
+# Database (required)
+DATABASE_URL=sqlite:./data/db.sqlite
+
+# OpenAI API Key
 OPENAI_API_KEY=your_key_here
 ```
 
@@ -52,17 +61,27 @@ OPENAI_API_KEY=your_key_here
 3. Add it to your `.env` file
 
 ```bash
+# Database (required)
+DATABASE_URL=sqlite:./data/db.sqlite
+
+# Anthropic API Key
 ANTHROPIC_API_KEY=your_key_here
 ```
 
   </Tab>
   <Tab value="Local AI">
     
-1. Install a local AI model (like Ollama)
-2. Configure the local endpoint
-3. No API key needed!
+1. Install [Ollama](https://ollama.ai) or another local AI
+2. Start Ollama: `ollama serve`
+3. Configure in `.env`:
 
-**No environment variable required**
+```bash
+# Database (required)
+DATABASE_URL=sqlite:./data/db.sqlite
+
+# Ollama endpoint
+OLLAMA_API_ENDPOINT=http://localhost:11434
+```
 
   </Tab>
 </Tabs>
@@ -73,25 +92,37 @@ ANTHROPIC_API_KEY=your_key_here
 
 ## Configure Your Agent
 
-Customize your agent by editing `agent/eliza.character.json`:
+Customize your agent by editing `src/character.ts`:
 
-```json
-{
-  "name": "MyAgent",
-  "description": "A helpful AI assistant",
-  "personality": "friendly and helpful",
-  "plugins": ["bootstrap"],
-  "clients": ["discord", "web"]
-}
+```typescript
+import { type Character } from '@elizaos/core';
+
+export const character: Character = {
+  name: "MyAgent",
+  bio: [
+    "A helpful AI assistant",
+    "I'm here to help with any questions or tasks",
+    "I love learning and helping people"
+  ],
+  style: {
+    all: ["friendly", "helpful", "curious", "encouraging"]
+  },
+  topics: ["general knowledge", "problem solving", "casual conversation"],
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",  // or your chosen AI provider
+    "@elizaos/plugin-bootstrap"
+  ]
+};
 ```
 
 You can customize:
 
-- **Name**: Your agent's name
-- **Description**: What your agent does
-- **Personality**: How your agent behaves
-- **Plugins**: What capabilities your agent has
-- **Clients**: Where your agent will run
+- **name**: Your agent's name
+- **bio**: Background and description (as an array of strings)
+- **style**: How your agent communicates
+- **topics**: What your agent likes to discuss
+- **plugins**: Must include sql, AI provider, and bootstrap in that order
 
 </Step>
 
@@ -105,12 +136,19 @@ Start your agent in development mode:
 elizaos dev
 ```
 
+Or specify a character file:
+
+```bash
+elizaos dev --character src/character.ts
+```
+
 You'll see output like:
 ```
 🤖 Starting ElizaOS...
 ✅ Database connected
-✅ Plugins loaded
-🌐 Web interface: http://localhost:3000
+✅ Plugins loaded: sql, openai, bootstrap
+✅ Character loaded: MyAgent
+🌐 Server running on http://localhost:3000
 ```
 
 Your agent is now running!
@@ -121,10 +159,18 @@ Your agent is now running!
 
 ## Test Your Agent
 
+### Via Terminal
+If your agent has terminal chat enabled, you can chat directly in the console where it's running.
+
+### Via Web Interface
 1. Open your browser to `http://localhost:3000`
 2. Start chatting with your agent
 3. Test different questions and commands
-4. Refine the personality if needed
+4. Refine the personality in `src/character.ts` if needed
+
+### Via Discord (if configured)
+1. Add your bot to a Discord server
+2. Chat with it in any channel it can see
 
 </Step>
 </Steps>
@@ -145,8 +191,22 @@ Once your agent is working locally, you can:
 **Agent won't start?**
 
 - Check that your API key is correctly set in `.env`
-- Make sure you have the required dependencies installed
-- Verify your internet connection
+- Ensure DATABASE_URL is configured in `.env`
+- Verify Node.js version: `node --version` (needs v23.3.0+)
+- Check Bun installation: `bun --version`
+- Make sure all dependencies installed: `bun install`
+
+**Database errors?**
+
+- Ensure `@elizaos/plugin-sql` is the FIRST plugin in your character's plugins array
+- Check DATABASE_URL format in `.env`
+- For SQLite, the directory must exist
+
+**No responses from agent?**
+
+- Verify your AI provider API key is valid
+- Check that the corresponding plugin is in your character's plugins array
+- Ensure `@elizaos/plugin-bootstrap` is the LAST plugin
 
 **Agent not responding?**
 

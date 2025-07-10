@@ -29,26 +29,35 @@ conversations and interactions:
 
 ```typescript
 interface State {
-  agentId: string;
-  userId: string;
-  roomId: string;
-  userState: string;
-  agentState: string;
-  conversationLength: number;
-  recentMessages: Memory[];
-  goals: Goal[];
-  entities: Entity[];
-  providers: { [key: string]: string };
+  values: {
+    [key: string]: any;
+  };
+  data: {
+    [key: string]: any;
+  };
+  text: string;
+  [key: string]: any; // Additional dynamic properties
 }
 ```
 
 **State Providers**:
 
-- **Time Provider**: Current time and scheduling information
-- **Facts Provider**: Verified information and knowledge base
-- **Goals Provider**: Active goals and objectives
-- **Boredom Provider**: Conversation engagement metrics
-- **Recent Messages**: Conversation history and context
+- **Time Provider**: Current time and date information
+- **Facts Provider**: Character-specific facts and knowledge
+- **Actions Provider**: Available actions for the agent
+- **Anxiety Provider**: Agent anxiety level tracking
+- **Attachments Provider**: Message attachments and media
+- **Capabilities Provider**: Agent capabilities and features
+- **Character Provider**: Character personality and traits
+- **Choice Provider**: Decision-making and choices
+- **Entities Provider**: Tracked entities in conversations
+- **Evaluators Provider**: Available evaluators
+- **Providers Provider**: List of all available providers
+- **Recent Messages Provider**: Recent conversation history
+- **Relationships Provider**: Entity relationships
+- **Role Provider**: User roles and permissions
+- **Settings Provider**: Agent settings and configuration
+- **World Provider**: World/environment information
 
 ### Memory System
 
@@ -60,11 +69,11 @@ Persistent memory storage with vector embeddings for semantic search and retriev
 
 ```typescript
 enum MemoryType {
-  MESSAGES = "messages",
-  FACTS = "facts",
-  DOCUMENTS = "documents",
-  KNOWLEDGE = "knowledge",
-  RELATIONSHIPS = "relationships",
+  DOCUMENT = "document",
+  FRAGMENT = "fragment",
+  MESSAGE = "message",
+  DESCRIPTION = "description",
+  CUSTOM = "custom",
 }
 ```
 
@@ -80,14 +89,27 @@ enum MemoryType {
 
 ```typescript
 interface Memory {
-  id: UUID;
-  userId: UUID;
-  agentId: UUID;
-  roomId: UUID;
+  /** Optional unique identifier */
+  id?: UUID;
+  /** Associated user ID */
+  entityId: UUID;
+  /** Associated agent ID */
+  agentId?: UUID;
+  /** Optional creation timestamp in milliseconds since epoch */
+  createdAt?: number;
+  /** Memory content */
   content: Content;
+  /** Optional embedding vector for semantic search */
   embedding?: number[];
-  createdAt: Date;
-  type: MemoryType;
+  /** Associated room ID */
+  roomId: UUID;
+  /** Associated world ID (optional) */
+  worldId?: UUID;
+  /** Whether memory is unique (used to prevent duplicates) */
+  unique?: boolean;
+  /** Embedding similarity score (set when retrieved via search) */
+  similarity?: number;
+  /** Metadata for the memory */
   metadata?: MemoryMetadata;
 }
 ```
@@ -96,38 +118,22 @@ interface Memory {
 
 [Learn more about Knowledge Management →](./knowledge-management)
 
-Structured knowledge storage and retrieval system for facts, documents, and domain-specific
-information:
+Structured knowledge storage and retrieval system using the Memory system with specialized metadata:
 
-**Knowledge Types**:
+**Knowledge Storage**:
 
-- **Facts**: Verified information and statements
-- **Documents**: Structured document storage and retrieval
-- **Relationships**: Entity relationships and connections
-- **Domain Knowledge**: Specialized knowledge bases
-- **Learned Information**: Knowledge acquired through interactions
+- **Document Type**: Full documents stored as memories with `MemoryType.DOCUMENT`
+- **Fragment Type**: Document chunks for embedding and search with `MemoryType.FRAGMENT`
+- **Description Type**: Descriptive information with `MemoryType.DESCRIPTION`
+- **Custom Type**: Domain-specific knowledge with `MemoryType.CUSTOM`
 
 **Knowledge Features**:
 
 - **Semantic Search**: Find relevant knowledge using vector embeddings
-- **Knowledge Validation**: Verify information accuracy and consistency
-- **Knowledge Updates**: Dynamic knowledge base updates
-- **Knowledge Graphs**: Relationship mapping and visualization
-- **Knowledge Scoring**: Relevance and confidence scoring
-
-**Knowledge Interface**:
-
-```typescript
-interface Knowledge {
-  id: UUID;
-  content: string;
-  source: string;
-  confidence: number;
-  type: KnowledgeType;
-  relationships: Relationship[];
-  metadata: KnowledgeMetadata;
-}
-```
+- **Document Chunking**: Split large documents into searchable fragments
+- **Metadata Tagging**: Tag knowledge with source, scope, and custom metadata
+- **Similarity Scoring**: Score knowledge relevance based on embeddings
+- **Scope Management**: Control knowledge visibility (shared, private, room)
 
 ### Database Architecture
 
@@ -146,26 +152,52 @@ Flexible database adapter pattern supporting multiple backends with consistent A
 
 ```typescript
 interface IDatabaseAdapter {
+  // Core operations
+  initialize(config?: any): Promise<void>;
+  close(): Promise<void>;
+  isReady(): Promise<boolean>;
+  
   // Memory operations
-  createMemory(memory: Memory): Promise<void>;
-  getMemories(params: GetMemoriesParams): Promise<Memory[]>;
-  searchMemories(params: SearchMemoriesParams): Promise<Memory[]>;
-  updateMemory(memory: Memory): Promise<void>;
-  removeMemory(memoryId: UUID): Promise<void>;
-
-  // Knowledge operations
-  createKnowledge(knowledge: Knowledge): Promise<void>;
-  getKnowledge(params: GetKnowledgeParams): Promise<Knowledge[]>;
-  searchKnowledge(params: SearchKnowledgeParams): Promise<Knowledge[]>;
-
+  createMemory(memory: Memory, tableName: string, unique?: boolean): Promise<UUID>;
+  getMemories(params: {
+    entityId?: UUID;
+    agentId?: UUID;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    start?: number;
+    end?: number;
+    roomId?: UUID;
+    worldId?: UUID;
+  }): Promise<Memory[]>;
+  searchMemories(params: {
+    embedding: number[];
+    match_threshold?: number;
+    count?: number;
+    unique?: boolean;
+    tableName: string;
+    query?: string;
+    roomId?: UUID;
+    worldId?: UUID;
+    entityId?: UUID;
+  }): Promise<Memory[]>;
+  updateMemory(memory: Partial<Memory> & { id: UUID }): Promise<boolean>;
+  deleteMemory(memoryId: UUID): Promise<void>;
+  
   // Entity operations
-  createEntity(entity: Entity): Promise<void>;
-  getEntities(params: GetEntitiesParams): Promise<Entity[]>;
+  createEntities(entities: Entity[]): Promise<boolean>;
+  getEntityByIds(entityIds: UUID[]): Promise<Entity[] | null>;
   updateEntity(entity: Entity): Promise<void>;
-
+  
   // Relationship operations
-  createRelationship(relationship: Relationship): Promise<void>;
-  getRelationships(params: GetRelationshipsParams): Promise<Relationship[]>;
+  createRelationship(params: {
+    sourceEntityId: UUID;
+    targetEntityId: UUID;
+    tags?: string[];
+    metadata?: Metadata;
+  }): Promise<boolean>;
+  getRelationships(params: { entityId: UUID; tags?: string[] }): Promise<Relationship[]>;
+  updateRelationship(relationship: Relationship): Promise<void>;
 }
 ```
 
@@ -179,10 +211,8 @@ interface IDatabaseAdapter {
 interface Entity {
   id: UUID;
   name: string;
-  type: EntityType;
-  attributes: { [key: string]: any };
-  relationships: Relationship[];
-  metadata: EntityMetadata;
+  type: string;
+  metadata?: Metadata;
 }
 ```
 
@@ -300,11 +330,17 @@ class CustomStateProvider implements Provider {
 **State Composition**:
 
 ```typescript
-const state = await composeState(runtime, {
-  providers: [timeProvider, factsProvider, goalsProvider, customProvider],
-  userId,
+// State is composed from various providers in the runtime
+const state = await runtime.composeState(message, {
+  agents: [agentId],
+  entityId,
   roomId,
 });
+
+// Access provider data from state
+console.log(state.text); // Combined context text
+console.log(state.values); // Provider values
+console.log(state.data); // Provider data
 ```
 
 ### Memory Management Patterns
@@ -313,25 +349,29 @@ const state = await composeState(runtime, {
 
 ```typescript
 const memory: Memory = {
-  id: uuidv4(),
-  userId,
+  entityId: userId,
   agentId,
   roomId,
   content: { text: "User message" },
-  type: MemoryType.MESSAGES,
-  createdAt: new Date(),
+  metadata: {
+    type: MemoryType.MESSAGE,
+    timestamp: Date.now(),
+    scope: 'private'
+  }
 };
 
-await runtime.messageManager.createMemory(memory);
+await runtime.databaseAdapter.createMemory(memory, 'memories');
 ```
 
 **Memory Retrieval**:
 
 ```typescript
-const memories = await runtime.messageManager.getMemories({
+const memories = await runtime.databaseAdapter.getMemories({
   roomId,
   count: 10,
-  type: MemoryType.MESSAGES,
+  tableName: 'memories',
+  entityId: userId,
+  agentId
 });
 ```
 
@@ -340,24 +380,35 @@ const memories = await runtime.messageManager.getMemories({
 **Knowledge Storage**:
 
 ```typescript
-const knowledge: Knowledge = {
-  id: uuidv4(),
-  content: "Important fact about the domain",
-  source: "documentation",
-  confidence: 0.95,
-  type: KnowledgeType.FACTS,
+// Store knowledge as a memory with appropriate metadata
+const knowledge: Memory = {
+  entityId: agentId,
+  roomId,
+  content: { text: "Important fact about the domain" },
+  metadata: {
+    type: MemoryType.DOCUMENT,
+    source: "documentation",
+    scope: 'shared',
+    tags: ['fact', 'domain-knowledge']
+  }
 };
 
-await runtime.knowledgeManager.createKnowledge(knowledge);
+await runtime.databaseAdapter.createMemory(knowledge, 'knowledge');
 ```
 
 **Knowledge Search**:
 
 ```typescript
-const relevantKnowledge = await runtime.knowledgeManager.searchKnowledge({
-  query: "user question",
-  threshold: 0.8,
-  limit: 5,
+// Generate embedding for the query
+const embedding = await runtime.embed("user question");
+
+// Search for relevant knowledge
+const relevantKnowledge = await runtime.databaseAdapter.searchMemories({
+  embedding,
+  tableName: 'knowledge',
+  match_threshold: 0.8,
+  count: 5,
+  roomId
 });
 ```
 

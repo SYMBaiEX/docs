@@ -27,17 +27,22 @@ const plugin: Plugin = {
   models: {
     [ModelType.TEXT_SMALL]: async (runtime, params) => {
       // Handler for small text models
-      return generateText(params);
+      // Note: runtime is passed as first parameter
+      const client = createOpenAIClient(runtime);
+      return await generateText(client, params);
     },
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
       // Handler for large text models
-      return generateText(params);
+      const client = createOpenAIClient(runtime);
+      return await generateText(client, params);
     },
     [ModelType.TEXT_EMBEDDING]: async (runtime, params) => {
       // Handler for text embeddings
-      return generateEmbedding(params);
+      const client = createOpenAIClient(runtime);
+      return await generateEmbedding(client, params);
     },
   },
+  priority: 1000, // Optional priority for selection order
 };
 ```
 
@@ -58,10 +63,10 @@ elizaOS supports various model types for different AI tasks:
 
 ### Text Generation Models
 
-- **TEXT_SMALL**: Fast, lightweight models for simple tasks
-- **TEXT_LARGE**: Powerful models for complex reasoning
-- **TEXT_REASONING_SMALL**: Specialized for logical reasoning (maps to 'REASONING_SMALL')
-- **TEXT_REASONING_LARGE**: Advanced reasoning capabilities (maps to 'REASONING_LARGE')
+- **TEXT_SMALL**: Fast, lightweight models for simple tasks (legacy: SMALL)
+- **TEXT_LARGE**: Powerful models for complex reasoning (legacy: LARGE, MEDIUM)
+- **TEXT_REASONING_SMALL**: Specialized for logical reasoning
+- **TEXT_REASONING_LARGE**: Advanced reasoning capabilities
 - **TEXT_COMPLETION**: Text completion tasks
 
 ### Embedding Models
@@ -110,11 +115,13 @@ const myLLMPlugin: Plugin = {
     },
   },
 
-  // Plugin initialization
-  async init(config) {
+  // Optional plugin initialization
+  async init?(runtime: IAgentRuntime) {
     // Setup API keys, validate configuration
-    if (!config.API_KEY) {
-      throw new Error("API key required");
+    // Access config through runtime.getSetting() or environment
+    const apiKey = runtime.getSetting("OPENAI_API_KEY") || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key required");
     }
   },
 };
@@ -135,10 +142,14 @@ const plugin: Plugin = {
   models: {
     [ModelType.TEXT_LARGE]: async (runtime, params) => {
       // This will be chosen over lower priority handlers
-      return await premiumModelCall(params);
+      // Runtime automatically selects highest priority handler
+      return await premiumModelCall(runtime, params);
     },
   },
 };
+
+// When multiple plugins register the same model type,
+// the one with highest priority is selected by default
 ```
 
 #### Dynamic Model Selection
@@ -166,10 +177,10 @@ const adaptivePlugin: Plugin = {
 ### OpenAI Plugin
 
 ```typescript
-// Installation
-npm install @elizaos/plugin-openai
+// Note: Model provider plugins may be available as separate packages
+// Check the elizaOS ecosystem for available plugins
 
-// Configuration
+// Configuration in character file
 {
   "plugins": ["@elizaos/plugin-openai"]
 }

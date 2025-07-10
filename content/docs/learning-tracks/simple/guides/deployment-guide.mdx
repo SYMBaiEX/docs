@@ -35,13 +35,17 @@ Railway offers the easiest deployment experience with automatic builds and deplo
 ### Step 1: Prepare Your Project
 
 ```bash
-# Ensure your project has a build script
-# package.json
+# Ensure your project has a package.json with scripts
+nano package.json
+```
+
+```json
 {
+  "name": "my-elizaos-agent",
+  "type": "module",
   "scripts": {
-    "build": "bun run build",
-    "start": "node dist/index.js",
-    "dev": "elizaos dev"
+    "start": "elizaos start --character src/character.ts",
+    "dev": "elizaos dev --character src/character.ts"
   }
 }
 ```
@@ -53,13 +57,17 @@ Create `railway.toml`:
 ```toml
 [build]
 builder = "nixpacks"
+buildCommand = "bun install"
 
 [deploy]
-startCommand = "bun start"
-healthcheckPath = "/health"
+startCommand = "bun run start"
+healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+[variables]
+NODE_VERSION = "23.3.0"
 ```
 
 ### Step 3: Deploy to Railway
@@ -82,8 +90,9 @@ railway up
 
 ```bash
 # Set environment variables
+railway variables set DATABASE_URL="postgresql://user:pass@host/db"
 railway variables set OPENAI_API_KEY=your_key_here
-railway variables set DISCORD_TOKEN=your_token_here
+railway variables set DISCORD_API_TOKEN=your_token_here
 railway variables set NODE_ENV=production
 ```
 
@@ -94,57 +103,57 @@ railway variables set NODE_ENV=production
 railway domain add yourdomain.com
 ```
 
-## Method 2: Vercel (Serverless)
+## Method 2: Docker Deployment
 
-Best for agents that don't need persistent state.
+Best for consistent deployments across any platform.
 
-### Step 1: Configure for Serverless
+### Step 1: Create Dockerfile
 
-Create `vercel.json`:
+Create a `Dockerfile` in your project root:
 
-```json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/index.ts"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
+```dockerfile
+FROM node:23.3.0-slim
+
+WORKDIR /app
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y curl git && \
+    npm install -g bun@1.2.15
+
+# Copy package files
+COPY package.json bun.lockb ./
+
+# Install dependencies
+RUN bun install
+
+# Copy application files
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Start the agent
+CMD ["bun", "run", "start"]
 ```
 
-### Step 2: Modify Entry Point
+### Step 2: Build and Run
 
-```typescript
-// src/index.ts - Serverless handler
-import { VercelRequest, VercelResponse } from "@vercel/node";
+```bash
+# Build the Docker image
+docker build -t my-elizaos-agent .
 
-import { createAgent } from "./agent";
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const agent = await createAgent();
-
-  // Handle webhook requests
-  if (req.method === "POST") {
-    await agent.handleMessage(req.body);
-    res.status(200).json({ success: true });
-  } else {
-    res.status(200).json({ status: "Agent is running" });
-  }
-}
+# Run the container
+docker run -d \
+  --name my-agent \
+  -e DATABASE_URL="sqlite:/data/db.sqlite" \
+  -e OPENAI_API_KEY="your_key_here" \
+  -v agent-data:/data \
+  -p 3000:3000 \
+  my-elizaos-agent
 ```
 
-### Step 3: Deploy to Vercel
+### Step 3: Deploy to Cloud
 
 ```bash
 # Install Vercel CLI

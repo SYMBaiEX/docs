@@ -109,12 +109,21 @@ Handles project and plugin templates:
 ```typescript
 import { copyTemplate } from "@/src/utils/copy-template";
 
+// Available templates
+const templates = {
+  "project-starter": "Full ElizaOS project",
+  "plugin-starter": "Plugin template",
+  "agent-starter": "Agent character file",
+  "project-tee-starter": "TEE project template"
+};
+
 // Copy template to target directory
 await copyTemplate("plugin-starter", targetDir, {
   replacements: {
-    PLUGINNAME: "my-plugin",
-    PLUGINDESCRIPTION: "My awesome plugin",
-    GITHUB_USERNAME: "username",
+    PROJECTNAME: "my-plugin",
+    DESCRIPTION: "My awesome plugin",
+    AUTHOR: "username",
+    YEAR: new Date().getFullYear().toString(),
   },
 });
 ```
@@ -137,16 +146,25 @@ const paths = getElizaPaths();
 
 ## Process Management
 
-### Process Control
+### Process Management
 
 ```typescript
-import { cleanupProcesses } from "@/src/utils/process-control";
+import { cleanupProcesses, killProcess } from "@/src/utils/process-control";
 
 // Kill all ElizaOS processes
 await cleanupProcesses();
 
 // Kill specific process
 await killProcess(pid);
+
+// Port management utilities
+import { getAvailablePort, isPortInUse } from "@/src/utils/port-utils";
+
+// Find available port starting from 3000
+const port = await getAvailablePort(3000);
+
+// Check if port is in use
+const inUse = await isPortInUse(3000);
 ```
 
 ### Port Management
@@ -396,10 +414,11 @@ import { handleError } from "@/src/utils/handle-error";
 try {
   // Operation that might fail
 } catch (error) {
-  handleError(error, {
-    context: "Plugin installation",
-    suggestions: ["Check network connection", "Verify plugin name"],
-  });
+  handleError(error);
+  // The handleError function will:
+  // - Log the error with appropriate level
+  // - Show user-friendly error messages
+  // - Exit with appropriate code
 }
 ```
 
@@ -439,34 +458,23 @@ const { name, version, agents, plugins } = project;
 
 ## Cloud Services
 
-### TEE Integration
+### TEE Integration (Phala Network)
 
-```typescript
-import { TEEService } from "@/src/services/tee";
+The TEE (Trusted Execution Environment) integration is provided through the Phala Network wrapper:
 
-const tee = new TEEService();
+```bash
+# TEE commands are wrapped through CLI
+elizaos tee phala <command>
 
-// Deploy to TEE
-await tee.deploy({
-  project: projectPath,
-  config: teeConfig,
-});
-
-// Get attestation
-const attestation = await tee.getAttestation(deploymentId);
+# Available commands:
+elizaos tee phala auth login     # Authenticate with Phala
+elizaos tee phala cvms create    # Create new CVMS instance
+elizaos tee phala cvms list      # List CVMS instances
+elizaos tee phala cvms info <id> # Get CVMS info
+elizaos tee phala cvms delete <id> # Delete CVMS instance
 ```
 
-### Phala Integration
-
-```typescript
-// TEE commands are wrapped through CLI
-// elizaos tee phala <command>
-
-// Examples:
-// - elizaos tee phala auth login
-// - elizaos tee phala cvms create
-// - elizaos tee phala cvms list
-```
+**Implementation Note**: The TEE command wraps the Phala CLI tool and requires it to be installed separately.
 
 ## Package Management
 

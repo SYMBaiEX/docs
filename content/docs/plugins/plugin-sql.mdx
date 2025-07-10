@@ -94,32 +94,47 @@ import { schema } from '@elizaos/plugin-sql';
 
 // Core tables available
 const {
-  agentsTable,
-  memoriesTable,
-  entitiesTable,
-  embeddingsTable,
-  roomsTable,
-  worldsTable,
-  participantsTable,
-  relationshipsTable,
-  tasksTable,
-  componentsTable,
-  logsTable
+  agentTable,
+  memoryTable,
+  entityTable,
+  embeddingTable,
+  roomTable,
+  worldTable,
+  participantTable,
+  relationshipTable,
+  taskTable,
+  componentTable,
+  logTable,
+  cacheTable,
+  messageServerTable,
+  channelTable,
+  messageTable,
+  channelParticipantsTable,
+  serverAgentsTable
 } = schema;
 ```
 
 ### Table Relationships
 
-<Mermaid chart="graph TD
-    A[agents] --> M[memories]
-    A --> E[entities]
-    M --> EM[embeddings]
-    E --> R[relationships]
-    E --> C[components]
-    E --> P[participants]
-    P --> RO[rooms]
-    RO --> W[worlds]
-    A --> T[tasks]" />
+```mermaid
+graph TD
+    A[agent] --> M[memory]
+    A --> E[entity]
+    M --> EM[embedding]
+    E --> R[relationship]
+    E --> C[component]
+    E --> P[participant]
+    P --> RO[room]
+    RO --> W[world]
+    A --> T[task]
+    A --> L[log]
+    A --> CA[cache]
+    A --> MS[messageServer]
+    MS --> CH[channel]
+    CH --> MSG[message]
+    CH --> CP[channelParticipants]
+    A --> SA[serverAgents]
+```
 
 ## Database Adapters
 
@@ -172,12 +187,12 @@ Create your table definitions using Drizzle ORM:
 
 ```typescript title="my-plugin/src/schema.ts"
 import { pgTable, text, uuid, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
-import { schema } from '@elizaos/plugin-sql';
+import { agentTable } from '@elizaos/plugin-sql';
 
 export const customEventsTable = pgTable('my_plugin_events', {
   id: uuid('id').defaultRandom().primaryKey(),
   agentId: uuid('agent_id')
-    .references(() => schema.agentsTable.id, { onDelete: 'cascade' })
+    .references(() => agentTable.id, { onDelete: 'cascade' })
     .notNull(),
   eventType: text('event_type').notNull(),
   payload: jsonb('payload').notNull(),
@@ -190,7 +205,7 @@ export const customEventsTable = pgTable('my_plugin_events', {
 export const customSettingsTable = pgTable('my_plugin_settings', {
   id: uuid('id').defaultRandom().primaryKey(),
   agentId: uuid('agent_id')
-    .references(() => schema.agentsTable.id, { onDelete: 'cascade' })
+    .references(() => agentTable.id, { onDelete: 'cascade' })
     .notNull()
     .unique(),
   settings: jsonb('settings').default({}).notNull(),
@@ -603,20 +618,27 @@ export const plugin: Plugin = {
 ### Schema Exports
 
 ```typescript
-import { schema } from '@elizaos/plugin-sql';
+import { 
+  agentTable,
+  memoryTable,
+  entityTable,
+  embeddingTable,
+  roomTable,
+  worldTable,
+  participantTable,
+  relationshipTable,
+  taskTable,
+  componentTable,
+  logTable,
+  cacheTable,
+  messageServerTable,
+  channelTable,
+  messageTable,
+  channelParticipantsTable,
+  serverAgentsTable
+} from '@elizaos/plugin-sql';
 
-// Available tables
-schema.agentsTable
-schema.memoriesTable
-schema.entitiesTable
-schema.embeddingsTable
-schema.roomsTable
-schema.worldsTable
-schema.participantsTable
-schema.relationshipsTable
-schema.tasksTable
-schema.componentsTable
-schema.logsTable
+// Available tables can be imported individually
 ```
 
 ### Adapter Methods

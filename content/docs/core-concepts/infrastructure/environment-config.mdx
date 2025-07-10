@@ -225,71 +225,144 @@ Environment files are loaded in this order (later overrides earlier):
 3. `.env.{NODE_ENV}` file (e.g., `.env.production`)
 4. Process environment variables
 
+### Required vs Optional Variables
+
+**Minimum Required Configuration:**
+- At least one AI model provider key (e.g., `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+- If using Anthropic/Claude, you'll also need an embedding provider (e.g., OpenAI)
+
+**Everything else is optional** - ElizaOS will use sensible defaults:
+- Database: Uses local PGlite if no `POSTGRES_URL` is provided
+- Logging: Defaults to `info` level
+- Services: Only required if using specific integrations
+
 ## Core Environment Variables
 
 ### AI Model Configuration
 
 ```bash
-# OpenAI
+# OpenAI Configuration
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4-turbo-preview
+# Use this to override the openai endpoint, for example for using together.ai, fireworks or other providers
+# OPENAI_BASE_URL=
 
-# Anthropic Claude
+# Anthropic Configuration
+# By default in most starter kits, Anthropic will take precedence over OpenAI
 ANTHROPIC_API_KEY=sk-ant-...
-CLAUDE_MODEL=claude-3-opus-20240229
 
-# Local Models
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama2
+# Cloudflare AI
+CLOUDFLARE_GW_ENABLED=
+CLOUDFLARE_AI_ACCOUNT_ID=
+CLOUDFLARE_AI_GATEWAY_ID=
 
-# OpenRouter
-OPENROUTER_API_KEY=sk-or-...
-OPENROUTER_MODEL=anthropic/claude-3-opus
+# Local AI Configuration
+USE_LOCAL_AI=
+USE_STUDIOLM_TEXT_MODELS=
+USE_OLLAMA_TEXT_MODELS=
+
+# Ollama Configuration
+OLLAMA_API_ENDPOINT=http://localhost:11434
+OLLAMA_MODEL=
+USE_OLLAMA_EMBEDDING=
+OLLAMA_EMBEDDING_MODEL=
+OLLAMA_SMALL_MODEL=
+OLLAMA_MEDIUM_MODEL=
+OLLAMA_LARGE_MODEL=
+
+# StudioLM Configuration
+STUDIOLM_SERVER_URL=
+STUDIOLM_SMALL_MODEL=
+STUDIOLM_MEDIUM_MODEL=
+STUDIOLM_EMBEDDING_MODEL=
 ```
 
 ### Database Configuration
 
 ```bash
-# PostgreSQL
-DATABASE_URL=postgresql://user:password@localhost:5432/elizaos
-DATABASE_POOL_SIZE=10
+# By default, Eliza will use a local pglite instance
+# If you fill out POSTGRES_URL, the agent will connect to your postgres instance
 
-# SQLite (PGlite)
-DATABASE_URL=sqlite://./data/elizaos.db
+# You can override the pglite data directory
+# PGLITE_DATA_DIR=/Users/UserName/eliza/packages/.pglite/
 
-# Redis (optional)
-REDIS_URL=redis://localhost:6379
+# Fill this out if you want to use Postgres
+POSTGRES_URL=postgresql://user:password@localhost:5432/elizaos
 ```
 
-### Server Configuration
+### Logging Configuration
 
 ```bash
-# Server
-SERVER_PORT=3000
-SERVER_HOST=0.0.0.0
-API_BASE_URL=http://localhost:3000
+# Logging Configuration (supported: fatal, error, warn, info, debug, trace | default: info)
+LOG_LEVEL=info
 
-# Security
-JWT_SECRET=your-secret-key
-SESSION_SECRET=your-session-secret
-CORS_ORIGINS=http://localhost:5173,https://app.example.com
+# Sentry Configuration
+SENTRY_LOGGING=true
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=
+SENTRY_TRACES_SAMPLE_RATE=
+SENTRY_SEND_DEFAULT_PII=
 ```
 
 ### Service Integrations
 
 ```bash
-# Discord
-DISCORD_TOKEN=your-discord-bot-token
-DISCORD_CLIENT_ID=your-client-id
+# Discord Configuration
+DISCORD_APPLICATION_ID=
+DISCORD_API_TOKEN=
 
-# Twitter
-TWITTER_API_KEY=your-api-key
-TWITTER_API_SECRET=your-api-secret
-TWITTER_ACCESS_TOKEN=your-access-token
-TWITTER_ACCESS_TOKEN_SECRET=your-access-token-secret
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN=
 
-# Telegram
-TELEGRAM_BOT_TOKEN=your-bot-token
+# Twitter Configuration
+TWITTER_USERNAME=
+TWITTER_PASSWORD=
+TWITTER_EMAIL=
+TWITTER_ENABLE_POST_GENERATION=
+TWITTER_POST_IMMEDIATELY=
+TWITTER_INTERACTION_ENABLE=
+TWITTER_TIMELINE_ENABLE=
+TWITTER_SPACES_ENABLE=
+TWITTER_TIMELINE_MODE=
+TWITTER_TIMELINE_POLL_INTERVAL=
+
+# Blockchain Configuration
+EVM_PRIVATE_KEY=
+EVM_CHAINS=mainnet,sepolia,base,arbitrum,polygon
+EVM_PROVIDER_URL=
+SOLANA_PUBLIC_KEY=
+SOLANA_PRIVATE_KEY=
+
+# API Keys for various services
+BIRDEYE_API_KEY=
+JUPITER_API_KEY=
+HELIUS_API_KEY=
+COINMARKETCAP_API_KEY=
+ZEROEX_API_KEY=
+COINGECKO_API_KEY=
+```
+
+### Multi-Agent Configuration
+
+For running multiple agents, you can namespace environment variables per agent:
+
+```bash
+# Example: The Org multi-agent swarm
+# Each agent has its own scoped credentials
+
+# Community Manager
+COMMUNITY_MANAGER_DISCORD_APPLICATION_ID=
+COMMUNITY_MANAGER_DISCORD_API_TOKEN=
+
+# Social Media Manager
+SOCIAL_MEDIA_MANAGER_DISCORD_APPLICATION_ID=
+SOCIAL_MEDIA_MANAGER_DISCORD_API_TOKEN=
+
+# Reference in character configuration:
+# settings: {
+#   secrets: {
+#     DISCORD_API_TOKEN: process.env.COMMUNITY_MANAGER_DISCORD_API_TOKEN
+#   }
+# }
 ```
 
 ## Environment Management CLI
@@ -320,14 +393,31 @@ elizaos env interactive
 elizaos env reset
 ```
 
-### Environment Templates
+### Environment Commands
+
+The actual `env` command implementation provides these subcommands:
 
 ```bash
-# Generate .env.example from current .env
-elizaos env generate-example
+# List all environment variables
+elizaos env list
 
-# Validate environment against example
-elizaos env validate
+# List only local environment variables
+elizaos env list --local
+
+# List only system information
+elizaos env list --system
+
+# Edit local environment variables
+elizaos env edit-local
+
+# Interactive environment variable management
+elizaos env interactive
+
+# Reset environment variables and clean up database/cache files
+elizaos env reset
+
+# Automatically reset using default selections
+elizaos env reset --yes
 ```
 
 ## Plugin Environment Variables

@@ -4,10 +4,10 @@ description: Plugin development and ecosystem
 ---
 
 ElizaOS plugins extend the capabilities of your agents with custom actions, providers, services, and
-more. The plugin system in v1.2.0 provides a comprehensive framework for building and distributing
+more. The plugin system provides a comprehensive framework for building and distributing
 reusable functionality.
 
-The plugin ecosystem includes 130+ available plugins across various categories, from core
+The plugin ecosystem includes a growing collection of available plugins across various categories, from core
 functionality to specialized integrations, making it easy to extend your agents with powerful
 capabilities.
 
@@ -37,7 +37,7 @@ ElizaOS plugins support a wide range of features:
 
 ## Available Plugins
 
-Explore plugins in the [Plugin Registry](/docs/plugins/plugin-registry) or list them via CLI:
+Explore plugins in the [Plugin Registry](/docs/plugins/plugin-registry) or manage them via CLI:
 
 ```bash
 # List available plugins
@@ -48,6 +48,9 @@ elizaos plugins add @elizaos/plugin-discord
 
 # Remove a plugin
 elizaos plugins remove @elizaos/plugin-discord
+
+# List installed plugins
+elizaos plugins installed-plugins
 ```
 
 ## Development Guides
@@ -104,9 +107,6 @@ export const myPlugin: Plugin = {
 Share your plugins with the community:
 
 ```bash
-# Test publishing
-elizaos publish --test
-
 # Publish to registry
 elizaos publish
 ```

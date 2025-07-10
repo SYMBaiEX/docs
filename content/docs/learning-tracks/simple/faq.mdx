@@ -35,7 +35,8 @@ Think of it as giving AI a body and personality to interact with the world!
 
 <Accordion title="What are the system requirements?">
 **Minimum Requirements:**
-- Node.js v23.3.0 (exact version required)
+- Node.js v23.3.0 or higher
+- Bun v1.2.15 or higher
 - 4GB RAM
 - 2GB disk space
 - Internet connection
@@ -75,28 +76,30 @@ Think of it as giving AI a body and personality to interact with the world!
 
 ## Installation & Setup
 
-<Accordion title="Why exactly Node.js v23.3.0?">
-ElizaOS requires Node.js v23.3.0 (exact version) due to:
-- Specific V8 engine features used
+<Accordion title="Why Node.js v23.3.0+?">
+ElizaOS requires Node.js v23.3.0 or higher due to:
+- Modern JavaScript features used
 - Native module compatibility
-- Tested dependency versions
 - Performance optimizations
+- Dependency requirements
 
-Using other versions may cause:
+Using older versions may cause:
 - Installation failures
 - Runtime errors
-- Unexpected behavior
+- Missing features
 - Plugin incompatibilities
 
-Always use `nvm` or similar to manage exact versions.
+Use `nvm` or similar to manage Node.js versions easily.
 </Accordion>
 
 <Accordion title="Can I use npm instead of bun?">
-Yes, but with caveats:
-- Bun is recommended for better performance
-- npm works but is slower
-- Use npm v10+ for best compatibility
-- Some scripts may need adjustment
+ElizaOS is built with Bun in mind:
+- Bun is strongly recommended (required v1.2.15+)
+- The project uses Bun workspaces
+- Many scripts are optimized for Bun
+- npm may work but is not officially supported
+
+For best results, install Bun from [bun.sh](https://bun.sh)
 
 To use npm:
 ```bash

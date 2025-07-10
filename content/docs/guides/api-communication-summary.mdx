@@ -143,34 +143,46 @@ All messages follow this standardized pipeline:
 
 ### Supported Platforms
 
-| Client Type | Features | Use Cases |
-|-------------|----------|-----------|
-| **REST API** | HTTP endpoints, file uploads, WebSocket real-time | Web apps, custom integrations |
-| **Discord** | Rich embeds, voice, slash commands, threads | Gaming communities, servers |
-| **Twitter** | Tweets, DMs, mentions, media | Public engagement, social presence |
-| **Telegram** | Inline keyboards, media, voice messages | Customer support, personal bots |
-| **WebSocket** | Real-time bidirectional communication | Live chat, streaming |
-| **Slack** | Channels, DMs, slash commands, apps | Team collaboration |
-| **Matrix** | E2E encryption, federation, rich media | Decentralized communication |
+| Client Type | Configuration | Features | Use Cases |
+|-------------|---------------|----------|-----------|
+| **REST API** | Built-in server endpoints | HTTP endpoints, file uploads, WebSocket real-time | Web apps, custom integrations |
+| **Discord** | `DISCORD_APPLICATION_ID`, `DISCORD_API_TOKEN` | Rich embeds, voice, slash commands, threads | Gaming communities, servers |
+| **Twitter** | `TWITTER_USERNAME`, `TWITTER_PASSWORD`, `TWITTER_EMAIL` | Tweets, DMs, mentions, media | Public engagement, social presence |
+| **Telegram** | `TELEGRAM_BOT_TOKEN` | Inline keyboards, media, voice messages | Customer support, personal bots |
+| **WebSocket** | Built-in with REST server | Real-time bidirectional communication | Live chat, streaming |
+| **Slack** | Plugin required | Channels, DMs, slash commands, apps | Team collaboration |
+| **Matrix** | Plugin required | E2E encryption, federation, rich media | Decentralized communication |
+
+<Callout type="info">
+**Note**: Client platforms are configured through environment variables and character settings rather than separate client packages. Each agent can connect to multiple platforms simultaneously. Slack and Matrix support may require additional plugin development.
+</Callout>
 
 ### Platform-Agnostic Processing
 
-Key insight: **All platforms use the same core processing logic**
+Key insight: **All platforms use the same core processing logic through the message bus**
 
 ```typescript
-// This function processes messages identically for ALL clients
-async function processMessage(
-  runtime: IAgentRuntime,
-  message: Memory,      // Standardized message format
-  callback: HandlerCallback
-): Promise<void> {
-  // Same logic regardless of source platform
-  // 1. shouldRespond evaluation
-  // 2. Response generation
-  // 3. Action processing
-  // 4. Memory storage
-}
+// Messages from all platforms are processed through the centralized message bus
+// 1. External messages come in through /api/messaging/ingest-external
+// 2. Messages are stored in the database with standardized format
+// 3. Message bus emits 'new_message' event to all listening agents
+// 4. Agents process messages using their runtime and configured actions
+
+// Example from the server implementation:
+const messageForBus: MessageService = {
+  id: createdRootMessage.id,
+  channel_id: createdRootMessage.channelId,
+  author_id: createdRootMessage.authorId,
+  content: createdRootMessage.content,
+  source_type: createdRootMessage.sourceType,
+  // ... other fields
+};
+internalMessageBus.emit('new_message', messageForBus);
 ```
+
+<Callout type="warning">
+**Important**: The message processing happens through the internal message bus and agent runtime, not through a single `processMessage` function. Each agent's runtime handles messages based on its configured actions and evaluators.
+</Callout>
 
 ## Message Structure
 
@@ -195,35 +207,30 @@ interface Memory {
 
 ### Platform-Specific Conversion
 
-Each client converts platform messages to the universal format:
+External messages are ingested through the REST API and converted to the universal format:
 
 ```typescript
-// Discord message conversion
-const memory: Memory = {
-  id: discordMessage.id,
-  content: {
-    text: discordMessage.content,
-    source: 'discord',
-    attachments: convertDiscordAttachments(discordMessage.attachments)
-  },
-  entityId: discordMessage.author.id,
-  roomId: discordMessage.channel.id,
-  createdAt: discordMessage.createdTimestamp
+// REST API ingestion endpoint converts external messages
+// POST /api/messaging/ingest-external
+const messageToCreate = {
+  channelId: messagePayload.channel_id as UUID,
+  authorId: messagePayload.author_id as UUID,
+  content: messagePayload.content as string,
+  rawMessage: messagePayload.raw_message,
+  sourceId: messagePayload.source_id,        // Original platform message ID
+  sourceType: messagePayload.source_type,    // 'discord', 'twitter', 'telegram', etc.
+  inReplyToRootMessageId: messagePayload.in_reply_to_message_id,
+  metadata: messagePayload.metadata
 };
 
-// REST API message conversion  
-const memory: Memory = {
-  id: generateUUID(),
-  content: {
-    text: apiRequest.content,
-    source: 'api',
-    attachments: apiRequest.attachments
-  },
-  entityId: apiRequest.author_id,
-  roomId: apiRequest.channel_id,
-  createdAt: Date.now()
-};
+// The message is then stored and emitted to the internal message bus
+const createdRootMessage = await serverInstance.createMessage(messageToCreate);
+internalMessageBus.emit('new_message', messageForBus);
 ```
+
+<Callout type="info">
+**Integration Pattern**: Platform-specific integrations (Discord bots, Twitter clients, etc.) should send their messages to the `/api/messaging/ingest-external` endpoint, which handles conversion and routing.
+</Callout>
 
 ## Prompt Templates
 

@@ -1,13 +1,13 @@
 ---
 title: "Complete REST API Communication Guide"
 description: "Step-by-step guide to messaging ElizaOS agents via REST API with practical Postman examples"
-keywords: rest api, messaging, postman, agents, step-by-step, communication, processMessage, platform-agnostic
+keywords: rest api, messaging, postman, agents, step-by-step, communication, message-bus, platform-agnostic
 ---
 
 This comprehensive guide shows you exactly how to communicate with ElizaOS agents using the REST API, with detailed Postman examples and real-world scenarios.
 
 <Callout type="info">
-**Important**: The message processing system (`processMessage`) is **platform-agnostic**. Whether messages come from REST API, Discord, Twitter, or any other client, they are processed identically. The client type only affects how messages are initially ingested, not how agents process them.
+**Important**: The message processing system is **platform-agnostic**. Whether messages come from REST API, Discord, Twitter, or any other client, they are processed identically through the internal message bus. The client type only affects how messages are initially ingested, not how agents process them.
 </Callout>
 
 ## Quick Start: Message an Agent in 5 Minutes
@@ -405,7 +405,7 @@ setTimeout(checkForResponse, 1000);
 ### Platform-Agnostic Processing
 
 <Callout type="info">
-All messages, regardless of source (REST API, Discord, Twitter, etc.), go through the same `processMessage` function in the AgentRuntime. The platform only matters for:
+All messages, regardless of source (REST API, Discord, Twitter, etc.), are processed identically by the agent runtime through the internal message bus. The platform only matters for:
 1. Initial message ingestion format
 2. Response delivery method
 3. Platform-specific features (e.g., Discord embeds, Twitter character limits)
@@ -416,7 +416,7 @@ All messages, regardless of source (REST API, Discord, Twitter, etc.), go throug
 <Mermaid chart="graph LR
     A[REST API Request] --> B[/api/messaging/ingest-external]
     B --> C[Message Bus]
-    C --> D[AgentRuntime.processMessage]
+    C --> D[Agent Runtime Processing]
     D --> E[shouldRespond Check]
     E -->|Yes| F[Generate Response]
     E -->|No| G[Create Ignore Memory]

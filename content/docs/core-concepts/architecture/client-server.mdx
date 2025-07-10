@@ -38,9 +38,11 @@ export class AgentServer {
 The client is a React-based web application using:
 
 - **React 19.1.0** with TypeScript
-- **React Query** for server state management
-- **Socket.IO Client** for real-time communication
+- **Tanstack React Query v5** for server state management
+- **Socket.IO Client v4.8** for real-time communication
 - **Tailwind CSS v4** for styling
+- **React Router v7** for navigation
+- **Vite** as the build tool
 
 ### API Client Library (`@elizaos/api-client`)
 
@@ -55,6 +57,17 @@ export class ElizaClient {
   public readonly media: MediaService;
   public readonly server: ServerService;
   public readonly system: SystemService;
+
+  constructor(config: ApiClientConfig) {
+    // All services initialized with the same config
+    this.agents = new AgentsService(config);
+    this.messaging = new MessagingService(config);
+    this.memory = new MemoryService(config);
+    this.audio = new AudioService(config);
+    this.media = new MediaService(config);
+    this.server = new ServerService(config);
+    this.system = new SystemService(config);
+  }
 }
 ```
 
@@ -111,14 +124,14 @@ The API is organized into domain-specific routers:
 
 ```
 /api
-├── /agents         # Agent management
-├── /messaging      # Messages and channels
-├── /memory         # Agent memory operations
-├── /audio          # Audio processing
-├── /media          # File uploads and serving
-├── /server         # Runtime management
-├── /system         # System configuration
-└── /tee            # Trusted Execution Environment
+├── /agents         # Agent management and interactions
+├── /messaging      # Messages, channels, and chat functionality
+├── /memory         # Agent memory storage and retrieval
+├── /audio          # Audio processing, transcription, and voice operations
+├── /media          # File uploads and media serving
+├── /server         # Runtime and server management
+├── /system         # System configuration, health checks, and environment
+└── /tee            # Trusted Execution Environment operations
 ```
 
 ### WebSocket Implementation
@@ -128,7 +141,8 @@ Real-time communication is handled through Socket.IO:
 ```typescript
 export class SocketIORouter {
   private agents: Map<UUID, IAgentRuntime>;
-  private connections: Map<string, UUID>;
+  private connections: Map<string, UUID>; // socket.id -> agentId
+  private logStreamConnections: Map<string, { agentName?: string; level?: string }>;
   private serverInstance: AgentServer;
 
   setupListeners(io: SocketIOServer) {
@@ -149,13 +163,15 @@ The client uses a provider-based architecture:
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ConnectionProvider>
-            <AppContent />
-          </ConnectionProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <div className="dark antialiased font-sans" style={{ colorScheme: 'dark' }}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ConnectionProvider>
+              <AppContent />
+            </ConnectionProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </div>
     </QueryClientProvider>
   );
 }
@@ -163,27 +179,29 @@ function App() {
 
 ### State Management
 
-- **React Query**: Server state synchronization
+- **Tanstack React Query v5**: Server state synchronization with:
+  - Configurable stale times
+  - Automatic retries with exponential backoff
+  - Refetch on window focus and reconnect
+  - Optimistic updates
 - **Context API**: Authentication and connection state
-- **Local State**: UI state and optimistic updates
+- **Local State**: UI state and component-specific data
 
 ### Real-time Communication
 
 The client manages WebSocket connections through a singleton:
 
 ```typescript
-export class SocketIOManager extends EventAdapter {
-  private static instance: SocketIOManager | null = null;
-  private socket: Socket | null = null;
+// The client manages WebSocket connections through Socket.IO
+// Connection established in ConnectionContext
+import { io, Socket } from 'socket.io-client';
 
-  public async joinChannel(channelId: string): Promise<void>;
-  public async sendMessage(
-    message: string,
-    channelId: string,
-    serverId: string,
-    source: string
-  ): Promise<void>;
-}
+const socket = io(baseUrl, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+});
 ```
 
 ## Communication Patterns
@@ -216,24 +234,33 @@ The system uses typed events for real-time communication:
 
 ```typescript
 // Client to Server Events
-- ROOM_JOINING: Join a channel
-- SEND_MESSAGE: Send a message
+- ROOM_JOINING: Join a channel (supports channelId or roomId)
+- SEND_MESSAGE: Send a message with attachments support
 - subscribe_logs: Subscribe to log streaming
+- unsubscribe_logs: Unsubscribe from log streaming
+- update_log_filters: Update log filtering criteria
+- message: Generic message event wrapper
 
 // Server to Client Events
+- connection_established: Connection confirmation with socketId
+- channel_joined / room_joined: Channel join confirmation
 - messageBroadcast: New message in channel
-- messageComplete: Message processing complete
-- controlMessage: UI control commands
+- messageAck: Message receipt acknowledgment
+- messageError: Error response
 - log_stream: Real-time log entries
+- log_subscription_confirmed: Log subscription status
+- log_filters_updated: Log filter update confirmation
 ```
 
 ### Message Flow
 
-1. **Client sends message** via WebSocket
-2. **Server validates** and stores in database
-3. **Message broadcast** to channel participants
-4. **Agent processing** through internal message bus
-5. **Agent response** broadcast to channel
+1. **Client sends message** via WebSocket with `SEND_MESSAGE` event
+2. **Server validates** required fields (channelId, serverId, senderId, message)
+3. **Auto-creates channel** if it doesn't exist (with proper server verification)
+4. **Stores message** in central database
+5. **Immediate broadcast** to all channel participants
+6. **Internal message bus** notifies agents for processing
+7. **Agent responses** are stored and broadcast when ready
 
 ## Authentication and Security
 
@@ -265,8 +292,13 @@ const client = new ElizaClient({
 The server implements an internal message bus for agent communication:
 
 ```typescript
+// Internal message bus for decoupled agent communication
+import { EventEmitter } from 'events';
+
 class InternalMessageBus extends EventEmitter {}
 const internalMessageBus = new InternalMessageBus();
+
+// Emits 'new_message' events with MessageServiceStructure payload
 ```
 
 This enables:
@@ -286,11 +318,11 @@ Files are organized by agent and type:
 .eliza/data/
 ├── uploads/
 │   ├── agents/
-│   │   └── {agentId}/
+│   │   └── {agentId}/      # Agent-specific uploads
 │   └── channels/
-│       └── {channelId}/
+│       └── {channelId}/     # Channel-specific uploads
 └── generated/
-    └── {agentId}/
+    └── {agentId}/           # Agent-generated content
 ```
 
 ### Media Serving
@@ -326,17 +358,23 @@ try {
 
 ### Client Optimizations
 
-- Query result caching with stale times
-- Optimistic UI updates
-- Connection pooling
+- Query result caching with configurable stale times (STALE_TIMES)
+- Optimistic UI updates for better perceived performance
+- Automatic retry with exponential backoff (up to 30s)
+- Refetch on window focus and network reconnect
 - Lazy loading of components
+- Vite build optimizations with compression
+- Prefetching of initial data on app load
 
 ### Server Optimizations
 
-- Database connection pooling
-- Efficient message routing
-- Resource cleanup on shutdown
-- Memory leak prevention
+- Database connection pooling via PGlite/PostgreSQL
+- Efficient message routing through internal event bus
+- Graceful shutdown with proper resource cleanup
+- Memory leak prevention through connection management
+- Rate limiting on API endpoints
+- Static file caching with ETags
+- Environment-aware Content Security Policy
 
 ## Deployment Considerations
 
@@ -345,12 +383,15 @@ try {
 ```bash
 # Server configuration
 NODE_ENV=production
-ELIZA_SERVER_AUTH_TOKEN=your-secret
-EXPRESS_MAX_PAYLOAD=2mb
-CORS_ORIGIN=https://your-domain.com
+ELIZA_SERVER_AUTH_TOKEN=your-secret      # API authentication token
+EXPRESS_MAX_PAYLOAD=2mb                 # Request body size limit
+CORS_ORIGIN=https://your-domain.com     # CORS allowed origins
+API_CORS_ORIGIN=https://api.domain.com  # API-specific CORS (optional)
+SERVER_HOST=0.0.0.0                     # Server bind address
+PGLITE_DATA_DIR=~/.eliza/.elizadb      # Database directory
 
 # UI configuration
-ELIZA_UI_ENABLE=false  # Disable UI in production
+ELIZA_UI_ENABLE=true   # Default: true in dev, false in production
 ```
 
 ### Scaling Strategies

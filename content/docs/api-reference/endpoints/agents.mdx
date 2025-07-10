@@ -28,7 +28,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X GET \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents
     ```
   </Tab>
@@ -37,7 +37,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents', {
       method: 'GET',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -49,7 +49,7 @@ Successful response
 
     response = requests.get(
         'http://localhost:3000/api/agents',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -80,23 +80,25 @@ POST /api/agents
   <Tab value="Example">
     ```json
     {
-      "name": "Agent Name",
-      "bio": "Agent description",
-      "settings": {
-        "model": "gpt-4",
-        "temperature": 0.7
+      "characterJson": {
+        "name": "Agent Name",
+        "bio": ["Agent description"],
+        "settings": {
+          "model": "gpt-4",
+          "temperature": 0.7
+        }
       }
     }
     ```
   </Tab>
   <Tab value="Schema">
-    Content-Type: `*/*`
+    Content-Type: `application/json`
   </Tab>
 </Tabs>
 
 ### Response
 
-**Status Code:** 200 OK
+**Status Code:** 201 Created
 
 Successful response
 
@@ -106,7 +108,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X POST \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents
@@ -117,7 +119,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents', {
       method: 'POST',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -131,7 +133,7 @@ Successful response
 
     response = requests.post(
         'http://localhost:3000/api/agents',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
     )
     data = response.json()
@@ -169,7 +171,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X GET \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/{agentId}
     ```
   </Tab>
@@ -178,7 +180,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}', {
       method: 'GET',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -190,7 +192,7 @@ Successful response
 
     response = requests.get(
         'http://localhost:3000/api/agents/{agentId}',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -244,7 +246,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X PATCH \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents/{agentId}
@@ -255,7 +257,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}', {
       method: 'PATCH',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -269,91 +271,7 @@ Successful response
 
     response = requests.patch(
         'http://localhost:3000/api/agents/{agentId}',
-        headers={'apikey': 'your-api-key'},
-        json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Update Agent (Full)
-
-Update an existing agent (full replacement)
-
-### Endpoint
-
-```
-PUT /api/agents/{agentId}
-```
-
-### Parameters
-
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| Content-Type | string | header | No | application/json |
-| agentId | string | path | Yes | - |
-
-### Request Body
-
-<Tabs items={["Example", "Schema"]}>
-  <Tab value="Example">
-    ```json
-    {
-      "name": "Updated Agent Name",
-      "bio": "Updated description",
-      "settings": {
-        "model": "gpt-4",
-        "temperature": 0.7
-      }
-    }
-    ```
-  </Tab>
-  <Tab value="Schema">
-    Content-Type: `*/*`
-  </Tab>
-</Tabs>
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X PUT \
-      -H "apikey: your-api-key" \
-      -H "Content-Type: application/json" \
-      -d '{"example": "data"}' \
-      http://localhost:3000/api/agents/{agentId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/agents/{agentId}', {
-      method: 'PUT',
-      headers: {
-        'apikey': 'your-api-key',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ example: 'data' }),
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.put(
-        'http://localhost:3000/api/agents/{agentId}',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
     )
     data = response.json()
@@ -381,7 +299,7 @@ DELETE /api/agents/{agentId}
 
 ### Response
 
-**Status Code:** 200 OK
+**Status Code:** 204 No Content
 
 Successful response
 
@@ -391,7 +309,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X DELETE \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/{agentId}
     ```
   </Tab>
@@ -400,7 +318,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}', {
       method: 'DELETE',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -412,7 +330,7 @@ Successful response
 
     response = requests.delete(
         'http://localhost:3000/api/agents/{agentId}',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -451,7 +369,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X POST \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents/{agentId}/start
@@ -462,7 +380,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/start', {
       method: 'POST',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -476,7 +394,7 @@ Successful response
 
     response = requests.post(
         'http://localhost:3000/api/agents/{agentId}/start',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
     )
     data = response.json()
@@ -516,7 +434,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X POST \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents/{agentId}/stop
@@ -527,7 +445,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/stop', {
       method: 'POST',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -541,7 +459,7 @@ Successful response
 
     response = requests.post(
         'http://localhost:3000/api/agents/{agentId}/stop',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
     )
     data = response.json()
@@ -579,7 +497,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X GET \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/{agentId}/panels
     ```
   </Tab>
@@ -588,7 +506,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/panels', {
       method: 'GET',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -600,7 +518,7 @@ Successful response
 
     response = requests.get(
         'http://localhost:3000/api/agents/{agentId}/panels',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -642,7 +560,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X GET \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/{agentId}/logs
     ```
   </Tab>
@@ -651,7 +569,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/logs', {
       method: 'GET',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -663,7 +581,7 @@ Successful response
 
     response = requests.get(
         'http://localhost:3000/api/agents/{agentId}/logs',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -701,7 +619,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X DELETE \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/{agentId}/logs/{logId}
     ```
   </Tab>
@@ -710,7 +628,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/logs/{logId}', {
       method: 'DELETE',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -722,7 +640,7 @@ Successful response
 
     response = requests.delete(
         'http://localhost:3000/api/agents/{agentId}/logs/{logId}',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -753,7 +671,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X GET \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       http://localhost:3000/api/agents/worlds
     ```
   </Tab>
@@ -762,7 +680,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/worlds', {
       method: 'GET',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
       },
     });
     const data = await response.json();
@@ -774,7 +692,7 @@ Successful response
 
     response = requests.get(
         'http://localhost:3000/api/agents/worlds',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
     )
     data = response.json()
     ```
@@ -828,7 +746,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X POST \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents/{agentId}/worlds
@@ -839,7 +757,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/worlds', {
       method: 'POST',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -853,7 +771,7 @@ Successful response
 
     response = requests.post(
         'http://localhost:3000/api/agents/{agentId}/worlds',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
     )
     data = response.json()
@@ -909,7 +827,7 @@ Successful response
   <Tab value="cURL">
     ```bash
     curl -X PATCH \
-      -H "apikey: your-api-key" \
+      -H "X-API-KEY: your-api-key" \
       -H "Content-Type: application/json" \
       -d '{"example": "data"}' \
       http://localhost:3000/api/agents/{agentId}/worlds/{worldId}
@@ -920,7 +838,7 @@ Successful response
     const response = await fetch('http://localhost:3000/api/agents/{agentId}/worlds/{worldId}', {
       method: 'PATCH',
       headers: {
-        'apikey': 'your-api-key',
+        'X-API-KEY': 'your-api-key',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ example: 'data' }),
@@ -934,67 +852,8 @@ Successful response
 
     response = requests.patch(
         'http://localhost:3000/api/agents/{agentId}/worlds/{worldId}',
-        headers={'apikey': 'your-api-key'},
+        headers={'X-API-KEY': 'your-api-key'},
         json={'example': 'data'}
-    )
-    data = response.json()
-    ```
-  </Tab>
-</Tabs>
-
----
-
-## Delete Agent World
-
-Delete an agent's world
-
-### Endpoint
-
-```
-DELETE /api/agents/{agentId}/worlds/{worldId}
-```
-
-### Parameters
-
-| Name | Type | In | Required | Description |
-|------|------|-----|----------|-------------|
-| agentId | string | path | Yes | - |
-| worldId | string | path | Yes | - |
-
-### Response
-
-**Status Code:** 200 OK
-
-Successful response
-
-### Example
-
-<Tabs items={["cURL", "TypeScript", "Python"]}>
-  <Tab value="cURL">
-    ```bash
-    curl -X DELETE \
-      -H "apikey: your-api-key" \
-      http://localhost:3000/api/agents/{agentId}/worlds/{worldId}
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript
-    const response = await fetch('http://localhost:3000/api/agents/{agentId}/worlds/{worldId}', {
-      method: 'DELETE',
-      headers: {
-        'apikey': 'your-api-key',
-      },
-    });
-    const data = await response.json();
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python
-    import requests
-
-    response = requests.delete(
-        'http://localhost:3000/api/agents/{agentId}/worlds/{worldId}',
-        headers={'apikey': 'your-api-key'},
     )
     data = response.json()
     ```

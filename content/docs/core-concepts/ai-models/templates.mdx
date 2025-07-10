@@ -21,137 +21,137 @@ elizaOS uses templates to:
 
 ## Template System
 
-### Template Types
+### Template System Architecture
 
-elizaOS supports several template types for different use cases:
+elizaOS uses predefined templates with XML-based response formats for structured AI interactions:
 
-#### String Templates
+#### Core Template Structure
 
-Simple text templates with placeholder substitution:
+Templates use placeholder substitution with `{{variable}}` syntax:
 
 ```typescript
-const template = "Hello {{name}}, how can I help you today?";
+const template = `<task>Generate dialog for {{agentName}}</task>
+<providers>
+{{providers}}
+</providers>
+<instructions>
+Generate a response for {{agentName}}
+</instructions>`;
 ```
 
-#### Function Templates
+#### XML Response Format
 
-Dynamic templates that generate content based on state:
+The AI returns structured XML responses:
 
-```typescript
-const template = ({ state }) => {
-  const timeOfDay = new Date().getHours() < 12 ? "morning" : "evening";
-  return `Good ${timeOfDay}, ${state.senderName}!`;
-};
+```xml
+<response>
+  <thought>Agent's internal reasoning</thought>
+  <actions>ACTION1,ACTION2</actions>
+  <providers>PROVIDER1,PROVIDER2</providers>
+  <text>The actual response text</text>
+</response>
 ```
 
-#### Conditional Templates
+### Template Usage
 
-Templates that adapt based on conditions:
-
-```typescript
-const template = ({ state }) => {
-  if (state.isFirstMessage) {
-    return "Welcome! I'm {{characterName}}, nice to meet you.";
-  } else {
-    return "How can I help you today?";
-  }
-};
-```
-
-### Template Configuration
-
-Templates are configured in the character file:
+Templates are defined as exported constants and used by the runtime:
 
 ```typescript
-const character = {
-  name: "MyAgent",
-  templates: {
-    // Message handling template
-    messageHandlerTemplate: `
-      You are {{characterName}}.
-      
-      {{bio}}
-      
-      {{lore}}
-      
-      Recent conversation:
-      {{recentMessages}}
-      
-      Respond to: {{message}}
-    `,
+// Core templates from elizaOS
+export const messageHandlerTemplate = `<task>Generate dialog and actions for the character {{agentName}}.</task>
 
-    // Evaluation template
-    evaluationTemplate: `
-      Evaluate if you should respond to this message:
-      {{message}}
-      
-      Context: {{context}}
-      
-      Respond with YES or NO:
-    `,
+<providers>
+{{providers}}
+</providers>
 
-    // Custom template
-    customTemplate: ({ state }) => {
-      return `Custom response for ${state.senderName}`;
-    },
-  },
-};
+These are the available valid actions:
+<actionNames>
+{{actionNames}}
+</actionNames>
+
+<instructions>
+Write a thought and plan for {{agentName}} and decide what actions to take.
+</instructions>
+
+<output>
+Respond using XML format like this:
+<response>
+    <thought>Your thought here</thought>
+    <actions>ACTION1,ACTION2</actions>
+    <providers>PROVIDER1,PROVIDER2</providers>
+    <text>Your response text here</text>
+</response>
+</output>`;
+
+// Templates are not configured in character files,
+// but are used directly by the runtime system
 ```
 
 ## Core Templates
 
 ### Message Handler Template
 
-Controls how the agent responds to messages:
+Controls how the agent responds to messages (actual implementation):
 
 ```typescript
-const messageHandlerTemplate = `
-# Character
-You are {{characterName}}, {{bio}}
+export const messageHandlerTemplate = `<task>Generate dialog and actions for the character {{agentName}}.</task>
 
-# Personality
-{{adjectives}}
+<providers>
+{{providers}}
+</providers>
 
-# Knowledge
-{{knowledge}}
+These are the available valid actions:
+<actionNames>
+{{actionNames}}
+</actionNames>
 
-# Recent Messages
-{{recentMessages}}
+<instructions>
+Write a thought and plan for {{agentName}} and decide what actions to take.
 
-# Response Instructions
-{{messageDirections}}
+IMPORTANT ACTION ORDERING RULES:
+- Actions are executed in the ORDER you list them
+- REPLY should come FIRST to acknowledge the user's request
+- Common patterns:
+  - For requests requiring tool use: REPLY,CALL_MCP_TOOL
+  - For task execution: REPLY,SEND_MESSAGE
+  - For multi-step operations: REPLY,ACTION1,ACTION2
+</instructions>
 
-# Current Message
-{{senderName}}: {{message}}
-
-Respond as {{characterName}}:
-`;
+<output>
+Respond using XML format like this:
+<response>
+    <thought>Your thought here</thought>
+    <actions>ACTION1,ACTION2</actions>
+    <providers>PROVIDER1,PROVIDER2</providers>
+    <text>Your response text here</text>
+</response>
+</output>`;
 ```
 
 ### Should Respond Template
 
-Determines when the agent should respond:
+Determines when the agent should respond (actual implementation):
 
 ```typescript
-const shouldRespondTemplate = `
-# Context
-You are {{characterName}} in a conversation.
+export const shouldRespondTemplate = `<task>Decide on behalf of {{agentName}} whether they should respond to the message, ignore it or stop the conversation.</task>
 
-# Recent Messages
-{{recentMessages}}
+<providers>
+{{providers}}
+</providers>
 
-# Current Message
-{{senderName}}: {{message}}
+<instructions>Decide if {{agentName}} should respond to or interact with the conversation.
+If the message is directed at or relevant to {{agentName}}, respond with RESPOND action.
+If a user asks {{agentName}} to be quiet, respond with STOP action.
+If {{agentName}} should ignore the message, respond with IGNORE action.</instructions>
 
-# Decision
-Should {{characterName}} respond to this message?
-Consider:
-- Is the message directed at you?
-- Is it relevant to the conversation?
-- Would a response add value?
-
-Respond with YES or NO:
-`;
+<output>
+Respond using XML format like this:
+<response>
+  <name>{{agentName}}</name>
+  <reasoning>Your reasoning here</reasoning>
+  <action>RESPOND | IGNORE | STOP</action>
+</response>
+</output>`;
 ```
 
 ### Evaluation Template
@@ -182,23 +182,28 @@ Rate from 1-10 and explain:
 
 ## Platform-Specific Templates
 
-### Twitter Templates
+### Post Creation Template
 
 ```typescript
-// elizaOS uses unified templates across platforms for consistency
-const twitterTemplates = {
-  // Tweet generation - uses the same messageHandlerTemplate but with platform-specific context
-  twitterPostTemplate: messageHandlerTemplate,
+export const postCreationTemplate = `# Task: Create a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
 
-  // Twitter response - uses the same messageHandlerTemplate
-  twitterMessageHandlerTemplate: messageHandlerTemplate,
+Example task outputs:
+1. A post about the importance of AI in our lives
+<response>
+  <thought>I am thinking about writing a post about the importance of AI in our lives</thought>
+  <post>AI is changing the world and it is important to understand how it works</post>
+  <imagePrompt>A futuristic cityscape with flying cars and people using AI to do things</imagePrompt>
+</response>
 
-  // Twitter engagement decision - uses the same shouldRespondTemplate
-  twitterShouldRespondTemplate: shouldRespondTemplate,
-};
+2. A post about dogs
+<response>
+  <thought>I am thinking about writing a post about dogs</thought>
+  <post>Dogs are man's best friend and they are loyal and loving</post>
+  <imagePrompt>A dog playing with a ball in a park</imagePrompt>
+</response>`;
 
-// Note: elizaOS provides platform-specific context through providers
-// rather than maintaining separate templates for each platform
+// Note: elizaOS uses unified templates across platforms
+// Platform-specific context is provided through runtime providers
 ```
 
 ### Discord Templates
@@ -229,33 +234,27 @@ const telegramTemplates = {
 
 ### Standard Variables
 
-Available in all templates:
+Common variables used in templates:
 
 ```typescript
-const standardVariables = {
-  // Character information
-  characterName: "Agent name",
-  bio: "Character biography",
-  lore: "Character background",
-  adjectives: "Character traits",
-  topics: "Known topics",
-  style: "Communication style",
-
-  // Context information
-  senderName: "Message sender",
-  message: "Current message",
-  recentMessages: "Recent conversation",
-
-  // Platform information
-  channelName: "Channel/room name",
-  serverName: "Server name",
-  chatName: "Chat name",
-
-  // Dynamic content
-  timestamp: "Current time",
-  context: "Additional context",
-  knowledge: "Relevant knowledge",
+// Core variables used in elizaOS templates
+const templateVariables = {
+  // Primary identifiers
+  agentName: "The agent's name",
+  
+  // Context from providers
+  providers: "Available context providers",
+  actionNames: "Available actions for the agent",
+  
+  // Platform-specific (e.g., Twitter)
+  twitterUserName: "Twitter handle (when applicable)",
+  
+  // Additional context is provided through the state
+  // and provider system rather than direct variable substitution
 };
+
+// Variables are substituted using the {{variable}} pattern
+// Example: "Hello {{agentName}}" becomes "Hello MyAgent"
 ```
 
 ### Custom Variables
@@ -284,32 +283,22 @@ const customProvider = {
 Templates use `{{variable}}` syntax for substitution:
 
 ```typescript
-const template = "Hello {{name}}, today is {{date}}";
-const processed = template.replace("{{name}}", "Alice").replace("{{date}}", "2024-01-15");
+// Simple string replacement pattern
+const template = "Hello {{agentName}}, you have {{actionNames}} available";
+
+// Variables are replaced before sending to the AI model
+const processed = template
+  .replace(/{{agentName}}/g, state.agentName)
+  .replace(/{{actionNames}}/g, state.actionNames.join(", "));
 ```
 
-### Function Template Processing
+### Template Processing Flow
 
-Function templates receive state and return strings:
-
-```typescript
-const functionTemplate = ({ state }) => {
-  const greeting = state.isFirstMessage ? "Welcome" : "Hello again";
-  return `${greeting}, ${state.senderName}!`;
-};
-
-const processed = functionTemplate({ state: currentState });
-```
-
-### Template Compilation
-
-elizaOS compiles templates for performance:
-
-```typescript
-// Template compilation (internal)
-const compiledTemplate = compileTemplate(templateString);
-const result = compiledTemplate(variables);
-```
+1. **Variable Collection**: Runtime collects values from state and providers
+2. **String Substitution**: Replace {{variables}} with actual values
+3. **AI Processing**: Send to language model
+4. **XML Parsing**: Parse structured response
+5. **Action Execution**: Execute actions in specified order
 
 ## Advanced Template Features
 

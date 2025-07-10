@@ -1,0 +1,599 @@
+---
+title: Discord Plugin
+description: Discord integration plugin for ElizaOS agents
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The Discord plugin (`@elizaos/plugin-discord`) provides comprehensive Discord integration for ElizaOS agents, enabling them to interact with Discord servers, channels, and users.
+
+<Callout type="info">
+  This plugin is part of the ElizaOS plugin ecosystem. Check the [Plugin Registry](/docs/plugins/plugin-registry) for the latest version and availability.
+</Callout>
+
+## Overview
+
+The Discord plugin provides:
+
+- **Server Integration**: Connect to Discord servers and manage channels
+- **Message Handling**: Send and receive Discord messages
+- **User Management**: Track users and manage permissions
+- **Rich Media**: Support for embeds, attachments, and reactions
+- **Voice Support**: Integration with Discord voice channels
+- **Slash Commands**: Custom command integration
+- **Event Handling**: Comprehensive Discord event system
+
+## Installation
+
+<Tabs items={['CLI', 'npm', 'pnpm', 'bun']}>
+  <Tab value="CLI">
+    ```bash
+    elizaos plugins add @elizaos/plugin-discord
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-discord
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-discord
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-discord
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+Configure the Discord plugin using environment variables:
+
+```bash
+# Required
+DISCORD_BOT_TOKEN=your-discord-bot-token
+DISCORD_APPLICATION_ID=your-discord-application-id
+
+# Optional
+DISCORD_GUILD_ID=your-server-id
+DISCORD_CLIENT_ID=your-client-id
+DISCORD_CLIENT_SECRET=your-client-secret
+
+# Bot behavior settings
+DISCORD_MAX_MESSAGES=100
+DISCORD_ENABLE_VOICE=true
+DISCORD_ENABLE_SLASH_COMMANDS=true
+```
+
+### Bot Setup
+
+<Steps>
+
+<Step>
+## Create Discord Application
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Click "New Application"
+3. Give your application a name
+4. Save the Application ID
+</Step>
+
+<Step>
+## Create Bot User
+
+1. Navigate to the "Bot" section
+2. Click "Add Bot"
+3. Copy the Bot Token
+4. Configure bot permissions:
+   - Send Messages
+   - Read Message History
+   - Use Slash Commands
+   - Connect (for voice)
+   - Speak (for voice)
+</Step>
+
+<Step>
+## Invite Bot to Server
+
+Generate an invite link with necessary permissions:
+```
+https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=PERMISSION_VALUE&scope=bot%20applications.commands
+```
+</Step>
+
+</Steps>
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { plugin as discordPlugin } from '@elizaos/plugin-discord';
+import { plugin as bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,        // Database support
+    discordPlugin,    // Discord integration
+    bootstrapPlugin   // Core functionality
+  ],
+});
+
+await runtime.initialize();
+```
+
+## Features
+
+### Message Processing
+
+Handle incoming Discord messages:
+
+```typescript
+// The plugin automatically processes Discord messages
+// and converts them to ElizaOS message format
+
+const discordMessage = {
+  content: "Hello bot!",
+  author: {
+    id: "123456789",
+    username: "user123"
+  },
+  channel: {
+    id: "987654321",
+    name: "general"
+  },
+  guild: {
+    id: "111222333",
+    name: "My Server"
+  }
+};
+
+// Converted to ElizaOS format:
+const elizaMessage = {
+  id: "unique-id",
+  content: { text: "Hello bot!" },
+  entityId: "123456789",
+  roomId: "discord-987654321",
+  worldId: "discord-111222333",
+  metadata: {
+    platform: "discord",
+    channelName: "general",
+    guildName: "My Server"
+  }
+};
+```
+
+### Rich Embeds
+
+Send rich embed messages:
+
+```typescript
+const embedAction = {
+  name: 'SEND_EMBED',
+  description: 'Send a rich embed message',
+  handler: async (runtime, message) => {
+    const embed = {
+      title: "Agent Response",
+      description: "This is a rich embed message",
+      color: 0x00ff00,
+      fields: [
+        {
+          name: "Status",
+          value: "Online",
+          inline: true
+        }
+      ],
+      thumbnail: {
+        url: "https://example.com/image.png"
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    await runtime.sendMessage({
+      roomId: message.roomId,
+      content: {
+        embeds: [embed]
+      }
+    });
+  }
+};
+```
+
+### Slash Commands
+
+Register and handle slash commands:
+
+```typescript
+const slashCommands = [
+  {
+    name: 'chat',
+    description: 'Chat with the agent',
+    options: [
+      {
+        name: 'message',
+        description: 'Your message to the agent',
+        type: 3, // STRING
+        required: true
+      }
+    ]
+  },
+  {
+    name: 'status',
+    description: 'Check agent status'
+  }
+];
+
+// Commands are automatically registered when the bot starts
+```
+
+### Voice Integration
+
+Connect to voice channels:
+
+```typescript
+const voiceAction = {
+  name: 'JOIN_VOICE',
+  description: 'Join a voice channel',
+  handler: async (runtime, message) => {
+    const voiceChannelId = message.content.voiceChannelId;
+    
+    await runtime.joinVoiceChannel({
+      channelId: voiceChannelId,
+      guildId: message.worldId
+    });
+    
+    return { success: true };
+  }
+};
+```
+
+### Reaction Handling
+
+Handle message reactions:
+
+```typescript
+// Reactions are automatically processed
+const reactionHandler = async (reaction, user) => {
+  if (reaction.emoji.name === '👍') {
+    // Handle thumbs up reaction
+    await runtime.createMemory({
+      content: { text: `${user.username} liked the message` },
+      type: 'reaction',
+      entityId: user.id,
+      roomId: reaction.message.channel.id
+    });
+  }
+};
+```
+
+## Advanced Features
+
+### Server Management
+
+Manage Discord servers and channels:
+
+```typescript
+// Create a new channel
+const createChannelAction = {
+  name: 'CREATE_CHANNEL',
+  description: 'Create a Discord channel',
+  handler: async (runtime, message) => {
+    const guild = await runtime.getDiscordGuild(message.worldId);
+    
+    const channel = await guild.channels.create({
+      name: 'agent-channel',
+      type: 'GUILD_TEXT',
+      topic: 'Channel created by ElizaOS agent'
+    });
+    
+    return { channelId: channel.id };
+  }
+};
+
+// Manage roles
+const manageRoleAction = {
+  name: 'MANAGE_ROLE',
+  description: 'Manage user roles',
+  handler: async (runtime, message) => {
+    const member = await runtime.getDiscordMember(
+      message.worldId,
+      message.entityId
+    );
+    
+    const role = await runtime.getDiscordRole(
+      message.worldId,
+      'Agent User'
+    );
+    
+    await member.roles.add(role);
+    return { success: true };
+  }
+};
+```
+
+### Custom Events
+
+Handle Discord-specific events:
+
+```typescript
+const discordEvents = {
+  'guildMemberAdd': async (member) => {
+    // Welcome new members
+    const welcomeChannel = member.guild.channels.cache
+      .find(ch => ch.name === 'welcome');
+      
+    if (welcomeChannel) {
+      await welcomeChannel.send(
+        `Welcome ${member.user.username} to the server!`
+      );
+    }
+  },
+  
+  'messageReactionAdd': async (reaction, user) => {
+    // Handle reaction additions
+    await runtime.createMemory({
+      content: { 
+        text: `${user.username} reacted with ${reaction.emoji.name}` 
+      },
+      type: 'reaction',
+      entityId: user.id,
+      roomId: reaction.message.channel.id
+    });
+  }
+};
+```
+
+### Thread Support
+
+Handle Discord threads:
+
+```typescript
+const threadAction = {
+  name: 'CREATE_THREAD',
+  description: 'Create a discussion thread',
+  handler: async (runtime, message) => {
+    const channel = await runtime.getDiscordChannel(message.roomId);
+    
+    const thread = await channel.threads.create({
+      name: 'Discussion Thread',
+      autoArchiveDuration: 60,
+      reason: 'Agent created discussion'
+    });
+    
+    await thread.send('Thread created! Let\'s discuss here.');
+    
+    return { threadId: thread.id };
+  }
+};
+```
+
+## Configuration Options
+
+### Character Integration
+
+Configure Discord-specific behavior in your character:
+
+```json
+{
+  "name": "Discord Bot",
+  "bio": ["I'm a helpful Discord bot powered by ElizaOS"],
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-discord",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "discord": {
+      "enableSlashCommands": true,
+      "enableVoice": false,
+      "autoReact": true,
+      "defaultEmbedColor": "#00ff00"
+    }
+  }
+}
+```
+
+### Permission Management
+
+Configure bot permissions:
+
+```typescript
+const discordConfig = {
+  permissions: [
+    'SEND_MESSAGES',
+    'READ_MESSAGE_HISTORY',
+    'USE_SLASH_COMMANDS',
+    'MANAGE_CHANNELS',
+    'MANAGE_ROLES',
+    'CONNECT',
+    'SPEAK'
+  ],
+  intents: [
+    'GUILDS',
+    'GUILD_MESSAGES',
+    'GUILD_MESSAGE_REACTIONS',
+    'GUILD_VOICE_STATES',
+    'MESSAGE_CONTENT'
+  ]
+};
+```
+
+## Best Practices
+
+### 1. Rate Limiting
+
+Discord has rate limits - handle them properly:
+
+```typescript
+const sendMessageWithRetry = async (channel, content, retries = 3) => {
+  try {
+    return await channel.send(content);
+  } catch (error) {
+    if (error.code === 429 && retries > 0) {
+      await new Promise(resolve => 
+        setTimeout(resolve, error.retryAfter * 1000)
+      );
+      return sendMessageWithRetry(channel, content, retries - 1);
+    }
+    throw error;
+  }
+};
+```
+
+### 2. Message Length Limits
+
+Discord messages have a 2000 character limit:
+
+```typescript
+const splitMessage = (text: string): string[] => {
+  if (text.length <= 2000) return [text];
+  
+  const chunks = [];
+  for (let i = 0; i < text.length; i += 2000) {
+    chunks.push(text.slice(i, i + 2000));
+  }
+  return chunks;
+};
+```
+
+### 3. Error Handling
+
+Handle Discord API errors gracefully:
+
+```typescript
+try {
+  await discordOperation();
+} catch (error) {
+  if (error.code === 50013) {
+    // Missing permissions
+    logger.warn('Missing permissions for Discord operation');
+  } else if (error.code === 10008) {
+    // Unknown message
+    logger.warn('Message not found');
+  } else {
+    logger.error('Discord error:', error);
+  }
+}
+```
+
+### 4. Memory Efficiency
+
+Clean up Discord event listeners:
+
+```typescript
+const cleanup = () => {
+  discordClient.removeAllListeners();
+  discordClient.destroy();
+};
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Bot not responding
+
+```bash
+# Check bot token
+echo $DISCORD_BOT_TOKEN
+
+# Verify bot permissions
+# - Bot must have required permissions
+# - Bot must be added to the server
+# - Bot must have access to the channel
+```
+
+#### Slash commands not showing
+
+```bash
+# Check application ID
+echo $DISCORD_APPLICATION_ID
+
+# Verify command registration
+# Commands may take up to 1 hour to appear globally
+# Use guild-specific commands for testing
+```
+
+#### Voice connection issues
+
+```bash
+# Install voice dependencies
+npm install @discordjs/voice libsodium-wrappers
+
+# Check voice permissions
+# - Connect permission in voice channel
+# - Speak permission in voice channel
+```
+
+## API Reference
+
+### Plugin Configuration
+
+```typescript
+interface DiscordPluginConfig {
+  token: string;
+  applicationId: string;
+  guildId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  maxMessages?: number;
+  enableVoice?: boolean;
+  enableSlashCommands?: boolean;
+}
+```
+
+### Message Format
+
+```typescript
+interface DiscordMessage {
+  id: string;
+  content: {
+    text?: string;
+    embeds?: DiscordEmbed[];
+    files?: DiscordAttachment[];
+    components?: DiscordComponent[];
+  };
+  entityId: string;
+  roomId: string;
+  worldId?: string;
+  metadata: {
+    platform: 'discord';
+    messageId: string;
+    channelId: string;
+    guildId?: string;
+    authorId: string;
+  };
+}
+```
+
+### Events
+
+```typescript
+interface DiscordEvents {
+  messageCreate: (message: DiscordMessage) => void;
+  messageUpdate: (oldMessage: DiscordMessage, newMessage: DiscordMessage) => void;
+  messageDelete: (message: DiscordMessage) => void;
+  messageReactionAdd: (reaction: DiscordReaction, user: DiscordUser) => void;
+  guildMemberAdd: (member: DiscordMember) => void;
+  guildMemberRemove: (member: DiscordMember) => void;
+  voiceStateUpdate: (oldState: VoiceState, newState: VoiceState) => void;
+}
+```
+
+## See Also
+
+- [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system)
+- [Character Configuration](/docs/core-concepts/character)
+- [Bootstrap Plugin](/docs/plugins/plugin-bootstrap)
+- [SQL Plugin](/docs/plugins/plugin-sql)
+- [Discord API Documentation](https://discord.com/developers/docs)

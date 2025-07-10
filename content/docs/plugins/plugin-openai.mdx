@@ -1,0 +1,709 @@
+---
+title: OpenAI Plugin
+description: OpenAI integration plugin for ElizaOS agents with GPT models and embeddings
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The OpenAI plugin (`@elizaos/plugin-openai`) provides comprehensive OpenAI integration for ElizaOS agents, enabling access to GPT models, embeddings, image generation, and more.
+
+<Callout type="info">
+  This plugin is part of the ElizaOS plugin ecosystem. Check the [Plugin Registry](/docs/plugins/plugin-registry) for the latest version and availability.
+</Callout>
+
+## Overview
+
+The OpenAI plugin provides:
+
+- **Text Generation**: Access to GPT-3.5, GPT-4, and GPT-4o models
+- **Embeddings**: Text embedding generation for semantic search
+- **Image Generation**: DALL-E integration for image creation
+- **Image Analysis**: GPT-4 Vision for image understanding
+- **Function Calling**: Structured tool usage with OpenAI functions
+- **Streaming**: Real-time response streaming
+- **Fine-tuning**: Custom model integration support
+
+## Installation
+
+<Tabs items={['CLI', 'npm', 'pnpm', 'bun']}>
+  <Tab value="CLI">
+    ```bash
+    elizaos plugins add @elizaos/plugin-openai
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-openai
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-openai
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-openai
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+Configure the OpenAI plugin using environment variables:
+
+```bash
+# Required
+OPENAI_API_KEY=sk-your-openai-api-key
+
+# Optional - Model Configuration
+OPENAI_DEFAULT_MODEL=gpt-4o-mini
+OPENAI_LARGE_MODEL=gpt-4o
+OPENAI_SMALL_MODEL=gpt-3.5-turbo
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+# Optional - API Configuration
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MAX_TOKENS=4096
+OPENAI_TEMPERATURE=0.7
+OPENAI_TOP_P=1
+OPENAI_FREQUENCY_PENALTY=0
+OPENAI_PRESENCE_PENALTY=0
+
+# Optional - Rate Limiting
+OPENAI_MAX_REQUESTS_PER_MINUTE=60
+OPENAI_MAX_TOKENS_PER_MINUTE=150000
+
+# Optional - Image Generation
+DALLE_MODEL=dall-e-3
+DALLE_SIZE=1024x1024
+DALLE_QUALITY=standard
+DALLE_STYLE=vivid
+```
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { plugin as openaiPlugin } from '@elizaos/plugin-openai';
+import { plugin as bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,        // Database support
+    openaiPlugin,     // OpenAI integration
+    bootstrapPlugin   // Core functionality
+  ],
+});
+
+await runtime.initialize();
+```
+
+## Model Types
+
+### Text Generation Models
+
+```typescript
+// Model configuration
+const models = {
+  // Large models for complex reasoning
+  large: {
+    model: 'gpt-4o',
+    maxTokens: 4096,
+    temperature: 0.7,
+    use: ['complex reasoning', 'creative writing', 'code generation']
+  },
+  
+  // Small models for simple tasks
+  small: {
+    model: 'gpt-3.5-turbo',
+    maxTokens: 2048,
+    temperature: 0.5,
+    use: ['simple responses', 'classification', 'quick answers']
+  },
+  
+  // Vision models for image analysis
+  vision: {
+    model: 'gpt-4o',
+    maxTokens: 1024,
+    temperature: 0.3,
+    use: ['image description', 'visual analysis']
+  }
+};
+```
+
+### Usage Examples
+
+```typescript
+// Use specific model types
+const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+  prompt: "Explain quantum computing",
+  temperature: 0.7,
+  maxTokens: 2000
+});
+
+const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+  text: "This is text to embed"
+});
+
+const image = await runtime.useModel(ModelType.IMAGE_GENERATION, {
+  prompt: "A beautiful sunset over mountains",
+  size: "1024x1024",
+  quality: "hd"
+});
+```
+
+## Features
+
+### Text Generation
+
+Generate responses using OpenAI models:
+
+```typescript
+const textAction = {
+  name: 'GENERATE_TEXT',
+  description: 'Generate text using OpenAI',
+  handler: async (runtime, message) => {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: message.content.text,
+      temperature: 0.7,
+      maxTokens: 1000,
+      stop: ['\n\n', '###']
+    });
+    
+    return {
+      text: response,
+      model: 'gpt-4o'
+    };
+  }
+};
+```
+
+### Function Calling
+
+Use OpenAI function calling for structured responses:
+
+```typescript
+const functionAction = {
+  name: 'FUNCTION_CALL',
+  description: 'Use OpenAI function calling',
+  handler: async (runtime, message) => {
+    const functions = [
+      {
+        name: 'get_weather',
+        description: 'Get weather information',
+        parameters: {
+          type: 'object',
+          properties: {
+            location: {
+              type: 'string',
+              description: 'City name'
+            },
+            unit: {
+              type: 'string',
+              enum: ['celsius', 'fahrenheit']
+            }
+          },
+          required: ['location']
+        }
+      }
+    ];
+    
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: message.content.text,
+      functions,
+      function_call: 'auto'
+    });
+    
+    if (response.function_call) {
+      // Handle function call
+      const functionName = response.function_call.name;
+      const functionArgs = JSON.parse(response.function_call.arguments);
+      
+      // Execute function and return result
+      const result = await executeFunction(functionName, functionArgs);
+      return result;
+    }
+    
+    return { text: response.content };
+  }
+};
+```
+
+### Embeddings
+
+Generate and use embeddings for semantic search:
+
+```typescript
+const embeddingAction = {
+  name: 'SEMANTIC_SEARCH',
+  description: 'Perform semantic search using embeddings',
+  handler: async (runtime, message) => {
+    // Generate embedding for query
+    const queryEmbedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+      text: message.content.text,
+      model: 'text-embedding-3-small'
+    });
+    
+    // Search similar memories
+    const similarMemories = await runtime.searchMemories({
+      tableName: 'memories',
+      query: message.content.text,
+      match_threshold: 0.8,
+      count: 5
+    });
+    
+    return {
+      query: message.content.text,
+      results: similarMemories,
+      embedding_dimension: queryEmbedding.length
+    };
+  }
+};
+```
+
+### Image Generation
+
+Generate images using DALL-E:
+
+```typescript
+const imageGenAction = {
+  name: 'GENERATE_IMAGE',
+  description: 'Generate images using DALL-E',
+  handler: async (runtime, message) => {
+    const imageResponse = await runtime.useModel(ModelType.IMAGE_GENERATION, {
+      prompt: message.content.text,
+      model: 'dall-e-3',
+      size: '1024x1024',
+      quality: 'hd',
+      style: 'vivid',
+      n: 1
+    });
+    
+    return {
+      imageUrl: imageResponse.data[0].url,
+      prompt: message.content.text,
+      revisedPrompt: imageResponse.data[0].revised_prompt
+    };
+  }
+};
+```
+
+### Image Analysis
+
+Analyze images using GPT-4 Vision:
+
+```typescript
+const imageAnalysisAction = {
+  name: 'ANALYZE_IMAGE',
+  description: 'Analyze images using GPT-4 Vision',
+  handler: async (runtime, message) => {
+    if (!message.content.attachments?.length) {
+      return { error: 'No image provided' };
+    }
+    
+    const image = message.content.attachments[0];
+    
+    const analysis = await runtime.useModel(ModelType.IMAGE_DESCRIPTION, {
+      prompt: "Describe this image in detail",
+      imageUrl: image.url,
+      maxTokens: 1000
+    });
+    
+    return {
+      description: analysis,
+      imageUrl: image.url,
+      model: 'gpt-4o'
+    };
+  }
+};
+```
+
+## Advanced Features
+
+### Streaming Responses
+
+Stream responses for real-time interaction:
+
+```typescript
+const streamingAction = {
+  name: 'STREAM_RESPONSE',
+  description: 'Stream responses in real-time',
+  handler: async (runtime, message, state, callback) => {
+    const stream = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: message.content.text,
+      stream: true,
+      temperature: 0.7
+    });
+    
+    let fullResponse = '';
+    
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      fullResponse += content;
+      
+      // Send partial updates
+      await callback({
+        text: fullResponse,
+        streaming: true
+      });
+    }
+    
+    // Send final response
+    await callback({
+      text: fullResponse,
+      streaming: false,
+      complete: true
+    });
+  }
+};
+```
+
+### Custom Model Configuration
+
+Configure custom models and parameters:
+
+```typescript
+const customModelAction = {
+  name: 'CUSTOM_MODEL',
+  description: 'Use custom model configuration',
+  handler: async (runtime, message) => {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: message.content.text,
+      model: 'gpt-4o-2024-08-06',  // Specific model version
+      temperature: 0.3,
+      top_p: 0.9,
+      frequency_penalty: 0.1,
+      presence_penalty: 0.1,
+      max_tokens: 2048,
+      stop: ['###', 'END'],
+      logit_bias: {
+        '1234': -100  // Suppress specific tokens
+      }
+    });
+    
+    return { text: response };
+  }
+};
+```
+
+### Fine-tuned Models
+
+Use fine-tuned models:
+
+```typescript
+const fineTunedAction = {
+  name: 'FINE_TUNED_MODEL',
+  description: 'Use fine-tuned model',
+  handler: async (runtime, message) => {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt: message.content.text,
+      model: 'ft:gpt-3.5-turbo:company::model-id',  // Fine-tuned model
+      temperature: 0.5,
+      maxTokens: 1000
+    });
+    
+    return { text: response };
+  }
+};
+```
+
+## Error Handling
+
+Handle OpenAI API errors gracefully:
+
+```typescript
+const robustAction = {
+  name: 'ROBUST_GENERATION',
+  description: 'Generate text with error handling',
+  handler: async (runtime, message) => {
+    try {
+      const response = await runtime.useModel(ModelType.TEXT_LARGE, {
+        prompt: message.content.text,
+        temperature: 0.7,
+        maxTokens: 1000
+      });
+      
+      return { text: response };
+    } catch (error) {
+      if (error.code === 'rate_limit_exceeded') {
+        // Wait and retry
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return await robustAction.handler(runtime, message);
+      } else if (error.code === 'context_length_exceeded') {
+        // Truncate prompt and retry
+        const truncatedPrompt = message.content.text.slice(0, 2000);
+        const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: truncatedPrompt,
+          temperature: 0.7,
+          maxTokens: 500
+        });
+        
+        return { 
+          text: response,
+          truncated: true 
+        };
+      } else if (error.code === 'content_filter') {
+        return { 
+          error: 'Content filtered by OpenAI safety systems',
+          code: 'content_filter'
+        };
+      } else {
+        logger.error('OpenAI API error:', error);
+        return { 
+          error: 'Failed to generate response',
+          code: error.code 
+        };
+      }
+    }
+  }
+};
+```
+
+## Best Practices
+
+### 1. Cost Optimization
+
+Monitor and optimize API costs:
+
+```typescript
+// Use appropriate models for tasks
+const chooseModel = (task: string) => {
+  const simpleTaskss = ['classify', 'summarize', 'extract'];
+  const complexTasks = ['reason', 'create', 'analyze'];
+  
+  if (simpleTaskss.some(t => task.includes(t))) {
+    return ModelType.TEXT_SMALL;  // gpt-3.5-turbo
+  } else {
+    return ModelType.TEXT_LARGE;  // gpt-4o
+  }
+};
+
+// Optimize token usage
+const optimizePrompt = (prompt: string) => {
+  // Remove unnecessary whitespace
+  prompt = prompt.replace(/\s+/g, ' ').trim();
+  
+  // Truncate if too long
+  if (prompt.length > 4000) {
+    prompt = prompt.slice(0, 4000) + '...';
+  }
+  
+  return prompt;
+};
+```
+
+### 2. Rate Limiting
+
+Implement rate limiting to avoid API limits:
+
+```typescript
+class RateLimiter {
+  private requests: number[] = [];
+  private tokens: number[] = [];
+  
+  async checkLimits(): Promise<void> {
+    const now = Date.now();
+    const oneMinute = 60 * 1000;
+    
+    // Clean old requests
+    this.requests = this.requests.filter(t => now - t < oneMinute);
+    this.tokens = this.tokens.filter(t => now - t < oneMinute);
+    
+    // Check limits
+    if (this.requests.length >= 60) {
+      const waitTime = oneMinute - (now - this.requests[0]);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  
+  recordRequest(tokens: number): void {
+    const now = Date.now();
+    this.requests.push(now);
+    this.tokens.push(now);
+  }
+}
+```
+
+### 3. Prompt Engineering
+
+Optimize prompts for better results:
+
+```typescript
+const createOptimalPrompt = (task: string, context: string, input: string) => {
+  return `
+Task: ${task}
+
+Context:
+${context}
+
+Instructions:
+- Be concise and accurate
+- Use the provided context
+- Follow the specified format
+- Do not hallucinate information
+
+Input: ${input}
+
+Response:`;
+};
+```
+
+### 4. Response Validation
+
+Validate and sanitize responses:
+
+```typescript
+const validateResponse = (response: string): string => {
+  // Remove potential harmful content
+  response = response.replace(/<script.*?>.*?<\/script>/gi, '');
+  
+  // Ensure reasonable length
+  if (response.length > 10000) {
+    response = response.slice(0, 10000) + '...';
+  }
+  
+  // Check for completion
+  if (response.endsWith('...') || response.length === 0) {
+    throw new Error('Incomplete response received');
+  }
+  
+  return response;
+};
+```
+
+## Configuration Options
+
+### Character Integration
+
+Configure OpenAI-specific behavior in your character:
+
+```json
+{
+  "name": "AI Assistant",
+  "bio": ["I'm an AI assistant powered by OpenAI's GPT models"],
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-openai",
+    "@elizaos/plugin-bootstrap"
+  ],
+  "settings": {
+    "openai": {
+      "model": "gpt-4o-mini",
+      "temperature": 0.7,
+      "maxTokens": 2000,
+      "enableFunctionCalling": true,
+      "enableImageGeneration": true,
+      "enableVision": true
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### API Key Issues
+
+```bash
+# Verify API key
+curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+  https://api.openai.com/v1/models
+
+# Check key permissions
+echo $OPENAI_API_KEY | cut -c1-20
+```
+
+#### Rate Limiting
+
+```bash
+# Monitor usage
+curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+  https://api.openai.com/v1/usage
+
+# Check rate limits in response headers
+# x-ratelimit-limit-requests
+# x-ratelimit-remaining-requests
+```
+
+#### Model Availability
+
+```bash
+# List available models
+curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+  https://api.openai.com/v1/models
+```
+
+## API Reference
+
+### Plugin Configuration
+
+```typescript
+interface OpenAIPluginConfig {
+  apiKey: string;
+  baseURL?: string;
+  defaultModel?: string;
+  largeModel?: string;
+  smallModel?: string;
+  embeddingModel?: string;
+  maxTokens?: number;
+  temperature?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  maxRequestsPerMinute?: number;
+  maxTokensPerMinute?: number;
+}
+```
+
+### Model Request
+
+```typescript
+interface ModelRequest {
+  prompt: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  stop?: string[];
+  stream?: boolean;
+  functions?: OpenAIFunction[];
+  function_call?: string | { name: string };
+  logit_bias?: Record<string, number>;
+}
+```
+
+### Model Response
+
+```typescript
+interface ModelResponse {
+  text?: string;
+  function_call?: {
+    name: string;
+    arguments: string;
+  };
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  model: string;
+  finish_reason: string;
+}
+```
+
+## See Also
+
+- [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system)
+- [Character Configuration](/docs/core-concepts/character)
+- [Bootstrap Plugin](/docs/plugins/plugin-bootstrap)
+- [SQL Plugin](/docs/plugins/plugin-sql)
+- [OpenAI API Documentation](https://platform.openai.com/docs)

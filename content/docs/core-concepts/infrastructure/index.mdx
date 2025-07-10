@@ -194,11 +194,11 @@ project/
 # Development mode with hot reload
 elizaos dev
 
-# Start with specific character
-elizaos dev --character my-agent.json
+# Start with specific character(s)
+elizaos dev --character my-agent.json another-agent.json
 
-# Debug mode with verbose logging
-elizaos dev --debug
+# Force reconfiguration
+elizaos dev --configure
 
 # Development with custom port
 elizaos dev --port 4000
@@ -211,15 +211,18 @@ elizaos dev --port 4000
 elizaos test
 
 # Run specific test types
-elizaos test --type unit
-elizaos test --type integration
+elizaos test --type component
 elizaos test --type e2e
+elizaos test --type all
 
-# Run with coverage
-elizaos test --coverage
+# Test with options
+elizaos test --name "specific-test"
+elizaos test --port 4000
+elizaos test --skip-build
+elizaos test --skip-type-check
 
-# Run specific test file
-elizaos test path/to/test.ts
+# Test specific path
+elizaos test path/to/plugin
 ```
 
 **Build and Deployment**:
@@ -231,8 +234,10 @@ elizaos start --build
 # Start production server
 elizaos start --character agent.json
 
-# Deploy to TEE
+# Deploy to TEE (Phala Network)
+elizaos tee phala auth login
 elizaos tee phala cvms create
+elizaos tee phala cvms list
 ```
 
 ## Plugin Development

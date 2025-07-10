@@ -55,12 +55,15 @@ The project uses [Turbo](https://turbo.build/) for efficient monorepo builds and
 
 ### Package Management
 
-The project uses **Bun** (v1.2.15) as the primary package manager with workspace support:
+The project uses **Bun** (v1.2.15) as the primary package manager with workspace support and requires **Node.js v23.3.0**:
 
 ```json
 {
   "packageManager": "bun@1.2.15",
-  "workspaces": ["packages/*", "plugin-specification/*"]
+  "workspaces": ["packages/*", "plugin-specification/*"],
+  "engines": {
+    "node": "23.3.0"
+  }
 }
 ```
 
@@ -70,11 +73,14 @@ Lerna is used for package publishing and version management:
 
 ```json
 {
-  "version": "1.0.16",
+  "version": "1.1.8",
   "packages": ["packages/*"],
   "npmClient": "bun",
   "command": {
     "publish": {
+      "workspaceConfig": true
+    },
+    "version": {
       "workspaceConfig": true
     }
   }
@@ -91,14 +97,14 @@ The foundational package providing core runtime functionality:
 packages/core/
 ├── src/
 │   ├── __tests__/           # Comprehensive test suite
-│   ├── actions.ts           # Action system
+│   ├── actions/             # Action implementations
 │   ├── database.ts          # Database abstractions
 │   ├── entities.ts          # Entity management
-│   ├── logger.ts            # Logging system
+│   ├── logger.ts            # Pino-based logging system
 │   ├── prompts.ts           # Prompt management
 │   ├── runtime.ts           # AgentRuntime class
-│   ├── schemas/             # Validation schemas
-│   │   └── character.ts
+│   ├── search.ts            # BM25 search implementation
+│   ├── services.ts          # Service management
 │   ├── types/               # TypeScript type definitions
 │   │   ├── agent.ts
 │   │   ├── components.ts
@@ -106,6 +112,7 @@ packages/core/
 │   │   ├── events.ts
 │   │   ├── plugin.ts
 │   │   ├── runtime.ts
+│   │   ├── service.ts
 │   │   └── ...
 │   └── utils.ts             # Utility functions
 ├── package.json
@@ -152,19 +159,26 @@ packages/client/
 │   │   ├── agent-card.tsx
 │   │   ├── chat.tsx
 │   │   ├── memory-viewer.tsx
+│   │   ├── agent-creator.tsx
+│   │   ├── ui/              # Shadcn UI components
 │   │   └── ...
 │   ├── hooks/               # Custom React hooks
-│   │   ├── use-agent-management.ts
+│   │   ├── use-query-hooks.ts
 │   │   ├── use-socket-chat.ts
 │   │   └── ...
 │   ├── lib/                 # Client utilities
 │   │   ├── api-client-config.ts
-│   │   ├── socketio-manager.ts
+│   │   ├── logger.ts
 │   │   └── ...
-│   └── routes/              # Application routes
-│       ├── chat.tsx
-│       ├── agent-list.tsx
-│       └── ...
+│   ├── routes/              # Application routes
+│   │   ├── chat.tsx
+│   │   ├── home.tsx
+│   │   ├── group.tsx
+│   │   └── ...
+│   ├── context/             # React contexts
+│   │   ├── AuthContext.tsx
+│   │   └── ConnectionContext.tsx
+│   └── App.tsx              # Main app component
 ├── public/                  # Static assets
 ├── cypress/                 # E2E tests
 ├── vite.config.ts           # Vite configuration
@@ -178,15 +192,25 @@ Server components for agent hosting:
 ```
 packages/server/
 ├── src/
+│   ├── index.ts             # Server entry point & AgentServer class
 │   ├── authMiddleware.ts    # Authentication middleware
-│   ├── bus.ts               # Message bus
-│   ├── index.ts             # Server entry point
-│   ├── loader.ts            # Agent loader
+│   ├── bus.ts               # Internal message bus
+│   ├── loader.ts            # Character/agent loader
 │   ├── types.ts             # Server types
-│   └── upload.ts            # File upload handling
-├── examples/
-│   ├── standalone-server.ts
-│   └── package.json
+│   ├── api/                 # API route implementations
+│   │   ├── index.ts         # Main API router
+│   │   ├── agents.ts        # Agent management routes
+│   │   ├── messaging.ts     # Message handling routes
+│   │   ├── memory.ts        # Memory operations routes
+│   │   ├── audio.ts         # Audio processing routes
+│   │   ├── media.ts         # File upload/serving routes
+│   │   ├── runtime.ts       # Server runtime routes
+│   │   ├── system.ts        # System configuration routes
+│   │   └── tee.ts           # TEE operations routes
+│   ├── socketio/            # WebSocket implementation
+│   │   └── index.ts         # SocketIORouter class
+│   └── services/            # Server services
+│       └── message.ts       # Message bus connector plugin
 └── package.json
 ```
 
@@ -324,12 +348,15 @@ Key development scripts defined in the root package.json:
 ```json
 {
   "scripts": {
-    "start": "turbo run start --filter=./packages/cli",
+    "start": "turbo run start --filter=./packages/cli --log-prefix=none",
+    "start:debug": "cross-env NODE_NO_WARNINGS=1 LOG_LEVEL=debug elizaos start",
+    "start:app": "turbo run start --filter=./packages/app",
+    "start:docs": "turbo run start --filter=@elizaos/docs",
     "dev": "bun run scripts/dev-watch.js",
     "build": "turbo run build --filter=!@elizaos/docs",
-    "test": "turbo run test --concurrency 3",
-    "lint": "turbo run lint --filter=./packages/*",
-    "clean": "rm -rf dist .turbo node_modules && bun install && bun run build"
+    "test": "turbo run test --concurrency 3 --filter=!./packages/plugin-starter --filter=!./packages/project-starter --filter=!./packages/docs --filter=!@elizaos/plugin-sql",
+    "lint": "turbo run lint --filter=./packages/* && prettier --write . && prettier --check .",
+    "clean": "rm -rf dist .turbo node_modules .turbo-tsconfig.json tsconfig.tsbuildinfo bun.lock* .eliza .elizadb && npx turbo run clean --filter=./packages/* && bun install && bun run build"
   }
 }
 ```

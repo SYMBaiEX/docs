@@ -53,6 +53,7 @@ The most significant change is the move from agent-specific endpoints to domain-
 
 ```text
 /api/messaging/submit
+/api/messaging/ingest-external
 /api/audio/{agentId}/transcribe
 /api/audio/{agentId}/generate
 ```
@@ -436,33 +437,33 @@ The ElizaOS CLI provides automated migration tools:
 
 ```bash
 # Upgrade all plugins to v1.2.0 compatible versions
-elizaos plugins upgrade
+bunx @elizaos/cli plugins upgrade
 
 # Upgrade specific plugin
-elizaos plugins upgrade @elizaos/plugin-discord
+bunx @elizaos/cli plugins upgrade @elizaos/plugin-discord
 
 # Check plugin compatibility
-elizaos plugins check-compatibility
+bunx @elizaos/cli plugins check-compatibility
 ```
 
 #### Character Migration
 
 ```bash
 # Migrate character definitions
-elizaos characters migrate ./characters/
+bunx @elizaos/cli characters migrate ./characters/
 
 # Validate character files
-elizaos characters validate ./characters/my-character.json
+bunx @elizaos/cli characters validate ./characters/my-character.json
 ```
 
 #### Code Migration
 
 ```bash
 # Migrate API calls automatically
-elizaos migrate api-calls ./src/
+bunx @elizaos/cli migrate api-calls ./src/
 
 # Migrate plugin definitions
-elizaos migrate plugins ./plugins/
+bunx @elizaos/cli migrate plugins ./plugins/
 ```
 
 ### AI-Powered Code Transformation
@@ -471,13 +472,13 @@ The CLI includes AI-powered migration assistance:
 
 ```bash
 # Interactive migration with AI assistance
-elizaos migrate --interactive
+bunx @elizaos/cli migrate --interactive
 
 # Explain migration steps
-elizaos migrate --explain
+bunx @elizaos/cli migrate --explain
 
 # Preview changes without applying
-elizaos migrate --dry-run
+bunx @elizaos/cli migrate --dry-run
 ```
 
 ## Migration Validation
@@ -520,12 +521,12 @@ Run automated validation:
 
 ```bash
 # Validate entire project
-elizaos validate
+bunx @elizaos/cli validate
 
 # Validate specific components
-elizaos validate characters
-elizaos validate plugins
-elizaos validate api-endpoints
+bunx @elizaos/cli validate characters
+bunx @elizaos/cli validate plugins
+bunx @elizaos/cli validate api-endpoints
 ```
 
 ## Testing Migration
@@ -706,7 +707,7 @@ cp .env.backup .env
 cp db.sqlite.backup db.sqlite
 
 # Or reinitialize
-elizaos db:reset
+bunx @elizaos/cli db:reset
 ```
 
 ## Performance Optimizations
@@ -787,7 +788,7 @@ After successful migration:
 
 ### Migration Tools
 
-- **ElizaOS CLI**: `elizaos --help` for all migration commands
+- **ElizaOS CLI**: `bunx @elizaos/cli --help` for all migration commands
 - **Validation Tools**: Built-in validation for all components
 - **AI Assistant**: Interactive migration help with AI guidance
 

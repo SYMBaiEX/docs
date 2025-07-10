@@ -1,0 +1,899 @@
+---
+title: WebSocket Plugin
+description: WebSocket integration plugin for ElizaOS agents with real-time communication
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The WebSocket plugin (`@elizaos/plugin-ws`) provides real-time WebSocket communication capabilities for ElizaOS agents, enabling bidirectional communication, live updates, and interactive experiences.
+
+<Callout type="info">
+  This plugin is part of the ElizaOS plugin ecosystem. Check the [Plugin Registry](/docs/plugins/plugin-registry) for the latest version and availability.
+</Callout>
+
+## Overview
+
+The WebSocket plugin provides:
+
+- **Real-time Communication**: Bidirectional WebSocket connections
+- **Event Broadcasting**: Send events to connected clients
+- **Room Management**: Group clients into rooms for targeted messaging
+- **Connection Management**: Handle client connections and disconnections
+- **Message Routing**: Route messages between agents and clients
+- **Authentication**: Secure WebSocket connections
+- **Scaling Support**: Multi-instance WebSocket support
+
+## Installation
+
+<Tabs items={['CLI', 'npm', 'pnpm', 'bun']}>
+  <Tab value="CLI">
+    ```bash
+    elizaos plugins add @elizaos/plugin-ws
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-ws
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-ws
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-ws
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+Configure the WebSocket plugin using environment variables:
+
+```bash
+# Required
+WS_PORT=8080
+WS_HOST=localhost
+
+# Optional - Security
+WS_ENABLE_AUTH=true
+WS_AUTH_SECRET=your-jwt-secret
+WS_CORS_ORIGIN=http://localhost:3000
+
+# Optional - Connection settings
+WS_MAX_CONNECTIONS=1000
+WS_CONNECTION_TIMEOUT=30000
+WS_HEARTBEAT_INTERVAL=30000
+WS_MAX_MESSAGE_SIZE=1048576  # 1MB
+
+# Optional - Room settings
+WS_MAX_ROOMS=100
+WS_MAX_CLIENTS_PER_ROOM=50
+
+# Optional - SSL/TLS
+WS_SSL_CERT_PATH=/path/to/cert.pem
+WS_SSL_KEY_PATH=/path/to/key.pem
+WS_ENABLE_SSL=false
+```
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { plugin as wsPlugin } from '@elizaos/plugin-ws';
+import { plugin as bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,        // Database support
+    wsPlugin,         // WebSocket integration
+    bootstrapPlugin   // Core functionality
+  ],
+});
+
+await runtime.initialize();
+```
+
+## Features
+
+### Connection Management
+
+Handle WebSocket connections:
+
+```typescript
+const connectionManager = {
+  name: 'CONNECTION_MANAGER',
+  description: 'Manage WebSocket connections',
+  handler: async (runtime, message) => {
+    const wsService = runtime.getService('websocket');
+    
+    // Get connection info
+    const connections = wsService.getConnections();
+    const activeRooms = wsService.getRooms();
+    
+    return {
+      totalConnections: connections.length,
+      activeRooms: activeRooms.length,
+      connections: connections.map(conn => ({
+        id: conn.id,
+        userId: conn.userId,
+        roomId: conn.roomId,
+        connectedAt: conn.connectedAt
+      }))
+    };
+  }
+};
+```
+
+### Broadcasting Messages
+
+Send messages to connected clients:
+
+```typescript
+const broadcastAction = {
+  name: 'BROADCAST_MESSAGE',
+  description: 'Broadcast message to WebSocket clients',
+  handler: async (runtime, message) => {
+    const wsService = runtime.getService('websocket');
+    const { text, roomId, broadcast = false } = message.content;
+    
+    if (broadcast) {
+      // Broadcast to all connected clients
+      await wsService.broadcast({
+        type: 'message',
+        content: {
+          text,
+          agentId: runtime.agentId,
+          timestamp: Date.now()
+        }
+      });
+    } else if (roomId) {
+      // Send to specific room
+      await wsService.sendToRoom(roomId, {
+        type: 'message',
+        content: {
+          text,
+          agentId: runtime.agentId,
+          roomId,
+          timestamp: Date.now()
+        }
+      });
+    }
+    
+    return {
+      sent: true,
+      type: broadcast ? 'broadcast' : 'room',
+      recipientCount: broadcast ? 
+        wsService.getConnectionCount() : 
+        wsService.getRoomSize(roomId)
+    };
+  }
+};
+```
+
+### Room Management
+
+Manage client rooms:
+
+```typescript
+const roomActions = {
+  JOIN_ROOM: {
+    name: 'JOIN_ROOM',
+    handler: async (runtime, message) => {
+      const wsService = runtime.getService('websocket');
+      const { connectionId, roomId } = message.content;
+      
+      await wsService.joinRoom(connectionId, roomId);
+      
+      // Notify room members
+      await wsService.sendToRoom(roomId, {
+        type: 'user_joined',
+        content: {
+          userId: connectionId,
+          roomId,
+          timestamp: Date.now()
+        }
+      });
+      
+      return { joined: true, roomId };
+    }
+  },
+  
+  LEAVE_ROOM: {
+    name: 'LEAVE_ROOM',
+    handler: async (runtime, message) => {
+      const wsService = runtime.getService('websocket');
+      const { connectionId, roomId } = message.content;
+      
+      await wsService.leaveRoom(connectionId, roomId);
+      
+      // Notify room members
+      await wsService.sendToRoom(roomId, {
+        type: 'user_left',
+        content: {
+          userId: connectionId,
+          roomId,
+          timestamp: Date.now()
+        }
+      });
+      
+      return { left: true, roomId };
+    }
+  },
+  
+  GET_ROOM_MEMBERS: {
+    name: 'GET_ROOM_MEMBERS',
+    handler: async (runtime, message) => {
+      const wsService = runtime.getService('websocket');
+      const { roomId } = message.content;
+      
+      const members = wsService.getRoomMembers(roomId);
+      
+      return {
+        roomId,
+        memberCount: members.length,
+        members: members.map(member => ({
+          id: member.id,
+          userId: member.userId,
+          joinedAt: member.joinedAt
+        }))
+      };
+    }
+  }
+};
+```
+
+### Real-time Updates
+
+Send live updates to clients:
+
+```typescript
+const liveUpdateAction = {
+  name: 'SEND_LIVE_UPDATE',
+  description: 'Send real-time updates to clients',
+  handler: async (runtime, message) => {
+    const wsService = runtime.getService('websocket');
+    const { updateType, data, targetRoom } = message.content;
+    
+    const update = {
+      type: 'live_update',
+      updateType,
+      content: {
+        ...data,
+        agentId: runtime.agentId,
+        timestamp: Date.now(),
+        updateId: generateUpdateId()
+      }
+    };
+    
+    if (targetRoom) {
+      await wsService.sendToRoom(targetRoom, update);
+    } else {
+      await wsService.broadcast(update);
+    }
+    
+    return {
+      updateSent: true,
+      updateType,
+      recipients: targetRoom ? 
+        wsService.getRoomSize(targetRoom) : 
+        wsService.getConnectionCount()
+    };
+  }
+};
+
+const generateUpdateId = (): string => {
+  return `update_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+```
+
+## Advanced Features
+
+### Authentication
+
+Secure WebSocket connections:
+
+```typescript
+const authenticateConnection = async (token: string): Promise<User | null> => {
+  try {
+    const decoded = jwt.verify(token, process.env.WS_AUTH_SECRET!);
+    
+    // Validate user
+    const user = await runtime.getEntityById(decoded.userId);
+    if (!user) return null;
+    
+    return {
+      id: user.id,
+      username: user.metadata?.username,
+      permissions: user.metadata?.permissions || []
+    };
+  } catch (error) {
+    logger.warn('WebSocket authentication failed:', error);
+    return null;
+  }
+};
+
+const wsAuthHandler = {
+  name: 'WS_AUTH',
+  description: 'Handle WebSocket authentication',
+  handler: async (runtime, message) => {
+    const { connectionId, token } = message.content;
+    
+    const user = await authenticateConnection(token);
+    if (!user) {
+      // Close connection
+      const wsService = runtime.getService('websocket');
+      wsService.closeConnection(connectionId, 'Authentication failed');
+      return { authenticated: false };
+    }
+    
+    // Associate user with connection
+    wsService.setConnectionUser(connectionId, user);
+    
+    return {
+      authenticated: true,
+      userId: user.id,
+      username: user.username
+    };
+  }
+};
+```
+
+### Message Filtering
+
+Filter and validate incoming messages:
+
+```typescript
+const messageFilter = {
+  validateMessage: (message: any): boolean => {
+    // Check message structure
+    if (!message.type || !message.content) return false;
+    
+    // Check message size
+    const messageSize = JSON.stringify(message).length;
+    if (messageSize > 1048576) return false; // 1MB limit
+    
+    // Check for prohibited content
+    const prohibitedPatterns = [
+      /<script[^>]*>.*?<\/script>/gi,
+      /javascript:/gi,
+      /data:text\/html/gi
+    ];
+    
+    const content = JSON.stringify(message.content);
+    return !prohibitedPatterns.some(pattern => pattern.test(content));
+  },
+  
+  sanitizeMessage: (message: any): any => {
+    // Remove potentially harmful content
+    const sanitize = (obj: any): any => {
+      if (typeof obj === 'string') {
+        return obj
+          .replace(/<script[^>]*>.*?<\/script>/gi, '')
+          .replace(/javascript:/gi, '')
+          .replace(/on\w+\s*=/gi, '');
+      } else if (Array.isArray(obj)) {
+        return obj.map(sanitize);
+      } else if (obj && typeof obj === 'object') {
+        const sanitized: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          sanitized[key] = sanitize(value);
+        }
+        return sanitized;
+      }
+      return obj;
+    };
+    
+    return sanitize(message);
+  }
+};
+```
+
+### Custom Events
+
+Handle custom WebSocket events:
+
+```typescript
+const customEventHandlers = {
+  'agent:thinking': async (runtime: IAgentRuntime, data: any) => {
+    const wsService = runtime.getService('websocket');
+    
+    // Broadcast thinking status
+    await wsService.broadcast({
+      type: 'agent_status',
+      content: {
+        status: 'thinking',
+        agentId: runtime.agentId,
+        message: data.message,
+        timestamp: Date.now()
+      }
+    });
+  },
+  
+  'agent:response': async (runtime: IAgentRuntime, data: any) => {
+    const wsService = runtime.getService('websocket');
+    
+    // Send response to relevant room
+    await wsService.sendToRoom(data.roomId, {
+      type: 'agent_response',
+      content: {
+        text: data.text,
+        agentId: runtime.agentId,
+        responseId: data.responseId,
+        timestamp: Date.now()
+      }
+    });
+  },
+  
+  'user:typing': async (runtime: IAgentRuntime, data: any) => {
+    const wsService = runtime.getService('websocket');
+    
+    // Broadcast typing indicator to room (excluding sender)
+    await wsService.sendToRoomExcept(data.roomId, data.userId, {
+      type: 'typing_indicator',
+      content: {
+        userId: data.userId,
+        typing: data.typing,
+        timestamp: Date.now()
+      }
+    });
+  }
+};
+```
+
+### Performance Monitoring
+
+Monitor WebSocket performance:
+
+```typescript
+const performanceMonitor = {
+  name: 'WS_PERFORMANCE',
+  description: 'Monitor WebSocket performance',
+  handler: async (runtime, message) => {
+    const wsService = runtime.getService('websocket');
+    
+    const stats = wsService.getStats();
+    
+    const performance = {
+      connections: {
+        total: stats.totalConnections,
+        active: stats.activeConnections,
+        peak: stats.peakConnections
+      },
+      messages: {
+        sent: stats.messagesSent,
+        received: stats.messagesReceived,
+        failed: stats.messagesFailed,
+        rate: stats.messagesPerSecond
+      },
+      rooms: {
+        total: stats.totalRooms,
+        active: stats.activeRooms,
+        averageSize: stats.averageRoomSize
+      },
+      memory: {
+        usage: process.memoryUsage(),
+        connectionMemory: stats.memoryPerConnection
+      },
+      latency: {
+        average: stats.averageLatency,
+        p95: stats.p95Latency,
+        p99: stats.p99Latency
+      }
+    };
+    
+    // Store performance metrics
+    await runtime.createMemory({
+      content: {
+        type: 'ws_performance',
+        metrics: performance,
+        timestamp: Date.now()
+      },
+      type: 'metrics'
+    });
+    
+    return performance;
+  }
+};
+```
+
+## Client Integration
+
+### JavaScript Client
+
+Connect from web browsers:
+
+```javascript
+class ElizaWebSocketClient {
+  constructor(url, options = {}) {
+    this.url = url;
+    this.options = options;
+    this.ws = null;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectDelay = 1000;
+  }
+  
+  connect(token) {
+    return new Promise((resolve, reject) => {
+      this.ws = new WebSocket(this.url);
+      
+      this.ws.onopen = () => {
+        console.log('Connected to ElizaOS');
+        
+        // Authenticate if token provided
+        if (token) {
+          this.send({
+            type: 'auth',
+            content: { token }
+          });
+        }
+        
+        this.reconnectAttempts = 0;
+        resolve();
+      };
+      
+      this.ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          this.handleMessage(message);
+        } catch (error) {
+          console.error('Failed to parse message:', error);
+        }
+      };
+      
+      this.ws.onclose = () => {
+        console.log('Disconnected from ElizaOS');
+        this.handleReconnect();
+      };
+      
+      this.ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        reject(error);
+      };
+    });
+  }
+  
+  send(message) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket not connected');
+    }
+  }
+  
+  sendMessage(text, roomId) {
+    this.send({
+      type: 'message',
+      content: { text, roomId }
+    });
+  }
+  
+  joinRoom(roomId) {
+    this.send({
+      type: 'join_room',
+      content: { roomId }
+    });
+  }
+  
+  leaveRoom(roomId) {
+    this.send({
+      type: 'leave_room',
+      content: { roomId }
+    });
+  }
+  
+  handleMessage(message) {
+    switch (message.type) {
+      case 'message':
+        this.onMessage(message.content);
+        break;
+      case 'agent_status':
+        this.onAgentStatus(message.content);
+        break;
+      case 'live_update':
+        this.onLiveUpdate(message.content);
+        break;
+      case 'error':
+        this.onError(message.content);
+        break;
+    }
+  }
+  
+  handleReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      
+      setTimeout(() => {
+        console.log(`Reconnecting... (attempt ${this.reconnectAttempts})`);
+        this.connect();
+      }, delay);
+    }
+  }
+  
+  // Override these methods
+  onMessage(content) { console.log('Message received:', content); }
+  onAgentStatus(content) { console.log('Agent status:', content); }
+  onLiveUpdate(content) { console.log('Live update:', content); }
+  onError(content) { console.error('Error:', content); }
+}
+
+// Usage
+const client = new ElizaWebSocketClient('ws://localhost:8080');
+client.connect('your-auth-token');
+
+client.onMessage = (content) => {
+  document.getElementById('messages').innerHTML += 
+    `<div>${content.text}</div>`;
+};
+
+client.sendMessage('Hello, Eliza!', 'room123');
+```
+
+### React Hook
+
+Use with React applications:
+
+```jsx
+import { useState, useEffect, useRef } from 'react';
+
+const useElizaWebSocket = (url, token) => {
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [error, setError] = useState(null);
+  const ws = useRef(null);
+  
+  useEffect(() => {
+    const connect = () => {
+      ws.current = new WebSocket(url);
+      
+      ws.current.onopen = () => {
+        setConnected(true);
+        setError(null);
+        
+        if (token) {
+          ws.current.send(JSON.stringify({
+            type: 'auth',
+            content: { token }
+          }));
+        }
+      };
+      
+      ws.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'message') {
+            setMessages(prev => [...prev, message.content]);
+          }
+        } catch (err) {
+          console.error('Message parse error:', err);
+        }
+      };
+      
+      ws.current.onclose = () => {
+        setConnected(false);
+      };
+      
+      ws.current.onerror = (err) => {
+        setError(err);
+      };
+    };
+    
+    connect();
+    
+    return () => {
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [url, token]);
+  
+  const sendMessage = (text, roomId) => {
+    if (ws.current && connected) {
+      ws.current.send(JSON.stringify({
+        type: 'message',
+        content: { text, roomId }
+      }));
+    }
+  };
+  
+  return { connected, messages, error, sendMessage };
+};
+
+// Component usage
+const ChatComponent = () => {
+  const { connected, messages, sendMessage } = useElizaWebSocket(
+    'ws://localhost:8080',
+    'your-auth-token'
+  );
+  
+  const [inputText, setInputText] = useState('');
+  
+  const handleSend = () => {
+    if (inputText.trim()) {
+      sendMessage(inputText, 'room123');
+      setInputText('');
+    }
+  };
+  
+  return (
+    <div>
+      <div>Status: {connected ? 'Connected' : 'Disconnected'}</div>
+      <div>
+        {messages.map((msg, index) => (
+          <div key={index}>{msg.text}</div>
+        ))}
+      </div>
+      <input
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+      />
+      <button onClick={handleSend}>Send</button>
+    </div>
+  );
+};
+```
+
+## Best Practices
+
+### 1. Connection Management
+
+Handle connections efficiently:
+
+```typescript
+const connectionLimits = {
+  maxConnectionsPerIP: 10,
+  maxGlobalConnections: 1000,
+  connectionTimeout: 30000,
+  heartbeatInterval: 30000
+};
+
+const validateConnection = (req: any): boolean => {
+  const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  const existingConnections = getConnectionsByIP(clientIP);
+  
+  return existingConnections.length < connectionLimits.maxConnectionsPerIP;
+};
+```
+
+### 2. Message Optimization
+
+Optimize message size and frequency:
+
+```typescript
+const messageOptimizer = {
+  compressMessage: (message: any): any => {
+    // Remove unnecessary fields
+    const compressed = {
+      t: message.type,
+      c: message.content,
+      ts: message.timestamp
+    };
+    
+    // Compress content if large
+    if (JSON.stringify(compressed).length > 1024) {
+      compressed.c = compressContent(compressed.c);
+    }
+    
+    return compressed;
+  },
+  
+  batchMessages: (messages: any[]): any => {
+    return {
+      type: 'batch',
+      content: {
+        messages,
+        count: messages.length,
+        timestamp: Date.now()
+      }
+    };
+  }
+};
+```
+
+### 3. Error Recovery
+
+Implement robust error recovery:
+
+```typescript
+const errorRecovery = {
+  handleConnectionError: (error: any, connectionId: string) => {
+    logger.error(`Connection error for ${connectionId}:`, error);
+    
+    // Attempt to recover connection
+    setTimeout(() => {
+      wsService.reconnectClient(connectionId);
+    }, 5000);
+  },
+  
+  handleMessageError: (error: any, message: any) => {
+    logger.warn('Message processing error:', error);
+    
+    // Send error response to client
+    wsService.sendError(message.connectionId, {
+      error: 'Message processing failed',
+      originalMessage: message.id
+    });
+  }
+};
+```
+
+## API Reference
+
+### Plugin Configuration
+
+```typescript
+interface WebSocketPluginConfig {
+  port: number;
+  host: string;
+  enableAuth?: boolean;
+  authSecret?: string;
+  corsOrigin?: string;
+  maxConnections?: number;
+  connectionTimeout?: number;
+  heartbeatInterval?: number;
+  maxMessageSize?: number;
+  enableSSL?: boolean;
+  sslCertPath?: string;
+  sslKeyPath?: string;
+}
+```
+
+### WebSocket Message
+
+```typescript
+interface WebSocketMessage {
+  type: string;
+  content: any;
+  timestamp?: number;
+  messageId?: string;
+  connectionId?: string;
+  roomId?: string;
+}
+```
+
+### Connection Object
+
+```typescript
+interface WebSocketConnection {
+  id: string;
+  userId?: string;
+  roomIds: string[];
+  connectedAt: number;
+  lastSeen: number;
+  metadata: Record<string, any>;
+}
+```
+
+### Service Methods
+
+```typescript
+interface WebSocketService {
+  broadcast: (message: WebSocketMessage) => Promise<void>;
+  sendToRoom: (roomId: string, message: WebSocketMessage) => Promise<void>;
+  sendToUser: (userId: string, message: WebSocketMessage) => Promise<void>;
+  joinRoom: (connectionId: string, roomId: string) => Promise<void>;
+  leaveRoom: (connectionId: string, roomId: string) => Promise<void>;
+  closeConnection: (connectionId: string, reason?: string) => void;
+  getConnections: () => WebSocketConnection[];
+  getRooms: () => string[];
+  getStats: () => WebSocketStats;
+}
+```
+
+## See Also
+
+- [Plugin System Architecture](/docs/core-concepts/architecture/plugin-system)
+- [Character Configuration](/docs/core-concepts/character)
+- [Bootstrap Plugin](/docs/plugins/plugin-bootstrap)
+- [SQL Plugin](/docs/plugins/plugin-sql)
+- [WebSocket API Specification](https://tools.ietf.org/html/rfc6455)

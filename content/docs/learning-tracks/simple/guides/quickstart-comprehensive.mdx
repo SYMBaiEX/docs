@@ -11,10 +11,11 @@ to create your first AI agent.
 
 Before starting, ensure you have:
 
-- **Node.js** (v23.3.0 or higher)
+- **Node.js** (v23.3.0 or higher) - [Install Node.js](https://nodejs.org/)
 - **Bun** (v1.2.15 or higher) - [Install Bun](https://bun.sh/docs/installation)
 - **Git** for version control
 - A text editor (VS Code recommended)
+- An API key for at least one AI provider (OpenAI, Anthropic, etc.)
 
 ### Quick Environment Check
 
@@ -59,13 +60,17 @@ elizaos --version
 
 ```bash
 # Create a new agent project
-elizaos create -t project my-first-agent
+elizaos create my-first-agent --type project
 cd my-first-agent
 
 # The CLI will automatically:
 # - Create project structure
 # - Install dependencies
 # - Generate basic configuration
+
+# Or interactively:
+elizaos create
+# Then select "Project - Full ElizaOS application"
 ```
 
 ### Step 3: Configure Your Agent
@@ -77,36 +82,58 @@ Edit the character file:
 code src/character.ts
 ```
 
-Basic character configuration:
+The character file structure in ElizaOS:
 
 ```typescript
 // src/character.ts
-export const character = {
+import { type Character } from '@elizaos/core';
+
+export const character: Character = {
   name: "Alex",
-  bio: "A helpful AI assistant that loves to chat and help users with their questions.",
-
-  // Basic personality traits
-  personality: [
-    "helpful and friendly",
-    "curious about the world",
-    "patient and understanding",
-    "loves to learn new things",
+  bio: [
+    "A helpful AI assistant that loves to chat and help users with their questions",
+    "Specializes in technology, productivity, and creative problem-solving",
+    "Friendly, patient, and always eager to learn"
   ],
-
-  // How the agent should behave
-  behavior: [
-    "Always be polite and respectful",
-    "Ask clarifying questions when needed",
-    "Provide helpful and accurate information",
-    "Maintain a positive attitude",
+  
+  // System prompt that defines behavior
+  system: "You are Alex, a helpful and friendly AI assistant. Respond conversationally while being informative and accurate. Use humor when appropriate and show empathy to user needs.",
+  
+  // Topics the agent knows about
+  topics: [
+    "technology and software",
+    "problem solving",
+    "productivity tips",
+    "general knowledge",
+    "creative thinking"
   ],
-
-  // Example conversations
-  knowledge: [
-    "I can help with general questions and conversations",
-    "I enjoy discussing technology, books, and current events",
-    "I'm here to assist and make your day better",
+  
+  // Example conversations for training
+  messageExamples: [
+    [
+      {
+        name: "{{user1}}",
+        content: { text: "I'm struggling with a coding problem" }
+      },
+      {
+        name: "Alex",
+        content: { text: "I'd be happy to help! Can you share what specific issue you're facing? Is it a syntax error, logic problem, or something else?" }
+      }
+    ]
   ],
+  
+  // Plugins are configured dynamically based on environment variables
+  plugins: [],
+  
+  // Style guide for responses
+  style: {
+    all: [
+      "Be conversational and friendly",
+      "Use clear, simple language",
+      "Be helpful and informative",
+      "Show personality and warmth"
+    ]
+  }
 };
 ```
 
@@ -124,24 +151,40 @@ Essential environment variables:
 
 ```bash
 # .env
-# Required: Choose your AI model provider
+# Database configuration (required)
+DATABASE_URL=postgresql://localhost/elizaos
+# Or use SQLite:
+# DATABASE_URL=sqlite:./data/db.sqlite
+
+# Required: Choose at least one AI model provider
 OPENAI_API_KEY=your_openai_key_here
 # OR
 ANTHROPIC_API_KEY=your_anthropic_key_here
+# OR
+OLLAMA_API_ENDPOINT=http://localhost:11434
+# OR
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
 
 # Optional: Add platform integrations
-DISCORD_TOKEN=your_discord_token
+DISCORD_API_TOKEN=your_discord_bot_token
 TWITTER_API_KEY=your_twitter_key
+TWITTER_API_SECRET_KEY=your_twitter_secret
+TWITTER_ACCESS_TOKEN=your_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_access_secret
+TELEGRAM_BOT_TOKEN=your_telegram_token
 ```
 
 ### Step 5: Run Your Agent
 
 ```bash
-# Start development mode (with hot reload)
+# Start in development mode
 elizaos dev
 
-# OR start production mode
-elizaos start
+# OR start with a specific character file
+elizaos start --character src/character.ts
+
+# OR start with multiple agents
+elizaos start --character src/character1.ts --character src/character2.ts
 ```
 
 Your agent is now running!
@@ -151,11 +194,13 @@ Your agent is now running!
 Open another terminal and test your agent:
 
 ```bash
-# Test with CLI
+# Run tests
 elizaos test
 
-# Or interact directly (if using terminal client)
-# Your agent will respond to messages based on its character
+# If running in terminal mode, you can interact directly
+# in the console where you started the agent
+
+# For Discord/Twitter/Telegram, interact through those platforms
 ```
 
 ---
@@ -166,8 +211,12 @@ elizaos test
 
 ```bash
 # Create a new plugin
-elizaos create -t plugin weather-bot
-cd plugin-weather-bot
+elizaos create weather-plugin --type plugin
+cd weather-plugin
+
+# Or interactively:
+elizaos create
+# Then select "Plugin - Custom ElizaOS plugin"
 ```
 
 ### Step 2: Implement Your Plugin
@@ -276,8 +325,11 @@ bun run build
 
 ```bash
 # Create a new plugin in the monorepo
-cp -r packages/plugin-starter packages/plugin-myservice
-cd packages/plugin-myservice
+cd packages
+cp -r plugin-starter plugin-myservice
+cd plugin-myservice
+
+# Update package.json with your plugin name
 ```
 
 ### Step 3: Update Configuration
@@ -287,7 +339,10 @@ cd packages/plugin-myservice
 {
   "name": "@elizaos/plugin-myservice",
   "description": "My custom service plugin",
-  "version": "1.0.16",
+  "version": "1.1.8",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@elizaos/core": "workspace:*"
   }
@@ -320,7 +375,7 @@ bun test --filter=./packages/plugin-myservice
 
    ```bash
    # .env
-   DISCORD_TOKEN=your_bot_token_here
+   DISCORD_API_TOKEN=your_bot_token_here
    DISCORD_APPLICATION_ID=your_application_id
    ```
 

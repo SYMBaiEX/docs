@@ -20,22 +20,30 @@ and behavior:
 
 ```typescript
 interface Character {
+  id?: UUID;
   name: string;
-  bio: string[];
-  lore: string[];
-  knowledge: string[];
-  messageExamples: MessageExample[][];
-  postExamples: string[];
-  topics: string[];
-  style: {
-    all: string[];
-    chat: string[];
-    post: string[];
+  username?: string;
+  system?: string;
+  templates?: {
+    [key: string]: TemplateType;
   };
-  adjectives: string[];
+  bio: string | string[];
+  messageExamples?: MessageExample[][];
+  postExamples?: string[];
+  topics?: string[];
+  adjectives?: string[];
+  knowledge?: (string | { path: string; shared?: boolean } | DirectoryItem)[];
+  plugins?: string[];
   settings?: {
-    secrets?: { [key: string]: string };
-    voice?: { model: string };
+    [key: string]: string | boolean | number | Record<string, any>;
+  };
+  secrets?: {
+    [key: string]: string | boolean | number;
+  };
+  style?: {
+    all?: string[];
+    chat?: string[];
+    post?: string[];
   };
 }
 ```
@@ -60,10 +68,18 @@ events:
 ```typescript
 interface Action {
   name: string;
+  similes?: string[];
   description: string;
-  validate: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
-  handler: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
-  examples: ActionExample[][];
+  validate: (runtime: IAgentRuntime, message: Memory, state?: State) => Promise<boolean>;
+  handler: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: { [key: string]: unknown },
+    callback?: HandlerCallback,
+    responses?: Memory[]
+  ) => Promise<unknown>;
+  examples?: ActionExample[][];
 }
 ```
 
@@ -93,11 +109,19 @@ Evaluators assess situations and determine appropriate responses:
 ```typescript
 interface Evaluator {
   name: string;
+  alwaysRun?: boolean;
   description: string;
-  similes: string[];
-  examples: EvaluatorExample[];
-  handler: (runtime: IAgentRuntime, message: Memory) => Promise<string>;
-  validate: (runtime: IAgentRuntime, message: Memory) => Promise<boolean>;
+  similes?: string[];
+  examples: EvaluationExample[];
+  handler: (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state?: State,
+    options?: { [key: string]: unknown },
+    callback?: HandlerCallback,
+    responses?: Memory[]
+  ) => Promise<unknown>;
+  validate: (runtime: IAgentRuntime, message: Memory, state?: State) => Promise<boolean>;
 }
 ```
 
@@ -119,7 +143,12 @@ Providers integrate external services and data sources:
 
 ```typescript
 interface Provider {
-  get: (runtime: IAgentRuntime, message: Memory) => Promise<string>;
+  name: string;
+  description?: string;
+  dynamic?: boolean;
+  position?: number;
+  private?: boolean;
+  get: (runtime: IAgentRuntime, message: Memory, state: State) => Promise<ProviderResult>;
 }
 ```
 

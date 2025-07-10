@@ -15,22 +15,22 @@ The Action interface defines the structure for all agent actions:
 
 ```typescript
 interface Action {
-  /** Similar action descriptions for context */
+  /** Similar action descriptions */
   similes?: string[];
 
-  /** Detailed description of what the action does */
+  /** Detailed description */
   description: string;
 
-  /** Example usage scenarios */
+  /** Example usages */
   examples?: ActionExample[][];
 
-  /** Core handler function that executes the action */
+  /** Handler function */
   handler: Handler;
 
-  /** Action name/identifier */
+  /** Action name */
   name: string;
 
-  /** Validation function to determine if action should execute */
+  /** Validation function */
   validate: Validator;
 }
 ```
@@ -375,76 +375,53 @@ handler: async (runtime, message, state, options, callback) => {
 
 ### Send Message Action (from plugin-bootstrap)
 
+The sendMessage action in plugin-bootstrap is more complex than shown above. It:
+- Extracts target information using an LLM
+- Supports sending to both users and rooms
+- Integrates with platform-specific services
+- Uses entity components to find user contact information
+
 ```typescript
 export const sendMessageAction: Action = {
-  name: "SEND_MESSAGE",
-  similes: ["MESSAGE", "SEND", "POST", "PUBLISH"],
-  description: "Send a message to a specific channel",
+  name: 'SEND_MESSAGE',
+  similes: ['DM', 'MESSAGE', 'SEND_DM', 'POST_MESSAGE'],
+  description: 'Send a message to a user or room (other than the current one)',
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-    // Only validate if there's a target room or channel specified
-    return !!state?.values?.targetRoomId || !!options?.targetRoomId;
+  validate: async (runtime: IAgentRuntime, message: Memory, _state?: State): Promise<boolean> => {
+    // Check if we have permission to send messages
+    const worldId = message.roomId;
+    const agentId = runtime.agentId;
+
+    // Get all components for the current room to understand available sources
+    const roomComponents = await runtime.getComponents(message.roomId, worldId, agentId);
+
+    // Get source types from room components
+    const availableSources = new Set(roomComponents.map((c) => c.type));
+
+    return availableSources.size > 0;
   },
 
-  handler: async (runtime, message, state, options, callback) => {
-    const targetRoomId = options?.targetRoomId || state?.values?.targetRoomId;
-    const messageText = options?.text || state?.values?.messageText;
-
-    if (!messageText) {
-      throw new Error("No message text provided");
-    }
-
-    if (!targetRoomId) {
-      throw new Error("No target room specified");
-    }
-
-    // Create a message memory in the target room
-    const messageMemory = {
-      id: crypto.randomUUID() as UUID,
-      content: {
-        text: messageText,
-        actions: ["SEND_MESSAGE"],
-      },
-      entityId: runtime.agentId,
-      roomId: targetRoomId,
-      createdAt: Date.now(),
-    };
-
-    await runtime.createMemory(messageMemory);
-
-    // If there's a send handler registered for the platform, use it
-    const room = await runtime.getRoom(targetRoomId);
-    if (room?.source) {
-      await runtime.sendMessageToTarget(
-        {
-          roomId: targetRoomId,
-          channelId: room.channelId,
-          serverId: room.serverId,
-        },
-        messageMemory.content
-      );
-    }
-
-    const responseContent = {
-      text: `Message sent to room ${targetRoomId}`,
-      actions: ["SEND_MESSAGE"],
-    };
-
-    await callback?.(responseContent);
-    return true;
+  handler: async (runtime, message, state, _options, callback, responses) => {
+    // Complex implementation that:
+    // 1. Uses LLM to extract target and source information
+    // 2. Finds target entity or room
+    // 3. Gets appropriate component/service
+    // 4. Sends message via platform-specific method
   },
 
   examples: [
     [
       {
-        name: "User",
-        content: { text: "Send a message to the general channel" },
+        name: '{{name1}}',
+        content: {
+          text: "Send a message to @dev_guru on telegram saying 'Hello!'",
+        },
       },
       {
-        name: "Agent",
+        name: '{{name2}}',
         content: {
-          text: "I'll send that message to the general channel",
-          actions: ["SEND_MESSAGE"],
+          text: 'Message sent to dev_guru on telegram.',
+          actions: ['SEND_MESSAGE'],
         },
       },
     ],
@@ -589,45 +566,53 @@ export const updateEntityAction: Action = {
 };
 ```
 
-### Settings Action
+### Choice Action (from plugin-bootstrap)
+
+The choiceAction allows users to select options for pending tasks that require decisions:
 
 ```typescript
-export const updateSettingsAction = {
-  name: "UPDATE_SETTINGS",
-  similes: ["CONFIGURE", "SETTINGS", "PREFERENCES", "OPTIONS"],
-  description: "Update agent or system settings",
+export const choiceAction: Action = {
+  name: 'CHOOSE_OPTION',
+  similes: ['SELECT_OPTION', 'SELECT', 'PICK', 'CHOOSE'],
+  description: 'Selects an option for a pending task that has multiple options',
 
-  validate: async (runtime: IAgentRuntime, message: Memory) => {
-    // Check if user has admin privileges
-    return message.content.text?.includes("settings") || false;
+  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+    // Check user has admin/owner permissions
+    const room = state.data.room ?? (await runtime.getRoom(message.roomId));
+    const userRole = await getUserServerRole(runtime, message.entityId, room.serverId);
+    
+    if (userRole !== 'OWNER' && userRole !== 'ADMIN') {
+      return false;
+    }
+
+    // Check for pending tasks with options
+    const pendingTasks = await runtime.getTasks({
+      roomId: message.roomId,
+      tags: ['AWAITING_CHOICE'],
+    });
+
+    return pendingTasks?.some((task) => task.metadata?.options) || false;
   },
 
-  handler: async (runtime, message, state, options, callback) => {
-    const settings = options?.settings || {};
-
-    // Update settings
-    await runtime.updateSettings(settings);
-
-    const responseContent = {
-      text: "Settings updated successfully",
-      actions: ["UPDATE_SETTINGS"],
-    };
-
-    await callback?.(responseContent);
-    return true;
+  handler: async (runtime, message, state, options, callback, responses) => {
+    // Complex implementation that:
+    // 1. Gets pending tasks with options
+    // 2. Uses LLM to extract user's choice from message
+    // 3. Executes the task with selected option
+    // 4. Or cancels task if ABORT is selected
   },
 
   examples: [
     [
       {
-        name: "User",
-        content: { text: "Update my notification settings" },
+        name: '{{name1}}',
+        content: { text: 'post' },
       },
       {
-        name: "Agent",
+        name: '{{name2}}',
         content: {
-          text: "Your notification settings have been updated",
-          actions: ["UPDATE_SETTINGS"],
+          text: 'Selected option: post for task: Confirm Twitter Post',
+          actions: ['CHOOSE_OPTION'],
         },
       },
     ],

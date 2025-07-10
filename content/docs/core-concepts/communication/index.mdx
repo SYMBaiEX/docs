@@ -29,12 +29,18 @@ The AgentServer (`@elizaos/server`) provides HTTP and WebSocket endpoints for ag
 **Server Architecture**:
 
 ```typescript
-interface AgentServer {
-  agents: Map<string, IAgentRuntime>;
-  upload: UploadHandler;
-  bus: EventBus;
+class AgentServer {
+  agents: Map<UUID, IAgentRuntime>;
+  database: DatabaseAdapter;
+  app: express.Application;
+  server: http.Server;
+  socketIO: SocketIOServer;
+  
   start(port: number): Promise<void>;
   stop(): Promise<void>;
+  registerAgent(runtime: IAgentRuntime): Promise<void>;
+  unregisterAgent(agentId: UUID): void;
+  registerMiddleware(middleware: ServerMiddleware): void;
 }
 ```
 

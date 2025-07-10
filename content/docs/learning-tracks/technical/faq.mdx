@@ -14,8 +14,18 @@ has its own memory space but can still communicate with other agents when needed
 
 ### Q: What's the plugin loading order?
 
-A: Plugin loading order is critical. Core infrastructure and AI providers load first, followed by
-actions, evaluators, and providers. This ensures dependencies are available when needed.
+A: Plugins can specify dependencies and priority to control loading order:
+
+```typescript
+const myPlugin: Plugin = {
+  name: "my-plugin",
+  dependencies: ["plugin-sql"], // Load after these plugins
+  priority: 100, // Higher priority loads first
+  // ... rest of plugin
+};
+```
+
+The runtime ensures dependencies are loaded before dependent plugins.
 
 ### Q: What are the different component types?
 
@@ -53,14 +63,21 @@ and run them during startup.
 
 ### Q: How do I create custom model providers?
 
-A: Create custom model providers by implementing the `IModelProvider` interface:
+A: Create custom model providers by registering model handlers in your plugin:
 
 ```typescript
-export class MyModelProvider implements IModelProvider {
-  async generateText(params: GenerateTextParams): Promise<string> {
-    // Implementation
+const myPlugin: Plugin = {
+  name: "my-model-plugin",
+  description: "Custom model provider",
+  models: {
+    [ModelType.TEXT_LARGE]: async (runtime, params) => {
+      // Your model implementation
+      const { prompt, temperature } = params;
+      const response = await callMyModel(prompt, { temperature });
+      return response.text;
+    }
   }
-}
+};
 ```
 
 ## Performance Optimization
