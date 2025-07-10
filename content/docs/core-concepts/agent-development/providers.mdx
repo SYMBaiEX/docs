@@ -273,36 +273,26 @@ export const characterProvider: Provider = {
 ```typescript
 export const timeProvider: Provider = {
   name: "TIME",
-  description: "Current time and date information",
 
-  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const now = new Date();
-    const timeString = now.toLocaleString();
-    const isoString = now.toISOString();
-    const timestamp = now.getTime();
+  get: async (_runtime: IAgentRuntime, _message: Memory) => {
+    const currentDate = new Date();
 
-    const values = {
-      currentTime: timeString,
-      isoTime: isoString,
-      timestamp,
-      dayOfWeek: now.toLocaleDateString("en-US", { weekday: "long" }),
-      month: now.toLocaleDateString("en-US", { month: "long" }),
-      year: now.getFullYear(),
-      hour: now.getHours(),
-      minute: now.getMinutes(),
+    // Get UTC time since bots will be communicating with users around the globe
+    const options = {
+      timeZone: "UTC",
+      dateStyle: "full" as const,
+      timeStyle: "long" as const,
     };
-
-    const data = {
-      now,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
-
-    const text = addHeader("# Current Time", `It is currently ${timeString}`);
-
+    const humanReadable = new Intl.DateTimeFormat("en-US", options).format(currentDate);
+    
     return {
-      values,
-      data,
-      text,
+      data: {
+        time: currentDate,
+      },
+      values: {
+        time: humanReadable,
+      },
+      text: `The current date and time is ${humanReadable}. Please use this as your reference for any time-based operations or responses.`,
     };
   },
 };
@@ -358,34 +348,72 @@ export const recentMessagesProvider: Provider = {
 ```typescript
 export const factsProvider: Provider = {
   name: "FACTS",
-  description: "Known facts about entities and topics",
+  description: "Key facts that the agent knows",
+  dynamic: true,
 
-  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const facts = await runtime.getMemories({
-      tableName: "facts",
+  get: async (runtime: IAgentRuntime, message: Memory, _state?: State) => {
+    // Get recent messages for context
+    const recentMessages = await runtime.getMemories({
+      tableName: "messages",
       roomId: message.roomId,
-      count: 20,
-      unique: true,
+      count: 10,
+      unique: false,
     });
 
-    const formattedFacts = facts.map((fact) => `• ${fact.content.text}`).join("\n");
+    // Join the text of the last 5 messages for embedding
+    const last5Messages = recentMessages
+      .slice(-5)
+      .map((message) => message.content.text)
+      .join("\n");
 
-    const values = {
-      facts: formattedFacts,
-      factCount: facts.length,
-    };
+    // Generate embedding from recent conversation context
+    const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+      text: last5Messages,
+    });
 
-    const data = {
-      factList: facts,
-      topicFacts: facts.filter((f) => f.content.text?.includes("topic")),
-      entityFacts: facts.filter((f) => f.content.text?.includes("entity")),
-    };
+    // Search for relevant facts using embedding similarity
+    const [relevantFacts, recentFactsData] = await Promise.all([
+      runtime.searchMemories({
+        tableName: "facts",
+        embedding,
+        roomId: message.roomId,
+        worldId: message.worldId,
+        count: 6,
+        query: message.content.text,
+      }),
+      runtime.searchMemories({
+        embedding,
+        query: message.content.text,
+        tableName: "facts",
+        roomId: message.roomId,
+        entityId: message.entityId,
+        count: 6,
+      }),
+    ]);
 
-    const text = facts.length > 0 ? addHeader("# Known Facts", formattedFacts) : "";
+    // Join and deduplicate facts
+    const allFacts = [...relevantFacts, ...recentFactsData].filter(
+      (fact, index, self) => index === self.findIndex((t) => t.id === fact.id)
+    );
+
+    if (allFacts.length === 0) {
+      return {
+        values: { facts: "" },
+        data: { facts: allFacts },
+        text: "No facts available.",
+      };
+    }
+
+    const formattedFacts = allFacts
+      .reverse()
+      .map((fact) => fact.content.text)
+      .join("\n");
+
+    const text = `Key facts that ${runtime.character.name} knows:\n${formattedFacts}`;
 
     return {
-      values,
-      data,
+      values: { facts: formattedFacts },
+      data: { facts: allFacts },
       text,
     };
   },
@@ -397,38 +425,74 @@ export const factsProvider: Provider = {
 ```typescript
 export const relationshipsProvider: Provider = {
   name: "RELATIONSHIPS",
-  description: "Entity relationships and connections",
+  description:
+    "Relationships between {{agentName}} and other people, or between other people that {{agentName}} has observed interacting with",
+  dynamic: true,
 
-  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+  get: async (runtime: IAgentRuntime, message: Memory) => {
+    // Get all relationships for the current user
     const relationships = await runtime.getRelationships({
       entityId: message.entityId,
     });
 
-    const formattedRelationships = relationships
+    if (!relationships || relationships.length === 0) {
+      return {
+        data: { relationships: [] },
+        values: { relationships: "No relationships found." },
+        text: "No relationships found.",
+      };
+    }
+
+    // Sort relationships by interaction strength (descending)
+    const sortedRelationships = relationships
+      .filter((rel) => rel.metadata?.interactions)
+      .sort(
+        (a, b) =>
+          ((b.metadata?.interactions as number) || 0) -
+          ((a.metadata?.interactions as number) || 0)
+      )
+      .slice(0, 30); // Get top 30
+
+    // Fetch entities for all unique target IDs
+    const uniqueEntityIds = Array.from(
+      new Set(sortedRelationships.map((rel) => rel.targetEntityId as UUID))
+    );
+
+    const entities = await Promise.all(
+      uniqueEntityIds.map((id) => runtime.getEntityById(id))
+    );
+
+    // Create entity lookup map
+    const entityMap = new Map<string, Entity | null>();
+    entities.forEach((entity, index) => {
+      if (entity) {
+        entityMap.set(uniqueEntityIds[index], entity);
+      }
+    });
+
+    // Format relationships with entity names and metadata
+    const formattedRelationships = sortedRelationships
       .map((rel) => {
-        const tags = rel.tags?.join(", ") || "no tags";
-        return `• ${rel.sourceEntityId} → ${rel.targetEntityId} (${tags})`;
+        const entity = entityMap.get(rel.targetEntityId as UUID);
+        if (!entity) return null;
+
+        const names = entity.names.join(" aka ");
+        const tags = rel.tags ? rel.tags.join(", ") : "";
+        const metadata = JSON.stringify(
+          Object.entries(entity.metadata)
+            .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
+            .join("\n")
+        );
+
+        return `${names}\n${tags}\n${metadata}\n`;
       })
+      .filter(Boolean)
       .join("\n");
 
-    const values = {
-      relationships: formattedRelationships,
-      relationshipCount: relationships.length,
-    };
-
-    const data = {
-      relationshipList: relationships,
-      groupRelationships: relationships.filter((r) => r.tags?.includes("group_interaction")),
-      dmRelationships: relationships.filter((r) => r.tags?.includes("dm_interaction")),
-    };
-
-    const text =
-      relationships.length > 0 ? addHeader("# Entity Relationships", formattedRelationships) : "";
-
     return {
-      values,
-      data,
-      text,
+      data: { relationships: formattedRelationships },
+      values: { relationships: formattedRelationships },
+      text: `# ${runtime.character.name} has observed ${message.content.senderName || message.content.name} interacting with these people:\n${formattedRelationships}`,
     };
   },
 };
@@ -439,43 +503,42 @@ export const relationshipsProvider: Provider = {
 ```typescript
 export const capabilitiesProvider: Provider = {
   name: "CAPABILITIES",
-  description: "Agent capabilities and available actions",
 
-  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-    const actions = runtime.getActions();
-    const evaluators = runtime.getEvaluators();
+  get: async (runtime: IAgentRuntime, _message: Memory): Promise<ProviderResult> => {
+    // Get all registered services
+    const services = runtime.getAllServices();
 
-    const actionNames = actions.map((action) => action.name);
-    const evaluatorNames = evaluators.map((evaluator) => evaluator.name);
+    if (!services || services.size === 0) {
+      return {
+        text: "No services are currently registered.",
+      };
+    }
 
-    const formattedActions = actionNames.map((name) => `• ${name}`).join("\n");
+    // Extract capability descriptions from all services
+    const capabilities: string[] = [];
 
-    const formattedEvaluators = evaluatorNames.map((name) => `• ${name}`).join("\n");
+    for (const [serviceType, service] of services) {
+      if (service.capabilityDescription) {
+        capabilities.push(
+          `${serviceType} - ${service.capabilityDescription.replace("{{agentName}}", runtime.character.name)}`
+        );
+      }
+    }
 
-    const values = {
-      actions: formattedActions,
-      evaluators: formattedEvaluators,
-      actionCount: actionNames.length,
-      evaluatorCount: evaluatorNames.length,
-    };
+    if (capabilities.length === 0) {
+      return {
+        text: "No capability descriptions found in the registered services.",
+      };
+    }
 
-    const data = {
-      actionList: actions,
-      evaluatorList: evaluators,
-      allCapabilities: [...actionNames, ...evaluatorNames],
-    };
-
-    const capabilities = [
-      addHeader("# Available Actions", formattedActions),
-      addHeader("# Available Evaluators", formattedEvaluators),
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    // Format the capabilities into a readable list
+    const formattedCapabilities = capabilities.join("\n");
 
     return {
-      values,
-      data,
-      text: capabilities,
+      data: {
+        capabilities,
+      },
+      text: `# ${runtime.character.name}'s Capabilities\n\n${formattedCapabilities}`,
     };
   },
 };
@@ -1103,6 +1166,140 @@ get: async (runtime, message, state) => {
   }
 
   return baseResult;
+};
+```
+
+## Using Providers in Custom Actions
+
+Providers can be dynamically selected and used within action handlers based on context:
+
+### Dynamic Provider Selection
+
+```typescript
+export const smartAction: Action = {
+  name: "SMART_ACTION",
+  description: "Action that dynamically selects providers based on context",
+
+  handler: async (runtime, message, state, options, callback, responses) => {
+    // Collect providers from previous action responses
+    const providersFromResponses = responses?.flatMap(
+      (res) => res.content?.providers ?? []
+    ) ?? [];
+
+    // Add context-specific providers based on message content
+    const additionalProviders = [];
+    
+    if (message.content.text?.includes("image") || message.content.text?.includes("photo")) {
+      additionalProviders.push("ATTACHMENTS");
+    }
+    
+    if (message.content.text?.includes("who") || message.content.text?.includes("person")) {
+      additionalProviders.push("ENTITIES", "RELATIONSHIPS");
+    }
+    
+    if (message.content.text?.includes("remember") || message.content.text?.includes("fact")) {
+      additionalProviders.push("FACTS");
+    }
+
+    // Compose state with dynamic providers
+    const updatedState = await runtime.composeState(
+      message,
+      [...providersFromResponses, ...additionalProviders, "RECENT_MESSAGES"]
+    );
+
+    // Use the enriched state for action logic
+    const prompt = composePromptFromState({
+      state: updatedState,
+      template: myActionTemplate,
+    });
+
+    // Continue with action implementation...
+  },
+};
+```
+
+### Provider-Driven Action Flow
+
+The messageHandler in plugin-bootstrap demonstrates how to use an LLM to select providers:
+
+```typescript
+// First, use LLM to determine which providers are needed
+let state = await runtime.composeState(message, [
+  "PROVIDERS", // List of available providers
+  "CHARACTER",
+  "RECENT_MESSAGES",
+  "ENTITIES",
+]);
+
+const prompt = composePromptFromState({
+  state,
+  template: messageHandlerTemplate, // Template that asks LLM to select providers
+});
+
+const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+  prompt,
+});
+
+// Parse the LLM response to get selected providers
+const parsedResponse = parseKeyValueXml(response);
+const selectedProviders = parsedResponse.providers || [];
+
+// Re-compose state with the LLM-selected providers
+state = await runtime.composeState(message, selectedProviders);
+
+// Now use the enriched state for the actual action
+const actionPrompt = composePromptFromState({
+  state,
+  template: actionTemplate,
+});
+```
+
+### Creating Custom Dynamic Providers
+
+```typescript
+export const knowledgeProvider: Provider = {
+  name: "KNOWLEDGE",
+  description: "External knowledge based on conversation context",
+  dynamic: true, // Marks this as a dynamic provider
+  private: false, // Available for general use
+
+  get: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+    // Extract keywords from conversation
+    const keywords = extractKeywords(message.content.text);
+    
+    // Search knowledge base
+    const knowledge = await searchKnowledgeBase(keywords);
+    
+    // If no relevant knowledge, check if we should fetch from external sources
+    if (!knowledge.length && shouldFetchExternal(keywords)) {
+      const externalData = await fetchExternalKnowledge(keywords);
+      
+      // Store for future use
+      for (const item of externalData) {
+        await runtime.createMemory({
+          content: { text: item.text },
+          type: "knowledge",
+          roomId: message.roomId,
+        });
+      }
+      
+      knowledge.push(...externalData);
+    }
+
+    return {
+      values: {
+        knowledge: knowledge.map(k => k.text).join("\n"),
+        knowledgeCount: knowledge.length,
+      },
+      data: {
+        knowledgeItems: knowledge,
+        keywords: keywords,
+      },
+      text: knowledge.length > 0 
+        ? addHeader("# Relevant Knowledge", knowledge.map(k => k.text).join("\n"))
+        : "No relevant knowledge found.",
+    };
+  },
 };
 ```
 

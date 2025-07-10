@@ -1,0 +1,595 @@
+---
+title: "Vibe-Codable Tutorial: Making ElizaOS Feel Natural"
+description:
+  "A beginner-friendly tutorial that makes ElizaOS feel intuitive and 'vibe-codable' for developers who want to build without fighting the framework"
+keywords: beginner, tutorial, easy, intuitive, vibe-codable, getting started
+---
+
+This tutorial addresses the feedback that "your framework should be vibe-codable" - making ElizaOS
+feel natural and intuitive to work with, not something you have to fight against.
+
+<Callout type="success">
+  **The Vibe**: ElizaOS should feel like having a conversation with your AI agent, not configuring a
+  complex system. This tutorial shows you how to achieve that feeling.
+</Callout>
+
+## What "Vibe-Codable" Means
+
+"Vibe-codable" means the framework should feel natural to use:
+
+- **Intuitive** - You can guess how things work
+- **Forgiving** - Small mistakes don't break everything
+- **Conversational** - You describe what you want, it happens
+- **Discoverable** - You can explore and experiment easily
+- **Minimal** - You write the minimum code needed
+
+## The 5-Minute Agent
+
+Let's build something that works immediately:
+
+<Steps>
+
+<Step>
+## Start with Pure Simplicity
+
+Create the simplest possible agent:
+
+```json title="my-agent.json"
+{
+  "name": "Vibes",
+  "bio": ["I'm a chill AI that just vibes with you"],
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+That's it. No complex configuration. No settings. Just vibes.
+
+```bash
+# Run it
+bun start --character my-agent.json
+```
+
+Your agent is now running and ready to chat!
+
+</Step>
+
+<Step>
+## Add Personality with Zero Config
+
+Make your agent more interesting by just describing them:
+
+```json title="my-agent.json"
+{
+  "name": "Vibes",
+  "bio": [
+    "I'm a chill AI that just vibes with you",
+    "I love talking about music, art, and cool projects",
+    "I'm always down for a good conversation"
+  ],
+  "adjectives": [
+    "chill", "creative", "supportive", "curious"
+  ],
+  "topics": [
+    "music", "art", "creativity", "tech", "life"
+  ],
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+No code changes needed - just describe your agent and it becomes more interesting.
+
+</Step>
+
+<Step>
+## Add Memory by Just Turning It On
+
+Want your agent to remember things? Add one line:
+
+```json title="my-agent.json"
+{
+  "name": "Vibes",
+  "bio": [
+    "I'm a chill AI that just vibes with you",
+    "I remember our conversations and what you like"
+  ],
+  "adjectives": ["chill", "creative", "supportive", "curious"],
+  "topics": ["music", "art", "creativity", "tech", "life"],
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+That's it! Your agent now has memory. It will remember what you talk about across sessions.
+
+</Step>
+
+</Steps>
+
+## The Conversation-Driven Development Flow
+
+Instead of writing code, have a conversation with your agent to build it:
+
+<Tabs>
+  <Tab value="conversation">
+    ### Development by Conversation
+    
+    ```
+    You: "I want you to help me with my daily tasks"
+    Agent: "I'd love to help! What kind of tasks?"
+    
+    You: "Remind me to take breaks, track my mood, celebrate wins"
+    Agent: "Got it! I can definitely do that. Want me to start now?"
+    
+    You: "Yes, but also make it fun and encouraging"
+    Agent: "Perfect! I'll be your cheerful productivity buddy!"
+    ```
+    
+    Behind the scenes, ElizaOS adapts to this conversation.
+  </Tab>
+  <Tab value="traditional">
+    ### Traditional Development
+    
+    ```typescript
+    // You'd normally write complex code like this:
+    class TaskManager {
+      private tasks: Task[] = [];
+      private moodTracker: MoodTracker;
+      private reminderService: ReminderService;
+      
+      constructor() {
+        this.moodTracker = new MoodTracker();
+        this.reminderService = new ReminderService();
+      }
+      
+      // 50 lines of configuration code...
+    }
+    ```
+    
+    But with ElizaOS, you just describe what you want!
+  </Tab>
+</Tabs>
+
+## Progressive Enhancement
+
+Start simple, add complexity only when needed:
+
+<Steps>
+
+<Step>
+## Level 1: Just Talking
+
+```json title="level1-agent.json"
+{
+  "name": "Buddy",
+  "bio": ["I'm your friendly AI buddy"],
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+This agent can already have conversations and be helpful!
+
+</Step>
+
+<Step>
+## Level 2: Add Personality
+
+```json title="level2-agent.json"
+{
+  "name": "Buddy",
+  "bio": [
+    "I'm your friendly AI buddy",
+    "I love helping people solve problems",
+    "I'm always optimistic and encouraging"
+  ],
+  "style": {
+    "tone": "casual",
+    "humor": "light",
+    "helpfulness": "high"
+  },
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+Now your agent has personality!
+
+</Step>
+
+<Step>
+## Level 3: Add Capabilities
+
+```json title="level3-agent.json"
+{
+  "name": "Buddy",
+  "bio": [
+    "I'm your friendly AI buddy",
+    "I love helping people solve problems",
+    "I'm always optimistic and encouraging",
+    "I can remember our conversations and help you stay organized"
+  ],
+  "style": {
+    "tone": "casual",
+    "humor": "light",
+    "helpfulness": "high"
+  },
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+Now it has memory and can help you stay organized!
+
+</Step>
+
+<Step>
+## Level 4: Add Integrations
+
+```json title="level4-agent.json"
+{
+  "name": "Buddy",
+  "bio": [
+    "I'm your friendly AI buddy who can help with Discord, web searches, and more",
+    "I love helping people solve problems",
+    "I'm always optimistic and encouraging"
+  ],
+  "style": {
+    "tone": "casual",
+    "humor": "light",
+    "helpfulness": "high"
+  },
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-discord",
+    "@elizaos/plugin-web-search",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+Now your agent can interact with Discord and search the web!
+
+</Step>
+
+</Steps>
+
+## The "It Just Works" Philosophy
+
+<Callout type="lightbulb">
+  **Core Principle**: If you can describe what you want, ElizaOS should be able to do it with
+  minimal configuration.
+</Callout>
+
+### Natural Language Configuration
+
+Instead of complex config files, describe what you want:
+
+```json title="natural-config.json"
+{
+  "name": "Helper",
+  "bio": [
+    "I help developers debug their code and solve problems",
+    "I'm knowledgeable about JavaScript, Python, and web development",
+    "I prefer to give practical, working solutions over theory",
+    "I'm patient and explain things clearly"
+  ],
+  "expertise": [
+    "debugging", "web development", "JavaScript", "Python"
+  ],
+  "style": {
+    "communication": "clear and practical",
+    "patience": "high",
+    "detail_level": "just enough"
+  },
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+This creates a debugging assistant that naturally behaves the way you described!
+
+### Auto-Discovery Features
+
+ElizaOS automatically enables features based on what you describe:
+
+```json title="auto-features.json"
+{
+  "name": "MoodTracker",
+  "bio": [
+    "I help track your daily mood and energy levels",
+    "I check in with you regularly and remember patterns",
+    "I can suggest activities based on how you're feeling"
+  ],
+  "plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-bootstrap"]
+}
+```
+
+ElizaOS sees "track", "check in regularly", and "remember patterns" and automatically:
+
+- Enables memory for pattern tracking
+- Sets up regular check-ins
+- Provides mood-appropriate suggestions
+
+## Building Real Things Quickly
+
+### Example 1: Personal Assistant
+
+```json title="assistant.json"
+{
+  "name": "Alex",
+  "bio": [
+    "I'm your personal assistant",
+    "I help you stay organized and productive",
+    "I can manage your schedule, remember important info, and keep you motivated"
+  ],
+  "capabilities": [
+    "schedule management",
+    "information recall",
+    "motivation and encouragement"
+  ],
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+This creates a fully functional personal assistant!
+
+### Example 2: Learning Companion
+
+```json title="tutor.json"
+{
+  "name": "Sage",
+  "bio": [
+    "I'm your learning companion",
+    "I help you understand new concepts by explaining them simply",
+    "I adapt to your learning style and pace",
+    "I celebrate your progress and help you stay motivated"
+  ],
+  "teaching_style": {
+    "approach": "socratic",
+    "patience": "infinite",
+    "encouragement": "frequent"
+  },
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-web-search",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+Now you have a patient, adaptive tutor!
+
+### Example 3: Creative Partner
+
+```json title="creative.json"
+{
+  "name": "Muse",
+  "bio": [
+    "I'm your creative partner",
+    "I help brainstorm ideas, overcome creative blocks, and explore new possibilities",
+    "I'm encouraging and never judge your ideas",
+    "I remember your creative projects and help you build on them"
+  ],
+  "creative_strengths": [
+    "brainstorming", "idea development", "creative problem solving"
+  ],
+  "personality": {
+    "openness": "maximum",
+    "judgment": "zero",
+    "encouragement": "constant"
+  },
+  "plugins": [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-bootstrap"
+  ]
+}
+```
+
+A creative partner that never judges and always encourages!
+
+## The Exploration Flow
+
+Make it easy to discover what's possible:
+
+<Steps>
+
+<Step>
+## Start with Questions
+
+```
+You: "What can you help me with?"
+Agent: "I can help with lots of things! What are you working on?"
+
+You: "I'm learning to code"
+Agent: "Cool! I can help debug code, explain concepts, or practice together. What sounds interesting?"
+
+You: "Can you remember what we work on?"
+Agent: "Yes! I remember our conversations so I can help you build on what we've learned."
+```
+
+</Step>
+
+<Step>
+## Discover Through Use
+
+```
+You: "Can you help me with my Discord server?"
+Agent: "I'd love to help! I can join your server and help moderate or answer questions. Want me to show you how?"
+
+You: "Yes!"
+Agent: "Great! Here's how to add me to your server..."
+```
+
+Features reveal themselves naturally through conversation.
+
+</Step>
+
+<Step>
+## Experiment Safely
+
+```
+You: "What happens if I ask you to do something you can't do?"
+Agent: "I'll let you know I can't do it yet, but I might suggest alternatives or ways to add that capability!"
+
+You: "Can you send emails?"
+Agent: "I can't send emails directly, but I can help you draft them or we could add an email plugin if you need that feature!"
+```
+
+</Step>
+
+</Steps>
+
+## Anti-Patterns to Avoid
+
+Things that kill the vibe:
+
+<Tabs>
+  <Tab value="bad">
+    ### Vibe-Killing Patterns
+    
+    ```json
+    // DON'T: Complex nested configuration
+    {
+      "agent": {
+        "runtime": {
+          "config": {
+            "plugins": {
+              "core": {
+                "sql": {
+                  "adapter": "sqlite",
+                  "config": {
+                    "path": "./db.sqlite",
+                    "options": {
+                      "timeout": 5000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    ```
+    
+    This is overwhelming and breaks the vibe.
+  </Tab>
+  <Tab value="good">
+    ### Vibe-Preserving Patterns
+    
+    ```json
+    // DO: Simple, descriptive configuration
+    {
+      "name": "Helper",
+      "bio": ["I help with tasks and remember what we discuss"],
+      "plugins": [
+        "@elizaos/plugin-sql",
+        "@elizaos/plugin-bootstrap"
+      ]
+    }
+    ```
+    
+    This feels natural and approachable.
+  </Tab>
+</Tabs>
+
+## Troubleshooting the Vibe
+
+When things don't feel right:
+
+### Problem: "This feels too complicated"
+
+**Solution**: Strip back to basics
+
+```json
+// Start with the absolute minimum
+{
+  "name": "Simple",
+  "bio": ["I'm a simple AI assistant"],
+  "plugins": ["@elizaos/plugin-bootstrap"]
+}
+```
+
+Add features one at a time, only when you need them.
+
+### Problem: "I don't know what's possible"
+
+**Solution**: Ask your agent!
+
+```
+You: "What can you do?"
+Agent: "I can chat, remember conversations, and help with various tasks. What would you like to try?"
+
+You: "Show me something cool"
+Agent: "I can analyze text, help with coding, or even integrate with Discord. What interests you?"
+```
+
+### Problem: "It's not doing what I expect"
+
+**Solution**: Have a conversation about it
+
+```
+You: "You're not being helpful enough"
+Agent: "I want to be more helpful! Can you tell me what you'd like me to do differently?"
+
+You: "Be more proactive about suggesting things"
+Agent: "Got it! I'll start suggesting ideas and asking follow-up questions."
+```
+
+Then update your agent's bio to reflect this:
+
+```json
+{
+  "bio": [
+    "I'm a proactive assistant who suggests ideas and asks good follow-up questions",
+    "I help you think through problems and explore possibilities"
+  ]
+}
+```
+
+## The Magic Moment
+
+You'll know ElizaOS is feeling "vibe-codable" when:
+
+- You can describe what you want and it happens
+- Small changes feel natural and easy
+- You're exploring and discovering, not fighting configuration
+- Your agent feels like a partner, not a tool
+- You're building things that actually work and feel good to use
+
+<Callout type="success">
+  **Success Indicator**: When you're excited to show your agent to friends because it just works and
+  feels magical.
+</Callout>
+
+## Keep the Vibe Going
+
+<Cards>
+  <Card
+    title="Character Templates"
+    description="Pre-built characters that just work"
+    href="/learning-tracks/simple/templates"
+  />
+  <Card
+    title="Quick Start Examples"
+    description="Working examples you can copy"
+    href="/learning-tracks/simple/guides/quickstart-comprehensive"
+  />
+  <Card
+    title="Discord Integration"
+    description="Add your agent to Discord easily"
+    href="/learning-tracks/simple/templates/discord-agent"
+  />
+  <Card
+    title="Creative Projects"
+    description="Fun projects to build"
+    href="/learning-tracks/simple/templates/creative-writer"
+  />
+</Cards>
+
+Remember: ElizaOS should feel like magic, not work. If something feels hard, there's probably a
+simpler way to do it. Trust the vibe!

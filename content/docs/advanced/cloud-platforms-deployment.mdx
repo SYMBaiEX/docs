@@ -1,0 +1,925 @@
+---
+title: "Cloud Platform Deployment Best Practices"
+description:
+  "Comprehensive guide for deploying ElizaOS on major cloud platforms including AWS, Google Cloud, Azure, Vercel, Railway, and more"
+keywords: deployment, cloud, aws, gcp, azure, vercel, railway, kubernetes, elizaos
+---
+
+This guide provides best practices and detailed instructions for deploying ElizaOS on various cloud
+platforms. Each platform has unique strengths, and this guide helps you choose the right one for
+your needs.
+
+<Callout type="info">
+  **Platform Selection**: Choose based on your needs - AWS for scale, Vercel for simplicity, Railway
+  for rapid deployment, or Kubernetes for enterprise requirements.
+</Callout>
+
+## Platform Comparison
+
+| Platform          | Best For                | Complexity | Cost Model         | Auto-scaling |
+| ----------------- | ----------------------- | ---------- | ------------------ | ------------ |
+| **AWS**           | Enterprise scale        | High       | Pay-per-use        | ✅ Advanced  |
+| **Google Cloud**  | AI/ML workloads         | High       | Pay-per-use        | ✅ Advanced  |
+| **Azure**         | Microsoft integration   | High       | Pay-per-use        | ✅ Advanced  |
+| **Vercel**        | Frontend + API          | Low        | Free tier + usage  | ✅ Automatic |
+| **Railway**       | Quick deployment        | Low        | Usage-based        | ✅ Automatic |
+| **Render**        | Full-stack apps         | Medium     | Subscription       | ✅ Automatic |
+| **DigitalOcean**  | Developer-friendly      | Medium     | Predictable        | ⚠️ Manual    |
+| **Heroku**        | Rapid prototyping       | Low        | Dyno-based         | ✅ Simple    |
+
+## AWS Deployment
+
+<Steps>
+
+<Step>
+## Prepare AWS Environment
+
+Set up your AWS account and tools:
+
+```bash
+# Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Configure credentials
+aws configure
+
+# Install CDK (recommended for infrastructure)
+npm install -g aws-cdk
+```
+
+</Step>
+
+<Step>
+## ECS with Fargate Deployment
+
+Create infrastructure as code:
+
+```typescript title="cdk/eliza-stack.ts"
+import * as cdk from 'aws-cdk-lib';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as rds from 'aws-cdk-lib/aws-rds';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+
+export class ElizaStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+    // VPC for networking
+    const vpc = new ec2.Vpc(this, 'ElizaVPC', {
+      maxAzs: 2,
+      natGateways: 1
+    });
+
+    // RDS PostgreSQL with pgvector
+    const database = new rds.DatabaseInstance(this, 'ElizaDB', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_15_3
+      }),
+      instanceType: ec2.InstanceType.of(
+        ec2.InstanceClass.T3,
+        ec2.InstanceSize.MEDIUM
+      ),
+      vpc,
+      allocatedStorage: 100,
+      databaseName: 'eliza',
+      credentials: rds.Credentials.fromGeneratedSecret('postgres')
+    });
+
+    // ECS Cluster
+    const cluster = new ecs.Cluster(this, 'ElizaCluster', {
+      vpc,
+      containerInsights: true
+    });
+
+    // Task Definition
+    const taskDefinition = new ecs.FargateTaskDefinition(this, 'ElizaTask', {
+      memoryLimitMiB: 4096,
+      cpu: 2048
+    });
+
+    // Secrets
+    const apiKeys = new secretsmanager.Secret(this, 'ApiKeys', {
+      secretObjectValue: {
+        OPENAI_API_KEY: cdk.SecretValue.unsafePlainText('your-key'),
+        ANTHROPIC_API_KEY: cdk.SecretValue.unsafePlainText('your-key')
+      }
+    });
+
+    // Container
+    const container = taskDefinition.addContainer('eliza', {
+      image: ecs.ContainerImage.fromRegistry('elizaos/eliza:latest'),
+      logging: ecs.LogDrivers.awsLogs({
+        streamPrefix: 'eliza'
+      }),
+      environment: {
+        NODE_ENV: 'production',
+        SERVER_PORT: '3000'
+      },
+      secrets: {
+        OPENAI_API_KEY: ecs.Secret.fromSecretsManager(apiKeys, 'OPENAI_API_KEY'),
+        ANTHROPIC_API_KEY: ecs.Secret.fromSecretsManager(apiKeys, 'ANTHROPIC_API_KEY'),
+        DATABASE_URL: ecs.Secret.fromSecretsManager(database.secret!, 'connectionString')
+      }
+    });
+
+    container.addPortMappings({
+      containerPort: 3000,
+      protocol: ecs.Protocol.TCP
+    });
+
+    // Service with Auto Scaling
+    const service = new ecs.FargateService(this, 'ElizaService', {
+      cluster,
+      taskDefinition,
+      desiredCount: 2,
+      assignPublicIp: true
+    });
+
+    // Auto Scaling
+    const scaling = service.autoScaleTaskCount({
+      minCapacity: 2,
+      maxCapacity: 10
+    });
+
+    scaling.scaleOnCpuUtilization('CpuScaling', {
+      targetUtilizationPercent: 70
+    });
+
+    scaling.scaleOnMemoryUtilization('MemoryScaling', {
+      targetUtilizationPercent: 80
+    });
+
+    // Load Balancer
+    const lb = new elbv2.ApplicationLoadBalancer(this, 'ElizaLB', {
+      vpc,
+      internetFacing: true
+    });
+
+    const listener = lb.addListener('Listener', {
+      port: 443,
+      certificates: [certificate] // Add your ACM certificate
+    });
+
+    listener.addTargets('ElizaTarget', {
+      port: 3000,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targets: [service],
+      healthCheck: {
+        path: '/api/health'
+      }
+    });
+  }
+}
+```
+
+Deploy the stack:
+
+```bash
+# Bootstrap CDK
+cdk bootstrap
+
+# Deploy
+cdk deploy ElizaStack
+
+# Monitor deployment
+aws ecs describe-services --cluster ElizaCluster --services ElizaService
+```
+
+</Step>
+
+<Step>
+## Lambda Deployment (Serverless)
+
+For event-driven or API-only deployments:
+
+```yaml title="serverless.yml"
+service: eliza-serverless
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: ${env:DATABASE_URL}
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+    timeout: 30
+    memorySize: 2048
+    layers:
+      - arn:aws:lambda:us-east-1:123456789:layer:eliza-deps:1
+
+resources:
+  Resources:
+    ElizaDatabase:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        Engine: postgres
+        EngineVersion: "15.3"
+        DBInstanceClass: db.t3.medium
+        AllocatedStorage: 100
+        MasterUsername: postgres
+        MasterUserPassword: ${ssm:/eliza/db-password}
+```
+
+```typescript title="src/lambda.ts"
+import { APIGatewayProxyHandler } from 'aws-lambda';
+import { createServer } from './server';
+
+let cachedServer: any;
+
+export const handler: APIGatewayProxyHandler = async (event, context) => {
+  // Keep connection alive
+  context.callbackWaitsForEmptyEventLoop = false;
+  
+  if (!cachedServer) {
+    cachedServer = await createServer();
+  }
+  
+  return cachedServer.handleRequest(event);
+};
+```
+
+</Step>
+
+</Steps>
+
+## Google Cloud Platform
+
+<Steps>
+
+<Step>
+## Cloud Run Deployment
+
+Fully managed serverless deployment:
+
+```yaml title="cloudbuild.yaml"
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/eliza:$COMMIT_SHA', '.']
+  
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/eliza:$COMMIT_SHA']
+  
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'eliza'
+      - '--image=gcr.io/$PROJECT_ID/eliza:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--memory=4Gi'
+      - '--cpu=2'
+      - '--timeout=3600'
+      - '--concurrency=1000'
+      - '--min-instances=1'
+      - '--max-instances=100'
+      - '--set-env-vars=NODE_ENV=production'
+      - '--set-secrets=OPENAI_API_KEY=openai-key:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+```
+
+Deploy with:
+
+```bash
+# Set up project
+gcloud config set project YOUR_PROJECT_ID
+
+# Enable required APIs
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable secretmanager.googleapis.com
+
+# Create secrets
+echo -n "your-openai-key" | gcloud secrets create openai-key --data-file=-
+
+# Submit build
+gcloud builds submit --config cloudbuild.yaml
+
+# Check deployment
+gcloud run services describe eliza --region us-central1
+```
+
+</Step>
+
+<Step>
+## GKE Deployment
+
+For Kubernetes-based deployment:
+
+```yaml title="k8s/eliza-deployment.yaml"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eliza
+  labels:
+    app: eliza
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: eliza
+  template:
+    metadata:
+      labels:
+        app: eliza
+    spec:
+      containers:
+      - name: eliza
+        image: gcr.io/YOUR_PROJECT/eliza:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: eliza-secrets
+              key: database-url
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eliza-service
+spec:
+  selector:
+    app: eliza
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: LoadBalancer
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: eliza-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eliza
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+```
+
+</Step>
+
+</Steps>
+
+## Azure Deployment
+
+<Steps>
+
+<Step>
+## Azure Container Instances
+
+Quick deployment for development:
+
+```bash
+# Create resource group
+az group create --name eliza-rg --location eastus
+
+# Create container instance
+az container create \
+  --resource-group eliza-rg \
+  --name eliza-instance \
+  --image elizaos/eliza:latest \
+  --cpu 2 \
+  --memory 4 \
+  --ports 3000 \
+  --environment-variables \
+    NODE_ENV=production \
+    SERVER_PORT=3000 \
+  --secure-environment-variables \
+    OPENAI_API_KEY=$OPENAI_API_KEY \
+    DATABASE_URL=$DATABASE_URL
+```
+
+</Step>
+
+<Step>
+## Azure Kubernetes Service (AKS)
+
+Production deployment with Terraform:
+
+```hcl title="terraform/azure.tf"
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "eliza" {
+  name     = "eliza-resources"
+  location = "East US"
+}
+
+resource "azurerm_kubernetes_cluster" "eliza" {
+  name                = "eliza-aks"
+  location            = azurerm_resource_group.eliza.location
+  resource_group_name = azurerm_resource_group.eliza.name
+  dns_prefix          = "eliza"
+
+  default_node_pool {
+    name       = "default"
+    node_count = 3
+    vm_size    = "Standard_D2_v2"
+    
+    enable_auto_scaling = true
+    min_count          = 3
+    max_count          = 10
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  network_profile {
+    network_plugin = "azure"
+    network_policy = "calico"
+  }
+}
+
+resource "azurerm_postgresql_flexible_server" "eliza" {
+  name                   = "eliza-db"
+  resource_group_name    = azurerm_resource_group.eliza.name
+  location               = azurerm_resource_group.eliza.location
+  version                = "15"
+  administrator_login    = "postgres"
+  administrator_password = var.db_password
+  
+  storage_mb = 32768
+  sku_name   = "GP_Standard_D2s_v3"
+}
+```
+
+</Step>
+
+</Steps>
+
+## Vercel Deployment
+
+<Steps>
+
+<Step>
+## API Routes Setup
+
+Create Vercel-compatible API routes:
+
+```typescript title="api/eliza.ts"
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import { AgentRuntime } from '@elizaos/core';
+
+let runtime: AgentRuntime;
+
+// Initialize runtime once
+async function getRuntimeInstance() {
+  if (!runtime) {
+    runtime = new AgentRuntime({
+      // Configuration
+    });
+    await runtime.initialize();
+  }
+  return runtime;
+}
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  try {
+    const runtime = await getRuntimeInstance();
+    
+    // Route handling
+    const path = req.url?.split('?')[0];
+    
+    switch (path) {
+      case '/api/message':
+        return handleMessage(req, res, runtime);
+      case '/api/health':
+        return res.status(200).json({ status: 'healthy' });
+      default:
+        return res.status(404).json({ error: 'Not found' });
+    }
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+async function handleMessage(
+  req: VercelRequest,
+  res: VercelResponse,
+  runtime: AgentRuntime
+) {
+  const { text, userId } = req.body;
+  
+  const response = await runtime.processMessage({
+    text,
+    userId,
+    roomId: `vercel-${userId}`
+  });
+  
+  return res.status(200).json(response);
+}
+```
+
+</Step>
+
+<Step>
+## Vercel Configuration
+
+Configure deployment:
+
+```json title="vercel.json"
+{
+  "functions": {
+    "api/eliza.ts": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "DATABASE_URL": "@database-url",
+      "OPENAI_API_KEY": "@openai-key"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/eliza"
+    }
+  ],
+  "regions": ["iad1", "sfo1", "sin1"]
+}
+```
+
+Deploy:
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+
+# Set environment variables
+vercel env add OPENAI_API_KEY
+vercel env add DATABASE_URL
+
+# Deploy to production
+vercel --prod
+```
+
+</Step>
+
+</Steps>
+
+## Railway Deployment
+
+<Steps>
+
+<Step>
+## One-Click Deploy
+
+Railway provides the simplest deployment:
+
+```json title="railway.json"
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "bun install && bun run build"
+  },
+  "deploy": {
+    "startCommand": "bun run start",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "services": [
+    {
+      "name": "eliza",
+      "source": {
+        "repo": "https://github.com/elizaOS/eliza"
+      },
+      "domains": [
+        {
+          "name": "eliza.up.railway.app"
+        }
+      ],
+      "envVars": {
+        "NODE_ENV": "production",
+        "PORT": "${{PORT}}"
+      }
+    },
+    {
+      "name": "postgres",
+      "image": "postgres:15",
+      "volumes": [
+        {
+          "mount": "/var/lib/postgresql/data",
+          "name": "postgres-data"
+        }
+      ],
+      "envVars": {
+        "POSTGRES_DB": "eliza",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "${{POSTGRES_PASSWORD}}"
+      }
+    }
+  ]
+}
+```
+
+Deploy with Railway CLI:
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Initialize project
+railway init
+
+# Deploy
+railway up
+
+# Add environment variables
+railway variables set OPENAI_API_KEY=your-key
+
+# Open deployed app
+railway open
+```
+
+</Step>
+
+</Steps>
+
+## Production Best Practices
+
+### 1. Environment Management
+
+```typescript title="src/config/environment.ts"
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']),
+  PORT: z.string().regex(/^\d+$/).transform(Number),
+  DATABASE_URL: z.string().url(),
+  OPENAI_API_KEY: z.string().min(1),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  // Add more as needed
+});
+
+export function validateEnvironment() {
+  const parsed = envSchema.safeParse(process.env);
+  
+  if (!parsed.success) {
+    console.error('Invalid environment variables:', parsed.error.flatten());
+    process.exit(1);
+  }
+  
+  return parsed.data;
+}
+
+// Use in your app
+const env = validateEnvironment();
+```
+
+### 2. Health Checks
+
+```typescript title="src/health.ts"
+export async function healthCheck() {
+  const checks = {
+    server: 'healthy',
+    database: 'unknown',
+    memory: 'unknown',
+    uptime: process.uptime()
+  };
+  
+  // Check database
+  try {
+    await db.query('SELECT 1');
+    checks.database = 'healthy';
+  } catch (error) {
+    checks.database = 'unhealthy';
+  }
+  
+  // Check memory
+  const usage = process.memoryUsage();
+  const limit = 4 * 1024 * 1024 * 1024; // 4GB
+  checks.memory = usage.heapUsed < limit * 0.9 ? 'healthy' : 'warning';
+  
+  return checks;
+}
+```
+
+### 3. Monitoring and Logging
+
+```typescript title="src/monitoring.ts"
+import { createLogger } from 'winston';
+import { CloudWatchTransport } from 'winston-cloudwatch';
+
+export const logger = createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.json(),
+  defaultMeta: {
+    service: 'eliza',
+    environment: process.env.NODE_ENV
+  },
+  transports: [
+    new CloudWatchTransport({
+      logGroupName: 'eliza-logs',
+      logStreamName: `eliza-${process.env.NODE_ENV}`,
+      awsRegion: process.env.AWS_REGION
+    })
+  ]
+});
+
+// Structured logging
+logger.info('Agent started', {
+  agentId: agent.id,
+  plugins: agent.plugins.map(p => p.name),
+  timestamp: new Date().toISOString()
+});
+```
+
+### 4. Security Best Practices
+
+<Callout type="warning">
+  **Security First**: Always use secrets management, enable HTTPS, and implement rate limiting in
+  production.
+</Callout>
+
+```typescript
+// Rate limiting
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP'
+});
+
+app.use('/api/', limiter);
+
+// Security headers
+import helmet from 'helmet';
+app.use(helmet());
+
+// API key validation
+function validateApiKey(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey || !isValidApiKey(apiKey)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  next();
+}
+```
+
+## Cost Optimization
+
+### Platform Cost Comparison
+
+| Platform       | Monthly Cost (Est.) | Cost Factors                      |
+| -------------- | ------------------- | --------------------------------- |
+| **AWS**        | $100-500+           | EC2, RDS, Data transfer, Storage  |
+| **GCP**        | $80-400+            | Cloud Run, Cloud SQL, Egress      |
+| **Azure**      | $90-450+            | AKS, PostgreSQL, Bandwidth        |
+| **Vercel**     | $20-200             | Function calls, Bandwidth         |
+| **Railway**    | $5-100              | Resource usage, Database          |
+| **Fly.io**     | $10-150             | VMs, Volumes, Bandwidth           |
+
+### Cost Optimization Tips
+
+1. **Use Spot/Preemptible Instances** - 60-90% cost savings for non-critical workloads
+2. **Auto-scaling** - Scale down during low traffic
+3. **CDN for Static Assets** - Reduce bandwidth costs
+4. **Database Connection Pooling** - Reduce database connections
+5. **Scheduled Scaling** - Scale up/down based on time
+6. **Reserved Instances** - For predictable workloads
+
+## Troubleshooting Deployments
+
+### Common Issues
+
+1. **Memory Leaks**
+
+   ```bash
+   # Monitor memory usage
+   docker stats eliza-container
+   
+   # Add memory profiling
+   NODE_OPTIONS="--inspect=0.0.0.0:9229" bun run start
+   ```
+
+2. **Connection Timeouts**
+
+   ```typescript
+   // Implement connection retry
+   const pgPool = new Pool({
+     connectionTimeoutMillis: 5000,
+     idleTimeoutMillis: 30000,
+     max: 20
+   });
+   ```
+
+3. **Cold Starts (Serverless)**
+
+   ```typescript
+   // Keep warm with scheduled pings
+   exports.keepWarm = async () => {
+     await fetch('https://your-app.com/api/health');
+   };
+   ```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Replit Deployment"
+    description="Deploy on Replit platform"
+    href="/docs/guides/replit-deployment"
+  />
+  <Card
+    title="Docker Guide"
+    description="Container deployment details"
+    href="/docs/advanced/deployment"
+  />
+  <Card
+    title="Monitoring Setup"
+    description="Production monitoring guide"
+    href="/docs/infrastructure/monitoring"
+  />
+  <Card
+    title="Security Guide"
+    description="Production security best practices"
+    href="/docs/infrastructure/security"
+  />
+</Cards>
+
+Remember: Start with a platform that matches your expertise and scale requirements. You can always
+migrate as your needs grow.

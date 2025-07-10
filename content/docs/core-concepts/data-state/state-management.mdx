@@ -76,6 +76,45 @@ const state = await runtime.composeState(
 );
 ```
 
+#### composeState Parameters
+
+- **`message`**: The current message context
+- **`includeList`**: Optional array of provider names to include in addition to default providers
+- **`onlyInclude`**: When true, ONLY use providers in includeList (filtering mode)
+- **`skipCache`**: Whether to bypass the state cache for fresh data
+
+#### Provider Filtering Examples
+
+```typescript
+// Example 1: Default providers only (no filtering)
+const defaultState = await runtime.composeState(message);
+// Includes all non-private, non-dynamic providers
+
+// Example 2: Add specific providers to defaults
+const enrichedState = await runtime.composeState(
+  message,
+  ['RECENT_MESSAGES', 'EVALUATORS'], // Added to defaults
+  false, // Don't filter - add to defaults
+  false  // Use cache
+);
+
+// Example 3: ONLY use specific providers (filtering)
+const filteredState = await runtime.composeState(
+  message,
+  ['TIME', 'USER_PROFILE'], // ONLY these providers
+  true,  // Filter mode - only use includeList
+  false  // Use cache
+);
+
+// Example 4: Force fresh state (skip cache)
+const freshState = await runtime.composeState(
+  message,
+  null,  // Use default providers
+  false, // No filtering
+  true   // Skip cache for fresh data
+);
+```
+
 ## Providers
 
 Providers are the primary mechanism for populating state with relevant data. Each provider can
@@ -99,6 +138,8 @@ interface ProviderResult {
   text?: string;
 }
 ```
+
+**Important**: Providers use a `get` method (not `generate`) to retrieve data. The `get` method receives the current runtime, message, and cached state as parameters.
 
 ### Built-in Providers
 
@@ -137,6 +178,27 @@ const weatherProvider: Provider = {
 // Register the provider
 runtime.registerProvider(weatherProvider);
 ```
+
+### How Providers Are Selected
+
+The `composeState` method follows this logic for provider selection:
+
+1. **Default Behavior** (no parameters):
+   - Includes all providers where `private = false` and `dynamic = false`
+   - Providers run in order of their `position` property
+
+2. **Addition Mode** (`includeList` provided, `onlyInclude = false`):
+   - Starts with default providers
+   - Adds any providers named in `includeList` (even if dynamic/private)
+
+3. **Filter Mode** (`includeList` provided, `onlyInclude = true`):
+   - ONLY uses providers named in `includeList`
+   - Ignores all other providers
+
+4. **Provider Execution**:
+   - Providers are sorted by `position` (lower numbers first)
+   - Each provider's `get` method is called with runtime, message, and cached state
+   - Results are aggregated into the final state object
 
 ## State Caching
 

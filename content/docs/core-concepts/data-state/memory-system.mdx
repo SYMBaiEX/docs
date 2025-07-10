@@ -81,6 +81,86 @@ interface FragmentMetadata extends BaseMetadata {
 }
 ```
 
+## Database Tables
+
+ElizaOS uses multiple specialized tables for different types of data. All memory operations use the same `createMemory`, `getMemories`, and `searchMemories` methods, but with different table names:
+
+### Core Memory Tables
+
+| Table Name | Purpose | Common Usage |
+|------------|---------|--------------|
+| `messages` | Conversation messages | Chat history, user inputs, agent responses |
+| `facts` | Persistent facts and knowledge | User preferences, learned information |
+| `documents` | Full documents | PDFs, text files, knowledge bases |
+| `fragments` | Document chunks for search | Embedded document pieces for RAG |
+| `memories` | General memories | Custom memory types |
+
+### System Tables
+
+| Table Name | Purpose | Common Usage |
+|------------|---------|--------------|
+| `agents` | Agent configurations | Agent metadata, settings |
+| `entities` | User/entity profiles | User information, entity relationships |
+| `rooms` | Conversation contexts | Chat rooms, channels, sessions |
+| `relationships` | Entity relationships | Connections between users/entities |
+| `components` | Entity components | Modular entity data |
+| `tasks` | Scheduled tasks | Reminders, scheduled actions |
+| `cache` | Temporary data | Performance optimization |
+| `logs` | System logs | Debugging, audit trail |
+
+### Integration Tables
+
+| Table Name | Purpose | Common Usage |
+|------------|---------|--------------|
+| `channels` | External channel mappings | Discord, Telegram channel info |
+| `channel_participants` | Channel membership | Who's in which channel |
+| `participants` | Room participants | Active conversation members |
+| `message_servers` | Message server configs | Server-specific settings |
+| `server_agents` | Agent-server mappings | Multi-agent deployments |
+| `embeddings` | Vector embeddings | Semantic search indexes |
+
+### Table Usage Examples
+
+```typescript
+// Store a chat message
+await runtime.createMemory({
+  content: { text: "Hello, how are you?" },
+  entityId: userId,
+  roomId: roomId,
+  metadata: { type: MemoryType.MESSAGE }
+}, "messages");
+
+// Store a fact
+await runtime.createMemory({
+  content: { text: "User prefers email notifications" },
+  entityId: userId,
+  metadata: { type: MemoryType.DESCRIPTION }
+}, "facts");
+
+// Store a task
+await runtime.createMemory({
+  content: { text: "Send weekly report" },
+  entityId: agentId,
+  metadata: { 
+    type: MemoryType.CUSTOM,
+    scheduledFor: Date.now() + 7 * 24 * 60 * 60 * 1000
+  }
+}, "tasks");
+
+// Query specific tables
+const userFacts = await runtime.getMemories({
+  tableName: "facts",
+  entityId: userId,
+  count: 50
+});
+
+const recentMessages = await runtime.getMemories({
+  tableName: "messages",
+  roomId: roomId,
+  count: 10
+});
+```
+
 ## Creating Memories
 
 ### Basic Memory Creation

@@ -59,22 +59,23 @@ nano .env
 Add essential configuration variables:
 
 ```bash
-# Required: Model Provider API Key
+# Required: Choose at least one Model Provider API Key
 OPENAI_API_KEY=your_openai_key_here
-
-# Optional: Alternative providers
-ANTHROPIC_API_KEY=your_anthropic_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here  # Requires embedding provider
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
+OPENROUTER_API_KEY=your_openrouter_key_here  # Requires embedding provider
+GROQ_API_KEY=your_groq_key_here
+OLLAMA_API_ENDPOINT=http://localhost:11434  # For local AI
 
-# Database Configuration
+# Database Configuration (choose one)
 POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
-# Or use PGLite for development
-PGLITE_DATA_DIR=./data/pglite
+PGLITE_DATA_DIR=./data/pglite  # Lightweight alternative
 
 # Server Configuration
 SERVER_PORT=3000
 SERVER_HOST=localhost
 NODE_ENV=development
+EXPRESS_MAX_PAYLOAD=2mb
 ```
 
 </Step>
@@ -318,12 +319,15 @@ elizaos update --packages
 ### Core Variables
 
 ```bash
-# Model Provider (required)
+# Model Provider (choose at least one)
 OPENAI_API_KEY=your_openai_key_here
 ANTHROPIC_API_KEY=your_anthropic_key_here
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
+OPENROUTER_API_KEY=your_openrouter_key_here
+GROQ_API_KEY=your_groq_key_here
+OLLAMA_API_ENDPOINT=http://localhost:11434
 
-# Database Configuration
+# Database Configuration (choose one)
 POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
 PGLITE_DATA_DIR=./data/pglite
 
@@ -331,11 +335,45 @@ PGLITE_DATA_DIR=./data/pglite
 SERVER_PORT=3000
 SERVER_HOST=localhost
 NODE_ENV=development
-LOG_LEVEL=info
+EXPRESS_MAX_PAYLOAD=2mb
+
+# Logging Configuration
+LOG_LEVEL=info  # Options: fatal, error, warn, info, debug, trace
+LOG_DIAGNOSTIC=false
+QUIET_MODE=false
 
 # UI Configuration
-ELIZA_UI_ENABLE=true
+ELIZA_UI_ENABLE=true  # Auto-enabled in dev, disabled in prod
 ELIZA_SERVER_AUTH_TOKEN=your_auth_token_here
+
+# Character Configuration
+REMOTE_CHARACTER_URLS=  # Comma-separated URLs
+
+# Security
+SECRET_SALT=your_secret_salt_here  # For encryption
+
+# CLI Configuration
+ELIZA_NONINTERACTIVE=false  # Disable interactive features
+SKIP_POSTINSTALL=0  # Skip git submodule init
+IGNORE_BOOTSTRAP=  # Skip bootstrap plugin (not recommended)
+```
+
+### Additional Service Configuration
+
+```bash
+# Voice Services (Eleven Labs)
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+ELEVENLABS_VOICE_ID=your_voice_id_here
+
+# Monitoring (Sentry)
+SENTRY_LOGGING=false  # Set to true to enable
+SENTRY_DSN=your_sentry_dsn_here
+SENTRY_ENVIRONMENT=development
+SENTRY_TRACES_SAMPLE_RATE=1.0
+SENTRY_SEND_DEFAULT_PII=false
+
+# Branch Configuration (for deployment)
+ELIZA_BRANCH=main
 ```
 
 ### Platform Integration Variables
@@ -360,10 +398,19 @@ TELEGRAM_WEBHOOK_URL=https://your-domain.com/webhook
   </Tab>
   <Tab value="Twitter">
     ```bash
-# Twitter Configuration
+# Twitter Configuration (choose one method)
+# Method 1: Username/Password
 TWITTER_USERNAME=your_twitter_username
 TWITTER_PASSWORD=your_twitter_password
 TWITTER_EMAIL=your_twitter_email
+
+# Method 2: API Keys
+TWITTER_API_KEY=your_twitter_api_key
+TWITTER_API_SECRET_KEY=your_twitter_api_secret_key
+TWITTER_ACCESS_TOKEN=your_twitter_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_twitter_access_token_secret
+
+# Common settings
 TWITTER_ENABLE_POST_GENERATION=true
 TWITTER_POST_IMMEDIATELY=false
 ```
@@ -373,13 +420,16 @@ TWITTER_POST_IMMEDIATELY=false
 # Ethereum Configuration
 EVM_PRIVATE_KEY=your_ethereum_private_key
 EVM_PROVIDER_URL=https://mainnet.infura.io/v3/your_key
-EVM_CHAINS=mainnet,sepolia,base,arbitrum
+EVM_CHAINS=mainnet,sepolia,base,arbitrum,polygon
 
 # Solana Configuration
+SOLANA_PRIVATE_KEY=your_solana_private_key
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 
-SOLANA_PRIVATE_KEY=your_solana_private_key SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-
-````
+# TEE Configuration
+TEE_MODE=LOCAL  # Options: LOCAL, DOCKER, PRODUCTION
+WALLET_SECRET_SALT=your_wallet_secret_salt_here
+```
   </Tab>
 </Tabs>
 

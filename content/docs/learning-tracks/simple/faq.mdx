@@ -1,108 +1,652 @@
 ---
-title: Simple Track FAQ
-description: Frequently asked questions for the Simple Learning Track
+title: Frequently Asked Questions
+description: Common questions and answers about ElizaOS
 ---
 
-Common questions and answers for the Simple Learning Track.
+Get quick answers to the most common questions about ElizaOS, organized by topic.
 
-## What is ElizaOS?
-
-ElizaOS is a platform for creating AI agents - think of them as smart chatbots with personality! You
-can create agents that interact on platforms like Discord, Twitter, and Telegram without any coding
-experience.
+<Accordions>
 
 ## Getting Started
 
-### Q: What are the prerequisites?
+<Accordion title="What is ElizaOS?">
+ElizaOS is an open-source framework for creating autonomous AI agents. These agents can:
+- Have conversations with personality and memory
+- Connect to platforms like Discord, Twitter, and Telegram
+- Execute actions and make decisions
+- Learn from interactions
+- Work together in multi-agent systems
 
-A: No coding experience required! You just need:
+Think of it as giving AI a body and personality to interact with the world!
+</Accordion>
 
-- Basic understanding of chat applications
-- An AI API key (OpenAI, Claude, or Local AI)
-- A few minutes to set up
+<Accordion title="Do I need coding experience?">
+**For basic use**: No! You can create agents using:
+- Pre-built templates
+- Simple configuration files
+- The ElizaOS CLI tool
+- Visual character editors (coming soon)
 
-### Q: How much does it cost?
+**For advanced features**: Some JavaScript/TypeScript knowledge helps for:
+- Custom actions and behaviors
+- Plugin development
+- Advanced integrations
+</Accordion>
 
-A: Costs range from free to ~$300/month depending on usage:
+<Accordion title="What are the system requirements?">
+**Minimum Requirements:**
+- Node.js v23.3.0 (exact version required)
+- 4GB RAM
+- 2GB disk space
+- Internet connection
 
-- Free tier available for testing
-- Pay-as-you-go for API usage
-- No credit card required to start
+**Recommended:**
+- 8GB+ RAM
+- SSD storage
+- Modern multi-core CPU
+- Stable internet for API calls
 
-### Q: How long does it take to complete?
+**Operating Systems:**
+- macOS (Intel & Apple Silicon)
+- Linux (Ubuntu 20.04+, Debian 11+)
+- Windows (via WSL 2 only)
+</Accordion>
 
-A: About 1-2 hours total:
+<Accordion title="How much does it cost to run an agent?">
+**ElizaOS itself**: Free and open source!
 
-- 5 minutes to deploy your first agent
-- 15 minutes per platform setup
-- 30 minutes for character customization
+**AI API Costs** (approximate):
+- **OpenAI GPT-3.5**: ~$0.002 per message
+- **OpenAI GPT-4**: ~$0.03 per message
+- **Claude**: ~$0.01 per message
+- **Local AI**: Free (runs on your hardware)
 
-### Q: What platforms are supported?
+**Monthly estimates** (active agent):
+- Light use: $5-20/month
+- Moderate use: $20-100/month
+- Heavy use: $100-300/month
 
-A: ElizaOS supports multiple platforms:
+**Platform costs**:
+- Discord: Free
+- Twitter: Free (with limits)
+- Telegram: Free
+- Hosting: $5-20/month (optional)
+</Accordion>
 
-- Discord
-- Twitter
-- Telegram
-- Web chat
-- And more!
+## Installation & Setup
+
+<Accordion title="Why exactly Node.js v23.3.0?">
+ElizaOS requires Node.js v23.3.0 (exact version) due to:
+- Specific V8 engine features used
+- Native module compatibility
+- Tested dependency versions
+- Performance optimizations
+
+Using other versions may cause:
+- Installation failures
+- Runtime errors
+- Unexpected behavior
+- Plugin incompatibilities
+
+Always use `nvm` or similar to manage exact versions.
+</Accordion>
+
+<Accordion title="Can I use npm instead of bun?">
+Yes, but with caveats:
+- Bun is recommended for better performance
+- npm works but is slower
+- Use npm v10+ for best compatibility
+- Some scripts may need adjustment
+
+To use npm:
+```bash
+npm install
+npm run dev
+```
+</Accordion>
+
+<Accordion title="What's the difference between pglite and PostgreSQL?">
+**PGLite**:
+- Embedded database (no server needed)
+- Perfect for development
+- Single-user only
+- Limited to ~2GB data
+- Zero configuration
+
+**PostgreSQL**:
+- Full database server
+- Production-ready
+- Multi-user support
+- Unlimited data size
+- Requires setup
+
+Use PGLite for development, PostgreSQL for production.
+</Accordion>
 
 ## AI Providers
 
-### Q: Which AI providers can I use?
+<Accordion title="Which AI provider should I choose?">
+**For beginners**: OpenAI
+- Most reliable
+- Best documentation
+- Moderate cost
+- GPT-3.5 for budget, GPT-4 for quality
 
-A: ElizaOS supports multiple AI providers:
+**For advanced users**: 
+- **Claude**: Best for creative writing
+- **Local (Ollama)**: Free but requires good hardware
+- **OpenRouter**: Access to many models
+- **Groq**: Fastest responses
 
-- OpenAI (GPT-3.5, GPT-4)
-- Claude (Anthropic)
-- Local AI models
-- Custom providers
+**Decision factors**:
+- Budget constraints
+- Quality requirements
+- Privacy concerns
+- Response speed needs
+</Accordion>
 
-### Q: How do I get an API key?
+<Accordion title="How do I get API keys?">
+**OpenAI**:
+1. Go to [platform.openai.com](https://platform.openai.com)
+2. Sign up (get free credits)
+3. Navigate to API Keys
+4. Create new secret key
+5. Copy immediately (shown once)
 
-A: Follow these steps:
+**Anthropic (Claude)**:
+1. Go to [console.anthropic.com](https://console.anthropic.com)
+2. Create account
+3. Go to API Keys
+4. Generate key
+5. Note: Requires separate embedding provider
 
-1. Choose your AI provider
-2. Sign up for their service
-3. Generate an API key
-4. Add it to your `.env` file
+**Local AI (Ollama)**:
+1. Install Ollama: `curl -fsSL https://ollama.ai/install.sh | sh`
+2. Pull a model: `ollama pull llama2`
+3. Start server: `ollama serve`
+4. No API key needed!
+</Accordion>
 
-## Agent Creation
+<Accordion title="What about rate limits?">
+**Rate Limit Guidelines**:
 
-### Q: How do I create a custom agent personality?
+**OpenAI**:
+- Free tier: 3 requests/minute
+- Paid tier: 3,500 requests/minute
+- Upgrade by adding payment method
 
-A: You can customize your agent by:
+**Claude**:
+- Varies by plan
+- Generally more restrictive
+- Good for quality over quantity
 
-1. Editing the character file
-2. Setting name, description, and personality traits
-3. Adding custom knowledge and responses
-4. Testing and refining
+**Handling rate limits**:
+- ElizaOS has built-in retry logic
+- Configure delays between messages
+- Use multiple API keys (advanced)
+- Consider local models for high volume
+</Accordion>
 
-### Q: Can I use templates?
+## Character & Agent Configuration
 
-A: Yes! Templates are available for:
+<Accordion title="What's the difference between character and agent?">
+**Character**: The personality definition
+- Name, bio, traits
+- Communication style
+- Knowledge and topics
+- Example conversations
+- Static configuration
 
-- Different platforms
-- Various use cases
-- Pre-built personalities
-- Common configurations
+**Agent**: The running instance
+- Loads a character
+- Maintains memory/state
+- Connects to platforms
+- Executes actions
+- Dynamic runtime
 
-## Support
+Think: Character is the blueprint, Agent is the living entity.
+</Accordion>
 
-### Q: Where can I get help?
+<Accordion title="How do I make my agent more human-like?">
+**Key techniques**:
 
-A: Multiple resources are available:
+1. **Varied responses**: Add many message examples
+2. **Personality quirks**: Include unique traits
+3. **Emotional range**: Show different moods
+4. **Conversational flow**: Use natural transitions
+5. **Memory references**: Recall past conversations
 
-- YouTube tutorials
-- Discord community support
-- Detailed documentation
-- Free 15-minute help sessions
+**Example improvements**:
+```json
+// Instead of:
+"style": ["helpful"]
 
-### Q: Is there a Quick Start Checklist?
+// Try:
+"style": [
+  "helpful but sometimes distracted",
+  "loves puns and wordplay",
+  "gets excited about favorite topics",
+  "occasionally asks for clarification"
+]
+```
+</Accordion>
 
-A: Yes! Follow the [Quick Start Guide](./getting-started/quick-start) for a step-by-step checklist
-to create your first AI agent.
+<Accordion title="Why must plugins be in a specific order?">
+**Critical plugin order**:
+1. `@elizaos/plugin-sql` - MUST be first
+2. Model provider (OpenAI, Claude, etc.)
+3. Other plugins
+4. `@elizaos/plugin-bootstrap` - MUST be last
 
-## More Questions?
+**Why this matters**:
+- SQL initializes the database
+- Model provider needs database
+- Bootstrap needs all services ready
+- Wrong order = startup failures
 
-Check the main [ElizaOS documentation](../../core-concepts/) or join our community discussions.
+**Common mistake**:
+```json
+// WRONG - Will fail
+"plugins": ["@elizaos/plugin-bootstrap", "@elizaos/plugin-sql"]
+
+// CORRECT
+"plugins": ["@elizaos/plugin-sql", "@elizaos/plugin-openai", "@elizaos/plugin-bootstrap"]
+```
+</Accordion>
+
+## Platform Integration
+
+<Accordion title="How do I connect to Discord?">
+**Quick Discord Setup**:
+
+1. **Create Bot**:
+   - Go to [discord.com/developers](https://discord.com/developers)
+   - New Application → Bot → Add Bot
+   - Copy token
+
+2. **Set Permissions**:
+   - Send Messages
+   - Read Message History
+   - Add Reactions
+   - Message Content Intent (required!)
+
+3. **Configure**:
+   ```bash
+   DISCORD_APPLICATION_ID=your_app_id
+   DISCORD_API_TOKEN=your_bot_token
+   ```
+
+4. **Invite Bot**:
+   - OAuth2 → URL Generator
+   - Select bot scope + permissions
+   - Use generated URL
+
+5. **Start Agent**:
+   ```bash
+   elizaos start --character discord-agent.json
+   ```
+</Accordion>
+
+<Accordion title="Can I run multiple agents?">
+**Yes! Multiple options**:
+
+**Same machine, different ports**:
+```bash
+# Terminal 1
+elizaos start --port 3000 --character agent1.json
+
+# Terminal 2
+elizaos start --port 3001 --character agent2.json
+```
+
+**Different databases**:
+```bash
+# Agent 1
+PGLITE_DATA_DIR=./data/agent1 elizaos start
+
+# Agent 2
+PGLITE_DATA_DIR=./data/agent2 elizaos start
+```
+
+**Multi-agent features**:
+- Agents can communicate
+- Share knowledge bases
+- Coordinate actions
+- Different personalities
+</Accordion>
+
+<Accordion title="What's the best platform to start with?">
+**For beginners**: Web interface
+- No additional setup
+- Immediate testing
+- Built-in chat UI
+- Easy debugging
+
+**For communities**: Discord
+- Natural conversations
+- Multi-user interaction
+- Rich features
+- Active ecosystem
+
+**For reach**: Twitter
+- Public visibility
+- Viral potential
+- Scheduled posts
+- Trend participation
+
+**For groups**: Telegram
+- International users
+- Group management
+- Bot-friendly
+- Good mobile experience
+</Accordion>
+
+## Troubleshooting
+
+<Accordion title="My agent won't start - help!">
+**Common fixes in order**:
+
+1. **Check Node version**:
+   ```bash
+   node --version  # Must be v23.3.0
+   ```
+
+2. **Verify environment**:
+   ```bash
+   elizaos env check
+   ```
+
+3. **Check API keys**:
+   - No quotes in .env file
+   - No spaces around =
+   - Key starts with expected prefix
+
+4. **Plugin order**:
+   - SQL first, Bootstrap last
+
+5. **Port conflicts**:
+   ```bash
+   elizaos dev --port 8080
+   ```
+
+6. **Clean install**:
+   ```bash
+   rm -rf node_modules .eliza
+   bun install
+   ```
+</Accordion>
+
+<Accordion title="Agent responds slowly or times out">
+**Performance checklist**:
+
+1. **API Issues**:
+   - Check API credits/billing
+   - Verify rate limits
+   - Try different provider
+
+2. **Database**:
+   - Clean old conversations
+   - Check disk space
+   - Consider PostgreSQL
+
+3. **Memory**:
+   - Reduce conversation history
+   - Limit knowledge base size
+   - Check system resources
+
+4. **Network**:
+   - Test internet speed
+   - Check firewall rules
+   - Try different DNS
+
+5. **Quick fix**:
+   ```bash
+   # Reset agent state
+   rm -rf .eliza
+   elizaos start --clean
+   ```
+</Accordion>
+
+<Accordion title="How do I debug issues?">
+**Debugging tools**:
+
+1. **Enable detailed logging**:
+   ```bash
+   LOG_LEVEL=debug elizaos dev
+   ```
+
+2. **Check specific component**:
+   ```bash
+   # Database issues
+   elizaos env test-db
+   
+   # API issues
+   elizaos env test-keys
+   ```
+
+3. **View logs**:
+   ```bash
+   tail -f logs/agent.log
+   ```
+
+4. **Interactive debugging**:
+   ```bash
+   elizaos dev --inspect
+   ```
+
+5. **Common log locations**:
+   - `.eliza/logs/` - Agent logs
+   - `node_modules/.eliza/` - System logs
+   - Browser console - Client errors
+</Accordion>
+
+## Advanced Topics
+
+<Accordion title="Can I create custom actions?">
+**Yes! Basic structure**:
+
+```typescript
+const customAction = {
+  name: "CUSTOM_ACTION",
+  description: "Does something special",
+  
+  validate: async (runtime, message) => {
+    // Return true if action should run
+    return message.content.includes("trigger");
+  },
+  
+  handler: async (runtime, message) => {
+    // Your action logic
+    return {
+      text: "Action completed!"
+    };
+  }
+};
+```
+
+**Steps**:
+1. Create action file
+2. Register in plugin
+3. Add to character
+4. Test thoroughly
+</Accordion>
+
+<Accordion title="How does memory work?">
+**Memory layers**:
+
+1. **Short-term** (conversation):
+   - Recent messages
+   - Current context
+   - Cleared on restart
+
+2. **Long-term** (database):
+   - Important facts
+   - User preferences
+   - Persistent storage
+
+3. **Knowledge** (files):
+   - Static information
+   - Domain expertise
+   - Shared across agents
+
+**Memory management**:
+```json
+"settings": {
+  "memoryLimit": 100,  // Max memories
+  "conversationLength": 20  // Recent messages
+}
+```
+</Accordion>
+
+<Accordion title="Can agents talk to each other?">
+**Multi-agent communication**:
+
+**Built-in methods**:
+- Shared database
+- Message passing
+- Event system
+- REST API calls
+
+**Example setup**:
+```javascript
+// Agent 1 sends
+await runtime.sendMessage({
+  agentId: "agent2",
+  content: "Hello from Agent 1!"
+});
+
+// Agent 2 receives
+runtime.on("message", (msg) => {
+  if (msg.from === "agent1") {
+    // Respond
+  }
+});
+```
+
+**Use cases**:
+- Specialized expertise
+- Load balancing
+- Role-playing scenarios
+- Consensus decisions
+</Accordion>
+
+## Security & Privacy
+
+<Accordion title="Is my data safe?">
+**Data handling**:
+
+**Local data**:
+- Stored in your database
+- You control access
+- Not sent to ElizaOS
+
+**API providers**:
+- Follow provider policies
+- OpenAI: 30-day retention
+- Claude: No training on API data
+- Local: Complete privacy
+
+**Best practices**:
+- Use environment variables
+- Don't commit secrets
+- Regular backups
+- Access controls
+</Accordion>
+
+<Accordion title="Can I use this commercially?">
+**ElizaOS License**: MIT (permissive)
+- ✅ Commercial use allowed
+- ✅ Modification allowed
+- ✅ Distribution allowed
+- ✅ Private use allowed
+
+**Considerations**:
+- API provider terms apply
+- Platform policies matter
+- User data regulations
+- No warranty provided
+
+**Commercial tips**:
+- Review all licenses
+- Consider enterprise APIs
+- Plan for scale
+- Get legal advice
+</Accordion>
+
+## Community & Support
+
+<Accordion title="Where can I get help?">
+**Support channels**:
+
+1. **Discord Community**:
+   - Real-time help
+   - Community examples
+   - Developer discussions
+   - [Join here](https://discord.gg/elizaos)
+
+2. **GitHub**:
+   - Issue tracking
+   - Feature requests
+   - Code contributions
+   - [Repository](https://github.com/elizaOS/eliza)
+
+3. **Documentation**:
+   - Comprehensive guides
+   - API references
+   - Video tutorials
+   - You're reading it!
+
+4. **Office Hours**:
+   - Free 15-minute sessions
+   - Book via Discord
+   - Expert guidance
+</Accordion>
+
+<Accordion title="How can I contribute?">
+**Ways to contribute**:
+
+**Code**:
+- Fix bugs
+- Add features
+- Improve tests
+- Optimize performance
+
+**Documentation**:
+- Fix typos
+- Add examples
+- Translate guides
+- Create tutorials
+
+**Community**:
+- Answer questions
+- Share templates
+- Create content
+- Report issues
+
+**Getting started**:
+1. Fork the repo
+2. Make changes
+3. Test thoroughly
+4. Submit PR
+5. Respond to feedback
+</Accordion>
+
+</Accordions>
+
+## Still Have Questions?
+
+<Cards>
+  <Card title="Community Discord" href="https://discord.gg/elizaos">
+    Get real-time help from the community
+  </Card>
+  <Card title="GitHub Discussions" href="https://github.com/elizaOS/eliza/discussions">
+    Browse and ask technical questions
+  </Card>
+  <Card title="Video Tutorials" href="https://youtube.com/@elizaos">
+    Watch step-by-step guides
+  </Card>
+</Cards>
+
+---
+
+**Tip**: Can't find your answer? Ask in Discord - someone probably had the same question!

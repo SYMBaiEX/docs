@@ -11,9 +11,84 @@ ElizaOS knowledge management system provides agents with the ability to store, o
 retrieve structured knowledge. This includes facts about users, documents, and domain-specific
 information that can be used to enhance conversations and decision-making.
 
-## Knowledge Types
+## Modern Approach: Plugin-Knowledge
 
-### Knowledge Item Structure
+The recommended way to implement knowledge management is through the `@elizaos/plugin-knowledge` plugin, which provides a complete RAG (Retrieval-Augmented Generation) solution:
+
+### Installation and Setup
+
+```typescript
+// In your character configuration
+const character = {
+  name: "KnowledgeAgent",
+  plugins: [
+    "@elizaos/plugin-sql",      // Required first
+    "@elizaos/plugin-openai",   // Or other AI provider
+    "@elizaos/plugin-knowledge", // Knowledge management
+    "@elizaos/plugin-bootstrap"  // Required last
+  ]
+};
+```
+
+### Using Plugin-Knowledge Service
+
+```typescript
+// Get the knowledge service
+const knowledgeService = runtime.getService('knowledge');
+
+// Add knowledge programmatically
+await knowledgeService.addKnowledge({
+  content: "ElizaOS is an open-source AI agent framework",
+  contentType: "text/plain",
+  metadata: {
+    source: "documentation",
+    tags: ["framework", "ai"]
+  }
+});
+
+// Add PDF document
+const pdfContent = await fs.readFile('path/to/document.pdf');
+await knowledgeService.addKnowledge({
+  content: pdfContent,
+  contentType: "application/pdf",
+  metadata: {
+    source: "company-handbook.pdf"
+  }
+});
+
+// Search knowledge base
+const results = await knowledgeService.searchKnowledge({
+  query: "What is ElizaOS?",
+  limit: 5,
+  threshold: 0.7
+});
+```
+
+### Automatic Document Loading
+
+Place documents in a `docs` folder relative to your agent, and they'll be automatically loaded:
+
+```
+my-agent/
+├── package.json
+├── character.json
+└── docs/
+    ├── product-manual.pdf
+    ├── faq.md
+    └── knowledge-base.txt
+```
+
+### Web Interface
+
+Plugin-Knowledge includes a web interface for document management. Access it at `http://localhost:3000/knowledge` when your agent is running.
+
+## Core Memory-Based Approach
+
+While plugin-knowledge is recommended for most use cases, ElizaOS also supports direct memory-based knowledge management for custom implementations.
+
+### Knowledge Types
+
+#### Knowledge Item Structure
 
 ```typescript
 interface KnowledgeItem {
@@ -538,6 +613,45 @@ class DomainKnowledgeSystem {
 // Usage
 const medicalKnowledge = new DomainKnowledgeSystem(runtime, "medical");
 await medicalKnowledge.initialize();
+```
+
+## Choosing the Right Approach
+
+### Use Plugin-Knowledge When:
+- You need zero-configuration RAG capabilities
+- Working with standard document formats (PDF, MD, TXT)
+- Want automatic document indexing and search
+- Need a web interface for document management
+- Building conversational agents that answer questions from documents
+
+### Use Core Memory-Based Approach When:
+- Building custom knowledge management systems
+- Need fine-grained control over memory storage
+- Implementing specialized knowledge graphs
+- Working with structured data relationships
+- Integrating with existing database schemas
+
+### Hybrid Approach
+
+You can combine both approaches:
+
+```typescript
+// Use plugin-knowledge for documents
+const knowledgeService = runtime.getService('knowledge');
+await knowledgeService.addKnowledge({
+  content: documentContent,
+  contentType: 'application/pdf'
+});
+
+// Use memory system for structured facts
+await runtime.createMemory({
+  content: { text: "User prefers morning meetings" },
+  entityId: userId,
+  metadata: {
+    type: MemoryType.DESCRIPTION,
+    source: "user_preference"
+  }
+}, "facts");
 ```
 
 ## Related Topics

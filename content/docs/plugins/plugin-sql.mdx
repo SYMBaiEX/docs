@@ -1,0 +1,644 @@
+---
+title: SQL Plugin
+description: Comprehensive guide to the ElizaOS SQL plugin for database management and schema extensions
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The SQL plugin (`@elizaos/plugin-sql`) is the foundational database plugin for ElizaOS, providing a complete database abstraction layer with support for PostgreSQL and PGlite, dynamic schema migrations, and plugin-based schema extensions.
+
+## Overview
+
+The SQL plugin provides:
+
+- **Database Adapters**: Support for PostgreSQL (production) and PGlite (development/testing)
+- **Dynamic Schema System**: Type-safe schema definitions using Drizzle ORM
+- **Plugin Schema Extensions**: Allow other plugins to extend the database schema
+- **Vector Search**: Built-in support for embeddings and similarity search
+- **Migration Management**: Automatic schema migrations with versioning
+- **Connection Pooling**: Efficient database connection management
+
+<Callout type="warning">
+  The SQL plugin MUST be loaded first in your plugin list as it provides the database adapter that other plugins depend on.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'pnpm', 'bun']}>
+  <Tab value="npm">
+    ```bash
+    npm install @elizaos/plugin-sql
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @elizaos/plugin-sql
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```bash
+    bun add @elizaos/plugin-sql
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+Configure the plugin using environment variables:
+
+```bash
+# For PostgreSQL (production)
+POSTGRES_URL=postgresql://user:password@localhost:5432/eliza
+
+# For PGlite (development)
+PGLITE_PATH=./.eliza/.elizadb
+# or
+DATABASE_PATH=./.eliza/.elizadb
+
+# Connection pool settings (PostgreSQL only)
+POSTGRES_MAX_CONNECTIONS=20
+POSTGRES_IDLE_TIMEOUT=30000
+POSTGRES_CONNECTION_TIMEOUT=5000
+```
+
+### Basic Usage
+
+```typescript
+import { plugin as sqlPlugin } from '@elizaos/plugin-sql';
+import { plugin as bootstrapPlugin } from '@elizaos/plugin-bootstrap';
+
+const runtime = new AgentRuntime({
+  character: myCharacter,
+  plugins: [
+    sqlPlugin,        // Must be first
+    // ... other plugins
+    bootstrapPlugin   // Should be last
+  ],
+});
+
+await runtime.initialize();
+```
+
+## Core Schema
+
+The plugin provides a comprehensive set of core tables:
+
+### Available Tables
+
+```typescript
+import { schema } from '@elizaos/plugin-sql';
+
+// Core tables available
+const {
+  agentsTable,
+  memoriesTable,
+  entitiesTable,
+  embeddingsTable,
+  roomsTable,
+  worldsTable,
+  participantsTable,
+  relationshipsTable,
+  tasksTable,
+  componentsTable,
+  logsTable
+} = schema;
+```
+
+### Table Relationships
+
+```mermaid
+graph TD
+    A[agents] --> M[memories]
+    A --> E[entities]
+    M --> EM[embeddings]
+    E --> R[relationships]
+    E --> C[components]
+    E --> P[participants]
+    P --> RO[rooms]
+    RO --> W[worlds]
+    A --> T[tasks]
+```
+
+## Database Adapters
+
+### PostgreSQL Adapter
+
+For production environments with full PostgreSQL features:
+
+```typescript
+import { PgDatabaseAdapter } from '@elizaos/plugin-sql';
+
+// Automatically configured when POSTGRES_URL is set
+const adapter = new PgDatabaseAdapter(agentId, connectionManager);
+
+// Features:
+// - Connection pooling
+// - pgvector extension for embeddings
+// - Full transaction support
+// - Concurrent access
+```
+
+### PGlite Adapter
+
+For development and testing with SQLite compatibility:
+
+```typescript
+import { PgliteDatabaseAdapter } from '@elizaos/plugin-sql';
+
+// Automatically configured when no POSTGRES_URL is set
+const adapter = new PgliteDatabaseAdapter(agentId, clientManager);
+
+// Features:
+// - File-based storage
+// - No external dependencies
+// - Vector search support
+// - Great for development
+```
+
+## Schema Extensions
+
+### Creating Plugin Schemas
+
+Plugins can extend the database schema by exporting their own tables:
+
+<Steps>
+
+<Step>
+## Define Your Schema
+
+Create your table definitions using Drizzle ORM:
+
+```typescript title="my-plugin/src/schema.ts"
+import { pgTable, text, uuid, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { schema } from '@elizaos/plugin-sql';
+
+export const customEventsTable = pgTable('my_plugin_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  agentId: uuid('agent_id')
+    .references(() => schema.agentsTable.id, { onDelete: 'cascade' })
+    .notNull(),
+  eventType: text('event_type').notNull(),
+  payload: jsonb('payload').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  agentIdIdx: index('idx_my_plugin_events_agent_id').on(table.agentId),
+  eventTypeIdx: index('idx_my_plugin_events_type').on(table.eventType),
+}));
+
+export const customSettingsTable = pgTable('my_plugin_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  agentId: uuid('agent_id')
+    .references(() => schema.agentsTable.id, { onDelete: 'cascade' })
+    .notNull()
+    .unique(),
+  settings: jsonb('settings').default({}).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Export all tables as schema
+export const myPluginSchema = {
+  customEventsTable,
+  customSettingsTable,
+};
+```
+</Step>
+
+<Step>
+## Export Schema in Plugin
+
+Include your schema in the plugin definition:
+
+```typescript title="my-plugin/src/index.ts"
+import { Plugin } from '@elizaos/core';
+import { myPluginSchema } from './schema';
+
+export const myPlugin: Plugin = {
+  name: '@my-org/my-plugin',
+  description: 'Custom plugin with database extensions',
+  schema: myPluginSchema, // This enables automatic migrations
+  init: async (config, runtime) => {
+    // Plugin initialization
+    console.log('Plugin initialized with schema extensions');
+  },
+};
+```
+</Step>
+
+<Step>
+## Use Your Tables
+
+Access your tables in plugin code:
+
+```typescript title="my-plugin/src/actions.ts"
+import { myPluginSchema } from './schema';
+
+export const logEventAction = {
+  name: 'LOG_EVENT',
+  handler: async (runtime, message) => {
+    const db = runtime.adapter.db;
+    
+    // Insert event
+    await db.insert(myPluginSchema.customEventsTable).values({
+      agentId: runtime.agentId,
+      eventType: 'user_action',
+      payload: { 
+        message: message.content.text,
+        timestamp: Date.now() 
+      },
+    });
+    
+    // Query events
+    const recentEvents = await db
+      .select()
+      .from(myPluginSchema.customEventsTable)
+      .where(eq(myPluginSchema.customEventsTable.agentId, runtime.agentId))
+      .orderBy(desc(myPluginSchema.customEventsTable.createdAt))
+      .limit(10);
+      
+    return { success: true, events: recentEvents };
+  },
+};
+```
+</Step>
+
+</Steps>
+
+## Vector Search and Embeddings
+
+The SQL plugin includes built-in support for vector embeddings:
+
+### Storing Embeddings
+
+```typescript
+// Embeddings are automatically created when storing memories
+const memory = {
+  content: { text: "Important information about the user" },
+  agentId: runtime.agentId,
+  roomId: message.roomId,
+};
+
+// This will automatically generate and store embeddings
+await runtime.createMemory(memory, 'memories');
+```
+
+### Searching with Embeddings
+
+```typescript
+// Search for similar memories
+const similarMemories = await runtime.searchMemories({
+  tableName: 'memories',
+  query: "user preferences",
+  match_threshold: 0.7,
+  count: 10,
+  roomId: message.roomId,
+});
+
+// Direct vector search
+const embedding = await runtime.useModel(ModelType.TEXT_EMBEDDING, {
+  text: "search query"
+});
+
+const results = await runtime.adapter.searchEmbeddings({
+  tableName: 'memories',
+  embedding: embedding,
+  dimension: 384, // or 512, 768, 1024, 1536, 3072
+  threshold: 0.8,
+  limit: 5,
+});
+```
+
+### Multi-dimensional Support
+
+The plugin supports multiple embedding dimensions:
+
+```typescript
+// Different models produce different dimensions
+const dimensions = {
+  'text-embedding-3-small': 384,
+  'text-embedding-3-medium': 768,
+  'text-embedding-3-large': 1024,
+  'text-embedding-ada-002': 1536,
+  'gpt-4-embedding': 3072,
+};
+
+// The appropriate dimension column is automatically selected
+// based on your embedding model
+```
+
+## Migration System
+
+### Automatic Migrations
+
+Migrations run automatically when the runtime initializes:
+
+```typescript
+// In runtime initialization
+async runPluginMigrations(): Promise<void> {
+  const drizzle = this.adapter.db;
+  
+  for (const plugin of this.plugins) {
+    if (plugin.schema) {
+      await this.adapter.runMigrations(plugin.schema, plugin.name);
+    }
+  }
+}
+```
+
+### Manual Migration Control
+
+For production environments, you may want to control migrations:
+
+```typescript
+import { DatabaseMigrationService } from '@elizaos/plugin-sql';
+
+const migrationService = new DatabaseMigrationService();
+
+// Initialize with database
+await migrationService.initializeWithDatabase(db);
+
+// Register plugin schemas
+migrationService.discoverAndRegisterPluginSchemas(plugins);
+
+// Run migrations with control
+const pendingMigrations = await migrationService.getPendingMigrations();
+console.log(`Found ${pendingMigrations.length} pending migrations`);
+
+if (pendingMigrations.length > 0) {
+  await migrationService.runAllPluginMigrations();
+}
+```
+
+## Advanced Features
+
+### Connection Management
+
+```typescript
+// PostgreSQL connection pooling
+const connectionManager = new PostgresConnectionManager({
+  connectionString: process.env.POSTGRES_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+});
+
+// Test connection health
+const isHealthy = await connectionManager.testConnection();
+
+// Get pool statistics
+const stats = connectionManager.getPoolStats();
+console.log(`Active connections: ${stats.totalCount}`);
+```
+
+### Transaction Support
+
+```typescript
+// Use transactions for complex operations
+await runtime.adapter.withDatabase(async (db) => {
+  await db.transaction(async (tx) => {
+    // Insert entity
+    const [entity] = await tx.insert(entitiesTable).values({
+      agentId: runtime.agentId,
+      names: ['User123'],
+    }).returning();
+    
+    // Create relationship
+    await tx.insert(relationshipsTable).values({
+      entityAId: runtime.agentId,
+      entityBId: entity.id,
+      type: 'knows',
+    });
+    
+    // Create memory
+    await tx.insert(memoriesTable).values({
+      id: createUuid(),
+      agentId: runtime.agentId,
+      entityId: entity.id,
+      content: { text: 'Met a new user' },
+      type: 'interaction',
+    });
+  });
+});
+```
+
+### Custom Queries
+
+```typescript
+// Raw SQL when needed
+const result = await db.execute(sql`
+  SELECT m.*, e.dim_384 <=> ${embedding} as distance
+  FROM memories m
+  JOIN embeddings e ON m.id = e.memory_id
+  WHERE m.agent_id = ${agentId}
+  ORDER BY distance
+  LIMIT ${limit}
+`);
+
+// Complex aggregations
+const stats = await db
+  .select({
+    type: memoriesTable.type,
+    count: count(),
+    avgLength: avg(length(memoriesTable.content)),
+  })
+  .from(memoriesTable)
+  .where(eq(memoriesTable.agentId, agentId))
+  .groupBy(memoriesTable.type);
+```
+
+## Testing
+
+### Test Database Setup
+
+```typescript
+import { createTestDatabase } from '@elizaos/plugin-sql/testing';
+
+describe('My Plugin Tests', () => {
+  let testDb;
+  
+  beforeEach(async () => {
+    testDb = await createTestDatabase(testAgentId, [myPlugin]);
+  });
+  
+  afterEach(async () => {
+    await testDb.cleanup();
+  });
+  
+  test('should create custom records', async () => {
+    const { adapter, runtime } = testDb;
+    
+    // Your tests here
+    await runtime.adapter.db.insert(myPluginSchema.customEventsTable).values({
+      agentId: runtime.agentId,
+      eventType: 'test',
+      payload: { test: true },
+    });
+    
+    const events = await runtime.adapter.db
+      .select()
+      .from(myPluginSchema.customEventsTable);
+      
+    expect(events).toHaveLength(1);
+  });
+});
+```
+
+### Migration Testing
+
+```typescript
+test('plugin schema migrations', async () => {
+  const { adapter } = testDb;
+  
+  // Verify tables exist
+  const tables = await adapter.db.execute(sql`
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public'
+  `);
+  
+  const tableNames = tables.map(t => t.table_name);
+  expect(tableNames).toContain('my_plugin_events');
+  expect(tableNames).toContain('my_plugin_settings');
+});
+```
+
+## Best Practices
+
+### 1. Schema Design
+
+- Use UUIDs for primary keys
+- Always reference agent_id for multi-tenant data
+- Include appropriate indexes for query patterns
+- Use JSONB for flexible metadata
+
+### 2. Plugin Order
+
+```typescript
+// Correct plugin order
+const plugins = [
+  sqlPlugin,           // First - provides database
+  discordPlugin,       // Middle - uses database
+  twitterPlugin,       // Middle - uses database  
+  bootstrapPlugin,     // Last - depends on others
+];
+```
+
+### 3. Error Handling
+
+```typescript
+try {
+  await runtime.adapter.createMemory(memory, 'memories');
+} catch (error) {
+  if (error.code === '23505') {
+    // Handle duplicate key error
+    console.log('Memory already exists');
+  } else {
+    throw error;
+  }
+}
+```
+
+### 4. Performance
+
+- Use batch operations for bulk inserts
+- Implement proper indexes for frequent queries  
+- Use connection pooling in production
+- Consider read replicas for scaling
+
+### 5. Migrations
+
+- Test migrations thoroughly before production
+- Keep migrations idempotent
+- Version your schema changes
+- Document breaking changes
+
+## Troubleshooting
+
+### Common Issues
+
+#### Database adapter not initialized
+
+```typescript
+// Ensure plugin-sql is first in the list
+plugins: [sqlPlugin, ...otherPlugins]
+```
+
+#### Migration failures
+
+```typescript
+// Check for migration errors
+try {
+  await runtime.initialize();
+} catch (error) {
+  if (error.message.includes('migration')) {
+    console.error('Migration failed:', error);
+    // Check schema compatibility
+  }
+}
+```
+
+#### Connection pool exhaustion
+
+```bash
+# Increase pool size
+POSTGRES_MAX_CONNECTIONS=50
+```
+
+## API Reference
+
+### Plugin Export
+
+```typescript
+export const plugin: Plugin = {
+  name: '@elizaos/plugin-sql',
+  description: 'SQL database plugin with dynamic migrations',
+  priority: 0,
+  schema: schema, // All core tables
+  init: async (config, runtime) => {
+    // Initialization logic
+  },
+};
+```
+
+### Schema Exports
+
+```typescript
+import { schema } from '@elizaos/plugin-sql';
+
+// Available tables
+schema.agentsTable
+schema.memoriesTable
+schema.entitiesTable
+schema.embeddingsTable
+schema.roomsTable
+schema.worldsTable
+schema.participantsTable
+schema.relationshipsTable
+schema.tasksTable
+schema.componentsTable
+schema.logsTable
+```
+
+### Adapter Methods
+
+```typescript
+interface IDatabaseAdapter {
+  // Lifecycle
+  init(): Promise<void>;
+  close(): Promise<void>;
+  isReady(): Promise<boolean>;
+  
+  // Schema
+  runMigrations(schema: any, pluginName: string): Promise<void>;
+  
+  // Direct access
+  db: DrizzleDatabase;
+  withDatabase<T>(fn: (db: DrizzleDatabase) => Promise<T>): Promise<T>;
+}
+```
+
+## Conclusion
+
+The SQL plugin provides a robust, type-safe foundation for database operations in ElizaOS. With support for both PostgreSQL and PGlite, dynamic schema migrations, and comprehensive plugin extensions, it enables developers to build scalable agent systems with proper data persistence and management.

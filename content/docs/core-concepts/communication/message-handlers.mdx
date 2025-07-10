@@ -8,18 +8,36 @@ responses, and execute actions. The bootstrap plugin provides the primary messag
 orchestrating the entire agent response lifecycle from message reception to final output.
 
 <Callout type="info">
-**Platform-Agnostic Design**: The `processMessage` function and message handling pipeline are **completely platform-agnostic**. They work identically whether messages come from Discord, Twitter, Telegram, REST API, WebSocket, or any other client. The client type only affects how messages are initially ingested into the system, not how they are processed. This unified approach ensures consistent agent behavior across all platforms.
+**IMPORTANT - Platform-Agnostic Design**: The `processMessage` function is **NOT Discord-specific** - it is **completely platform-agnostic**. Whether messages come from Discord, Twitter, Telegram, REST API, WebSocket, or any other client, they ALL go through the exact same `processMessage` function in the AgentRuntime. 
+
+The client type only affects:
+1. How messages are initially ingested (format conversion)
+2. How responses are delivered back to the platform
+3. Platform-specific features (e.g., Discord embeds, Twitter character limits)
+
+The core message processing, decision making, and response generation are 100% identical across all platforms.
 </Callout>
 
 ## Message Processing Pipeline
 
 The message processing pipeline follows these key stages:
 
+```mermaid
+graph TD
+    A[Client: Discord/Twitter/REST/etc] --> B[Message Bus]
+    B --> C[processMessage Function]
+    C --> D[Platform-Agnostic Processing]
+    D --> E[Response Generation]
+    E --> F[Action Processing]
+    F --> G[Response Delivery]
+    G --> A
+```
+
 1. **Message Reception**: Incoming messages are received via the message bus from any client (Discord, Twitter, REST API, etc.)
 2. **Validation**: Message and agent validation checks
 3. **Memory Storage**: Message saved to agent memory
-4. **Response Decision**: Determine if the agent should respond
-5. **Response Generation**: Create appropriate response content
+4. **Response Decision**: Determine if the agent should respond (using customizable templates)
+5. **Response Generation**: Create appropriate response content (using customizable templates)
 6. **Action Processing**: Execute any required actions
 7. **Response Delivery**: Send response back through the message bus to the originating client
 
@@ -43,8 +61,12 @@ export class MessageBusService extends Service {
 
 1. **Subscription**: Service subscribes to internal message bus events from all client types
 2. **Validation**: Validates server subscription and channel participation
-3. **Processing**: Converts message format and emits to agent runtime (same process for all clients)
+3. **Processing**: Converts message format and emits to agent runtime (**same `processMessage` for all clients**)
 4. **Response**: Handles agent responses and sends back to central bus for client delivery
+
+<Callout type="lightbulb">
+Regardless of whether a message comes from Discord, Twitter, Telegram, REST API, or any other source, it gets converted to the same internal format and processed by the same `processMessage` function. The platform differences are abstracted away at the client layer.
+</Callout>
 
 ```typescript
 private async handleIncomingMessage(message: MessageServiceMessage) {
@@ -119,7 +141,7 @@ The handler determines whether to respond based on various factors:
 const shouldSkipShouldRespond = shouldBypassShouldRespond(runtime, room, message.content.source);
 
 if (!shouldSkipShouldRespond) {
-  // Evaluate if agent should respond
+  // Evaluate if agent should respond using customizable template
   const shouldRespondPrompt = composePromptFromState({
     state,
     template: runtime.character.templates?.shouldRespondTemplate || shouldRespondTemplate,
@@ -137,6 +159,198 @@ if (!shouldSkipShouldRespond) {
     responseObject?.action && !nonResponseActions.includes(responseObject.action.toUpperCase());
 }
 ```
+
+## Available Prompt Templates
+
+ElizaOS uses several key prompt templates that can be customized:
+
+### Core Message Processing Templates
+
+#### shouldRespondTemplate
+Determines if the agent should respond to a message:
+
+```typescript
+export const shouldRespondTemplate = `<task>Decide on behalf of {{agentName}} whether they should respond to the message, ignore it or stop the conversation.</task>
+
+<providers>
+{{providers}}
+</providers>
+
+<instructions>Decide if {{agentName}} should respond to or interact with the conversation.
+If the message is directed at or relevant to {{agentName}}, respond with RESPOND action.
+If a user asks {{agentName}} to be quiet, respond with STOP action.
+If {{agentName}} should ignore the message, respond with IGNORE action.</instructions>
+
+<output>
+<response>
+  <name>{{agentName}}</name>
+  <reasoning>Your reasoning here</reasoning>
+  <action>RESPOND | IGNORE | STOP</action>
+</response>
+</output>`;
+```
+
+#### messageHandlerTemplate
+Generates the agent's response and determines actions:
+
+```typescript
+export const messageHandlerTemplate = `<task>Generate dialog and actions for the character {{agentName}}.</task>
+
+<providers>
+{{providers}}
+</providers>
+
+These are the available valid actions:
+<actionNames>
+{{actionNames}}
+</actionNames>
+
+<instructions>
+Write a thought and plan for {{agentName}} and decide what actions to take.
+
+IMPORTANT ACTION ORDERING RULES:
+- Actions are executed in the ORDER you list them
+- REPLY should come FIRST to acknowledge the user's request
+- Common patterns:
+  - For requests: REPLY,CALL_MCP_TOOL
+  - For tasks: REPLY,SEND_MESSAGE
+  - For multi-step: REPLY,ACTION1,ACTION2
+</instructions>
+
+<output>
+<response>
+    <thought>Your thought here</thought>
+    <actions>ACTION1,ACTION2</actions>
+    <providers>PROVIDER1,PROVIDER2</providers>
+    <text>Your response text here</text>
+</response>
+</output>`;
+```
+
+### Content Creation Templates
+
+#### postCreationTemplate
+For creating social media posts:
+
+```typescript
+export const postCreationTemplate = `# Task: Create a post in the voice and style of {{agentName}}.
+
+<response>
+  <thought>I am thinking about writing a post about [topic]</thought>
+  <post>The actual post content</post>
+  <imagePrompt>A description for an image to accompany the post</imagePrompt>
+</response>`;
+```
+
+#### imageDescriptionTemplate
+For processing and describing images:
+
+```typescript
+export const imageDescriptionTemplate = `<task>Describe the image for {{agentName}}</task>
+
+<output>
+<response>
+  <title>Short title for the image</title>
+  <description>Detailed description of what's in the image</description>
+  <text>Natural language description as if explaining to someone</text>
+</response>
+</output>`;
+```
+
+### Specialized Templates
+
+#### continueTemplate
+For continuing conversations:
+
+```typescript
+export const continueTemplate = `<task>Continue the conversation as {{agentName}}</task>
+
+<instructions>
+Continue naturally, maintaining character personality and context.
+</instructions>`;
+```
+
+#### evaluationTemplate
+For evaluating content or situations:
+
+```typescript
+export const evaluationTemplate = `<task>Evaluate the following as {{agentName}}</task>
+
+<instructions>
+Provide thoughtful evaluation based on the character's knowledge and perspective.
+</instructions>`;
+```
+
+### Customizing Templates
+
+You can customize templates at three levels:
+
+#### 1. Character-Level Customization
+
+```json
+{
+  "name": "TechSupport",
+  "bio": ["Technical support specialist"],
+  "templates": {
+    "shouldRespondTemplate": "<task>As a tech support agent, determine if this message needs assistance...</task>",
+    "messageHandlerTemplate": "<task>Provide technical support as {{agentName}}...</task>",
+    "postCreationTemplate": "<task>Create a tech tip post...</task>"
+  }
+}
+```
+
+#### 2. Runtime Template Override
+
+```typescript
+// Override templates during runtime
+runtime.character.templates = {
+  ...runtime.character.templates,
+  messageHandlerTemplate: customMessageTemplate,
+  shouldRespondTemplate: customShouldRespondTemplate
+};
+```
+
+#### 3. Plugin-Based Templates
+
+```typescript
+export const customPlugin: Plugin = {
+  name: 'custom-templates',
+  actions: [],
+  providers: [],
+  evaluators: [],
+  services: [],
+  
+  // Initialize custom templates
+  async onInitialize(runtime: IAgentRuntime) {
+    if (!runtime.character.templates) {
+      runtime.character.templates = {};
+    }
+    
+    // Set custom templates based on character type
+    if (runtime.character.type === 'support') {
+      runtime.character.templates.messageHandlerTemplate = supportAgentTemplate;
+      runtime.character.templates.shouldRespondTemplate = supportShouldRespondTemplate;
+    }
+  }
+};
+```
+
+### Template Variables Reference
+
+All templates have access to these variables:
+
+| Variable | Description | Example Value |
+|----------|-------------|---------------|
+| `{{agentName}}` | The agent's character name | "TechHelper" |
+| `{{providers}}` | Formatted provider data | "KNOWLEDGE: ...\nFACTS: ..." |
+| `{{actionNames}}` | Available action names | "REPLY,IGNORE,FOLLOW_ROOM" |
+| `{{recentMessages}}` | Recent conversation history | Last N messages |
+| `{{relevantKnowledge}}` | Knowledge base matches | Related facts |
+| `{{characterBio}}` | Agent's bio | Character background |
+| `{{messageText}}` | Current message content | "Hello, can you help?" |
+| `{{userName}}` | Message author's name | "John Doe" |
+| `{{roomId}}` | Current room/channel ID | UUID |
+| `{{worldContext}}` | World/environment data | Context information |
 
 ### Bypass Conditions
 

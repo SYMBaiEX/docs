@@ -1,16 +1,168 @@
 ---
 title: Templates
-description: Ready-to-use examples and templates for ElizaOS
+description: Ready-to-use agent templates for different use cases
 ---
 
-## Contents
+## Available Templates
 
-This section provides templates and examples that you can use as starting points for your own
-projects.
+Choose from our growing collection of pre-configured agent templates. Each template includes a complete character file, setup instructions, and customization tips.
 
-Topics include:
+<Cards>
+  <Card title="Discord Community Agent" href="./discord-agent">
+    Natural conversationalist for Discord servers. Perfect for community engagement.
+  </Card>
+  <Card title="Twitter Agent" href="./twitter-agent">
+    Social media personality that posts and engages on Twitter/X.
+  </Card>
+  <Card title="Helpful Assistant" href="./helpful-assistant">
+    General-purpose AI assistant for tasks, questions, and support.
+  </Card>
+  <Card title="Creative Writer" href="./creative-writer">
+    Imaginative companion for storytelling, poetry, and creative writing.
+  </Card>
+  <Card title="Gaming Buddy" href="./gaming-buddy">
+    Enthusiastic gaming companion for tips, discussions, and community.
+  </Card>
+</Cards>
 
-- Agent character templates
-- Plugin configuration examples
-- Deployment templates
-- Common use case examples
+## Quick Start with Templates
+
+<Steps>
+<Step>
+## Choose a Template
+
+Browse the templates above and pick one that matches your needs. Each template is fully functional and can be customized.
+
+</Step>
+<Step>
+## Copy the Character File
+
+Each template includes a complete character JSON file. Copy it to your project:
+
+```bash
+# Create characters directory
+mkdir -p characters
+
+# Create your character file
+nano characters/my-agent.json
+# Paste the template JSON
+```
+
+</Step>
+<Step>
+## Configure Environment
+
+Set up the required environment variables:
+
+```bash
+# Add your API key
+echo "OPENAI_API_KEY=your-key-here" > .env
+
+# Add platform-specific keys if needed
+echo "DISCORD_API_TOKEN=your-token" >> .env
+```
+
+</Step>
+<Step>
+## Start Your Agent
+
+```bash
+# Run with your template
+elizaos dev --character characters/my-agent.json
+```
+
+</Step>
+</Steps>
+
+## Template Categories
+
+### Social & Community
+- **Discord Agent**: Community engagement and moderation
+- **Twitter Agent**: Social media presence and content
+- **Telegram Bot**: Group chat assistant
+
+### Productivity & Support
+- **Helpful Assistant**: General Q&A and task help
+- **Tech Support**: IT and technical assistance
+- **Study Buddy**: Educational support and tutoring
+
+### Creative & Entertainment
+- **Creative Writer**: Story and content creation
+- **Gaming Buddy**: Gaming tips and community
+- **Role-Play Character**: Interactive storytelling
+
+### Business & Professional
+- **Customer Service**: Support ticket handling
+- **Sales Assistant**: Product information and recommendations
+- **HR Helper**: Employee questions and onboarding
+
+## Customization Tips
+
+### Personality Adjustment
+
+Every template can be customized. Common modifications:
+
+```json
+// Make more formal
+"style": {
+  "all": ["professional", "courteous", "precise"]
+}
+
+// Make more casual
+"style": {
+  "all": ["friendly", "relaxed", "conversational"]
+}
+```
+
+### Adding Capabilities
+
+Enhance templates with additional plugins:
+
+```json
+"plugins": [
+  "@elizaos/plugin-sql",
+  "@elizaos/plugin-openai",
+  "@elizaos/plugin-bootstrap",
+  "@elizaos/plugin-image",      // Add image generation
+  "@elizaos/plugin-web-search"  // Add web search
+]
+```
+
+### Platform Integration
+
+Templates work across platforms:
+
+- **Web Interface**: Default for all templates
+- **Discord**: Add `@elizaos/plugin-discord`
+- **Telegram**: Add `@elizaos/plugin-telegram`
+- **Twitter**: Add `@elizaos/plugin-twitter`
+- **API**: Built-in REST API endpoints
+
+## Creating Your Own Template
+
+Use our templates as a starting point, then:
+
+1. **Modify the personality** to match your vision
+2. **Add specific knowledge** relevant to your use case
+3. **Include example conversations** that show desired behavior
+4. **Test extensively** with real users
+5. **Share with the community** if it's useful!
+
+## Community Templates
+
+Have a great template? Share it with the community:
+
+1. Fork the ElizaOS repository
+2. Add your template to `/templates`
+3. Include documentation and examples
+4. Submit a pull request
+
+## Support
+
+- **Discord**: Get help with templates
+- **GitHub**: Report issues or contribute
+- **Docs**: Full customization guide
+
+---
+
+**Note**: All templates are starting points. The magic happens when you customize them for your specific needs!

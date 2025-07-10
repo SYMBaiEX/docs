@@ -160,6 +160,26 @@ Show how your agent should respond using the proper message format:
 </Step>
 </Steps>
 
+## Testing Your Character
+
+After creating your character file, test it:
+
+```bash
+# Navigate to your project
+cd my-agent
+
+# Create your character file
+nano characters/my-character.json
+
+# Test with the CLI
+elizaos dev --character characters/my-character.json
+```
+
+Watch for:
+- Does the agent use the right name?
+- Does the personality come through?
+- Are responses in the expected style?
+
 ## Complete Character Examples
 
 ### Example 1: Friendly Assistant
